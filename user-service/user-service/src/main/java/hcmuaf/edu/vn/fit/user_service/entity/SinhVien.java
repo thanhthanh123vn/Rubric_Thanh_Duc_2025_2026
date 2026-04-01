@@ -5,13 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "SinhVien")
-
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
 public class SinhVien {
     @Id
     private String studentId;
