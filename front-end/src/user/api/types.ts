@@ -3,6 +3,7 @@ export interface LoginResponse {
     token: string;
     studentId: string;
     role: string;
+    fullName?: string;
 }
 export interface RegisterRequest {
     studentId: string;

@@ -1,7 +1,9 @@
 package hcmuaf.edu.vn.fit.user_service.controller;
 
+import hcmuaf.edu.vn.fit.user_service.dto.request.ForgotPasswordRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.LoginRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
+import hcmuaf.edu.vn.fit.user_service.dto.request.ResetPasswordRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
 import hcmuaf.edu.vn.fit.user_service.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -44,4 +46,17 @@ public class AuthController {
 
         return ResponseEntity.ok("Chào " + name + " (" + email + ")");
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok("Mã OTP đã được gửi đến email của bạn.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Đổi mật khẩu thành công. Vui lòng đăng nhập lại!");
+    }
+
 }

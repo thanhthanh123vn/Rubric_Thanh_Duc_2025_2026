@@ -8,7 +8,7 @@ import {Checkbox} from "../components/ui/checkbox"
 import {Label} from "../components/ui/label"
 import authService from '../user/api/authService';
 import {LoginResponse} from '../user/api/types';
-
+import { useNavigate } from 'react-router-dom';
 type UserRole = "student" | "teacher"
 
 
@@ -20,7 +20,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [rememberMe, setRememberMe] = useState(false)
     const [identifier, setIdentifier] = useState<string>('');
-
+    const navigate = useNavigate();
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -33,17 +33,25 @@ export default function LoginPage() {
         }
 
         try {
-
             const data: LoginResponse = await authService.login({
                 identifier: currentIdentifier,
-                password: password
+                password: password,
+
+
             });
 
             localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify({ studentId: data.studentId, role: data.role }));
+            localStorage.setItem('user', JSON.stringify({
+                studentId: data.studentId,
+                role: data.role,
+                fullName: data.fullName
+            }));
 
-            alert("Đăng nhập thành công! Chào Thạnh " + data.studentId);
-            // Chuyển hướng trang nếu cần: navigate('/dashboard');
+
+            const displayName = data.fullName ? data.fullName : data.studentId;
+            alert(`Đăng nhập thành công! Chào ${displayName}`);
+            navigate('/dashboard');
+
 
         } catch (error: any) {
             console.error("Lỗi Login:", error);
@@ -54,6 +62,11 @@ export default function LoginPage() {
         e.preventDefault();
         authService.loginWithGoogle();
     };
+
+    function forgotPassword() {
+        navigate("/forgot-password");
+    }
+
     return (
         <div className="min-h-screen flex">
             {/* Left Column - Branding */}
@@ -226,7 +239,7 @@ export default function LoginPage() {
                                 </Label>
                             </div>
                             <a
-                                href="#"
+                                onClick={forgotPassword}
                                 className="text-sm text-emerald-700 hover:text-emerald-800 hover:underline font-medium"
                             >
                                 Quên mật khẩu?
