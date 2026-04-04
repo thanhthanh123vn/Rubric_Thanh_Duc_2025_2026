@@ -28,5 +28,31 @@ const authService = {
     }
 
 };
+export const getProfile = async (studentId: string) => {
+    const token = localStorage.getItem('token');
+    const response = await api.get(`/sinhvien/profile/${studentId}`, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+export const updateProfile = async (studentId: string, data: any) => {
+    const response = await api.put(`/sinhvien/profile/${studentId}`, data);
+    return response.data;
+};
+export const forgotPassword = async (email: string) => {
+    const response = await api.post(`/auth/forgot-password`, { email });
+    return response.status;
+}
 
+
+export const resetPassword = async (email: string, otp: string, newPassword: string) => {
+    const response = await api.post(`/auth/reset-password`, {
+        email: email,
+        otp: otp,
+        newPassword: newPassword
+    });
+    return response.status;
+}
 export default authService;

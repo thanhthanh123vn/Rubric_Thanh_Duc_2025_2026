@@ -32,7 +32,17 @@ spring:
             scope:
               - email
               - profile
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GOOGLE_APP_USERNAME}
+    password: ${GOOGLE_APP_PW}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 eureka:
   client:
     service-url:

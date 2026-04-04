@@ -5,6 +5,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "Users")
 @Builder
@@ -22,4 +25,7 @@ public class User {
     private String role; // STUDENT, TEACHER
     private String authProvider; // LOCAL, GOOGLE
     private String googleId;
+
+    private String resetOtp;
+    private LocalDateTime resetOtpExpiry;
 }
