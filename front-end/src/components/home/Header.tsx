@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Menu, Plus, Grid3x3, Circle, Search, UserIcon, LogOut, UserPlus} from 'lucide-react';
-import {useNavigate} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import {getProfile} from "../../user/api/authService";
 
 interface UserInfo {
@@ -22,7 +22,10 @@ const Header = ({onMenuClick}: HeaderProps) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const [user, setUser] = useState<UserInfo | null>(null);
     const [showJoinClass, setShowJoinClass] = useState(false);
+
     const router = useNavigate();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         fullName: '',
         dateOfBirth: '',
@@ -103,20 +106,22 @@ const Header = ({onMenuClick}: HeaderProps) => {
                 >
                     <Menu size={24}/>
                 </button>
-                <div className="font-bold text-emerald-700 text-lg sm:text-xl hidden lg:block">
+                <div onClick={() => navigate("/dashboard")} className="font-bold text-emerald-700 text-lg sm:text-xl hidden lg:block hover:cursor-pointer">
                     Hệ thống Đánh giá OBE
                 </div>
             </div>
 
 
             <div className="flex items-center gap-2 relative" ref={menuRef}>
-                <button
-                    onClick={() => setShowJoinClass(true)}
-                    className="w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-2xl font-bold text-emerald-600 hover:text-emerald-700 hover:ring-1 hover:ring-emerald-100 transition-all duration-200"
-                >
-                    +
-                </button>
-
+                {
+                    location.pathname === '/dashboard' && (
+                        <button
+                            onClick={() => setShowJoinClass(true)}
+                            className="w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-2xl font-bold text-emerald-600 hover:text-emerald-700 hover:ring-1 hover:ring-emerald-100 transition-all duration-200"
+                        >
+                            +
+                        </button>
+                    )}
                 {showJoinClass && (
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
 

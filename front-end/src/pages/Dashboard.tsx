@@ -94,7 +94,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 pb-10">
               {courses.map((course) => (
                   <CourseCard
-                      key={course.id}
+                      id={course.id}
                       courseTitle={course.courseTitle}
                       lecturerName={course.lecturerName}
                       obeProgress={course.obeProgress}
