@@ -57,7 +57,7 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.identifier())
                 .orElseThrow(() -> new RuntimeException("Sai tài khoản!"));
-
+        System.out.println(request.password());
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new RuntimeException("Sai mật khẩu!");
         }
