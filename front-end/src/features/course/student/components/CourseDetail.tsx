@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../../../components/home/Header";
+import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar"
 
 const Banner = () => {

@@ -4,7 +4,8 @@ import {
     ClipboardList,
     Users,
     Bell,
-    Users2
+    Users2,
+    BarChart3
 } from "lucide-react";
 import { NavLink, useParams } from "react-router-dom";
 
@@ -25,6 +26,18 @@ const ClassSidebar = () => {
             path: "assignments",
         },
         {
+            key: "obe",
+            icon: BarChart3,
+            label: "Tiến độ OBE",
+            path: "obe",
+        },
+        {
+            key: "groups",
+            icon: Users2,
+            label: "Nhóm của tôi",
+            path: "groups",
+        },
+        {
             key: "students",
             icon: Users,
             label: "Sinh viên",
@@ -35,12 +48,6 @@ const ClassSidebar = () => {
             icon: Bell,
             label: "Thông báo",
             path: "notifications",
-        },
-        {
-            key: "groups",
-            icon: Users2,
-            label: "Quản lý nhóm",
-            path: "groups",
         },
     ];
 
@@ -58,7 +65,7 @@ const ClassSidebar = () => {
                         <NavLink
                             key={item.key}
                             to={`/course/${id}/${item.path}`}
-                            end={item.path === ""} // để active đúng cho posts
+                            end={item.path === ""}
                             className={({ isActive }) =>
                                 `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                                     isActive

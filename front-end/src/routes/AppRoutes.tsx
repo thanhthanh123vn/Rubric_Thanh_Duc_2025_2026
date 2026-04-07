@@ -3,9 +3,12 @@ import Dashboard from "../pages/Dashboard";
 import RegisterPage from "../user/RegisterPage";
 import ForgotPasswordPage from "../user/ForgotPasswordPage"
 import AccountManagement from '../user/AccountManagement/AccountManagement'
-import CourseDetail from "../features/course/components/CourseDetail";
+import CourseDetail from "../features/course/student/components/CourseDetail";
 import LoginPage from "../user/login";
-import CourseStudentList from "../features/course/components/CourseStudentList";
+import CourseStudentList from "../features/course/student/components/CourseStudentList";
+import CourseOBE from "../features/course/student/components/CourseOBE";
+import CourseAssignments from "../features/course/student/components/CourseAssignments";
+import CourseGroups from "../features/course/student/components/CourseGroups";
 
 
 const AppRoutes = () => {
@@ -16,6 +19,9 @@ const AppRoutes = () => {
 
                 <Route path="/course/:id" element={<CourseDetail/>}></Route>
                 <Route path="/course/:id/students" element={<CourseStudentList/>}></Route>
+                <Route path="/course/:id/obe" element={<CourseOBE />} />
+                <Route path="/course/:id/assignments" element={<CourseAssignments />} />
+                <Route path="/course/:id/groups" element={<CourseGroups />} />
 
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/login" element={<LoginPage />} />
