@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:front-end/front-end/src/styles/theme.css
 @custom-variant dark (&:is(.dark *));
+========
+@import "../../node_modules/tailwindcss/dist/lib.d.mts";
+>>>>>>>> 722968da80a328ec673e635157a3acaa9c1ae94f:front-end/src/styles/globals.css
 
 :root {
   --font-size: 16px;

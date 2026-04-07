@@ -1,23 +1,27 @@
 import React from 'react';
 import { FileCheck, TrendingUp } from 'lucide-react';
+import {useNavigate} from "react-router-dom";
 
 interface CourseCardProps {
-  courseTitle: string;
-  lecturerName: string;
-  obeProgress: number;
-  semester: string;
 
-  colorClass?: string;
+    id : number;
+    courseTitle: string;
+    lecturerName: string;
+    obeProgress: number;
+    semester: string;
+    colorClass?: string;
 }
 
 const CourseCard: React.FC<CourseCardProps> = ({
+                                                 id,
                                                  courseTitle,
                                                  lecturerName,
                                                  obeProgress,
                                                  semester,
                                                  colorClass = "from-emerald-600 to-emerald-500" // Mặc định là xanh Nông Lâm
                                                }) => {
-  return (
+    const navigate = useNavigate();
+    return (
       // Thêm Shadow nhẹ và bo góc tròn hơn (rounded-xl)
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group">
 
@@ -53,7 +57,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
             <div className="pt-2 border-t border-gray-50 flex items-center justify-between text-sm">
               <span className="text-gray-500 italic">{lecturerName}</span>
-              <button className="text-emerald-700 font-semibold hover:underline">
+              <button onClick={() => navigate(`/course/${id}`)} className="text-emerald-700 font-semibold hover:underline">
                 Chi tiết
               </button>
             </div>

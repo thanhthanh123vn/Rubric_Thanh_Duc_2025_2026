@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Menu, Plus, Grid3x3, Circle, Search, UserIcon, LogOut, UserPlus} from 'lucide-react';
-import {useNavigate} from "react-router-dom";
+import {useLocation, useNavigate} from "react-router-dom";
 import {getProfile} from "../../user/api/authService";
 
 interface UserInfo {
@@ -21,7 +21,11 @@ const Header = ({onMenuClick}: HeaderProps) => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [user, setUser] = useState<UserInfo | null>(null);
+    const [showJoinClass, setShowJoinClass] = useState(false);
+
     const router = useNavigate();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         fullName: '',
         dateOfBirth: '',
@@ -78,9 +82,9 @@ const Header = ({onMenuClick}: HeaderProps) => {
         router('/login');
     };
 
-    if (!user) {
-        return <div className="flex h-screen items-center justify-center">Đang tải thông tin...</div>;
-    }
+    // if (!user) {
+    //     return <div className="flex h-screen items-center justify-center">Đang tải thông tin...</div>;
+    // }
     const getInitial = (name?: string) => {
         if (!name) return "U";
         const words = name.trim().split(' ');
@@ -102,13 +106,83 @@ const Header = ({onMenuClick}: HeaderProps) => {
                 >
                     <Menu size={24}/>
                 </button>
-                <div className="font-bold text-emerald-700 text-lg sm:text-xl hidden lg:block">
+                <div onClick={() => navigate("/dashboard")} className="font-bold text-emerald-700 text-lg sm:text-xl hidden lg:block hover:cursor-pointer">
                     Hệ thống Đánh giá OBE
                 </div>
             </div>
 
 
-            <div className="relative" ref={menuRef}>
+            <div className="flex items-center gap-2 relative" ref={menuRef}>
+                {
+                    location.pathname === '/dashboard' && (
+                        <button
+                            onClick={() => setShowJoinClass(true)}
+                            className="w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-2xl font-bold text-emerald-600 hover:text-emerald-700 hover:ring-1 hover:ring-emerald-100 transition-all duration-200"
+                        >
+                            +
+                        </button>
+                    )}
+                {showJoinClass && (
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+
+                        {/* Modal */}
+                        <div className="bg-white w-[92%] max-w-md rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+
+                            {/* Title */}
+                            <h2 className="text-2xl font-semibold text-gray-900 mb-5">
+                                Tham gia lớp học
+                            </h2>
+
+                            {/* Input */}
+                            <div className="mb-5">
+                                <label className="block text-sm text-gray-600 mb-1">
+                                    Mã lớp
+                                </label>
+
+                                <input
+                                    type="text"
+                                    placeholder="VD: ABC123"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                                />
+
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Giáo viên sẽ cung cấp mã lớp cho bạn.
+                                </p>
+                            </div>
+
+                            {/* Guide */}
+                            <div className="mb-6 bg-gray-50 rounded-lg p-3">
+                                <h3 className="text-sm font-medium text-gray-800 mb-2">
+                                    Hướng dẫn
+                                </h3>
+
+                                <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
+                                    <li>Dùng tài khoản được cấp</li>
+                                    <li>Mã gồm 5–8 ký tự, không dấu cách</li>
+                                </ul>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowJoinClass(false)}
+                                    className="px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                                >
+                                    Huỷ
+                                </button>
+
+                                <button
+                                    className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 active:scale-95 transition-all"
+                                >
+                                    Tham gia
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                )}
+
+
                 <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                     className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-base lg:text-lg hover:ring-4 hover:ring-gray-100 transition-all focus:outline-none"
@@ -123,7 +197,7 @@ const Header = ({onMenuClick}: HeaderProps) => {
 
                         <div className="bg-white rounded-xl sm:rounded-[24px] p-5 flex flex-col items-center shadow-sm">
                 <span className="text-xs sm:text-sm font-medium text-gray-800 break-all text-center">
-                {`${user.studentId}@st.hcmuaf.edu.vn`}
+                {/*{`${user.studentId}@st.hcmuaf.edu.vn`}*/}
                 </span>
 
                             <div
@@ -132,7 +206,7 @@ const Header = ({onMenuClick}: HeaderProps) => {
                             </div>
 
                             <h2 className="text-lg sm:text-xl text-gray-900 font-normal text-center break-words w-full">
-                                Hi, {formData.fullName || user.studentId}!
+                                {/*Hi, {formData.fullName || user.studentId}!*/}
                             </h2>
 
                             <button
