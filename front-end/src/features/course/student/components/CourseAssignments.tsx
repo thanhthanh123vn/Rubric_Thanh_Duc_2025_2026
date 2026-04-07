@@ -1,6 +1,7 @@
-import React from "react";
+import React, {useRef} from "react";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
+import {useNavigate, useParams} from "react-router-dom";
 
 const Banner = () => {
     return (
@@ -11,7 +12,10 @@ const Banner = () => {
     );
 };
 
-const AssignmentCard = ({ title, dueDate, status }: any) => {
+const AssignmentCard = ({ id, title, dueDate, status, clos }: any) => {
+    const navigate = useNavigate();
+    const { id: courseId } = useParams();
+
     const getStatusColor = () => {
         switch (status) {
             case "Chưa nộp":
@@ -38,11 +42,26 @@ const AssignmentCard = ({ title, dueDate, status }: any) => {
         }
     };
 
+    const handleClick = () => {
+        navigate(`/course/${courseId}/assignments/${id}`);
+    };
+
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4 hover:shadow-md transition">
             <div className="flex justify-between items-start">
                 <div>
                     <h3 className="font-semibold text-gray-900">{title}</h3>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {clos?.map((clo: string, index: number) => (
+                            <span
+                                key={index}
+                                className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md"
+                            >
+                                {clo}
+                             </span>
+                        ))}
+                    </div>
                     <p className="text-sm text-gray-500 mt-1">Hạn nộp: {dueDate}</p>
                 </div>
 
@@ -58,33 +77,40 @@ const AssignmentCard = ({ title, dueDate, status }: any) => {
             </div>
 
             <div className="mt-4 flex justify-end">
-                <button className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition">
+                <button
+                    onClick={handleClick}
+                    className="text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+                >
                     {status === "Chưa nộp" ? "Nộp bài" : "Xem chi tiết"}
                 </button>
             </div>
         </div>
     );
 };
-
 const CourseAssignments = () => {
     const assignments = [
         {
+            id: 1,
             title: "Assignment 1 - Thiết kế UI",
             dueDate: "10/04/2026",
             status: "Đã chấm",
+            clos: ["CLO1", "CLO2"],
         },
         {
+            id: 2,
             title: "Assignment 2 - Xây dựng API",
             dueDate: "15/04/2026",
             status: "Đã nộp",
+            clos: ["CLO2"],
         },
         {
+            id: 3,
             title: "Assignment 3 - Hoàn thiện hệ thống",
             dueDate: "20/04/2026",
             status: "Chưa nộp",
+            clos: ["CLO2", "CLO3"],
         },
     ];
-
     return (
         <div className="bg-gray-50 min-h-screen">
             {/* HEADER */}

@@ -9,6 +9,7 @@ import CourseStudentList from "../features/course/student/components/CourseStude
 import CourseOBE from "../features/course/student/components/CourseOBE";
 import CourseAssignments from "../features/course/student/components/CourseAssignments";
 import CourseGroups from "../features/course/student/components/CourseGroups";
+import AssignmentDetail from "../features/course/student/components/AssignmentDetail";
 
 
 const AppRoutes = () => {
@@ -21,6 +22,7 @@ const AppRoutes = () => {
                 <Route path="/course/:id/students" element={<CourseStudentList/>}></Route>
                 <Route path="/course/:id/obe" element={<CourseOBE />} />
                 <Route path="/course/:id/assignments" element={<CourseAssignments />} />
+                <Route path="/course/:id/assignments/:assignmentId" element={<AssignmentDetail />} />
                 <Route path="/course/:id/groups" element={<CourseGroups />} />
 
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
