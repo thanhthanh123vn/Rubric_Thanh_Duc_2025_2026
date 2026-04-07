@@ -28,4 +28,6 @@ public class SinhVienController {
         return ResponseEntity.ok(sinhVienService.getProfile(studentId));
     }
 
+
+
 }

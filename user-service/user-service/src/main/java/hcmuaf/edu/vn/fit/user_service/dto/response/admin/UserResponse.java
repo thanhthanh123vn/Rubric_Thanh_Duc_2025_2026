@@ -1,4 +1,11 @@
 package hcmuaf.edu.vn.fit.user_service.dto.response.admin;
 
-public class UserResponse {
+
+public record UserResponse(
+        String userId,
+        String username,
+        String email,
+        String role,
+        String authProvider
+) {
 }
