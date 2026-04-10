@@ -12,7 +12,7 @@ import org.mapstruct.MappingTarget;
 public interface SinhVienMapper {
 
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "studentId", source = "studentId")
+    @Mapping(target = "studentId", source = "Id")
     @Mapping(target = "fullName", source = "fullName")
     SinhVien toEntity(RegisterRequest request);
 

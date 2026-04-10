@@ -10,8 +10,8 @@ import org.mapstruct.Mapping;
 public interface UserMapper {
 
 
-    @Mapping(target = "userId", source = "studentId")
-    @Mapping(target = "username", source = "studentId")
+    @Mapping(target = "userId", source = "Id")
+    @Mapping(target = "username", source = "Id")
     @Mapping(target = "passwordHash", ignore = true)
     User toUser(RegisterRequest request);
 

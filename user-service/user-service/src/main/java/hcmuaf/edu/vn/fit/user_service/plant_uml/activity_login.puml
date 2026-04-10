@@ -1,0 +1,50 @@
+@startuml
+skinparam style strictuml
+
+|Người dùng (Khách)|
+start
+:Truy cập trang Đăng nhập (/login);
+:Nhập Username/Email và Password;
+:Bấm nút "Đăng nhập";
+
+|Frontend (React)|
+:Validate form (không được để trống);
+:Gọi API POST /api/auth/login;
+
+|Backend (User Service)|
+:Nhận thông tin đăng nhập;
+:Tìm User trong Database theo Username;
+if (Tài khoản tồn tại?) then (Có)
+    :So sánh Password (Bcrypt);
+    if (Password khớp?) then (Có)
+        :Tạo chuỗi JWT Token\n(chứa thông tin Role, ID);
+        :Trả về HTTP 200\n(Token + UserInfo);
+
+        |Frontend (React)|
+        :Lưu JWT Token vào localStorage;
+        :Gắn Token vào Header Axios (Bearer);
+        if (Role là ADMIN?) then (Đúng)
+            :Chuyển hướng /admin/dashboard;
+        else (Sai)
+            if (Role là TEACHER?) then (Đúng)
+                :Chuyển hướng /teacher/courses;
+            else (Sinh viên)
+                :Chuyển hướng /student/courses;
+            endif
+        endif
+    else (Không)
+        |Backend (User Service)|
+        :Trả về lỗi 401 Unauthorized;
+        |Frontend (React)|
+        :Hiển thị lỗi "Sai mật khẩu";
+    endif
+else (Không)
+    |Backend (User Service)|
+    :Trả về lỗi 404 Not Found;
+    |Frontend (React)|
+    :Hiển thị lỗi "Tài khoản không tồn tại";
+endif
+
+|Người dùng (Khách)|
+stop
+@enduml

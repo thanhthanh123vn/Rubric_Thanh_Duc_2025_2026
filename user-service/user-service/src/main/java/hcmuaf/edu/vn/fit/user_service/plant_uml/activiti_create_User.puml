@@ -1,0 +1,92 @@
+@startuml
+skinparam style strictuml
+skinparam DefaultFontName Arial
+
+|Admin|
+start
+:Đăng nhập thành công;
+:Truy cập trang Quản lý Người dùng\n(/admin/users);
+
+|Frontend (React)|
+:Trạng thái: isLoading = true;
+:Gọi API GET /api/users\n(page=0, size=10, keyword='');
+
+|Backend (User Service)|
+:Nhận Request lấy danh sách;
+:Query DB theo keyword (nếu có)\nvà phân trang (Pageable);
+:Trả về Page<UserResponse>;
+
+|Frontend (React)|
+:Lưu data.content vào State (users);
+:Lưu data.totalPages;
+:Hiển thị Bảng/Card danh sách;
+
+|Admin|
+fork
+    :Nhập từ khóa tìm kiếm (Search);
+    |Frontend (React)|
+    :Debounce 500ms;
+    :Reset currentPage = 0;
+    :Gọi lại API GET với keyword;
+    |Backend (User Service)|
+    :Trả về kết quả tìm kiếm;
+    |Frontend (React)|
+    :Cập nhật lại giao diện;
+
+fork again
+    |Admin|
+    :Bấm nút "Trang sau / Trang trước";
+    |Frontend (React)|
+    :Thay đổi currentPage (+1 hoặc -1);
+    :Gọi lại API GET với page mới;
+    |Backend (User Service)|
+    :Trả về dữ liệu trang tương ứng;
+    |Frontend (React)|
+    :Cập nhật lại giao diện;
+
+fork again
+    |Admin|
+    :Bấm "Tạo người dùng";
+    |Frontend (React)|
+    :Chuyển sang trang CreateUser;
+    |Admin|
+    :Điền Form (ID, Tên, Email, Mật khẩu, Role);
+    :Bấm "Lưu người dùng";
+    |Frontend (React)|
+    :Kiểm tra Validation Frontend;
+    :Gọi API POST /api/users;
+    |Backend (User Service)|
+    :Validate dữ liệu (trùng ID/Email?);
+    if (Hợp lệ?) then (Có)
+        :Mã hóa mật khẩu;
+        :Lưu vào Database;
+        :Trả về HTTP 200 OK;
+        |Frontend (React)|
+        :Hiện thông báo Thành công;
+        :Chuyển hướng về trang Danh sách;
+    else (Không)
+        |Backend (User Service)|
+        :Trả về HTTP 400 Bad Request;
+        |Frontend (React)|
+        :Hiện thông báo Lỗi;
+    endif
+
+fork again
+    |Admin|
+    :Bấm "Xóa";
+    |Frontend (React)|
+    :Hiện Popup xác nhận;
+    if (Xác nhận xóa?) then (Có)
+        :Gọi API DELETE /api/users/{id};
+        |Backend (User Service)|
+        :Xóa dữ liệu trong DB;
+        :Trả về HTTP 200;
+        |Frontend (React)|
+        :Load lại danh sách;
+    else (Hủy)
+    endif
+end fork
+
+|Admin|
+stop
+@enduml

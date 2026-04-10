@@ -23,7 +23,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
         authService.register(request);
-        return ResponseEntity.ok("Đăng ký thành công sinh viên " + request.studentId());
+        return ResponseEntity.ok("Đăng ký thành công sinh viên " + request.Id());
     }
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
