@@ -1,4 +1,4 @@
-package hcmuaf.edu.vn.fit.user_service.dto.response.admin;
+package hcmuaf.edu.vn.fit.user_service.dto.response;
 
 
 public record UserResponse(

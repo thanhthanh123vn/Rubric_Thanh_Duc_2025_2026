@@ -1,9 +1,9 @@
-package hcmuaf.edu.vn.fit.user_service.controller.admin;
+package hcmuaf.edu.vn.fit.user_service.controller;
 
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.response.admin.UserResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,8 +11,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -31,7 +33,10 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         return ResponseEntity.ok(userService.getAllUsers(keyword, pageable));
     }
-
+    @GetMapping("/batch")
+    public Map<String, UserResponse> getUsers(@RequestParam List<String> ids) {
+        return userService.getUsers(ids);
+    }
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable String userId) {
         return ResponseEntity.ok(userService.getUserById(userId));
