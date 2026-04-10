@@ -3,7 +3,7 @@ package hcmuaf.edu.vn.fit.user_service.service;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.response.admin.UserResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
@@ -13,6 +13,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +37,15 @@ public class UserService {
         return users.map(userMapper::toUserResponse);
     }
 
+    public Map<String,UserResponse> getUsers(List<String> ids){
+        List<User>  users = userRepository.findAllById(ids);
 
+        return users.stream()
+                .collect(Collectors.toMap(
+                        User::getUserId,
+                        userMapper::toUserResponse
+                ));
+    }
     public UserResponse getUserById(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
