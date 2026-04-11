@@ -9,7 +9,9 @@ import LoginPage from "@/user/login";
 
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLayout from "@/pages/admin/AdminLayout";
-import UserManagement from "@/pages/admin/UserManagement";
+import UserManagement from "@/pages/admin/managerUser/UserManagement";
+import AdminCreateUser from "@/pages/admin/managerUser/AdminCreateUser";
+import ListStudent from "@/pages/admin/managerUser/StudentManagement"
 
 export const router = createBrowserRouter([
 
@@ -55,12 +57,12 @@ export const router = createBrowserRouter([
 
             { index: true, Component: AdminDashboard },
             {
-                path: "users",
+                path: "users/list-users",
                 Component: UserManagement,
             },
             // Các module khác sau này:
-            // { path: "courses", Component: CourseManagement },
-            // { path: "rubrics", Component: RubricManagement },
+            { path: "users/create-user", Component: AdminCreateUser },
+            { path: "users/list-students", Component: ListStudent },
         ],
     }
 ]);

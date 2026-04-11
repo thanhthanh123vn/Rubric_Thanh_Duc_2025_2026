@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
+import hcmuaf.edu.vn.fit.course_service.dto.response.TopicResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Topic;
 import hcmuaf.edu.vn.fit.course_service.service.TopicService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +17,12 @@ public class TopicController {
     private TopicService topicService;
 
     @GetMapping("/{topicId}")
-    public Topic getTopic(@PathVariable("topicId") Long topicId){
+    public TopicResponse getTopic(@PathVariable("topicId") String topicId){
         return topicService.findById(topicId);
     }
 
     @GetMapping("/offerings/{offeringId}/topics")
-    public List<Topic> findByOfferingId(@PathVariable("offeringId") String offeringId){
+    public List<TopicResponse> findByOfferingId(@PathVariable("offeringId") String offeringId){
         return topicService.findByOfferingId(offeringId);
     }
 }

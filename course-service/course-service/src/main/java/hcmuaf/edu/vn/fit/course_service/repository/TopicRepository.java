@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface TopicRepository extends JpaRepository<Topic,Long> {
 
     List<Topic> findByOfferingId(String offeringId);
+    Optional<Topic> findById(String id);
 }

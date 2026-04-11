@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "BaiDang")
+@Table(name = "posts")
 @Data
 @Builder
 @AllArgsConstructor
@@ -15,21 +15,21 @@ public class Topic {
 
     @Id
     @Column(name = "post_id", length = 50)
-    private String postId;
+    private String id;
 
-    // FK -> Lop_HocPhan
     @Column(name = "offering_id", nullable = false, length = 50)
     private String offeringId;
 
-    // FK -> Users
     @Column(name = "user_id", nullable = false, length = 50)
     private String userId;
 
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
+
+
     @Column(name = "post_type", length = 50)
-    private String postType; // POST | ANNOUNCEMENT | MATERIAL | ASSIGNMENT
+    private String postType;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

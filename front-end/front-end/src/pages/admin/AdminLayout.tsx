@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
     Users, BookOpen, FileText, Bell, LayoutDashboard
@@ -13,6 +13,7 @@ export default function AdminLayout() {
     const MOBILE_MENU_ITEMS = [
         { title: 'Tổng quan', url: '/admin', icon: LayoutDashboard },
         { title: 'Người dùng', url: '/admin/users', icon: Users },
+        { title: 'Tạo người dùng', url: '/admin/users', icon: Users },
         { title: 'Khóa học', url: '/admin/courses', icon: BookOpen },
         { title: 'Rubrics', url: '/admin/rubrics', icon: FileText },
     ];

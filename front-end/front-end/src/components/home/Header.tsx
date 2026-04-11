@@ -82,9 +82,9 @@ const Header = ({onMenuClick}: HeaderProps) => {
         router('/login');
     };
 
-    // if (!user) {
-    //     return <div className="flex h-screen items-center justify-center">Đang tải thông tin...</div>;
-    // }
+    if (!user) {
+        return <div className="flex h-screen items-center justify-center">Đang tải thông tin...</div>;
+    }
     const getInitial = (name?: string) => {
         if (!name) return "U";
         const words = name.trim().split(' ');
@@ -97,9 +97,9 @@ const Header = ({onMenuClick}: HeaderProps) => {
         <header
             className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm lg:shadow-none">
 
-            {/* Cụm Logo & Menu Button */}
+
             <div className="flex items-center gap-3">
-                {/* Nút Menu Hamburger - Chỉ hiện trên Mobile */}
+
                 <button
                     onClick={onMenuClick}
                     className="p-1.5 lg:hidden text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -197,7 +197,7 @@ const Header = ({onMenuClick}: HeaderProps) => {
 
                         <div className="bg-white rounded-xl sm:rounded-[24px] p-5 flex flex-col items-center shadow-sm">
                 <span className="text-xs sm:text-sm font-medium text-gray-800 break-all text-center">
-                {/*{`${user.studentId}@st.hcmuaf.edu.vn`}*/}
+                {`${user.studentId}@st.hcmuaf.edu.vn`}
                 </span>
 
                             <div
@@ -206,7 +206,7 @@ const Header = ({onMenuClick}: HeaderProps) => {
                             </div>
 
                             <h2 className="text-lg sm:text-xl text-gray-900 font-normal text-center break-words w-full">
-                                {/*Hi, {formData.fullName || user.studentId}!*/}
+                                Hi, {formData.fullName || user.studentId}!
                             </h2>
 
                             <button

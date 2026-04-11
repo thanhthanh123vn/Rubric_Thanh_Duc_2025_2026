@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, User as UserIcon, Mail, Lock, Shield, Hash } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+import { Button } from '../../../components/ui/button.tsx';
+import { Input } from '../../../components/ui/input.tsx';
 import userService from "@/pages/admin/api/userService.ts";
 
 export default function CreateUser() {
@@ -147,7 +147,7 @@ export default function CreateUser() {
                         </div>
                     </div>
 
-                    {/* Dòng riêng cho Select Vai trò */}
+
                     <div className="pt-2">
                         <label className="block text-sm font-medium text-slate-700 mb-1.5">Vai trò hệ thống <span className="text-red-500">*</span></label>
                         <div className="relative">
@@ -165,10 +165,10 @@ export default function CreateUser() {
                         </div>
                     </div>
 
-                    {/* Dòng phân cách */}
+
                     <hr className="border-slate-100" />
 
-                    {/* BUTTON LƯU */}
+
                     <div className="flex justify-end gap-3 pt-2">
                         <Button
                             type="button"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileCheck, TrendingUp } from 'lucide-react';
+import { FileCheck } from 'lucide-react';
 import {useNavigate} from "react-router-dom";
 
 interface CourseCardProps {
@@ -22,10 +22,10 @@ const CourseCard: React.FC<CourseCardProps> = ({
                                                }) => {
     const navigate = useNavigate();
     return (
-      // Thêm Shadow nhẹ và bo góc tròn hơn (rounded-xl)
+
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group">
 
-        {/* Header với Gradient tùy chỉnh */}
+
         <div className={`h-24 bg-gradient-to-r ${colorClass} relative`}>
           <div className="absolute top-4 right-4 bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
             <FileCheck className="w-5 h-5 text-white" />
@@ -40,13 +40,13 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <p className="text-sm text-gray-500 mb-4">{semester}</p>
 
           <div className="space-y-4">
-            {/* Progress Section */}
+
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-600">Tiến độ OBE</span>
                 <span className="font-bold text-gray-900">{obeProgress}%</span>
               </div>
-              {/* Thanh Progress dùng Tailwind thuần cho nhanh */}
+
               <div className="w-full bg-gray-100 rounded-full h-2">
                 <div
                     className={`h-2 rounded-full bg-gradient-to-r ${colorClass} transition-all duration-500`}
