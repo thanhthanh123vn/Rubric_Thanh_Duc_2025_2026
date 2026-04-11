@@ -1,5 +1,5 @@
 
-import api from "@/user/api/axiosConfig.ts";
+import api from "@/services/axiosConfig.ts";
 import type {PageResponse, User} from "@/pages/admin/api/type.ts";
 
 
