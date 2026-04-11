@@ -1,5 +1,5 @@
 import type {PageResponse, StudentProfile} from "@/pages/admin/api/type.ts";
-import api from "@/user/api/axiosConfig.ts";
+import api from "@/services/axiosConfig.ts";
 
 const sinhVienService = {
 

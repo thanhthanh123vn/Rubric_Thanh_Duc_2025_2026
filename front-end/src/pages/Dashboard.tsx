@@ -9,7 +9,7 @@ const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const courses = [
     {
-      id: 1,
+      id: "O001",
       courseTitle: 'Khai thác dữ liệu - HK2 - 2026',
       lecturerName: 'TS. Nguyễn Thị Phương Trâm',
       obeProgress: 70,
@@ -17,7 +17,7 @@ const Dashboard = () => {
       colorClass:"from-emerald-500 to-teal-400"
     },
     {
-      id: 2,
+      id: "C002",
       courseTitle: 'Lập trình Python nâng cao',
       lecturerName: 'Tiến sĩ Trần Văn A',
       obeProgress: 85,
@@ -26,7 +26,7 @@ const Dashboard = () => {
 
     },
     {
-      id: 3,
+      id: "C003",
       courseTitle: 'Cơ sở dữ liệu phân tán',
       lecturerName: 'PGS.TS. Lê Văn B',
       obeProgress: 60,
@@ -35,7 +35,7 @@ const Dashboard = () => {
 
     },
     {
-      id: 4,
+      id: "C004",
       courseTitle: 'Hệ thống thông tin doanh nghiệp',
       lecturerName: 'ThS. Phạm Thị C',
       obeProgress: 75,
@@ -43,7 +43,7 @@ const Dashboard = () => {
       colorClass:"from-emerald-500 to-teal-400"
     },
     {
-      id: 5,
+      id: "C005",
       courseTitle: 'Mạng máy tính và Internet',
       lecturerName: 'TS. Bùi Văn D',
       obeProgress: 80,
@@ -51,7 +51,7 @@ const Dashboard = () => {
       colorClass:"from-blue-500 to-cyan-400"
     },
     {
-      id: 6,
+      id: "C006",
       courseTitle: 'Bảo mật thông tin',
       lecturerName: 'PGS.TS. Hoàng Thị E',
       obeProgress: 65,

@@ -1,10 +1,13 @@
 import React from 'react';
 import { FileCheck } from 'lucide-react';
 import {useNavigate} from "react-router-dom";
+import {useDispatch, useSelector} from "react-redux";
+import type {AppDispatch, RootState} from "@/app/store.ts";
+import {fetchPost} from "@/features/course/student/courseStudentSlice.ts";
 
 interface CourseCardProps {
 
-    id : number;
+    id : string;
     courseTitle: string;
     lecturerName: string;
     obeProgress: number;
@@ -21,6 +24,18 @@ const CourseCard: React.FC<CourseCardProps> = ({
                                                  colorClass = "from-emerald-600 to-emerald-500" // Mặc định là xanh Nông Lâm
                                                }) => {
     const navigate = useNavigate();
+    const dispatch = useDispatch<AppDispatch>();
+    // const { loading, error } = useSelector((state: RootState) => state.postSlice);
+
+
+    const handleGetPost = async (postId : string) => {
+        if(!postId) return;
+
+        const result = await dispatch(fetchPost(postId));
+        if(fetchPost.fulfilled.match(result)) navigate(`/course/${postId}`);
+    }
+
+
     return (
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group">
@@ -57,7 +72,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
 
             <div className="pt-2 border-t border-gray-50 flex items-center justify-between text-sm">
               <span className="text-gray-500 italic">{lecturerName}</span>
-              <button onClick={() => navigate(`/course/${id}`)} className="text-emerald-700 font-semibold hover:underline">
+              <button onClick={() => handleGetPost(id)} className="text-emerald-700 font-semibold hover:underline">
                 Chi tiết
               </button>
             </div>

@@ -1,4 +1,4 @@
-import api from '../api/axiosConfig';
+import api from '../../services/axiosConfig.ts';
 import type {LoginRequest, LoginResponse, RegisterRequest} from './types';
 
 const authService = {
@@ -19,7 +19,7 @@ const authService = {
     },
 
     loginWithGoogle: () => {
-        window.location.href = "http://localhost:8083/oauth2/authorization/google";
+        window.location.href = "http://localhost:8081/oauth2/authorization/google";
     },
     isAuthenticated: (): boolean => {
         const token = localStorage.getItem('token');
