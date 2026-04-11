@@ -43,4 +43,6 @@ public class Enrollment {
 
     @Column(name = "letter_grade", length = 5)
     private String letterGrade;
+    @Column(name = "last_read_time")
+    private Timestamp lastReadTime;
 }
