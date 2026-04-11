@@ -36,8 +36,8 @@ public class AuthService {
         @Transactional
         public void register(RegisterRequest request) {
             // 1. Kiểm tra tồn tại
-            if(userRepository.existsById(request.studentId())) {
-                throw new RuntimeException("MSSV " + request.studentId() + " đã tồn tại!");
+            if(userRepository.existsById(request.Id())) {
+                throw new RuntimeException("MSSV " + request.Id() + " đã tồn tại!");
             }
 
 

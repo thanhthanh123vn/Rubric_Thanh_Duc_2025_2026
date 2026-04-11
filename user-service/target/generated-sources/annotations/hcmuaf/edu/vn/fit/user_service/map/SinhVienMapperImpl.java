@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-04T18:18:43+0700",
+    date = "2026-04-10T00:06:03+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
@@ -22,7 +22,7 @@ public class SinhVienMapperImpl implements SinhVienMapper {
 
         SinhVien.SinhVienBuilder sinhVien = SinhVien.builder();
 
-        sinhVien.studentId( request.studentId() );
+        sinhVien.studentId( request.Id() );
         sinhVien.fullName( request.fullName() );
 
         return sinhVien.build();
