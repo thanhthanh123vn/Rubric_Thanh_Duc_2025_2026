@@ -6,6 +6,12 @@ import RegisterPage from "@/user/RegisterPage";
 import ForgotPasswordPage from "@/user/ForgotPasswordPage";
 import AccountManagement from "@/user/AccountManagement/AccountManagement";
 import LoginPage from "@/user/login";
+import CourseDetail from "@/features/course/student/components/CourseDetail";
+import CourseStudentList from "@/features/course/student/components/CourseStudentList";
+import CourseOBE from "@/features/course/student/components/CourseOBE";
+import CourseAssignments from "@/features/course/student/components/CourseAssignments";
+import CourseGroups from "@/features/course/student/components/CourseGroups";
+import AssignmentDetail from "@/features/course/student/components/AssignmentDetail";
 
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLayout from "@/pages/admin/AdminLayout";
@@ -24,14 +30,30 @@ export const router = createBrowserRouter([
         path: "/dashboard",
         Component: Dashboard,
     },
-    // {
-    //     path: "/course/:id",
-    //     Component: CourseDetail,
-    // },
-    // {
-    //     path: "/course/:id/students",
-    //     Component: CourseStudentList,
-    // },
+    {
+        path: "/course/:id",
+        Component: CourseDetail,
+    },
+    {
+        path: "/course/:id/students",
+        Component: CourseStudentList,
+    },
+    {
+        path: "/course/:id/obe",
+        Component: CourseOBE,
+    },
+    {
+        path: "/course/:id/assignments",
+        Component: CourseAssignments,
+    },
+    {
+        path: "/course/:id/groups",
+        Component: CourseGroups,
+    },
+    {
+        path: "/course/:id/assignments/:assignmentId",
+        Component: AssignmentDetail,
+    },
     {
         path: "/login",
         Component: LoginPage,
