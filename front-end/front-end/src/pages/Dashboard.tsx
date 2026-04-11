@@ -63,7 +63,8 @@ const Dashboard = () => {
       <div className="flex h-screen bg-gray-50 overflow-hidden relative">
         {isMobileMenuOpen && (
             <div
-                className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
+                //bg-black/50
+                className="fixed inset-0 z-40 lg:hidden transition-opacity"
                 onClick={() => setIsMobileMenuOpen(false)}
             />
         )}
