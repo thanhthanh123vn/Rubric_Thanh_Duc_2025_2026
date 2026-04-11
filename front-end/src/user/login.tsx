@@ -19,7 +19,6 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [rememberMe, setRememberMe] = useState(false)
-    const [identifier, setIdentifier] = useState<string>('');
     const navigate = useNavigate();
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -227,8 +226,7 @@ export default function LoginPage() {
                                 <Checkbox
                                     id="remember"
                                     checked={rememberMe}
-
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRememberMe(e.target.checked)}
+                                    onCheckedChange={(checked) => setRememberMe(checked === true)}
                                     className="border-gray-300 w-5 h-5"
                                 />
                                 <Label
