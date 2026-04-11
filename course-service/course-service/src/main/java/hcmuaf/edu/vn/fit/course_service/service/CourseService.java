@@ -26,12 +26,7 @@ public class CourseService {
         return courseRepo.save(course);
     }
 
-    public Enrollment enroll(Long studentId, Long courseId) {
-        Enrollment e = new Enrollment();
-        e.setStudentId(studentId);
-        e.setCourseId(courseId);
-        return enrollmentRepo.save(e);
-    }
+
 
     public List<Enrollment> getStudentCourses(Long studentId) {
         return enrollmentRepo.findByStudentId(studentId);
