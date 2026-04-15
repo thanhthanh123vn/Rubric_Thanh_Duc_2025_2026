@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 
+
 @Service
 @RequiredArgsConstructor
 public class MessageStatusService {
@@ -24,10 +25,10 @@ public class MessageStatusService {
     public void markCourseMessagesAsRead(String offeringId, String studentId) {
 
         // 1. Cập nhật thời gian đọc cuối cùng của sinh viên đối với lớp học này
-        enrollmentRepository.findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId)
+        enrollmentRepository.findByStudent_UserIdAndCourseOffering_OfferingId(studentId, offeringId)
                 .ifPresent(enrollment -> {
                     // Cập nhật timestamp (Bạn cần thêm trường này vào Entity)
-                    enrollment.setLastReadTime(new Timestamp(System.currentTimeMillis()));
+                    enrollment.setLastReadTime(new Timestamp(System.currentTimeMillis()).toLocalDateTime());
                     enrollmentRepository.save(enrollment);
                 });
 

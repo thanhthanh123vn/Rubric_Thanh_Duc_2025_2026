@@ -60,10 +60,10 @@ public class MessageService {
 
         try {
             // Logic Cloudinary (Giữ nguyên từ dự án cũ của bạn)
-            String fileName = file.getOriginalFilename() + "_" + UUID.randomUUID().toString();
-            // Map params = ObjectUtils.asMap("folder", "lms_messages", "public_id", fileName, "resource_type", "auto");
-            // Map result = cloudinary.uploader().upload(file.getBytes(), params);
-            String mockFileUrl = "https://cloudinary.com/..."; // Thay bằng result.get("url")
+//            String fileName = file.getOriginalFilename() + "_" + UUID.randomUUID().toString();
+//            // Map params = ObjectUtils.asMap("folder", "lms_messages", "public_id", fileName, "resource_type", "auto");
+//            // Map result = cloudinary.uploader().upload(file.getBytes(), params);
+//            String mockFileUrl = "https://cloudinary.com/..."; // Thay bằng result.get("url")
 
             Message message = Message.builder()
                     .messageId(UUID.randomUUID().toString())
