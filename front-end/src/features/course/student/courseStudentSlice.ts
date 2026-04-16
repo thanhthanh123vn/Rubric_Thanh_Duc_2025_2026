@@ -5,11 +5,10 @@ export const fetchPost = createAsyncThunk(
     "post/fetchPost",
     async (postId: string, { rejectWithValue }) => {
         try {
-            const response = await getPost(postId)
-                .then(res => console.log(res.data))
-                .catch(err => console.error(err))
+
+            const response = await getPost(postId);
+            return response.data;
         } catch (error: any) {
-            console.log("API ERROR:", error.response);
             return rejectWithValue(error.response?.data || "Error fetching post");
         }
     }

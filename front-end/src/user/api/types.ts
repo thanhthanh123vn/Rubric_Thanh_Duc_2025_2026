@@ -1,9 +1,11 @@
 
+// Trong file types.ts của Frontend
 export interface LoginResponse {
     token: string;
     studentId: string;
+    userName: string;
     role: string;
-    fullName?: string;
+    fullName: string; // Chữ 'n' phải viết thường
 }
 export interface RegisterRequest {
     studentId: string;

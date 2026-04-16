@@ -9,6 +9,6 @@ public record LoginResponse(
         String studentId,
         String userName,
         String role,
-       String fullname
+       String fullName
 
 ) {}

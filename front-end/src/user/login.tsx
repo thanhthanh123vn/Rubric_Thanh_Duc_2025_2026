@@ -9,20 +9,24 @@ import {Label} from "../components/ui/label"
 import authService from '../user/api/authService';
 import type {LoginResponse} from '../user/api/types'
 import { useNavigate } from 'react-router-dom';
+
+
+import { setCredentials } from '../authSlice';
+import {useAppDispatch} from "@/hooks/useAppDispatch.ts";
 type UserRole = "student" | "teacher"
 
 
 export default function LoginPage() {
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
     const [role, setRole] = useState<UserRole>("student")
     const [showPassword, setShowPassword] = useState(false)
     const [studentId, setStudentId] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [rememberMe, setRememberMe] = useState(false)
-    const navigate = useNavigate();
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
 
         const currentIdentifier = role === "student" ? studentId : email;
 
@@ -32,11 +36,10 @@ export default function LoginPage() {
         }
 
         try {
-            const data: LoginResponse = await authService.login({
+
+            const data: any = await authService.login({
                 identifier: currentIdentifier,
                 password: password,
-
-
             });
 
             localStorage.setItem('token', data.token);
@@ -46,11 +49,19 @@ export default function LoginPage() {
                 fullName: data.fullName
             }));
 
+            dispatch(setCredentials({
+                user: {
+                    userId: data.studentId,
+                    fullName: data.fullName,
+                    role: data.role
+                },
+                token: data.token
+            }));
+            console.log("DISPATCH XONG");
 
             const displayName = data.fullName ? data.fullName : data.studentId;
             alert(`Đăng nhập thành công! Chào ${displayName}`);
             navigate('/dashboard');
-
 
         } catch (error: any) {
             console.error("Lỗi Login:", error);
@@ -259,10 +270,12 @@ export default function LoginPage() {
                         </div>
 
                         {/* Nút Đăng nhập Google */}
-                        <Button value="outline" type="button"
-                                onClick={handleWithGoogle}
-
-                                className="w-full h-12 border-gray-300 flex gap-3 items-center justify-center ">
+                        <Button
+                            value="outline"
+                            type="button"
+                            onClick={handleWithGoogle}
+                            className="w-full h-12 bg-white hover:bg-gray-100 text-black border border-gray-300 flex gap-3 items-center justify-center shadow-sm"
+                        >
                             <svg className="w-5 h-5" viewBox="0 0 24 24">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -300,3 +313,4 @@ export default function LoginPage() {
         </div>
     )
 }
+

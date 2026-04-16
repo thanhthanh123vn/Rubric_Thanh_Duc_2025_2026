@@ -1,5 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
+import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
@@ -17,19 +19,35 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class CourseController {
 
-    @Autowired
-    private CourseService service;
+
+    private final CourseService service;
+
 
     @GetMapping
-    public List<Course> getAll() {
-        return service.getAllCourses();
+    public ResponseEntity<List<CourseResponse>> getAll() {
+        return ResponseEntity.ok(service.getAllCourses());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CourseResponse> getById(@PathVariable String id) {
+        return ResponseEntity.ok(service.getCourseById(id));
     }
 
     @PostMapping
-    public Course create(@RequestBody Course course) {
-        return service.createCourse(course);
+    public ResponseEntity<CourseResponse> create(@RequestBody CourseRequest request) {
+        return ResponseEntity.ok(service.createCourse(request));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<CourseResponse> update(@PathVariable String id, @RequestBody CourseRequest request) {
+        return ResponseEntity.ok(service.updateCourse(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> delete(@PathVariable String id) {
+        service.deleteCourse(id);
+        return ResponseEntity.ok("Đã xóa khóa học thành công!");
+    }
     @PostMapping("/enroll")
     public Object enroll(
             @RequestParam String studentId,

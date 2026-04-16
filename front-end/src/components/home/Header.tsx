@@ -2,6 +2,8 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Menu, Plus, Grid3x3, Circle, Search, UserIcon, LogOut, UserPlus} from 'lucide-react';
 import {useLocation, useNavigate} from "react-router-dom";
 import {getProfile} from "../../user/api/authService";
+import {enrollCourse} from "@/features/course/courseApi.ts";
+import {toast} from "sonner";
 
 interface UserInfo {
     studentId: string;
@@ -11,18 +13,18 @@ interface UserInfo {
 
 interface HeaderProps {
     onMenuClick?: () => void;
+    onEnrollSuccess?: () => void;
 }
 
-interface HeaderProps {
-    onMenuClick?: () => void
-}
 
-const Header = ({onMenuClick}: HeaderProps) => {
+const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [user, setUser] = useState<UserInfo | null>(null);
     const [showJoinClass, setShowJoinClass] = useState(false);
+    const [isEnrolling, setIsEnrolling] = useState(false);
 
+    const [offeringId, setOfferingId] = useState("");
     const router = useNavigate();
     const location = useLocation();
     const navigate = useNavigate();
@@ -92,6 +94,28 @@ const Header = ({onMenuClick}: HeaderProps) => {
         return lastName.charAt(0).toUpperCase();
     };
 
+    const handleEnrollClick = async () => {
+        setIsEnrolling(true);
+        try {
+            const response = await enrollCourse(user.studentId, offeringId);
+            toast.success("Ghi danh thành công!");
+
+
+            setShowJoinClass(false);
+            setOfferingId("");       
+            if (onEnrollSuccess) {
+                onEnrollSuccess();
+            }
+
+
+        } catch (error: any) {
+            console.error("Lỗi khi ghi danh:", error);
+            const errorMessage = error.response?.data || "Đã xảy ra lỗi khi ghi danh. Vui lòng thử lại!";
+            toast.error(errorMessage);
+        } finally {
+            setIsEnrolling(false);
+        }
+    };
 
     return (
         <header
@@ -140,6 +164,8 @@ const Header = ({onMenuClick}: HeaderProps) => {
                                 </label>
 
                                 <input
+                                    value={offeringId}
+                                    onChange={(e) => setOfferingId(e.target.value)}
                                     type="text"
                                     placeholder="VD: ABC123"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
@@ -172,6 +198,8 @@ const Header = ({onMenuClick}: HeaderProps) => {
                                 </button>
 
                                 <button
+                                    onClick={handleEnrollClick}
+                                    disabled={isEnrolling}
                                     className="px-5 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 active:scale-95 transition-all"
                                 >
                                     Tham gia
