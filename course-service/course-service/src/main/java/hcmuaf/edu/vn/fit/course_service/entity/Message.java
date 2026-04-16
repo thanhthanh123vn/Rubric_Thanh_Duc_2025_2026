@@ -36,6 +36,8 @@ public class Message {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	@Builder.Default
 	private Timestamp createdAt = new Timestamp(System.currentTimeMillis());
-
+	@ManyToOne
+	@JoinColumn(name = "conversation_id")
+	private Conversation conversation;
 
 }

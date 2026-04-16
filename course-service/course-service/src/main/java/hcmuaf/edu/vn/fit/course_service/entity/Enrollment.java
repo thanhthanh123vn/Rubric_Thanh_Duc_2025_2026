@@ -1,10 +1,14 @@
 package hcmuaf.edu.vn.fit.course_service.entity;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.EnrollmentStatus;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "enrollments")
+@Table(name = "enrollments",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"student_id", "offering_id"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -12,37 +16,33 @@ import java.sql.Timestamp;
 public class Enrollment {
 
     @Id
-    @Column(name = "enrollment_id", length = 50)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String enrollmentId;
 
-
-    @Column(name = "student_id", length = 50, nullable = false)
-    private String studentId;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", nullable = false)
+    private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "offering_id", nullable = false)
     private CourseOffering courseOffering;
 
-    @Column(name = "enrollment_date", nullable = false, updatable = false)
     @Builder.Default
-    private Timestamp enrollmentDate = new Timestamp(System.currentTimeMillis());
+    private LocalDateTime enrollmentDate = LocalDateTime.now();
 
-    @Column(name = "status", length = 50)
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    private String status = "ACTIVE";
+    private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
 
-    @Column(name = "midterm_score")
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private Role role = Role.STUDENT;
+
     private Float midtermScore;
-
-    @Column(name = "final_score")
     private Float finalScore;
-
-    @Column(name = "total_score")
     private Float totalScore;
 
-    @Column(name = "letter_grade", length = 5)
     private String letterGrade;
-    @Column(name = "last_read_time")
-    private Timestamp lastReadTime;
+
+    private LocalDateTime lastReadTime;
 }

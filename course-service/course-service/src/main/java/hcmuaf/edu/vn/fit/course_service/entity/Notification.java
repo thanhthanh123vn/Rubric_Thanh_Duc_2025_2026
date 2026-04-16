@@ -13,10 +13,10 @@ import lombok.Setter;
 public class Notification extends AbstractEntity<Notification>{
 
     @Column(name="sender_id")
-    private Long senderId;
+    private String senderId;
 
     @Column(name="owner_id")
-    private Long ownerId;
+    private String ownerId;
 
     @Column(name="title")
     private String title;
