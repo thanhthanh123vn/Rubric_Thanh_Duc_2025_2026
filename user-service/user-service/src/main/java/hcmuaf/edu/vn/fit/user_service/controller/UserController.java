@@ -1,18 +1,20 @@
 package hcmuaf.edu.vn.fit.user_service.controller;
 
 
+
+
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserController {
 
+    @Autowired
     private final UserService userService;
 
     @GetMapping
