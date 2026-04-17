@@ -25,7 +25,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                                                }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch<AppDispatch>();
-    // const { loading, error } = useSelector((state: RootState) => state.postSlice);
+    const { loading, error } = useSelector((state: RootState) => state.post);
 
 
     const handleGetPost = async (postId : string) => {

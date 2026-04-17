@@ -1,9 +1,10 @@
 export interface User {
     userId: string;
-    username: string;
-    email: string;
+    username?: string;
+    fullName: string;
+    email?: string;
     role: string;
-    authProvider: string;
+    authProvider?: string;
 }
 export interface PageResponse<T> {
     content: T[];
