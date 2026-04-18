@@ -1,23 +1,56 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
+import hcmuaf.edu.vn.fit.course_service.dto.request.GroupRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.GroupResponse;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import hcmuaf.edu.vn.fit.course_service.entity.Group;
+import hcmuaf.edu.vn.fit.course_service.service.GroupService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/group")
+@CrossOrigin("*")
 public class GroupController {
+    private final GroupService groupService;
+    @PostMapping("/create")
+    public ResponseEntity<?> createGroup(@RequestBody GroupRequest req) {
+        try {
+            GroupResponse createdGroup = groupService.createGroup(req);
 
-//    @PostMapping("/create")
-//    public Map<String,String> createGroup(@RequestBody GroupResponse req){
-//
-//
-//
-//        return Map.of("status","success");
-//    }
+            // Trả về JSON thông báo thành công
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Đã tạo nhóm thành công");
+            response.put("data", createdGroup);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+    @GetMapping("/offering/{offeringId}/user/{userId}")
+    public ResponseEntity<?> getMyGroups(
+            @PathVariable String offeringId,
+            @PathVariable String userId) {
+        try {
+
+            List<GroupResponse> myGroups = groupService.getMyGroups(offeringId, userId);
+
+
+            return ResponseEntity.ok(myGroups);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi tải danh sách nhóm của sinh viên: " + e.getMessage());
+        }
+    }
 
 }
