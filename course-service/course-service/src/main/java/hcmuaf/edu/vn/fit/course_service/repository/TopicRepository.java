@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 @Repository
-public interface TopicRepository extends JpaRepository<Topic,Long> {
+public interface TopicRepository extends JpaRepository<Topic,String> {
 
     List<Topic> findByOfferingId(String offeringId);
     Optional<Topic> findById(String id);

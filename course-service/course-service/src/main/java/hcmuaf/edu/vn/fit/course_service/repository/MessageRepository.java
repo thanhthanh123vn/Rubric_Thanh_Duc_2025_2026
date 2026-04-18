@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 @Repository
-public interface MessageRepository extends JpaRepository<Message, String> { // Sửa Long thành String
+public interface MessageRepository extends JpaRepository<Message, String> {
 
     // 1. Lấy danh sách tin nhắn của một Lớp học phần (Hỗ trợ phân trang)
 
@@ -29,4 +29,5 @@ public interface MessageRepository extends JpaRepository<Message, String> { // S
                           @Param("lastAccessTime") Timestamp lastAccessTime);
 
     List<Message> findByCourseOffering_OfferingIdOrderByCreatedAtAsc(String offeringId);
+    List<Message> findByConversation_IdOrderByCreatedAtAsc(String conversationId);
 }
