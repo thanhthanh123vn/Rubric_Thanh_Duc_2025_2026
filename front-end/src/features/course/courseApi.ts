@@ -24,6 +24,10 @@ export const couserService = {
     getDashboardCourses: async (studentId: string) => {
         const response = await courseApi.get(`/v1/courses/student/${studentId}/dashboard`);
         return response.data;
+    },
+    getStudentsByOffering: async (offeringId: string) => {
+        const response = await courseApi.get(`/v1/courses/offering/${offeringId}/students`);
+        return response.data;
     }
 };
 export const enrollCourse = (studentId: string, offeringId: string) => {

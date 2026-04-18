@@ -5,4 +5,5 @@ public class MessageResponse
     private String offeringId;
     private String senderId;
     private String content;
+
 }

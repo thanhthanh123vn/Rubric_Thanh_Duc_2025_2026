@@ -5,5 +5,6 @@ import lombok.Data;
 public class MessageRequest {
     private String offeringId;
     private String senderId;
+
     private String content;
 }

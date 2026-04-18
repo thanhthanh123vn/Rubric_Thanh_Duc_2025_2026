@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 
-interface Student {
-    id: string;
-    fullName: string;
-    email: string;
-}
+import type {Type} from "@/features/course/student/api/type.ts";
+import {couserService} from "@/features/course/courseApi.ts";
+import {useParams} from "react-router-dom";
+
 
 const Banner = () => {
     return (
@@ -19,7 +18,7 @@ const Banner = () => {
     );
 };
 
-const StudentItem = ({ student }: { student: Student }) => {
+const StudentItem = ({ student }: { student: Type }) => {
     return (
         <div className="flex items-center justify-between p-4 border-b hover:bg-gray-50 transition">
             <div className="flex items-center gap-3">
@@ -40,17 +39,32 @@ const StudentItem = ({ student }: { student: Student }) => {
 };
 
 const StudentList = () => {
-    const [students, setStudents] = useState<Student[]>([]);
+    const [students, setStudents] = useState<Type[]>([]);
     const [search, setSearch] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
 
-    // 🔥 Fake data (sau thay API)
+
+    const { id } = useParams<{ id: string }>();
+    console.log("mã Học phần",id);
+
     useEffect(() => {
-        setStudents([
-            { id: "SV001", fullName: "Nguyễn Văn A", email: "a@st.hcmuaf.edu.vn" },
-            { id: "SV002", fullName: "Trần Thị B", email: "b@st.hcmuaf.edu.vn" },
-            { id: "SV003", fullName: "Lê Văn C", email: "c@st.hcmuaf.edu.vn" },
-        ]);
-    }, []);
+        const fetchStudents = async () => {
+            if (!id) return;
+
+            setIsLoading(true);
+            try {
+                // Gọi API backend
+                const data = await couserService.getStudentsByOffering(id);
+                setStudents(data);
+            } catch (error) {
+                console.error("Lỗi khi tải danh sách sinh viên:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchStudents();
+    }, [id]);
 
     const filtered = students.filter((s) =>
         s.fullName.toLowerCase().includes(search.toLowerCase())
@@ -69,16 +83,22 @@ const StudentList = () => {
                 />
             </div>
 
-            {/* List */}
-            <div>
-                {filtered.map((student) => (
-                    <StudentItem key={student.id} student={student} />
-                ))}
 
-                {filtered.length === 0 && (
-                    <div className="text-center py-10 text-gray-500">
-                        Không có sinh viên
-                    </div>
+            <div>
+                {isLoading ? (
+                    <div className="text-center py-10 text-gray-500">Đang tải dữ liệu...</div>
+                ) : (
+                    <>
+                        {filtered.map((student) => (
+                            <StudentItem key={student.id} student={student}/>
+                        ))}
+
+                        {filtered.length === 0 && (
+                            <div className="text-center py-10 text-gray-500">
+                                Không có sinh viên
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
@@ -89,18 +109,18 @@ const StudentContent = () => {
     return (
         <div className="bg-gray-50 min-h-screen">
             {/* HEADER */}
-            <Header />
+            <Header/>
 
             {/* BODY */}
             <div className="flex">
                 {/* SIDEBAR */}
-                <Sidebar />
+                <Sidebar/>
 
                 {/* CONTENT */}
                 <div className="flex-1 p-4 lg:p-6">
                     <div className="max-w-3xl mx-auto">
-                        <Banner />
-                        <StudentList />
+                        <Banner/>
+                        <StudentList/>
                     </div>
                 </div>
             </div>

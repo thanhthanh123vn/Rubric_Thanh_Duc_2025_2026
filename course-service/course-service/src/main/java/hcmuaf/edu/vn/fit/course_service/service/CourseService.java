@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
@@ -105,5 +106,8 @@ public class CourseService {
                 .build();
 
         return enrollmentRepo.save(newEnrollment);
+    }
+    public List<StudentCourseProjection> getStudentsByOfferingId(String offeringId) {
+        return enrollmentRepo.findStudentsByOfferingId(offeringId);
     }
 }
