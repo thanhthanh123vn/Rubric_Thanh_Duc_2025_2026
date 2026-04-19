@@ -13,23 +13,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/sinhvien")
+@RequestMapping("/api/v1/user-service/sinhvien")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+
 public class SinhVienController {
 
     private final SinhVienService sinhVienService;
 
-    @PutMapping("/profile/{studentId}")
+    @PutMapping("/profile/me")
     public ResponseEntity<?> updateProfile(
-            @PathVariable String studentId,
+            @RequestHeader("X-User-Id") String userId,
             @RequestBody UpdateProfileRequest request) {
 
-        return ResponseEntity.ok(sinhVienService.updateProfile(studentId, request));
+        return ResponseEntity.ok(sinhVienService.updateProfile(userId, request));
     }
-    @GetMapping("/profile/{studentId}")
-    public ResponseEntity<ProfileResponse> getProfile(@PathVariable String studentId) {
-        return ResponseEntity.ok(sinhVienService.getProfile(studentId));
+    @GetMapping("/profile/me")
+    public ResponseEntity<ProfileResponse> getProfile( @RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(sinhVienService.getProfile(userId));
     }
 
     @GetMapping

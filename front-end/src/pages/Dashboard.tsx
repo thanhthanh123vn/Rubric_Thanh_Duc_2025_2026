@@ -53,7 +53,7 @@ const Dashboard = () => {
       try {
         setIsLoading(true);
 
-        const responseData = await couserService.getDashboardCourses(studentId);
+        const responseData = await couserService.getDashboardCourses();
         console.log(responseData);
 
 

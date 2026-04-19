@@ -15,7 +15,8 @@ public class JwtUtils {
     @Value("${SECRET_KEY}")
     private  String SECRET_KEY ;
     private final long EXPIRATION_TIME = 86400000;
-
+    private final long ACCESS_TOKEN_EXPIRATION = 86400000; // 1 ngày
+    private final long REFRESH_TOKEN_EXPIRATION = 604800000;
     public Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
@@ -32,6 +33,18 @@ public class JwtUtils {
                 compact();
     }
 
+    public String generateRefreshToken(String userId, String role) {
+        return buildToken(userId, role, REFRESH_TOKEN_EXPIRATION);
+    }
+    private String buildToken(String userId, String role, long expiration) {
+        return Jwts.builder()
+                .setSubject(userId)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
@@ -47,6 +60,9 @@ public class JwtUtils {
 
         }
         return false;
+    }
+    public boolean isTokenExpired(String token) {
+        return extractAllClaims(token).getExpiration().before(new Date());
     }
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()

@@ -2,8 +2,8 @@ package hcmuaf.edu.vn.fit.user_service.service;
 
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
 
+import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;

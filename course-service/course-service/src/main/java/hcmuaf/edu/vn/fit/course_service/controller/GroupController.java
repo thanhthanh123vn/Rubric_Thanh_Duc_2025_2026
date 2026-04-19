@@ -14,11 +14,11 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/group")
-@CrossOrigin("*")
+@RequestMapping("/api/v1/course-service")
+
 public class GroupController {
     private final GroupService groupService;
-    @PostMapping("/create")
+    @PostMapping("/group/create")
     public ResponseEntity<?> createGroup(@RequestBody GroupRequest req) {
         try {
             GroupResponse createdGroup = groupService.createGroup(req);
@@ -38,10 +38,10 @@ public class GroupController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
-    @GetMapping("/offering/{offeringId}/user/{userId}")
+    @GetMapping("/group/offering/{offeringId}/user/me")
     public ResponseEntity<?> getMyGroups(
             @PathVariable String offeringId,
-            @PathVariable String userId) {
+            @RequestHeader("X-User-Id") String userId) {
         try {
 
             List<GroupResponse> myGroups = groupService.getMyGroups(offeringId, userId);

@@ -11,7 +11,7 @@ export const getPost = (postId: string) => {
 export const couserService = {
 
     enrollCourse: async (studentId: string, offeringId: string) => {
-        const response = await courseApi.post('/v1/courses/enroll', null, {
+        const response = await courseApi.post('/courses/enroll', null, {
             params: {
                 studentId: studentId,
                 offeringId: offeringId
@@ -21,15 +21,19 @@ export const couserService = {
     },
 
 
-    getDashboardCourses: async (studentId: string) => {
-        const response = await courseApi.get(`/v1/courses/student/${studentId}/dashboard`);
+    getDashboardCourses: async () => {
+        const response = await courseApi.get(`/courses/student/me/dashboard`);
         return response.data;
     },
     getStudentsByOffering: async (offeringId: string) => {
-        const response = await courseApi.get(`/v1/courses/offering/${offeringId}/students`);
+        const response = await courseApi.get(`/courses/offering/${offeringId}/students`);
         return response.data;
     }
 };
-export const enrollCourse = (studentId: string, offeringId: string) => {
-    return courseApi.post(`/v1/courses/enroll?studentId=${studentId}&offeringId=${offeringId}`);
+export const enrollCourse = async (offeringId: string) => {
+
+    const response = await courseApi.post(`/courses/enroll`, {
+        offeringId: offeringId
+    });
+    return response.data;
 }

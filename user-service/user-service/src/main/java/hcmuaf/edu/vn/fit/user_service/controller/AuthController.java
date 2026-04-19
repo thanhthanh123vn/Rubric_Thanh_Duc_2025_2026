@@ -5,17 +5,19 @@ import hcmuaf.edu.vn.fit.user_service.dto.request.LoginRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.ResetPasswordRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.TokenResponse;
 import hcmuaf.edu.vn.fit.user_service.service.AuthService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/user-service/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+
 public class AuthController {
 
     private final AuthService authService;
@@ -35,18 +37,21 @@ public class AuthController {
         return ResponseEntity.ok(authService.loginWithGoogle(principal));
     }
     @GetMapping("/user-info")
-    public ResponseEntity<?> getUserInfo(@AuthenticationPrincipal OAuth2User principal) {
-        if (principal == null) {
-            return ResponseEntity.status(401).body("Chưa đăng nhập Thạnh ơi!");
+    public ResponseEntity<?> getUserInfo(Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body("Chưa đăng nhập!");
         }
 
-
-        String email = principal.getAttribute("email");
-        String name = principal.getAttribute("name");
-
-        return ResponseEntity.ok("Chào " + name + " (" + email + ")");
+        return ResponseEntity.ok(authentication.getPrincipal());
     }
+    @PostMapping("/refresh-token")
+    public ResponseEntity<TokenResponse> refreshToken(@CookieValue String refreshToken) {
 
+        TokenResponse response = authService.refreshToken(refreshToken);
+
+        return ResponseEntity.status(200).body(response);
+
+    }
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request);
