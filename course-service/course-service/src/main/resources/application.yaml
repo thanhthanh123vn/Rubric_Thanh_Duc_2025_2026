@@ -45,15 +45,23 @@ spring:
             enable: true
 eureka:
   client:
-    enabled : false
-#    service-url:
-#      defaultZone: http://localhost:8761/eureka/
-#    register-with-eureka: false
-#    fetch-registry: true
-#  instance:
-#    prefer-ip-address: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
 
-
+info:
+  app:
+    name: course-service
+    version: 1.0.0
+    description: Course microservice
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 app:
   jwt:
     secret: your_very_long_and_secret_key_22130260_thanh_nlu

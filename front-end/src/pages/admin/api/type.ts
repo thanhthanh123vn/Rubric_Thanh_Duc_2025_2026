@@ -23,3 +23,4 @@ export interface StudentProfile {
     phoneNumber: string;
     address: string;
 }
+

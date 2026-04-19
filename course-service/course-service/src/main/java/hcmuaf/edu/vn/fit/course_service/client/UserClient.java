@@ -11,13 +11,13 @@ import java.util.Map;
 
 @FeignClient(
         name = "user-service",
-        url = "http://localhost:8081"
+        url = "http://localhost:8081/api/v1/user-service"
 )
 public interface UserClient {
 
-    @GetMapping("/api/users/{id}")
+    @GetMapping("/users/{id}")
     UserResponse getUser(@PathVariable("id") String id);
 
-    @GetMapping("/api/users/batch")
+    @GetMapping("users/batch")
     Map<String, UserResponse> getUsers(@RequestParam("ids") List<String> ids);
 }

@@ -20,12 +20,14 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.*;
 
 @Controller
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/course-service")
 public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -55,7 +57,7 @@ public class ChatController {
 
         messagingTemplate.convertAndSend("/topic/chat/" + conversationId, messageResponse);
     }
-    @GetMapping("/api/v1/chat/conversation/{conversationId}/history")
+    @GetMapping("/chat/conversation/{conversationId}/history")
     public ResponseEntity<?> getChatHistory(@PathVariable String conversationId) {
         try {
 

@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/courses")
+@RequestMapping("/api/v1/course-service/courses")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+
 public class CourseController {
 
 
@@ -51,7 +51,7 @@ public class CourseController {
     }
     @PostMapping("/enroll")
     public Object enroll(
-            @RequestParam String studentId,
+            @RequestHeader("X-User-Id") String studentId,
             @RequestParam String offeringId) {
         try {
             return service.enroll(studentId, offeringId);
@@ -61,8 +61,8 @@ public class CourseController {
     }
 
 
-    @GetMapping("/student/{studentId}/dashboard")
-    public List<DashboardCourseProjection> getStudentDashboardCourses(@PathVariable String studentId) {
+    @GetMapping("/student/me/dashboard")
+    public List<DashboardCourseProjection> getStudentDashboardCourses(@RequestHeader("X-User-Id") String studentId) {
         return service.getDashboardCoursesForStudent(studentId);
     }
 

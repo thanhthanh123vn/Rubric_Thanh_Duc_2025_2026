@@ -122,7 +122,7 @@ const ChatBox = ({ conversationId, currentUserId, students }: { conversationId: 
         const fetchHistory = async () => {
             try {
 
-                const response = await courseApi.get(`/v1/chat/conversation/${conversationId}/history`);
+                const response = await courseApi.get(`/chat/conversation/${conversationId}/history`);
                 setMessages(response.data);
             } catch (error) {
                 console.error("Không thể tải lịch sử chat:", error);

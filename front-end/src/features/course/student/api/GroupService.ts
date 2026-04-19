@@ -7,13 +7,13 @@ export const groupService = {
 
 
     createGroup: async (data: CreateGroupRequest) => {
-        const response = await courseApi.post('/v1/group/create', data);
+        const response = await courseApi.post('/group/create', data);
         return response.data;
     },
 
 
     getMyGroups: async (offeringId: string, userId: string): Promise<GroupResponse[]> => {
-        const response = await courseApi.get(`/v1/group/offering/${offeringId}/user/${userId}`);
+        const response = await courseApi.get(`/group/offering/${offeringId}/user/me`);
         return response.data;
     }
 

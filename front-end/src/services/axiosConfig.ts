@@ -11,7 +11,7 @@ const attachToken = (config : InternalAxiosRequestConfig) => {
 }
 //user-service
 export const api: AxiosInstance = axios.create({
-    baseURL: 'http://localhost:8081/api',
+    baseURL: 'http://localhost:8080/api/v1/user-service',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -19,11 +19,12 @@ export const api: AxiosInstance = axios.create({
 
 //course-service
 export const courseApi: AxiosInstance = axios.create({
-    baseURL: 'http://localhost:8082/api',
+    baseURL: 'http://localhost:8080/api/v1/course-service',
     headers: {
         'Content-Type': 'application/json',
     },
 });
+
 
 api.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 courseApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
