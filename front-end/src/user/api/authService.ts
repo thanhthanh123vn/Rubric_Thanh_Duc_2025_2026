@@ -28,13 +28,9 @@ const authService = {
     }
 
 };
-export const getProfile = async (studentId: string) => {
-    const token = localStorage.getItem('token');
-    const response = await api.get(`/sinhvien/profile/${studentId}`, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
+export const getProfile = async () => {
+
+    const response = await api.get(`/sinhvien/profile/me`);
     return response.data;
 };
 export const updateProfile = async (studentId: string, data: any) => {

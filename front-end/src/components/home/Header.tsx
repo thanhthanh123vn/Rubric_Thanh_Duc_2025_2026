@@ -1,9 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Menu, Plus, Grid3x3, Circle, Search, UserIcon, LogOut, UserPlus} from 'lucide-react';
 import {useLocation, useNavigate} from "react-router-dom";
-import {getProfile} from "../../user/api/authService";
+
 import {enrollCourse} from "@/features/course/courseApi.ts";
 import {toast} from "sonner";
+import sinhVienService from "@/pages/admin/api/sinhVienService.ts";
 
 interface UserInfo {
     studentId: string;
@@ -46,7 +47,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
 
                 try {
 
-                    const fullData = await getProfile(parsed.studentId);
+                    const fullData = await sinhVienService.getProfile();
 
 
                     setFormData({

@@ -1,4 +1,4 @@
-import { createBrowserRouter, redirect } from "react-router-dom";
+import {createBrowserRouter, redirect} from "react-router-dom";
 
 
 import Dashboard from "@/pages/Dashboard";
@@ -12,7 +12,7 @@ import CourseOBE from "@/features/course/student/components/CourseOBE";
 import CourseAssignments from "@/features/course/student/components/CourseAssignments";
 import CourseGroups from "@/features/course/student/components/CourseGroups";
 import AssignmentDetail from "@/features/course/student/components/AssignmentDetail";
-
+import CreateGroup from "@/features/course/student/components/CreateGroup";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import UserManagement from "@/pages/admin/managerUser/UserManagement";
@@ -53,6 +53,10 @@ export const router = createBrowserRouter([
     {
         path: "/course/:id/assignments/:assignmentId",
         Component: AssignmentDetail,
+    },
+    {
+        path: "/course/:id/createGroup",
+        Component: CreateGroup
     },
     {
         path: "/login",

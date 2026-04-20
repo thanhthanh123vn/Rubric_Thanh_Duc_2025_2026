@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/topic")
+@RequestMapping("/api/v1/course-service/topic")
 public class TopicController {
 
     @Autowired

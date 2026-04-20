@@ -18,7 +18,7 @@ public class Topic {
     private String id;
 
     @Column(name = "offering_id", nullable = false, length = 50)
-    private String offeringId;
+    private String  offeringId;
 
     @Column(name = "user_id", nullable = false, length = 50)
     private String userId;

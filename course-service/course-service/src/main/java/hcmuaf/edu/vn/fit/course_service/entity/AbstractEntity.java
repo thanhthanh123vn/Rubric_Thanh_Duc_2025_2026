@@ -22,9 +22,9 @@ import lombok.Setter;
 public abstract class AbstractEntity<T> {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@GeneratedValue(strategy = GenerationType.UUID)
 	@Column(name = "id")
-	private Long id;
+	private String id;
 
 	@Column(name = "created_at")
 	@CreatedDate

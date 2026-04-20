@@ -38,7 +38,7 @@ export default function ProfilePage() {
 
                 try {
 
-                    const fullData = await getProfile(parsed.studentId);
+                    const fullData = await getProfile();
 
 
                     setFormData({

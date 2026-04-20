@@ -1,43 +1,58 @@
 import React, { useState } from 'react';
-import {ChevronLeft, LayoutGrid, Calendar, BookOpen, FileText, BarChart3, Settings, X} from 'lucide-react';
+import { ChevronLeft, LayoutGrid, Calendar, BookOpen, FileText, BarChart3, Settings, X } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+
 interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
+
 const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+// Thêm 'key' và 'path' tương ứng cho từng menu
   const menuItems = [
     {
+      key: "dashboard",
       icon: LayoutGrid,
       label: 'Bảng điều khiển',
-      active: true,
+      path: "/dashboard"
     },
     {
+      key: "calendar",
       icon: Calendar,
       label: 'Lịch',
+      path: "/calendar"
     },
     {
+      key: "courses",
       icon: BookOpen,
       label: 'Các khóa học',
+      path: "/courses"
     },
     {
+      key: "rubrics",
       icon: FileText,
-      label: 'Thu viện Rubric',
+      label: 'Thư viện Rubric',
+      path: "/rubrics"
     },
     {
+      key: "obe",
       icon: BarChart3,
       label: 'Báo cáo OBE',
+      path: "/obe-reports"
     },
     {
+      key: "settings",
       icon: Settings,
       label: 'Cài đặt',
+      path: "/settings"
     },
   ];
 
   return (
       <div
-          className={` z-1 
+          className={` z-10 
         fixed lg:static inset-y-0 left-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${isCollapsed ? 'lg:w-20' : 'w-[280px] lg:w-72'}
@@ -69,22 +84,27 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
 
         {/* Menu Items */}
         <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
-          {menuItems.map((item, index) => {
+
+          {menuItems.map((item) => {
             const Icon = item.icon;
+
             return (
-                <button
-                    key={index}
-                    className={`w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all ${
-                        item.active
-                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                            : 'text-gray-700 hover:bg-gray-50 hover:text-emerald-700'
-                    }`}
+                <NavLink
+                    key={item.key}
+                    to={item.path}
+                    className={({ isActive }) =>
+                        `w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all ${
+                            isActive
+                                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-emerald-700'
+                        }`
+                    }
                 >
                   <Icon size={22} className="shrink-0" />
                   <span className={`font-medium text-sm lg:text-base ${isCollapsed ? 'lg:hidden' : 'block'} whitespace-nowrap`}>
-                {item.label}
-              </span>
-                </button>
+                    {item.label}
+                  </span>
+                </NavLink>
             );
           })}
         </nav>

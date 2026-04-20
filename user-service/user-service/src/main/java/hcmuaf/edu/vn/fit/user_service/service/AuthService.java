@@ -1,10 +1,12 @@
 package hcmuaf.edu.vn.fit.user_service.service;
 
+
 import hcmuaf.edu.vn.fit.user_service.dto.request.ForgotPasswordRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.LoginRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.ResetPasswordRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.TokenResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.SinhVien;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.SinhVienMapper;
@@ -55,22 +57,31 @@ public class AuthService {
         }
 
     public LoginResponse login(LoginRequest request) {
+
         User user = userRepository.findByUsername(request.identifier())
-                .orElseThrow(() -> new RuntimeException("Sai tài khoản!"));
-        System.out.println(request.password());
+                .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
+
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new RuntimeException("Sai mật khẩu!");
+            throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!");
         }
 
         String fullName = "";
         if ("STUDENT".equals(user.getRole())) {
+
+            svRepository.findByUser(user).ifPresent(sv -> {
+
+            });
+
+
             SinhVien sv = svRepository.findByUser(user).orElse(null);
             if (sv != null) {
                 fullName = sv.getFullName();
             }
         }
+
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
-        return new LoginResponse(token, user.getUserId(),user.getUsername(), user.getRole(),fullName);
+
+        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole(), fullName);
     }
 
 
@@ -142,6 +153,20 @@ public class AuthService {
         user.setResetOtp(null);
         user.setResetOtpExpiry(null);
         userRepository.save(user);
+    }
+    public TokenResponse refreshToken(String refreshToken) {
+        // 1. Trích xuất thông tin từ token cũ
+        String userId = jwtUtils.extractUsername(refreshToken);
+        String role = jwtUtils.extractRole(refreshToken);
+
+        // 2. Kiểm tra tính hợp lệ và hết hạn
+        if (jwtUtils.isTokenValid(refreshToken) && !jwtUtils.isTokenExpired(refreshToken)) {
+            // 3. Tạo cặp token mới
+            String newAccessToken = jwtUtils.generateToken(userId, role);
+            return new TokenResponse(newAccessToken, refreshToken);
+        }
+
+        throw new RuntimeException("Refresh token is invalid or expired");
     }
 }
 

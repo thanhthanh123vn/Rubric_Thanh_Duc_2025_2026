@@ -21,12 +21,12 @@ public class Message {
 	@Column(name = "message_id", length = 50)
 	private String messageId;
 
-	// Gắn tin nhắn vào một Lớp học phần cụ thể
+
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "offering_id", nullable = false)
+	@JoinColumn(name = "offering_id", nullable = true)
 	private CourseOffering courseOffering;
 
-	// ID người gửi (Student hoặc Lecturer) - trỏ về User Service
+
 	@Column(name = "sender_id", length = 50, nullable = false)
 	private String senderId;
 
