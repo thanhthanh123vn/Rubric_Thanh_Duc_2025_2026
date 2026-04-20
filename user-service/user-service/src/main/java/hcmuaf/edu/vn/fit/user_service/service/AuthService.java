@@ -78,9 +78,9 @@ public class AuthService {
         String email = oauth2User.getAttribute("email");
         String googleId = oauth2User.getAttribute("sub");
 
-        if (!email.endsWith("@st.hcmuaf.edu.vn") && !email.endsWith("@hcmuaf.edu.vn")) {
-            throw new RuntimeException("Email không hợp lệ!");
-        }
+//        if (!email.endsWith("@st.hcmuaf.edu.vn") && !email.endsWith("@hcmuaf.edu.vn")) {
+//            throw new RuntimeException("Email không hợp lệ!");
+//        }
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     User newUser = User.builder()

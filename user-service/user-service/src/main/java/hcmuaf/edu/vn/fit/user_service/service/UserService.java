@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.user_service.service;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
+
 import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
@@ -92,16 +93,6 @@ public class UserService {
         return userMapper.toUserResponse(updatedUser);
     }
 
-    public Map<String,UserResponse> getUsers(List<String> ids){
-        List<User>  users = userRepository.findAllById(ids);
-
-        return users.stream()
-                .collect(Collectors.toMap(
-                        User::getUserId,
-                        userMapper::toUserResponse
-                ));
-    }
-
 
     @Transactional
     public void deleteUser(String userId) {
@@ -113,5 +104,13 @@ public class UserService {
     }
 
 
+    public Map<String, UserResponse> getUsers(List<String> ids) {
+        List<User> users = userRepository.findAllById(ids); // Tìm tất cả user có ID trong list
 
+        return users.stream()
+                .collect(Collectors.toMap(
+                        User::getUserId,
+                        userMapper::toUserResponse
+                ));
+    }
 }

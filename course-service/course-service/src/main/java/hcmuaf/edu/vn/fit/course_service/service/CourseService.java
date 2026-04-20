@@ -1,14 +1,19 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
+import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
 import hcmuaf.edu.vn.fit.course_service.entity.User;
+import hcmuaf.edu.vn.fit.course_service.mapper.CourseMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,24 +21,59 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CourseService {
 
-    @Autowired
-    private CourseRepository courseRepo;
 
-    @Autowired
-    private EnrollmentRepository enrollmentRepo;
-    @Autowired
-    private  CourseOfferingRepository courseOfferingRepo;
+    private final CourseRepository courseRepo;
 
-    public List<Course> getAllCourses() {
-        return courseRepo.findAll();
+
+    private final EnrollmentRepository enrollmentRepo;
+
+    private final CourseOfferingRepository courseOfferingRepo;
+
+    private  final CourseMapper courseMapper;
+
+    public List<CourseResponse> getAllCourses() {
+        return courseRepo.findAll().stream()
+                .map(courseMapper::toCourseResponse)
+                .collect(Collectors.toList());
+    }
+    public CourseResponse getCourseById(String id) {
+        Course course = courseRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
+        return courseMapper.toCourseResponse(course);
     }
 
-    public Course createCourse(Course course) {
-        return courseRepo.save(course);
+    public CourseResponse createCourse(CourseRequest request) {
+        if (courseRepo.existsByCourseCode(request.getCourseCode())) {
+            throw new RuntimeException("Mã môn học đã tồn tại!");
+        }
+
+        Course course = courseMapper.toCourse(request);
+
+        course.setCourseId("C" + System.currentTimeMillis());
+
+        Course savedCourse = courseRepo.save(course);
+        return courseMapper.toCourseResponse(savedCourse);
+    }
+    public CourseResponse updateCourse(String id, CourseRequest request) {
+        Course course = courseRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
+
+        // Mapper tự động lấy dữ liệu từ request đổ vào course
+        courseMapper.updateCourseFromRequest(request, course);
+
+        Course updatedCourse = courseRepo.save(course);
+        return courseMapper.toCourseResponse(updatedCourse);
+    }
+    public void deleteCourse(String id) {
+        Course course = courseRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
+        courseRepo.delete(course);
     }
 
 
@@ -66,5 +106,8 @@ public class CourseService {
                 .build();
 
         return enrollmentRepo.save(newEnrollment);
+    }
+    public List<StudentCourseProjection> getStudentsByOfferingId(String offeringId) {
+        return enrollmentRepo.findStudentsByOfferingId(offeringId);
     }
 }

@@ -1,6 +1,7 @@
 package hcmuaf.edu.vn.fit.user_service.map;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
+
 import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import org.mapstruct.Mapper;

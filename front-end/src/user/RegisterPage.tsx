@@ -5,6 +5,7 @@ import { GraduationCap, User, Mail, Lock, Phone, ArrowLeft } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
+import authService from "@/user/api/authService.ts";
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -16,13 +17,34 @@ export default function RegisterPage() {
         confirmPassword: ""
     })
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (formData.password !== formData.confirmPassword) {
             alert("Mật khẩu không khớp!")
             return
         }
-        console.log("Gửi yêu cầu tạo tài khoản:", formData)
+
+
+        const requestPayload = {
+            Id: formData.studentId,
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password
+        }
+
+        try {
+
+            const registerPage = await authService.register(requestPayload);
+            console.log("Đăng ký thành công:", registerPage)
+            alert("Đăng ký thành công!")
+            // Có thể thêm code chuyển hướng về trang login ở đây:
+            window.location.href = '/login';
+
+        } catch(e: any) {
+            console.error("Lỗi đăng ký:", e);
+            // Hiển thị lỗi từ backend trả về nếu có (với axios)
+            alert(e.response?.data?.message || e.message || "Đăng ký thất bại!")
+        }
     }
 
     return (

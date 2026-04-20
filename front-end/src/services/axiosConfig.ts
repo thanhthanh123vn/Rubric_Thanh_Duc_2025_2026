@@ -9,7 +9,6 @@ const attachToken = (config : InternalAxiosRequestConfig) => {
 
     return config;
 }
-
 //user-service
 export const api: AxiosInstance = axios.create({
     baseURL: 'http://localhost:8081/api',

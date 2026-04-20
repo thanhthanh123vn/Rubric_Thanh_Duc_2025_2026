@@ -2,6 +2,7 @@ package hcmuaf.edu.vn.fit.course_service.repository;
 
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -37,5 +38,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
             "  AND e.status = 'ACTIVE' COLLATE utf8mb4_unicode_520_ci",
             nativeQuery = true)
     List<DashboardCourseProjection> findDashboardCoursesByUserId(@Param("userId") String userId);
-
+    @Query(value = "SELECT " +
+            "u.user_id AS id, " +
+            "s.full_name AS fullName, " +
+            "u.email AS email " +
+            "FROM enrollments e " +
+            "JOIN sinh_vien s ON e.student_id = s.student_id COLLATE utf8mb4_unicode_520_ci " +
+            "JOIN users u ON s.user_id = u.user_id COLLATE utf8mb4_unicode_520_ci " +
+            "WHERE e.offering_id = :offeringId COLLATE utf8mb4_unicode_520_ci " +
+            "AND e.status = 'ACTIVE' COLLATE utf8mb4_unicode_520_ci",
+            nativeQuery = true)
+    List<StudentCourseProjection> findStudentsByOfferingId(@Param("offeringId") String offeringId);
 }

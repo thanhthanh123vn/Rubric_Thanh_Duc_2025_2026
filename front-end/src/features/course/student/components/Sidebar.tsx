@@ -7,7 +7,7 @@ import {
     Users2,
     BarChart3,
     ChevronLeft,
-    X
+    X, Plus
 } from "lucide-react";
 import { NavLink, useParams } from "react-router-dom";
 
@@ -26,6 +26,7 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
         { key: "obe", icon: BarChart3, label: "Tiến độ OBE", path: "obe" },
         { key: "groups", icon: Users2, label: "Nhóm của tôi", path: "groups" },
         { key: "students", icon: Users, label: "Sinh viên", path: "students" },
+        { key: "createGroup", icon: Plus, label: "Tạo Nhóm", path: "createGroup" },
         { key: "notifications", icon: Bell, label: "Thông báo", path: "notifications" },
     ];
 

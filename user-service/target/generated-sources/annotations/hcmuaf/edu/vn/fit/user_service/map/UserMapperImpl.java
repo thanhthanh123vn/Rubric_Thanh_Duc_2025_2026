@@ -1,14 +1,14 @@
 package hcmuaf.edu.vn.fit.user_service.map;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.response.admin.UserResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-10T00:05:23+0700",
+    date = "2026-04-16T23:54:43+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
