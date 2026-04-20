@@ -1,69 +1,92 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
+import hcmuaf.edu.vn.fit.course_service.dto.request.TopicRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.TopicResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
+import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Topic;
+import hcmuaf.edu.vn.fit.course_service.mapper.TopicMapper;
+import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.TopicRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class TopicService {
 
-    @Autowired
-    private TopicRepository topicRepository;
+    private final TopicRepository topicRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
+    private final TopicMapper topicMapper;
+    private final UserClient userClient;
 
-    @Autowired
-    private UserClient userClient;
 
-    public TopicResponse findById(String id) {
-        Topic topic =  topicRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Topic not found")
-        );
-
-        TopicResponse topicResponse = new TopicResponse();
-        topicResponse.setTopicId(topic.getId());
-        topicResponse.setContent(topic.getContent());
-        topicResponse.setContent(topic.getContent());
-        topicResponse.setCreatedDate(topic.getCreatedAt());
-        topicResponse.setUpdatedDate(topic.getUpdatedAt());
-
-        return topicResponse;
-    }
     public List<TopicResponse> findByOfferingId(String offeringId) {
-        System.out.println(offeringId);
-        List<Topic> topics =  topicRepository.findByOfferingId(offeringId);
 
-        List<String> userIds = topics.stream()
-                .map(Topic::getUserId)
+        List<Topic> topics = topicRepository.findByOfferingId(offeringId);
+
+        // Chuyển sang DTO
+        List<TopicResponse> responses = topics.stream()
+                .map(topicMapper::toResponse)
+                .collect(Collectors.toList());
+
+
+        List<String> userIds = responses.stream()
+                .map(TopicResponse::getUserId)
                 .distinct()
-                .toList();
+                .collect(Collectors.toList());
 
-        System.out.println(userIds.toString());
+        try {
+            Map<String, UserResponse> users = userClient.getUsers(userIds);
+            responses.forEach(res -> {
+                if (users.containsKey(res.getUserId())) {
+                    res.setUsername(users.get(res.getUserId()).getUsername());
+                } else {
+                    res.setUsername("Unknown User");
+                }
+            });
+        } catch (Exception e) {
+            log.error("Lỗi khi gọi User Service lấy thông tin người đăng bài", e);
+            responses.forEach(res -> res.setUsername("Unknown User"));
+        }
 
-        Map<String,UserResponse> users = userClient.getUsers(userIds);
+        return responses;
+    }
 
-        return topics.stream().map(topic -> {
-            TopicResponse res = new TopicResponse();
-            res.setTopicId(topic.getId());
-            res.setUserId(topic.getUserId());
 
-            UserResponse user = users.get(topic.getUserId());
-            res.setUsername(user != null ? user.getUsername() : "Unknown");
+    public TopicResponse createTopic(String offeringId, String userId, TopicRequest request) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học với ID: " + offeringId));
 
-            res.setContent(topic.getContent());
-            res.setPostType(topic.getPostType());
-            res.setCreatedDate(topic.getCreatedAt());
-            res.setUpdatedDate(topic.getUpdatedAt());
+        Topic topic = topicMapper.toEntity(request);
+        topic.setPostId(UUID.randomUUID().toString());
+        topic.setCourseOffering(offering);
+        topic.setUserId(userId);
 
-            return res;
-        }).collect(Collectors.toList());
 
+        if (topic.getPostType() == null) topic.setPostType("NORMAL");
+        topic.setIsPinned(false);
+        topic.setIsDeleted(false);
+
+        Topic savedTopic = topicRepository.save(topic);
+        TopicResponse response = topicMapper.toResponse(savedTopic);
+
+
+        try {
+            Map<String, UserResponse> users = userClient.getUsers(List.of(userId));
+            response.setUsername(users.containsKey(userId) ? users.get(userId).getUsername() : "Unknown User");
+        } catch (Exception e) {
+            response.setUsername("Unknown User");
+        }
+
+        return response;
     }
 }

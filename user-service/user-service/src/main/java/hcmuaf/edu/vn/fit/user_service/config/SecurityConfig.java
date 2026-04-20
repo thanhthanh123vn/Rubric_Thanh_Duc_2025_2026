@@ -30,10 +30,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // CHÈN THÊM DÒNG NÀY ĐỂ CHO PHÉP REQUEST OPTIONS QUA CỬA
+
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Các dòng cũ của bạn
+
                         .requestMatchers("/api/v1/user-service/auth/**").permitAll()
                         .anyRequest().authenticated());
 

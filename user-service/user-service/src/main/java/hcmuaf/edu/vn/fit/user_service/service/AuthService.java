@@ -80,8 +80,9 @@ public class AuthService {
         }
 
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
+        String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
 
-        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole(), fullName);
+        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole(), fullName,refershToken);
     }
 
 
@@ -105,6 +106,8 @@ public class AuthService {
                 });
 
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
+        String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
+
         String fullName = "";
         if ("STUDENT".equals(user.getRole())) {
             SinhVien sv = svRepository.findByUser(user).orElse(null);
@@ -112,7 +115,7 @@ public class AuthService {
                 fullName = sv.getFullName();
             }
         }
-        return new LoginResponse(token, user.getUserId(),user.getUsername(), user.getRole(),fullName);
+        return new LoginResponse(token, user.getUserId(),user.getUsername(), user.getRole(),fullName,refershToken);
     }
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {

@@ -16,10 +16,10 @@ public class Comment {
     @Column(name = "comment_id", length = 50)
     private String commentId;
 
-    // Ràng buộc nội bộ với bảng Post trong cùng Course Service
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Post post;
+    @JoinColumn(name = "post_id",nullable = false)
+    private Topic post;
 
     // Chỉ lưu ID tham chiếu sang User Service (người bình luận)
     @Column(name = "user_id", length = 50)
