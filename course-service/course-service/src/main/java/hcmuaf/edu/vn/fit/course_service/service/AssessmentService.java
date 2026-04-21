@@ -2,13 +2,16 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
 import hcmuaf.edu.vn.fit.course_service.repository.AssessmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -57,5 +60,52 @@ public class AssessmentService {
                 throw new RuntimeException("Parse error", e);
             }
         }).toList();
+    }
+    public AssessmentDetailResponse getAssById(String assessmentId, String studentId) {
+
+        List<Object[]> list = assessmentRepository.getAssignmentDetail(assessmentId, studentId);
+
+        if (list == null || list.isEmpty()) return null;
+
+        Object[] res = list.get(0);
+        if (res == null) {
+            return null;
+        }
+
+        try {
+            AssessmentDetailResponse dto = new AssessmentDetailResponse();
+
+            dto.setAssessmentId((String) res[0]);
+            dto.setAssessmentName((String) res[1]);
+            dto.setDescription((String) res[2]);
+            dto.setWeight(res[3] != null ? ((Number) res[3]).doubleValue() : 0);
+            dto.setEndTime((Timestamp) res[4]);
+
+            dto.setSubmissionId((String) res[5]);
+            dto.setSubmissionAt((Timestamp) res[6]);
+
+            dto.setCalculatedScore(res[7] != null ? ((Number) res[7]).doubleValue() : 0);
+            dto.setLecturerComment((String) res[8]);
+
+            String closJson = (String) res[9];
+            if (closJson != null) {
+                ObjectMapper mapper = new ObjectMapper();
+                List<Map<String, String>> cloList =
+                        mapper.readValue(closJson, new TypeReference<>() {});
+
+                // convert list -> map (code -> description)
+                Map<String, String> closMap = new HashMap<>();
+                for (Map<String, String> clo : cloList) {
+                    closMap.put(clo.get("code"), clo.get("description"));
+                }
+
+                dto.setClos(closMap);
+            }
+
+            return dto;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Parse error", e);
+        }
     }
 }

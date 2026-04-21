@@ -20,7 +20,7 @@ const Banner = () => {
 
 const StudentItem = ({ student }: { student: Type }) => {
     return (
-        <div className="flex items-center justify-between p-4 border-b hover:bg-gray-50 transition">
+        <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition">
             <div className="flex items-center gap-3">
                 {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold">
@@ -73,7 +73,7 @@ const StudentList = () => {
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
             {/* Search */}
-            <div className="p-4 border-b">
+            <div className="p-4">
                 <input
                     type="text"
                     placeholder="Tìm kiếm sinh viên..."

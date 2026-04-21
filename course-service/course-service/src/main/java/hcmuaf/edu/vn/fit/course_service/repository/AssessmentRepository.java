@@ -44,5 +44,52 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     """, nativeQuery = true)
     List<Object[]> getAssignmentByCourseOffering(String offeringId, String studentId);
 
+    @Query(value = """
+    SELECT 
+        a.assessment_id,
+        a.assessment_name,
+        a.description,
+        a.weight,
+        a.end_time,
 
+        s.submission_id,
+        s.submitted_at,
+
+        rr.calculated_score,
+        rr.lecturer_comment,
+            CONCAT(
+                   '[',
+                   GROUP_CONCAT(
+                       DISTINCT CONCAT(
+                           '{"code":"', c.clo_code,
+                           '","description":"', c.description, '"}'
+                       )
+                   ),
+                   ']'
+               ) AS clos                                    
+    FROM assessments a
+
+    LEFT JOIN submissions s 
+        ON s.assessment_id = a.assessment_id
+        AND s.student_id = :studentId
+
+    LEFT JOIN rubric_results rr 
+        ON rr.submission_id = s.submission_id
+
+    LEFT JOIN assessment_clo ac 
+        ON ac.assessment_id = a.assessment_id
+
+    LEFT JOIN course_clo c 
+        ON c.clo_id = ac.clo_id
+    WHERE a.assessment_id = :assessmentId
+    GROUP BY
+    a.assessment_id,
+    a.assessment_name,
+    a.description,
+    a.weight,
+    a.end_time,
+    s.submission_id,
+    s.submitted_at; 
+    """, nativeQuery = true)
+    List<Object[]> getAssignmentDetail(String assessmentId,String studentId);
 }
