@@ -26,7 +26,7 @@ public class AssessmentController {
     }
 
     // detail
-    @GetMapping("/:q")
+    @GetMapping("/assessments/{assessmentId}")
     public AssessmentDetailResponse getAssignmentDetail(
             @PathVariable String assessmentId
     ) {

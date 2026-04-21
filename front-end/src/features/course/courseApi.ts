@@ -51,6 +51,10 @@ export const courseService = {
         const response = await courseApi.get(`/assessments/${assessmentId}`)
         console.log(assessmentId)
         return response.data;
+    },
+    getOBEProgress : async (offeringId: string) => {
+        const response = await courseApi.get(`/courses/offering/${offeringId}/OBE`)
+        return response.data;
     }
 };
 export const enrollCourse = async (offeringId: string) => {

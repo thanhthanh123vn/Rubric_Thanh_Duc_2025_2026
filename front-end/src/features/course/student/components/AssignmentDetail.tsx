@@ -82,7 +82,7 @@ const AssignmentDetail = () => {
                             <div className="mt-4 flex justify-between font-bold">
                                 <span>Trọng số</span>
                                 <span className="text-emerald-600">
-                                    {data.weight}%
+                                    {data.weight*100}%
                                 </span>
                             </div>
                         </div>

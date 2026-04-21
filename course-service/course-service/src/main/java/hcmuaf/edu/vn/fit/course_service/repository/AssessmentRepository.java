@@ -13,7 +13,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     SELECT 
         a.assessment_id,
         a.assessment_name,
-        a.weight,
+        ac.clo_weight,
         a.end_time,
 
         s.submission_id,
@@ -49,7 +49,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
         a.assessment_id,
         a.assessment_name,
         a.description,
-        a.weight,
+        ac.clo_weight,
         a.end_time,
 
         s.submission_id,

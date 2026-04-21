@@ -1,10 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
@@ -27,7 +24,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CourseService {
 
-
+    @Autowired
     private final CourseRepository courseRepo;
 
 
@@ -110,5 +107,18 @@ public class CourseService {
     }
     public List<StudentCourseProjection> getStudentsByOfferingId(String offeringId) {
         return enrollmentRepo.findStudentsByOfferingId(offeringId);
+    }
+
+    public List<OBEProgressResponse> getOBEProgress(String offeringId) {
+        List<Object[]> rows = courseRepo.getOBEByOffering(offeringId);
+
+        return rows.stream().map(r -> new OBEProgressResponse(
+                (String) r[0],
+                (String) r[1],
+                (String) r[2],
+                r[3] != null ? ((Number) r[3]).doubleValue() : 0,
+                r[4] != null ? ((Number) r[4]).doubleValue() : 0,
+                r[5] != null ? ((Number) r[5]).doubleValue() : 0
+        )).toList();
     }
 }

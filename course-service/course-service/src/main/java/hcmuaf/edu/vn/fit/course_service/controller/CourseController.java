@@ -1,10 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.service.CourseService;
 import lombok.RequiredArgsConstructor;
@@ -68,5 +65,9 @@ public class CourseController {
     @GetMapping("/offering/{offeringId}/students")
     public ResponseEntity<List<StudentCourseProjection>> getStudentsByOffering(@PathVariable String offeringId) {
         return ResponseEntity.ok(service.getStudentsByOfferingId(offeringId));
+    }
+    @GetMapping("/offering/{offeringId}/OBE")
+    public ResponseEntity<List<OBEProgressResponse>> getOBEProgress(@PathVariable String offeringId) {
+        return ResponseEntity.ok(service.getOBEProgress(offeringId));
     }
 }
