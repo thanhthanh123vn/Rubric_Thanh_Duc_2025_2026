@@ -42,11 +42,11 @@ public class CourseService {
                 .map(courseMapper::toCourseResponse)
                 .collect(Collectors.toList());
     }
-    public CourseResponse getCourseById(String id) {
-        System.out.println("id : " + id);
-        Course course = courseRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
-        return courseMapper.toCourseResponse(course);
+    // Lấy thông tin Course thông qua offeringId
+    public CourseResponse getCourseByOfferingId(String offeringId) {
+        CourseOffering offering = courseOfferingRepo.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
+        return courseMapper.toCourseResponse(offering.getCourse());
     }
 
     public CourseResponse createCourse(CourseRequest request) {

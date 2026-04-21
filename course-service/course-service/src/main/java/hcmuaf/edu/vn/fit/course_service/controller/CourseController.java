@@ -29,9 +29,9 @@ public class CourseController {
         return ResponseEntity.ok(service.getAllCourses());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<CourseResponse> getById(@PathVariable String id) {
-        return ResponseEntity.ok(service.getCourseById(id));
+    @GetMapping("/offering/{offeringId}/course")
+    public ResponseEntity<CourseResponse> getCourseByOfferingId(@PathVariable String offeringId) {
+        return ResponseEntity.ok(service.getCourseByOfferingId(offeringId));
     }
 
     @PostMapping

@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Users, Plus, MessageSquare, Loader2, Info } from "lucide-react";
+import { Users, Plus, MessageSquare, Loader2 } from "lucide-react";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
-import { couserService } from "@/features/course/courseApi.ts";
+import { courseService } from "@/features/course/courseApi.ts";
 import { groupService } from "@/features/course/student/api/GroupService.ts";
 import { courseApi } from "@/services/axiosConfig.ts";
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
@@ -267,7 +267,7 @@ const CourseGroups = () => {
         const localUser = localStorage.getItem("user");
         if (localUser) user = JSON.parse(localUser);
     }
-    const currentUserId = user?.studentId || user?.userId || user?.id;
+    const currentUserId = user?.studentId || user?.userId || user?.userId;
 
     // States
     const [students, setStudents] = useState<Type[]>([]);
@@ -285,7 +285,7 @@ const CourseGroups = () => {
             try {
 
 
-                const studentData = await couserService.getStudentsByOffering(offeringId);
+                const studentData = await courseService.getStudentsByOffering(offeringId);
                 setStudents(studentData)
 
                 const groupData = await groupService.getMyGroups(offeringId, currentUserId);

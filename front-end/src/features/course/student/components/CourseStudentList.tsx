@@ -3,7 +3,7 @@ import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 
 import type {Type} from "@/features/course/student/api/type.ts";
-import {couserService} from "@/features/course/courseApi.ts";
+import {courseService} from "@/features/course/courseApi.ts";
 import {useParams} from "react-router-dom";
 
 
@@ -54,7 +54,7 @@ const StudentList = () => {
             setIsLoading(true);
             try {
                 // Gọi API backend
-                const data = await couserService.getStudentsByOffering(id);
+                const data = await courseService.getStudentsByOffering(id);
                 setStudents(data);
             } catch (error) {
                 console.error("Lỗi khi tải danh sách sinh viên:", error);
