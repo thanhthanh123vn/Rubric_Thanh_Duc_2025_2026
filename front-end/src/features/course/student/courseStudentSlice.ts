@@ -33,12 +33,10 @@ const postSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         builder
-            // pending
             .addCase(fetchPost.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
-            // success
             .addCase(fetchPost.fulfilled, (state, action) => {
                 state.loading = false;
                 state.data = action.payload;

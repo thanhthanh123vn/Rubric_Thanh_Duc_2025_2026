@@ -46,8 +46,7 @@ const Dashboard = () => {
   useEffect(() => {
 
     const fetchDashboardCourses = async () => {
-      // console.log("USER:", user);
-      // console.log("studentId:", studentId);
+
       if (!studentId) return;
 
       try {
@@ -74,7 +73,8 @@ const Dashboard = () => {
         setIsLoading(false);
       }
     };
-
+      console.log("USER:", user);
+      console.log("studentId:", studentId);
     fetchDashboardCourses();
   }, [studentId,refreshKey]);
 

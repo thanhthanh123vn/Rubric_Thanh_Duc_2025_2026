@@ -43,6 +43,7 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
     public CourseResponse getCourseById(String id) {
+        System.out.println("id : " + id);
         Course course = courseRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
         return courseMapper.toCourseResponse(course);
