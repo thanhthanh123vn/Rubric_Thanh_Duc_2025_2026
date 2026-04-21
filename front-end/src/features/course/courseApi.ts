@@ -44,7 +44,12 @@ export const courseService = {
         return response.data;
     },
     getAssessmentByOffering: async (offeringId : string) =>{
-        const response = await courseApi.get(`/assignment/${offeringId}`);
+        const response = await courseApi.get(`/offerings/${offeringId}/assessments`);
+        return response.data;
+    },
+    getAssessmentDetail : async (assessmentId: string)=> {
+        const response = await courseApi.get(`/assessments/${assessmentId}`)
+        console.log(assessmentId)
         return response.data;
     }
 };
