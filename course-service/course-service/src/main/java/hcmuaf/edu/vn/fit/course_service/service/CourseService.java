@@ -1,10 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
@@ -48,7 +45,13 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
         return courseMapper.toCourseResponse(offering.getCourse());
     }
+    public CourseOfferingResponse getCourseOfferingDetail(String offeringId) {
 
+        CourseOffering offering = courseOfferingRepo.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        return courseMapper.toOfferingResponse(offering);
+    }
     public CourseResponse createCourse(CourseRequest request) {
         if (courseRepo.existsByCourseCode(request.getCourseCode())) {
             throw new RuntimeException("Mã môn học đã tồn tại!");

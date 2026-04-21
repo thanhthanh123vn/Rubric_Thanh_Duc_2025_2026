@@ -2,6 +2,7 @@ import {createBrowserRouter, redirect} from "react-router-dom";
 
 
 import Dashboard from "@/pages/Dashboard";
+import CalendarPage from "@/pages/CalendarPage";
 import RegisterPage from "@/user/RegisterPage";
 import ForgotPasswordPage from "@/user/ForgotPasswordPage";
 import AccountManagement from "@/user/AccountManagement/AccountManagement";
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
     {
         path: "/dashboard",
         Component: Dashboard,
+    },
+    {
+        path: "/calendar",
+        Component: CalendarPage,
     },
     {
         path: "/course/:id",

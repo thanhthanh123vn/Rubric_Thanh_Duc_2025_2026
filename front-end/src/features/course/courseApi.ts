@@ -42,7 +42,18 @@ export const couserService = {
     getStudentsByOffering: async (offeringId: string) => {
         const response = await courseApi.get(`/courses/offering/${offeringId}/students`);
         return response.data;
-    }
+    },
+
+    getCommentsByPostId: async (postId: string) => {
+        const response = await courseApi.get(`/topic/offerings/${postId}/comments`);
+        return response.data;
+    },
+    createComment: async (postId: string, content: string) => {
+        const response = await courseApi.post(`/topic/offerings/${postId}/comments`, { content });
+        return response.data;
+    },
+
+
 };
 export const enrollCourse = async (offeringId: string) => {
 

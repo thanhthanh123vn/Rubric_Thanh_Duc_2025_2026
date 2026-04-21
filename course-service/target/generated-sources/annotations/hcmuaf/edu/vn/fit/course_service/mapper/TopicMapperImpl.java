@@ -4,20 +4,17 @@ import hcmuaf.edu.vn.fit.course_service.dto.request.TopicRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.TopicResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Topic;
+import hcmuaf.edu.vn.fit.course_service.entity.User;
 import javax.annotation.processing.Generated;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-20T21:21:15+0700",
+    date = "2026-04-22T00:55:39+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
 public class TopicMapperImpl implements TopicMapper {
-
-    @Autowired
-    private DateMapper dateMapper;
 
     @Override
     public TopicResponse toResponse(Topic topic) {
@@ -28,13 +25,14 @@ public class TopicMapperImpl implements TopicMapper {
         TopicResponse topicResponse = new TopicResponse();
 
         topicResponse.setOfferingId( topicCourseOfferingOfferingId( topic ) );
+        topicResponse.setUserId( topicUserUserId( topic ) );
+        topicResponse.setUsername( topicUserUsername( topic ) );
         topicResponse.setPostId( topic.getPostId() );
-        topicResponse.setUserId( topic.getUserId() );
         topicResponse.setContent( topic.getContent() );
         topicResponse.setPostType( topic.getPostType() );
         topicResponse.setIsPinned( topic.getIsPinned() );
-        topicResponse.setCreatedAt( dateMapper.toLocalDateTime( topic.getCreatedAt() ) );
-        topicResponse.setUpdatedAt( dateMapper.toLocalDateTime( topic.getUpdatedAt() ) );
+        topicResponse.setCreatedAt( topic.getCreatedAt() );
+        topicResponse.setUpdatedAt( topic.getUpdatedAt() );
 
         return topicResponse;
     }
@@ -59,5 +57,21 @@ public class TopicMapperImpl implements TopicMapper {
             return null;
         }
         return courseOffering.getOfferingId();
+    }
+
+    private String topicUserUserId(Topic topic) {
+        User user = topic.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        return user.getUserId();
+    }
+
+    private String topicUserUsername(Topic topic) {
+        User user = topic.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        return user.getUsername();
     }
 }

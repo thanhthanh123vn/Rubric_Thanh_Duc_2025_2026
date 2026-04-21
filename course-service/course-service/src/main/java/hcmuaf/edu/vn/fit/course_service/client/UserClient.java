@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.client;
 
+import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,4 +21,7 @@ public interface UserClient {
 
     @GetMapping("users/batch")
     Map<String, UserResponse> getUsers(@RequestParam("ids") List<String> ids);
+
+    @GetMapping("/admin/users/{userId}")
+    SinhVienResponse getSinhVien(@PathVariable("userId") String id);
 }

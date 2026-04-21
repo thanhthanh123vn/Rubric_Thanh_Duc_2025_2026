@@ -24,12 +24,12 @@ public class TopicController {
     private final CommentService commentService;
     @GetMapping("/{topicId}")
     public List<TopicResponse> getTopic(@PathVariable("topicId") String topicId){
-        return topicService.findByOfferingId(topicId);
+        return topicService.getTopicsByOfferingId(topicId);
     }
 
     @GetMapping("/offerings/{offeringId}/topics")
     public List<TopicResponse> findByOfferingId(@PathVariable("offeringId") String offeringId){
-        return topicService.findByOfferingId(offeringId);
+        return topicService.getTopicsByOfferingId(offeringId);
     }
     @PostMapping("/offerings/{offeringId}/topics")
     public TopicResponse createTopic(
@@ -44,7 +44,7 @@ public class TopicController {
 
         );
     }
-    @PostMapping("/{postId}/comments")
+    @PostMapping("/offerings/{postId}/comments")
     public CommentResponse addComment(
             @PathVariable("postId") String postId,
             @RequestHeader("X-User-Id") String userId,
@@ -53,8 +53,8 @@ public class TopicController {
     }
 
 
-    @GetMapping("/{postId}/comments")
-    public List<CommentResponse> getComments(@PathVariable("postId") String postId) {
-        return commentService.getCommentsByPostId(postId);
+    @GetMapping("/offerings/{postId}/comments")
+    public List<CommentResponse> getComments( @RequestHeader("X-User-Id") String userId,@PathVariable("postId") String postId) {
+        return commentService.getCommentsByPostId(userId,postId);
     }
 }

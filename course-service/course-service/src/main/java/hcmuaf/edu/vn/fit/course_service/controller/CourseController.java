@@ -1,10 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.CourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
-import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.service.CourseService;
 import lombok.RequiredArgsConstructor;
@@ -28,12 +25,10 @@ public class CourseController {
     public ResponseEntity<List<CourseResponse>> getAll() {
         return ResponseEntity.ok(service.getAllCourses());
     }
-
     @GetMapping("/offering/{offeringId}/course")
-    public ResponseEntity<CourseResponse> getCourseByOfferingId(@PathVariable String offeringId) {
-        return ResponseEntity.ok(service.getCourseByOfferingId(offeringId));
+    public CourseOfferingResponse getCourseByOfferingId(@PathVariable String offeringId) {
+        return service.getCourseOfferingDetail(offeringId);
     }
-
     @PostMapping
     public ResponseEntity<CourseResponse> create(@RequestBody CourseRequest request) {
         return ResponseEntity.ok(service.createCourse(request));
