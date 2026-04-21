@@ -8,7 +8,7 @@ export const getPost = (postId: string) => {
 }
 
 
-export const couserService = {
+export const courseService = {
 
     enrollCourse: async (studentId: string, offeringId: string) => {
         const response = await courseApi.post('/courses/enroll', null, {
@@ -41,6 +41,10 @@ export const couserService = {
     },
     getStudentsByOffering: async (offeringId: string) => {
         const response = await courseApi.get(`/courses/offering/${offeringId}/students`);
+        return response.data;
+    },
+    getAssessmentByOffering: async (offeringId : string) =>{
+        const response = await courseApi.get(`/assignment/${offeringId}`);
         return response.data;
     }
 };

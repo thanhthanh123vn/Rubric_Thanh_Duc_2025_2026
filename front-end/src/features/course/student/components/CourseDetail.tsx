@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
-import { couserService } from "../../courseApi";
+import { courseService } from "../../courseApi";
 
 const Banner = ({ title, description }: any) => {
     return (
@@ -25,7 +25,7 @@ const CreatePostBox = ({ onPostSuccess }: { onPostSuccess: () => void }) => {
         if (!content.trim() || !offeringId) return;
         try {
             setLoading(true);
-            await couserService.createTopic(offeringId, content, "NORMAL");
+            await courseService.createTopic(offeringId, content, "NORMAL");
             setContent("");
             onPostSuccess();
         } catch (error) {
@@ -102,7 +102,6 @@ const Post = ({ username, createdAt, content }: any) => {
 };
 
 const ClassroomContent = () => {
-    // FIX BUG ROUTER: Lấy 'id' từ URL
     const { id } = useParams<{ id: string }>();
     const offeringId = id || "";
 
@@ -115,8 +114,8 @@ const ClassroomContent = () => {
         try {
             setLoading(true);
             const [courseData, postsData] = await Promise.all([
-                couserService.getCourseById(offeringId),
-                couserService.getTopicsByOfferingId(offeringId)
+                courseService.getCourseById(offeringId),
+                courseService.getTopicsByOfferingId(offeringId)
             ]);
             setCourse(courseData);
             setPosts(postsData);

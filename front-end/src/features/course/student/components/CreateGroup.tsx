@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Search, Check, Users, ArrowLeft, Info } from "lucide-react";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
-import { couserService } from "@/features/course/courseApi.ts";
+import { courseService } from "@/features/course/courseApi.ts";
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
 import type { Type } from "@/features/course/student/api/type.ts";
 
@@ -20,7 +20,7 @@ const CreateGroup = () => {
         const localUser = localStorage.getItem("user");
         if (localUser) user = JSON.parse(localUser);
     }
-    const currentUserId = user?.studentId || user?.userId || user?.id;
+    const currentUserId = user?.studentId || user?.userId || user?.userId;
 
     // States
     const [groupName, setGroupName] = useState("");
@@ -37,7 +37,7 @@ const CreateGroup = () => {
         const fetchStudents = async () => {
             if (!id) return;
             try {
-                const data = await couserService.getStudentsByOffering(id);
+                const data = await courseService.getStudentsByOffering(id);
                 setStudents(data);
             } catch (error) {
                 console.error("Lỗi khi tải danh sách sinh viên:", error);

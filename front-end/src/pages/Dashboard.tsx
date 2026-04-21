@@ -5,7 +5,7 @@ import StatCards from '../components/home/StatCards';
 import CourseCard from "../components/home/CourseCard";
 
 
-import { couserService } from '../features/course/courseApi';
+import { courseService } from '../features/course/courseApi';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { toast } from 'sonner';
 
@@ -42,18 +42,17 @@ const Dashboard = () => {
       user = JSON.parse(localUser);
     }
   }
-  const studentId  = user?.studentId || user?.userId || user?.id;
+  const studentId  = user?.studentId || user?.userId;
   useEffect(() => {
 
     const fetchDashboardCourses = async () => {
-      // console.log("USER:", user);
-      // console.log("studentId:", studentId);
+
       if (!studentId) return;
 
       try {
         setIsLoading(true);
 
-        const responseData = await couserService.getDashboardCourses();
+        const responseData = await courseService.getDashboardCourses();
         console.log(responseData);
 
 
@@ -74,7 +73,8 @@ const Dashboard = () => {
         setIsLoading(false);
       }
     };
-
+      console.log("USER:", user);
+      console.log("studentId:", studentId);
     fetchDashboardCourses();
   }, [studentId,refreshKey]);
 
