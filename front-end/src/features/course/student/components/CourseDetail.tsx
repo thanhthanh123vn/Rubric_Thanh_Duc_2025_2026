@@ -31,7 +31,7 @@ const CreatePostBox = ({onPostSuccess, fullName}: { onPostSuccess: () => void, f
         if (!content.trim() || !offeringId) return;
         try {
             setLoading(true);
-            await couserService.createTopic(offeringId, content, "NORMAL");
+            await courseService.createTopic(offeringId, content, "NORMAL");
             setContent("");
             onPostSuccess();
         } catch (error) {
@@ -259,8 +259,8 @@ const ClassroomContent = () => {
         try {
             setLoading(true);
             const [courseData, postsData] = await Promise.all([
-                couserService.getCourseById(offeringId),
-                couserService.getTopicsByOfferingId(offeringId)
+                courseService.getCourseById(offeringId),
+                courseService.getTopicsByOfferingId(offeringId)
             ]);
             setCourse(courseData);
             setPosts(postsData);

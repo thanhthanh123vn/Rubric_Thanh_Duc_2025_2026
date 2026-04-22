@@ -14,7 +14,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/course-service/courses")
 @RequiredArgsConstructor
-
 public class CourseController {
 
 
@@ -64,5 +63,9 @@ public class CourseController {
     @GetMapping("/offering/{offeringId}/students")
     public ResponseEntity<List<StudentCourseProjection>> getStudentsByOffering(@PathVariable String offeringId) {
         return ResponseEntity.ok(service.getStudentsByOfferingId(offeringId));
+    }
+    @GetMapping("/offering/{offeringId}/OBE")
+    public ResponseEntity<List<OBEProgressResponse>> getOBEProgress(@PathVariable String offeringId) {
+        return ResponseEntity.ok(service.getOBEProgress(offeringId));
     }
 }
