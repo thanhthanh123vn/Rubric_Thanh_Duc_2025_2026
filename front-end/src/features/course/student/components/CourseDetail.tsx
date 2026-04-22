@@ -93,7 +93,7 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
             user = JSON.parse(localUser);
         }
     }
-    const studentId  = user?.studentId || user?.userId || user?.id;
+    const studentId  = user?.studentId || user?.userId;
     const displayName = fullName || username || "Ẩn danh";
 
 
