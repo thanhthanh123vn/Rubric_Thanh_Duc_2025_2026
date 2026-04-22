@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Menu, Plus, Grid3x3, Circle, Search, UserIcon, LogOut, UserPlus} from 'lucide-react';
+import {Menu, Plus, Bell, LogOut, UserPlus} from 'lucide-react'; // Đã thêm import Bell
 import {useLocation, useNavigate} from "react-router-dom";
 
 import {enrollCourse} from "@/features/course/courseApi.ts";
@@ -16,7 +16,6 @@ interface HeaderProps {
     onMenuClick?: () => void;
     onEnrollSuccess?: () => void;
 }
-
 
 const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -46,9 +45,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                 setUser(parsed);
 
                 try {
-
                     const fullData = await sinhVienService.getProfile();
-
 
                     setFormData({
                         fullName: fullData.fullName || '',
@@ -79,6 +76,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -101,13 +99,11 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
             const response = await enrollCourse(offeringId);
             toast.success("Ghi danh thành công!");
 
-
             setShowJoinClass(false);
-            setOfferingId("");       
+            setOfferingId("");
             if (onEnrollSuccess) {
                 onEnrollSuccess();
             }
-
 
         } catch (error: any) {
             console.error("Lỗi khi ghi danh:", error);
@@ -122,9 +118,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
         <header
             className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm lg:shadow-none">
 
-
             <div className="flex items-center gap-3">
-
                 <button
                     onClick={onMenuClick}
                     className="p-1.5 lg:hidden text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -136,34 +130,37 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                 </div>
             </div>
 
+            <div className="flex items-center gap-3 relative" ref={menuRef}>
 
-            <div className="flex items-center gap-2 relative" ref={menuRef}>
-                {
-                    location.pathname === '/dashboard' && (
-                        <button
-                            onClick={() => setShowJoinClass(true)}
-                            className="w-11 h-11 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-2xl font-bold text-emerald-600 hover:text-emerald-700 hover:ring-1 hover:ring-emerald-100 transition-all duration-200"
-                        >
-                            +
-                        </button>
-                    )}
+                {/* Nút Tham gia lớp học */}
+                {location.pathname === '/dashboard' && (
+                    <button
+                        onClick={() => setShowJoinClass(true)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors duration-200 border border-emerald-100"
+                    >
+                        <Plus size={20} />
+                        <span className="hidden sm:block font-medium text-sm">Tham gia lớp học</span>
+                    </button>
+                )}
+
+                {/* Nút Thông báo (Chuông) */}
+                <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors mr-1">
+                    <Bell size={22} />
+                    {/* Dấu chấm đỏ báo có thông báo mới */}
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                </button>
+
+                {/* Modal Tham gia lớp học (Không làm mờ) */}
                 {showJoinClass && (
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-
-                        {/* Modal */}
+                    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 animate-fadeIn">
                         <div className="bg-white w-[92%] max-w-md rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
-
-                            {/* Title */}
                             <h2 className="text-2xl font-semibold text-gray-900 mb-5">
                                 Tham gia lớp học
                             </h2>
-
-                            {/* Input */}
                             <div className="mb-5">
                                 <label className="block text-sm text-gray-600 mb-1">
                                     Mã lớp
                                 </label>
-
                                 <input
                                     value={offeringId}
                                     onChange={(e) => setOfferingId(e.target.value)}
@@ -171,25 +168,19 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                                     placeholder="VD: ABC123"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                                 />
-
                                 <p className="text-xs text-gray-400 mt-1">
                                     Giáo viên sẽ cung cấp mã lớp cho bạn.
                                 </p>
                             </div>
-
-                            {/* Guide */}
                             <div className="mb-6 bg-gray-50 rounded-lg p-3">
                                 <h3 className="text-sm font-medium text-gray-800 mb-2">
                                     Hướng dẫn
                                 </h3>
-
                                 <ul className="text-sm text-gray-600 list-disc pl-5 space-y-1">
                                     <li>Dùng tài khoản được cấp</li>
                                     <li>Mã gồm 5–8 ký tự, không dấu cách</li>
                                 </ul>
                             </div>
-
-                            {/* Actions */}
                             <div className="flex justify-end gap-3">
                                 <button
                                     onClick={() => setShowJoinClass(false)}
@@ -197,7 +188,6 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                                 >
                                     Huỷ
                                 </button>
-
                                 <button
                                     onClick={handleEnrollClick}
                                     disabled={isEnrolling}
@@ -206,12 +196,11 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                                     Tham gia
                                 </button>
                             </div>
-
                         </div>
                     </div>
                 )}
 
-
+                {/* Nút Avatar */}
                 <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
                     className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-base lg:text-lg hover:ring-4 hover:ring-gray-100 transition-all focus:outline-none"
@@ -219,15 +208,15 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                     {getInitial(formData.fullName)}
                 </button>
 
+                {/* Profile Menu Popup */}
                 {showProfileMenu && (
-
                     <div
                         className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-[380px] max-w-[380px] bg-[#f8fafd] rounded-2xl sm:rounded-[28px] shadow-xl border border-gray-200 z-50 p-2 transform origin-top-right transition-all">
 
                         <div className="bg-white rounded-xl sm:rounded-[24px] p-5 flex flex-col items-center shadow-sm">
-                <span className="text-xs sm:text-sm font-medium text-gray-800 break-all text-center">
-                {`${user.studentId}@st.hcmuaf.edu.vn`}
-                </span>
+                            <span className="text-xs sm:text-sm font-medium text-gray-800 break-all text-center">
+                            {`${user.studentId}@st.hcmuaf.edu.vn`}
+                            </span>
 
                             <div
                                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-600 text-white flex items-center justify-center font-normal text-3xl sm:text-4xl mt-4 mb-2">

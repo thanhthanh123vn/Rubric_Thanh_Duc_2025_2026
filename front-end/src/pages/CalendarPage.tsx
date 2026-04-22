@@ -1,287 +1,204 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import LMSLayout from "@/app/lms-layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Search, Plus, Filter } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/components/ui/utils";
-import { vi } from "date-fns/locale";
-import { format, addMonths, subMonths } from "date-fns";
-
-// IMPORT SERVICE VÀ TYPE
-import sinhVienService from "@/pages/admin/api/sinhVienService";
-import type { ScheduleResponse } from "@/pages/admin/api/type";
-
-const timeSlots = [
-    "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
-];
-
-const daysOfWeek = [
-    { name: "MON", date: "15" },
-    { name: "TUE", date: "16" },
-    { name: "WED", date: "17" },
-    { name: "THU", date: "18", isToday: true },
-    { name: "FRI", date: "19" },
-    { name: "SAT", date: "20" },
-    { name: "SUN", date: "21" },
-];
-
-const PIXELS_PER_HOUR = 80;
+import { Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import WeeklyCalendar from "./WeeklyCalendar";
 
 export default function CalendarPage() {
-    const [currentDate, setCurrentDate] = useState<Date | undefined>(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-    const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-    const [showSidebar, setShowSidebar] = useState(false);
-
-    // STATE LƯU DỮ LIỆU TỪ API
-    const [classes, setClasses] = useState<ScheduleResponse[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-
-    const nextMonth = () => setCurrentDate(currentDate ? addMonths(currentDate, 1) : new Date());
-    const prevMonth = () => setCurrentDate(currentDate ? subMonths(currentDate, 1) : new Date());
-
-    const today = new Date();
-    const formattedDate = `ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`;
-
-    const goToToday = () => {
-        const today = new Date();
-        setSelectedDate(today);
-        setCurrentMonth(today);
-    };
-
-    // --- GỌI API KHI COMPONENT MOUNT ---
-    useEffect(() => {
-        const fetchSchedules = async () => {
-            try {
-                setLoading(true);
-                const data = await sinhVienService.getSchedules();
-                // Nếu Backend trả về object có bọc { data: [...] } thì dùng response.data,
-                // ở service bạn đã map thẳng response.data nên ta set trực tiếp
-                setClasses(data || []);
-            } catch (error) {
-                console.error("Lỗi khi tải lịch học:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSchedules();
-    }, []);
-
-    // Tạo danh sách môn học duy nhất cho Sidebar (My Courses) từ dữ liệu thật
-    const uniqueCourses = Array.from(new Set(classes.map(c => c.title))).map(title => {
-        const course = classes.find(c => c.title === title);
-        // Lấy class màu border từ color theme (vd: "border-blue-500" từ "bg-blue-100 border-blue-500 text-blue-700")
-        const borderColor = course?.color?.split(' ').find(c => c.startsWith('border-')) || 'border-gray-500';
-        const bgColor = course?.color?.split(' ').find(c => c.startsWith('bg-')) || 'bg-gray-500';
-        // Đổi "bg-" thành "data-[state=checked]:bg-" để tô màu checkbox
-        const checkedBgColor = bgColor.replace('bg-', 'data-[state=checked]:bg-');
-
-        return { title, checkboxColor: `${borderColor} ${checkedBgColor}` };
-    });
-
     return (
         <LMSLayout>
-            <div className="h-[calc(100dvh-theme(spacing.16))] flex flex-col p-2 md:p-4 gap-3 md:gap-4 animate-in fade-in duration-500 overflow-hidden bg-gray-50/50">
+            <div className="flex flex-col p-3 md:p-5 bg-gray-50/30 min-h-screen w-full overflow-x-hidden">
 
-                {/* --- HEADER CONTROLS --- */}
-                <div className="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white p-2 md:p-3 rounded-xl border shadow-sm">
-                    {/* Left Actions */}
-                    <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-between md:justify-start">
-                        <div className="flex items-center border rounded-md shadow-sm w-full md:w-auto justify-between">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={prevMonth}><ChevronLeft className="w-4 h-4"/></Button>
-                            <div className="px-2 md:px-4 font-bold text-sm min-w-[140px] text-center text-blue-700">
-                                {formattedDate}
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={nextMonth}><ChevronRight className="w-4 h-4"/></Button>
-                        </div>
+                {/* TIÊU ĐỀ & NÚT IN */}
+                <div className="border-b-2 border-emerald-700 pb-2 mb-4 md:mb-5 flex flex-wrap gap-3 justify-between items-end">
+                    <h1 className="text-lg md:text-xl font-bold text-emerald-800 uppercase tracking-tight">
+                        Thời khóa biểu cá nhân
+                    </h1>
+                    <Button variant="outline" size="sm" className="gap-2 text-xs h-8 px-3 shadow-sm bg-white">
+                        <Printer size={14}/> <span className="hidden sm:inline font-medium">In lịch học</span>
+                    </Button>
+                </div>
 
-                        {/* Nút bật/tắt Filter trên Mobile */}
-                        <Button
-                            variant={showSidebar ? "secondary" : "outline"}
-                            className="lg:hidden h-9 w-9 p-0 shrink-0"
-                            onClick={() => setShowSidebar(!showSidebar)}
-                        >
-                            <Filter className="w-4 h-4" />
-                        </Button>
-                    </div>
-
-                    {/* Right Actions */}
-                    <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                        <Button variant="outline" className="hidden md:flex h-9 font-medium shadow-sm shrink-0" onClick={goToToday}>Today</Button>
-                        <div className="relative hidden xl:block shrink-0">
-                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                            <Input placeholder="Search event..." className="w-[180px] pl-9 h-9 bg-gray-50 border-gray-200 focus-visible:ring-emerald-500" />
-                        </div>
-                        <Select defaultValue="week">
-                            <SelectTrigger className="w-[90px] md:w-[100px] h-9 bg-white font-medium shadow-sm shrink-0">
-                                <SelectValue placeholder="View" />
+                {/* BỘ LỌC - MOBILE: Xếp dọc | DESKTOP: Xếp ngang */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-5 bg-white p-3 md:p-4 rounded-xl border border-gray-200 mb-5 md:mb-6 shadow-sm">
+                    {/* Học kỳ */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Học kỳ:</span>
+                        <Select defaultValue="hk2-2526">
+                            <SelectTrigger className="w-full bg-gray-50/50 h-9 border-gray-200">
+                                <SelectValue placeholder="Chọn học kỳ"/>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="month">Month</SelectItem>
-                                <SelectItem value="week">Week</SelectItem>
-                                <SelectItem value="day">Day</SelectItem>
+                                <SelectItem value="hk2-2526">Học kỳ 2 - Năm học 2025-2026</SelectItem>
+                                <SelectItem value="hk1-2526">Học kỳ 1 - Năm học 2025-2026</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Button className="h-9 bg-emerald-600 hover:bg-emerald-700 shadow-sm text-white gap-2 shrink-0">
-                            <Plus className="w-4 h-4" />
-                            <span className="hidden sm:inline">Add</span>
-                        </Button>
+                    </div>
+
+                    {/* Tuần học */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Tuần học:</span>
+                        <div className="flex items-center w-full gap-1">
+                            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 bg-gray-50/50 border-gray-200"><ChevronLeft size={16}/></Button>
+                            <Select defaultValue="w33">
+                                <SelectTrigger className="flex-1 bg-gray-50/50 h-9 text-xs md:text-sm border-gray-200 truncate">
+                                    <SelectValue placeholder="Chọn tuần"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="w33">Tuần 33 [20/04/2026 - 26/04/2026]</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0 bg-gray-50/50 border-gray-200"><ChevronRight size={16}/></Button>
+                        </div>
                     </div>
                 </div>
 
-                {/* --- MAIN CONTENT --- */}
-                <div className="flex flex-col lg:flex-row gap-4 flex-1 overflow-hidden relative">
+                {/* KHUNG LỊCH HỌC */}
+                <div className="w-full border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white mb-5 md:mb-6">
+                    <WeeklyCalendar/>
+                </div>
 
-                    {/* CỘT TRÁI: SIDEBAR FILTER */}
-                    <div className={cn(
-                        "w-full lg:w-[280px] shrink-0 flex-col gap-4 overflow-y-auto lg:overflow-visible transition-all absolute lg:relative z-40 lg:z-0 bg-gray-50/95 lg:bg-transparent p-1 lg:p-0 h-full lg:h-auto backdrop-blur-sm lg:backdrop-blur-none",
-                        showSidebar ? "flex animate-in slide-in-from-left-4" : "hidden lg:flex"
-                    )}>
+                {/* KHU VỰC THỐNG KÊ (TIẾN TRÌNH & NHIỆM VỤ) */}
+                {/* MOBILE: Xếp dọc (flex-col) | DESKTOP: Xếp ngang (lg:flex-row) */}
+                <div className="flex flex-col lg:flex-row items-start w-full gap-5 md:gap-6">
 
-                        <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => date && setSelectedDate(date)}
-                            month={currentMonth}
-                            onMonthChange={setCurrentMonth}
-                            locale={vi}
-                            className="w-full bg-white rounded-xl shadow-sm border p-3"
-                            classNames={{
-                                months: "relative",
-                                month_caption: "flex justify-center pt-1 pb-4 relative items-center w-full",
-                                caption_label: "text-[15px] font-semibold capitalize text-gray-900",
-                                nav: "flex items-center justify-between absolute w-full z-10 px-1 top-1",
-                                button_previous: "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 flex items-center justify-center transition-opacity",
-                                button_next: "h-7 w-7 bg-transparent p-0 opacity-60 hover:opacity-100 flex items-center justify-center transition-opacity",
-                                selected: "!bg-[#0b7a39] !text-white hover:!bg-[#0b7a39] hover:!text-white focus:!bg-[#0b7a39] focus:!text-white font-semibold rounded-lg",                                today: "text-[#0b7a39] bg-green-50 font-bold rounded-lg",
-                                month_grid: "w-full border-collapse",
-                                weekdays: "flex justify-between w-full mb-2",
-                                weekday: "text-gray-500 w-9 font-medium text-[13px] capitalize text-center",
-                                week: "flex justify-between w-full mt-1",
-                                day: "h-9 w-9 p-0 font-medium text-gray-700 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors cursor-pointer",
-                            }}
-                        />
-
-                        {/* DYNAMIC My Courses Filter */}
-                        <div className="bg-white rounded-xl shadow-sm border p-4 mt-4">
-                            <h3 className="font-bold mb-4 text-sm text-gray-900 uppercase tracking-wider flex items-center justify-between">
-                                My Courses
-                                <Button variant="ghost" size="icon" className="h-6 w-6"><Plus className="w-4 h-4" /></Button>
-                            </h3>
-                            <div className="space-y-3">
-                                {loading ? (
-                                    <div className="text-sm text-gray-500 italic">Đang tải...</div>
-                                ) : uniqueCourses.length > 0 ? (
-                                    uniqueCourses.map((course, idx) => (
-                                        <div key={idx} className="flex items-center space-x-3 group cursor-pointer p-1.5 hover:bg-gray-50 rounded-md">
-                                            <Checkbox id={`course-${idx}`} defaultChecked className={cn("rounded-[4px]", course.checkboxColor)} />
-                                            <Label htmlFor={`course-${idx}`} className="cursor-pointer text-sm font-medium">{course.title}</Label>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-sm text-gray-500 italic">Không có môn học</div>
-                                )}
+                    {/* CỘT TRÁI: TIẾN TRÌNH HỌC TẬP */}
+                    <div className="flex flex-col w-full lg:flex-1 bg-white p-4 md:p-6 gap-5 md:gap-6 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex justify-between items-center w-full">
+                            <span className="text-slate-900 text-lg md:text-xl font-bold">Tiến trình học tập</span>
+                            <div className="flex items-center gap-2 md:gap-3 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                                <span className="text-emerald-700 text-[10px] md:text-xs font-bold hidden sm:block">TỔNG TÍN CHỈ</span>
+                                <span className="text-emerald-600 text-sm md:text-lg font-extrabold">84 / 120</span>
                             </div>
                         </div>
 
+                        <div className="flex flex-col w-full gap-5">
+                            {/* Môn 1 */}
+                            <div className="flex flex-col w-full gap-2">
+                                <div className="flex justify-between items-center w-full">
+                                    <span className="text-slate-800 text-sm font-bold truncate pr-2">Advanced Calculus (MAT201)</span>
+                                    <span className="text-slate-500 text-xs md:text-sm shrink-0 font-medium">75% Hoàn thành</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2 md:h-2.5 overflow-hidden">
+                                    <div className="bg-emerald-500 w-[75%] h-full rounded-full transition-all duration-500"></div>
+                                </div>
+                                <div className="flex items-center flex-wrap gap-3 md:gap-4 mt-1">
+                                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded text-xs text-slate-600 font-medium border border-gray-100">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span> Chuyên cần: 92%
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded text-xs text-slate-600 font-medium border border-gray-100">
+                                        <span className="w-2 h-2 rounded-full bg-purple-500"></span> Bài tập: 8/10
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Môn 2 */}
+                            <div className="flex flex-col w-full gap-2">
+                                <div className="flex justify-between items-center w-full">
+                                    <span className="text-slate-800 text-sm font-bold truncate pr-2">Database Systems (CSE302)</span>
+                                    <span className="text-slate-500 text-xs md:text-sm shrink-0 font-medium">40% Hoàn thành</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2 md:h-2.5 overflow-hidden">
+                                    <div className="bg-amber-500 w-[40%] h-full rounded-full transition-all duration-500"></div>
+                                </div>
+                                <div className="flex items-center flex-wrap gap-3 md:gap-4 mt-1">
+                                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded text-xs text-slate-600 font-medium border border-gray-100">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span> Chuyên cần: 100%
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded text-xs text-slate-600 font-medium border border-gray-100">
+                                        <span className="w-2 h-2 rounded-full bg-purple-500"></span> Bài tập: 4/10
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Môn 3 */}
+                            <div className="flex flex-col w-full gap-2">
+                                <div className="flex justify-between items-center w-full">
+                                    <span className="text-slate-800 text-sm font-bold truncate pr-2">Operating Systems (CSE204)</span>
+                                    <span className="text-slate-500 text-xs md:text-sm shrink-0 font-medium">60% Hoàn thành</span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2 md:h-2.5 overflow-hidden">
+                                    <div className="bg-emerald-500 w-[60%] h-full rounded-full transition-all duration-500"></div>
+                                </div>
+                                <div className="flex items-center flex-wrap gap-3 md:gap-4 mt-1">
+                                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded text-xs text-slate-600 font-medium border border-gray-100">
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span> Chuyên cần: 85%
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded text-xs text-slate-600 font-medium border border-gray-100">
+                                        <span className="w-2 h-2 rounded-full bg-purple-500"></span> Bài tập: 6/10
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* CỘT PHẢI: TIMELINE GRID LỚN */}
-                    <Card className="flex-1 shadow-sm border rounded-xl bg-white overflow-hidden flex flex-col relative z-10">
-                        <div className="flex-1 overflow-x-auto overflow-y-auto w-full custom-scrollbar">
-                            <div className="min-w-[700px] lg:min-w-0 flex flex-col h-full relative">
+                    {/* CỘT PHẢI: NHIỆM VỤ SẮP TỚI */}
+                    <div className="flex flex-col w-full lg:w-[360px] shrink-0 bg-white p-4 md:p-5 gap-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex justify-between items-center w-full mb-1">
+                            <span className="text-slate-900 text-lg font-bold">Nhiệm vụ sắp tới</span>
+                            <button className="text-emerald-600 text-xs font-bold hover:text-emerald-700 hover:underline transition-all">
+                                Xem tất cả
+                            </button>
+                        </div>
 
-                                {/* Header ngày trong tuần */}
-                                <div className="flex border-b border-gray-200 shrink-0 bg-white sticky top-0 z-30 shadow-sm">
-                                    <div className="w-[60px] md:w-[70px] shrink-0 border-r border-gray-200 bg-white sticky left-0 z-40"></div>
-                                    <div className="flex flex-1 grid grid-cols-7">
-                                        {daysOfWeek.map((day, idx) => (
-                                            <div key={idx} className="flex flex-col items-center justify-center py-2 border-r border-gray-100 last:border-r-0 bg-white">
-                                                <span className={cn(
-                                                    "text-[10px] md:text-xs font-semibold mb-1",
-                                                    day.isToday ? "text-emerald-600" : "text-gray-400"
-                                                )}>{day.name}</span>
-                                                <span className={cn(
-                                                    "text-sm md:text-lg font-bold w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full",
-                                                    day.isToday ? "bg-emerald-600 text-white shadow-sm" : "text-gray-700"
-                                                )}>{day.date}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                        <div className="flex flex-col w-full gap-3">
+                            {/* Task 1 */}
+                            <div className="flex items-center p-3 gap-3.5 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group">
+                                <div className="flex flex-col shrink-0 items-center justify-center bg-red-50 py-1.5 px-3 rounded-lg border border-red-100 min-w-[54px]">
+                                    <span className="text-red-600 text-[10px] font-bold uppercase tracking-wider">Th 3</span>
+                                    <span className="text-red-600 text-lg font-black leading-none mt-0.5">15</span>
                                 </div>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="text-slate-900 text-sm font-bold truncate group-hover:text-emerald-700 transition-colors">Midterm: Discrete Math</span>
+                                    <span className="text-slate-500 text-xs mt-0.5 truncate">09:00 AM • Hall B.301</span>
+                                </div>
+                            </div>
 
-                                {/* Lưới thời gian */}
-                                <div className="flex flex-1 relative bg-white">
-                                    {/* Cột giờ */}
-                                    <div className="w-[60px] md:w-[70px] shrink-0 flex flex-col border-r border-gray-200 bg-white sticky left-0 z-20 shadow-[1px_0_5px_rgba(0,0,0,0.02)]">
-                                        {timeSlots.map((time, idx) => (
-                                            <div key={idx} style={{ height: `${PIXELS_PER_HOUR}px` }} className="border-b border-transparent relative">
-                                                <span className="absolute -top-[10px] right-2 text-[10px] font-medium text-gray-400 bg-white px-1">{time}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                            {/* Task 2 */}
+                            <div className="flex items-center p-3 gap-3.5 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group">
+                                <div className="flex flex-col shrink-0 items-center justify-center bg-emerald-50 py-1.5 px-3 rounded-lg border border-emerald-100 min-w-[54px]">
+                                    <span className="text-emerald-600 text-[10px] font-bold uppercase tracking-wider">Th 6</span>
+                                    <span className="text-emerald-600 text-lg font-black leading-none mt-0.5">18</span>
+                                </div>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="text-slate-900 text-sm font-bold truncate group-hover:text-emerald-700 transition-colors">Project: DBMS</span>
+                                    <span className="text-slate-500 text-xs mt-0.5 truncate">11:59 PM • Online Portal</span>
+                                </div>
+                            </div>
 
-                                    {/* Khu vực Sự kiện & Lưới */}
-                                    <div className="flex-1 relative">
-                                        <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
-                                            {timeSlots.map((_, idx) => (
-                                                <div key={`h-line-${idx}`} style={{ height: `${PIXELS_PER_HOUR}px` }} className="border-b border-gray-100 w-full" />
-                                            ))}
-                                        </div>
+                            {/* Task 3 */}
+                            <div className="flex items-center p-3 gap-3.5 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group">
+                                <div className="flex flex-col shrink-0 items-center justify-center bg-amber-50 py-1.5 px-3 rounded-lg border border-amber-100 min-w-[54px]">
+                                    <span className="text-amber-600 text-[10px] font-bold uppercase tracking-wider">CN</span>
+                                    <span className="text-amber-600 text-lg font-black leading-none mt-0.5">20</span>
+                                </div>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="text-slate-900 text-sm font-bold truncate group-hover:text-emerald-700 transition-colors">Quiz 3: Calculus</span>
+                                    <span className="text-slate-500 text-xs mt-0.5 truncate">07:30 AM • Hall A2.101</span>
+                                </div>
+                            </div>
 
-                                        <div className="absolute inset-0 grid grid-cols-7 pointer-events-none z-0">
-                                            {daysOfWeek.map((_, idx) => (
-                                                <div key={`v-line-${idx}`} className="border-r border-gray-50 h-full w-full last:border-r-0" />
-                                            ))}
-                                        </div>
-
-                                        {/* VẼ SỰ KIỆN TỪ STATE 'classes' (Thay vì mockClasses) */}
-                                        <div className="absolute inset-0 grid grid-cols-7 z-10">
-                                            {!loading && classes.map(cls => {
-                                                // Tính vị trí dựa trên mốc 8 giờ sáng (startHour = 8 -> top = 0)
-                                                const topPosition = (cls.startHour - 8) * PIXELS_PER_HOUR;
-                                                const height = cls.duration * PIXELS_PER_HOUR;
-
-                                                return (
-                                                    <div
-                                                        key={cls.id}
-                                                        className={cn(
-                                                            "absolute rounded-lg border-l-4 p-1.5 md:p-2 mx-[2px] md:mx-1 flex flex-col shadow-sm cursor-pointer transition-all hover:brightness-95 hover:scale-[1.02] overflow-hidden",
-                                                            cls.color || "bg-gray-100 border-gray-500 text-gray-700" // Fallback màu
-                                                        )}
-                                                        style={{
-                                                            left: `calc(${(cls.day * 100) / 7}%)`,
-                                                            width: `calc(100% / 7 - 4px)`,
-                                                            top: `${topPosition}px`,
-                                                            height: `${height}px`,
-                                                        }}
-                                                    >
-                                                        <span className="font-bold text-[10px] md:text-xs leading-tight mb-0.5 truncate">{cls.title}</span>
-                                                        <span className="text-[9px] md:text-[10px] opacity-80 leading-tight flex-1 truncate">{cls.room}</span>
-                                                        <span className="hidden md:block text-[9px] md:text-[10px] font-medium opacity-90 capitalize mt-auto">{cls.type}</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                            {/* Task 4 */}
+                            <div className="flex items-center p-3 gap-3.5 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group">
+                                <div className="flex flex-col shrink-0 items-center justify-center bg-blue-50 py-1.5 px-3 rounded-lg border border-blue-100 min-w-[54px]">
+                                    <span className="text-blue-600 text-[10px] font-bold uppercase tracking-wider">Th 3</span>
+                                    <span className="text-blue-600 text-lg font-black leading-none mt-0.5">22</span>
+                                </div>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="text-slate-900 text-sm font-bold truncate group-hover:text-emerald-700 transition-colors">Lab Report: OS</span>
+                                    <span className="text-slate-500 text-xs mt-0.5 truncate">05:00 PM • Faculty Office</span>
                                 </div>
                             </div>
                         </div>
-                    </Card>
+                    </div>
+                </div>
 
+                {/* FOOTER */}
+                <div className="mt-8 pt-5 border-t border-gray-200 text-center pb-4">
+                    <span className="text-[10px] md:text-[11px] text-gray-500 uppercase tracking-[0.15em] font-semibold">
+                        Trường Đại học Nông Lâm Thành phố Hồ Chí Minh
+                    </span>
                 </div>
             </div>
         </LMSLayout>
