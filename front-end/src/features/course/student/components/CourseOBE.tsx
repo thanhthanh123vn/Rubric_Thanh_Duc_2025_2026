@@ -135,6 +135,7 @@ const CourseOBE = () => {
         const fetchData = async () => {
             try {
                 const res = await courseService.getOBEProgress(offeringId);
+                console.log(res)
                 setClos(res);
             } catch (err) {
                 console.error("OBE error:", err);
