@@ -82,7 +82,7 @@ public class CourseService {
         Course course = courseRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
 
-        // Mapper tự động lấy dữ liệu từ request đổ vào course
+
         courseMapper.updateCourseFromRequest(request, course);
 
         Course updatedCourse = courseRepo.save(course);

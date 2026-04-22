@@ -4,10 +4,7 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,16 +17,18 @@ public class AssessmentController {
 
     @GetMapping("/offerings/{offeringId}/assessments")
     public List<AssessmentReponse> getAssignments(
+            @RequestHeader("X-User-Id") String studentId,
             @PathVariable String offeringId
     ) {
-        return assessmentService.getAssByCourseOffering(offeringId, "22130050");
+        return assessmentService.getAssByCourseOffering(offeringId, studentId);
     }
 
-    // detail
+
     @GetMapping("/assessments/{assessmentId}")
     public AssessmentDetailResponse getAssignmentDetail(
+            @RequestHeader("X-User-Id") String studentId,
             @PathVariable String assessmentId
     ) {
-        return assessmentService.getAssById(assessmentId, "22130050");
+        return assessmentService.getAssById(assessmentId, studentId);
     }
 }

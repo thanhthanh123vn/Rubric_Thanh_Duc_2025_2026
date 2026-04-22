@@ -38,10 +38,9 @@ public class GroupService {
         conversation.setConversationType(ConversationType.GROUP);
         Conversation savedConversation = conversationRepository.save(conversation);
 
-        // 2. TẠO NHÓM (GROUP)
+
         Group group = groupMapper.toGroup(req);
 
-        // Map thủ công các Object quan hệ từ Database
         group.setConversation(savedConversation);
 
         CourseOffering offering = courseOfferingRepository.findById(req.getOfferingId())
@@ -50,7 +49,7 @@ public class GroupService {
 
         Group savedGroup = groupRepository.save(group);
 
-        // 3. THÊM THÀNH VIÊN VÀO PHÒNG CHAT (PARTICIPANT)
+
         List<Participant> participants = new ArrayList<>();
 
         for (String memberId : req.getMemberIds()) {
