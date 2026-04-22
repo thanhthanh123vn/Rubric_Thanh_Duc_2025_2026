@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
-import { courseService } from "../../courseApi";
+import {courseService}  from "../../courseApi.ts";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
 const getInitial = (name?: string) => {
     if (!name) return "U";
@@ -96,7 +96,8 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
     const studentId  = user?.studentId || user?.userId;
     const displayName = fullName || username || "Ẩn danh";
 
-    // Lấy chữ cái đầu tiên của tên để làm Avatar
+
+
 
     const [showComments, setShowComments] = useState(false);
     const [commentInput, setCommentInput] = useState("");
@@ -151,7 +152,7 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
             <div className="p-4 md:p-5">
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-semibold">
-                        {username ? getInitial(fullName): "U"}
+                        {fullName ? getInitial(displayName): "U"}
                     </div>
                     <div>
                         <p className="font-semibold text-gray-900">{fullName}</p>
@@ -184,23 +185,28 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
 
                 {showComments && (
                     <div className="space-y-4 mb-4">
-                        {localComments.map((cmt: any) => (
+                        {localComments.map((cmt: any) => {
+                            const displayName = cmt.fullName || cmt.username || "Ẩn danh";
 
-                            <div key={cmt.commentId} className="flex gap-3">
-                                <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-semibold shrink-0">
-                                    {cmt.fullName ? getInitial(cmt.fullName) : "U"}
-                                </div>
-                                <div>
-                                    <div className="flex items-baseline gap-2">
-                                        <p className="font-semibold text-gray-900 text-sm">{cmt.fullName}</p>
-                                        <p className="text-xs text-gray-500">
-                                            {new Date(cmt.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                            return (
+                                <div key={cmt.commentId} className="flex gap-3">
+                                    <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-semibold shrink-0">
+
+                                        {getInitial(displayName)}
                                     </div>
-                                    <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{cmt.content}</p>
+                                    <div>
+                                        <div className="flex items-baseline gap-2">
+
+                                            <p className="font-semibold text-gray-900 text-sm">{displayName}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {new Date(cmt.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                        <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{cmt.content}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
 

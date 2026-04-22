@@ -11,7 +11,7 @@ public interface CourseScheduleRepository extends JpaRepository<CourseSchedule, 
     @Query("SELECT cs FROM CourseSchedule cs " +
                   "JOIN cs.courseOffering co " +
                   "JOIN Enrollment e ON e.courseOffering = co " +
-                  "WHERE e.student.userId = :studentId " +
+                  "WHERE e.studentId = :studentId " +
                   "AND e.status = 'ACTIVE'") 
     List<CourseSchedule> findSchedulesByStudentId(@Param("studentId") String studentId);
 }

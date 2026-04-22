@@ -1,7 +1,10 @@
-package hcmuaf.edu.vn.fit.course_service.entity;
+package hcmuaf.edu.vn.fit.user_service.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "lecturers")

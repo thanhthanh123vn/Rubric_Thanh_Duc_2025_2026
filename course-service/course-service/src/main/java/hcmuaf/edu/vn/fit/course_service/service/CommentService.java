@@ -3,6 +3,8 @@ package hcmuaf.edu.vn.fit.course_service.service;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.CommentResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Comment;
 import hcmuaf.edu.vn.fit.course_service.entity.Topic;
@@ -40,65 +42,63 @@ public class CommentService {
         comment.setTopic(topic);
         comment.setUserId(userId);
         comment.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-
         Comment savedComment = commentRepository.save(comment);
-
-
         CommentResponse response = commentMapper.toResponse(savedComment);
 
-        // Gắn thêm username
-        response.setUsername(fetchUsername(userId));
+
+        try {
+            SinhVienResponse sv = userClient.getSinhVien(comment.getUserId());
+            if (sv != null && sv.getFullName() != null) {
+                response.setFullName(sv.getFullName());
+                response.setUsername(sv.getFullName()); // Hoặc tên gì bạn muốn hiển thị
+            } else {
+                LecturerResponse lecturerResponse =userClient.getLecturerByUserId(comment.getUserId());
+                if (lecturerResponse != null && lecturerResponse.getFullName() != null) {
+                    response.setFullName(lecturerResponse.getFullName());
+                    response.setUsername(lecturerResponse.getFullName());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Không tìm thấy user {} cho comment", comment.getUserId());
+            response.setFullName("Unknown");
+            response.setUsername("Unknown");
+        }
+
 
         return response;
     }
 
 
+
     public List<CommentResponse> getCommentsByPostId(String currentUserId, String postId) {
         List<Comment> comments = commentRepository.findByTopic_PostIdOrderByCreatedAtAsc(postId);
-
-        // 1. Lọc lấy danh sách ID của những người đã viết comment
-        List<String> authorIds = comments.stream()
-                .map(Comment::getUserId)
-                .distinct()
-                .collect(Collectors.toList());
-
-
-        Map<String, UserResponse> users = null;
-        try {
-            if (!authorIds.isEmpty()) {
-                users = userClient.getUsers(authorIds);
-            }
-        } catch (Exception e) {
-            log.error("Lỗi khi lấy thông tin user cho comment", e);
-        }
-
-        final Map<String, UserResponse> finalUsers = users;
-
 
         return comments.stream().map(comment -> {
             CommentResponse res = commentMapper.toResponse(comment);
 
-            if (finalUsers != null && finalUsers.containsKey(comment.getUserId())) {
-                UserResponse userDetail = finalUsers.get(comment.getUserId());
+            try {
 
-
-                String nameToDisplay = (userDetail.getFullName() != null && !userDetail.getFullName().isEmpty())
-                        ? userDetail.getFullName()
-                        : userDetail.getUsername();
-                res.setUsername(nameToDisplay);
-
-
-                 res.setFullName(userDetail.getFullName());
-            } else {
+                SinhVienResponse sv = userClient.getSinhVien(comment.getUserId());
+                if (sv != null && sv.getFullName() != null) {
+                    res.setFullName(sv.getFullName());
+                    res.setUsername(sv.getFullName()); // Hoặc tên gì bạn muốn hiển thị
+                } else {
+                    LecturerResponse lecturerResponse =userClient.getLecturerByUserId(comment.getUserId());
+                    if (lecturerResponse != null && lecturerResponse.getFullName() != null) {
+                        res.setFullName(lecturerResponse.getFullName());
+                        res.setUsername(lecturerResponse.getFullName());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Không tìm thấy user {} cho comment", comment.getUserId());
+                res.setFullName("Unknown");
                 res.setUsername("Unknown");
             }
 
-             res.setMine(comment.getUserId().equals(currentUserId));
-
+            res.setMine(comment.getUserId().equals(currentUserId));
             return res;
         }).collect(Collectors.toList());
     }
-
     private String fetchUsername(String userId) {
         try {
             Map<String, UserResponse> users = userClient.getUsers(List.of(userId));

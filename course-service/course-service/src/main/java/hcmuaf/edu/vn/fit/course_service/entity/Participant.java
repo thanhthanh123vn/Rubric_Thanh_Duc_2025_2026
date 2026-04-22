@@ -21,8 +21,8 @@ public class Participant extends AbstractEntity<Participant> {
 	@JoinColumn(name = "conversation_id", nullable = false)
 	private Conversation conversation;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", nullable = false)
-	private User user;
+
+	@Column(name = "user_id")
+	private String userId;
 
 }

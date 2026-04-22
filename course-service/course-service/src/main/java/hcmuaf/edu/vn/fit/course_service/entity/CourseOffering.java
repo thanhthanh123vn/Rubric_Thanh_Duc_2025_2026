@@ -22,10 +22,8 @@ public class CourseOffering {
     private Course course;
 
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lecturer_id", nullable = false)
-    private Lecturer lecturer;
-
+    @Column(name = "lecturer_id")
+    private String lecturerId;
     @Column(name = "semester", length = 50)
     private String semester;
 

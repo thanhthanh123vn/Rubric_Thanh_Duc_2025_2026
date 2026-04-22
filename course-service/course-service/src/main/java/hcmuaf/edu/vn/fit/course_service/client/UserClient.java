@@ -1,5 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.client;
 
+import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
+
 import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -12,16 +14,25 @@ import java.util.Map;
 
 @FeignClient(
         name = "user-service",
-        url = "http://localhost:8081/api/v1/user-service"
+        url = "http://localhost:8081/api/v1/user-service",
+        configuration = FeignConfig.class
 )
 public interface UserClient {
 
     @GetMapping("/users/{id}")
     UserResponse getUser(@PathVariable("id") String id);
 
-    @GetMapping("users/batch")
+    @GetMapping("/users/batch")
     Map<String, UserResponse> getUsers(@RequestParam("ids") List<String> ids);
 
     @GetMapping("/admin/users/{userId}")
     SinhVienResponse getSinhVien(@PathVariable("userId") String id);
+
+
+    @GetMapping("/lecturer/lecturers/{lecturerId}")
+    LecturerResponse getLecturer(@PathVariable("lecturerId") String lecturerId);
+
+    @GetMapping("/lecturer/lecturers/by-user/{userId}")
+    LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
 }
+

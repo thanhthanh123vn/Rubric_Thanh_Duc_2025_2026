@@ -10,7 +10,7 @@ import java.util.List;
 public interface ParticipantMapper {
 
 
-    @Mapping(source = "user.userId", target = "userId")
+
     @Mapping(source = "participantRole", target = "role")
     ParticipantResponse toResponse(Participant participant);
 
