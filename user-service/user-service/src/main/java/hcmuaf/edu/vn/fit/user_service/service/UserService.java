@@ -4,10 +4,14 @@ package hcmuaf.edu.vn.fit.user_service.service;
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
+import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
+import hcmuaf.edu.vn.fit.user_service.entity.Lecturer;
 import hcmuaf.edu.vn.fit.user_service.entity.SinhVien;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
+import hcmuaf.edu.vn.fit.user_service.map.LecturerMapper;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
+import hcmuaf.edu.vn.fit.user_service.repository.LecturerRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.SinhVienRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +28,12 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-
+    private final LecturerRepository lecturerRepository;
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final SinhVienRepository svRepository;
+    private final LecturerMapper lecturerMapper;
 
     public Page<UserResponse> getAllUsers(String keyword, Pageable pageable) {
         Page<User> users;
@@ -128,12 +133,44 @@ public class UserService {
 
 
     public Map<String, UserResponse> getUsers(List<String> ids) {
-        List<User> users = userRepository.findAllById(ids); // Tìm tất cả user có ID trong list
+        List<User> users = userRepository.findAllById(ids);
 
         return users.stream()
                 .collect(Collectors.toMap(
                         User::getUserId,
                         userMapper::toUserResponse
                 ));
+    }
+    public LecturerResponse getLecturerById(String lecturerId) {
+
+        Lecturer lecturer = lecturerRepository.findById(lecturerId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên với ID: " + lecturerId));
+
+
+        String userId = null;
+        String fullName = null;
+        String email = null;
+
+        if (lecturer.getUser() != null) {
+            userId = lecturer.getUser().getUserId();
+            fullName = lecturer.getFullName();
+            email = lecturer.getUser().getEmail();
+        }
+
+
+        return new LecturerResponse(
+                lecturer.getLecturerId(),
+                userId,
+                fullName,
+                email,
+                lecturer.getDepartment(),
+                lecturer.getAcademicTitle()
+        );
+    }
+    public LecturerResponse getLecturerByUserId(String userId) {
+        Lecturer lecturer = lecturerRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new RuntimeException("Lecturer not found"));
+
+        return lecturerMapper.toResponse(lecturer);
     }
 }

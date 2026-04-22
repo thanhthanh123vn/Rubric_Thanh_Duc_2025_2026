@@ -25,10 +25,9 @@ public class Topic  {
     @JoinColumn(name = "offering_id")
     private CourseOffering courseOffering;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
 
+    @Column(name = "user_id")
+    private String userId;
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 

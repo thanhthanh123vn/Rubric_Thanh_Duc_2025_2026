@@ -23,7 +23,7 @@ public interface GroupMapper {
     @Mapping(target = "courseOffering", ignore = true)
     @Mapping(target = "conversation", ignore = true)
     Group toGroup(GroupRequest request);
-    @Mapping(source = "user.userId", target = "userId")
+
     @Mapping(source = "participantRole", target = "role")
     ParticipantResponse toParticipantResponse(Participant participant);
 }

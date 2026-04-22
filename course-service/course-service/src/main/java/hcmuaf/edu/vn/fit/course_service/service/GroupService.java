@@ -1,7 +1,9 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
+import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.GroupRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.GroupResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.ConversationType;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.ParticipantRole;
@@ -22,8 +24,10 @@ public class GroupService {
     private final GroupMapper groupMapper;
     private final ParticipantRepository participantRepository;
     private final ConversationRepository conversationRepository;
-    private final UserRepository userRepository;
     private final CourseOfferingRepository courseOfferingRepository;
+     private final UserClient userClient;
+    // Nếu muốn check xem user có tồn tại thật không, bạn có thể inject UserClient vào đây
+    // private final UserClient userClient;
 
     @Transactional
     public GroupResponse createGroup(GroupRequest req) {
@@ -35,7 +39,6 @@ public class GroupService {
         Conversation savedConversation = conversationRepository.save(conversation);
 
         // 2. TẠO NHÓM (GROUP)
-        // Thay vì set tay từng cái, gọi Mapper gánh phần mapping dữ liệu cơ bản
         Group group = groupMapper.toGroup(req);
 
         // Map thủ công các Object quan hệ từ Database
@@ -51,13 +54,13 @@ public class GroupService {
         List<Participant> participants = new ArrayList<>();
 
         for (String memberId : req.getMemberIds()) {
-            User user = userRepository.findById(memberId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng có ID: " + memberId));
 
+            validateUser(memberId);
             Participant participant = new Participant();
             participant.setConversation(savedConversation);
-            participant.setUser(user);
 
+
+            participant.setUserId(memberId);
 
             participant.setParticipantRole(
                     memberId.equals(req.getCreatedById()) ? ParticipantRole.ADMIN : ParticipantRole.MEMBER
@@ -72,19 +75,26 @@ public class GroupService {
         return groupMapper.toGroupResponse(savedGroup);
     }
 
-
     public List<GroupResponse> getMyGroups(String offeringId, String userId) {
-
         List<Group> groups = groupRepository.findMyGroups(offeringId, userId);
-
-
         return groupMapper.toGroupResponseList(groups);
     }
 
     public List<GroupResponse> getGroupsByOfferingId(String offeringId) {
         List<Group> groups = groupRepository.findByOfferingId(offeringId);
-
-
         return groupMapper.toGroupResponseList(groups);
+    }
+    private void validateUser(String userId) {
+        try {
+
+            SinhVienResponse user = userClient.getSinhVien(userId);
+
+            if (user == null) {
+                throw new RuntimeException("User không tồn tại");
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("User không hợp lệ");
+        }
     }
 }

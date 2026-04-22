@@ -11,7 +11,7 @@ public interface GroupRepository extends JpaRepository<Group,Integer> {
     @Query("SELECT DISTINCT  g FROM Group g " +
             "JOIN Conversation c ON g.conversation.id = c.id " +
             "JOIN Participant p ON p.conversation.id = c.id " +
-            "WHERE g.courseOffering.offeringId = :offeringId AND p.user.userId = :userId")
+            "WHERE g.courseOffering.offeringId = :offeringId AND p.userId = :userId")
     List<Group> findMyGroups(@Param("offeringId") String offeringId, @Param("userId") String userId);
 
 

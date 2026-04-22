@@ -19,9 +19,9 @@ public class Enrollment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String enrollmentId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
+
+    @Column(name = "student_id")
+    private String studentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "offering_id", nullable = false)

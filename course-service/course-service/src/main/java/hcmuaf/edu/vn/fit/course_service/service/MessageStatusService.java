@@ -25,7 +25,7 @@ public class MessageStatusService {
     public void markCourseMessagesAsRead(String offeringId, String studentId) {
 
         // 1. Cập nhật thời gian đọc cuối cùng của sinh viên đối với lớp học này
-        enrollmentRepository.findByStudent_UserIdAndCourseOffering_OfferingId(studentId, offeringId)
+        enrollmentRepository.findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId)
                 .ifPresent(enrollment -> {
                     // Cập nhật timestamp (Bạn cần thêm trường này vào Entity)
                     enrollment.setLastReadTime(new Timestamp(System.currentTimeMillis()).toLocalDateTime());

@@ -11,8 +11,8 @@ import java.util.Optional;
 @Repository
 public interface TopicRepository extends JpaRepository<Topic,String> {
 
-    @Query("SELECT t FROM Topic t JOIN FETCH t.user WHERE t.courseOffering.offeringId = :offeringId")
-    List<Topic> findByOfferingId(@Param("offeringId") String offeringId);
+    @Query("SELECT t FROM Topic t WHERE t.courseOffering.offeringId = :offeringId")
+    List<Topic> findByOfferingId(String offeringId);
 
     Optional<Topic> findById(String id);
 }

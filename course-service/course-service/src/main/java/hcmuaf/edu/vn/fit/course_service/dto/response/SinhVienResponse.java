@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class SinhVienResponse {
     private String id;
+    private String email;
     private String fullName;
 
 }

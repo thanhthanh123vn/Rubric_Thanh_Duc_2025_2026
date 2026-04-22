@@ -6,7 +6,6 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.ParticipantResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Conversation;
 import hcmuaf.edu.vn.fit.course_service.entity.Group;
 import hcmuaf.edu.vn.fit.course_service.entity.Participant;
-import hcmuaf.edu.vn.fit.course_service.entity.User;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.Generated;
@@ -14,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-20T04:58:03+0700",
+    date = "2026-04-22T13:56:04+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
@@ -76,9 +75,9 @@ public class GroupMapperImpl implements GroupMapper {
 
         ParticipantResponse.ParticipantResponseBuilder participantResponse = ParticipantResponse.builder();
 
-        participantResponse.userId( participantUserUserId( participant ) );
         participantResponse.role( participant.getParticipantRole() );
         participantResponse.id( participant.getId() );
+        participantResponse.userId( participant.getUserId() );
 
         return participantResponse.build();
     }
@@ -110,13 +109,5 @@ public class GroupMapperImpl implements GroupMapper {
         }
 
         return list1;
-    }
-
-    private String participantUserUserId(Participant participant) {
-        User user = participant.getUser();
-        if ( user == null ) {
-            return null;
-        }
-        return user.getUserId();
     }
 }

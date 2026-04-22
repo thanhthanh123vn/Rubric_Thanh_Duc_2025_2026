@@ -19,7 +19,9 @@ public interface CourseMapper {
     void updateCourseFromRequest(CourseRequest request, @MappingTarget Course course);
 
 
-    @Mapping(target = "lecturerId", source = "lecturer.lecturerId")
-    @Mapping(target = "lecturerName", source = "lecturer.fullName") // Map xuyên qua 2 lớp đối tượng
+    @Mapping(target = "lecturerName", ignore = true)
     CourseOfferingResponse toOfferingResponse(CourseOffering offering);
+
+
+    CourseOfferingResponse toResponse(CourseOffering offering);
 }
