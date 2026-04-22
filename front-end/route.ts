@@ -13,6 +13,21 @@ import CourseAssignments from "@/features/course/student/components/CourseAssign
 import CourseGroups from "@/features/course/student/components/CourseGroups";
 import AssignmentDetail from "@/features/course/student/components/AssignmentDetail";
 import CreateGroup from "@/features/course/student/components/CreateGroup";
+import TeacherLayout from "@/pages/teacher/TeacherLayout";
+import TeacherOverview from "@/pages/teacher/TeacherOverview";
+import TeacherCourseLayout from "@/pages/teacher/TeacherCourseLayout";
+import TeacherCourseOverview from "@/pages/teacher/TeacherCourseOverview";
+import TeacherCourseStudents from "@/pages/teacher/TeacherCourseStudents";
+import TeacherCourseAssignments from "@/pages/teacher/TeacherCourseAssignments";
+import TeacherCourseRubric from "@/pages/teacher/TeacherCourseRubric";
+import TeacherCourseOBE from "@/pages/teacher/TeacherCourseOBE";
+import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
+import TeacherGrading from "@/pages/teacher/TeacherGrading";
+import TeacherProjects from "@/pages/teacher/TeacherProjects";
+import TeacherAttendance from "@/pages/teacher/TeacherAttendance";
+import TeacherReport from "@/pages/teacher/TeacherReport";
+import TeacherRubric from "@/pages/teacher/TeacherRubric";
+import TeacherQuestionBank from "@/pages/teacher/TeacherQuestionBank";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import UserManagement from "@/pages/admin/managerUser/UserManagement";
@@ -73,6 +88,32 @@ export const router = createBrowserRouter([
     {
         path: "/profile",
         Component: AccountManagement,
+    },
+    {
+        path: "/teacher",
+        Component: TeacherLayout,
+        children: [
+            { index: true, Component: TeacherOverview },
+            { path: "courses", loader: () => redirect("/teacher") },
+            {
+                path: "course/:id",
+                Component: TeacherCourseLayout,
+                children: [
+                    { index: true, Component: TeacherCourseOverview },
+                    { path: "students", Component: TeacherCourseStudents },
+                    { path: "assignments", Component: TeacherCourseAssignments },
+                    { path: "rubric", Component: TeacherCourseRubric },
+                    { path: "obe", Component: TeacherCourseOBE },
+                    { path: "groups", Component: TeacherCourseGroups },
+                    { path: "grading", Component: TeacherGrading },
+                    { path: "projects", Component: TeacherProjects },
+                    { path: "attendance", Component: TeacherAttendance },
+                    { path: "report", Component: TeacherReport },
+                ],
+            },
+            { path: "rubric", Component: TeacherRubric },
+            { path: "questions", Component: TeacherQuestionBank },
+        ],
     },
 
 

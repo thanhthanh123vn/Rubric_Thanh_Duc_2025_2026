@@ -52,6 +52,7 @@ export default function LoginPage() {
             dispatch(setCredentials({
                 user: {
                     userId: data.studentId,
+                    studentId: data.studentId,
                     fullName: data.fullName,
                     role: data.role
                 },
@@ -61,7 +62,8 @@ export default function LoginPage() {
 
             const displayName = data.fullName ? data.fullName : data.studentId;
             alert(`Đăng nhập thành công! Chào ${displayName}`);
-            navigate('/dashboard');
+            const targetPath = String(data.role || role).toLowerCase() === 'teacher' ? '/teacher' : '/dashboard';
+            navigate(targetPath);
 
         } catch (error: any) {
             console.error("Lỗi Login:", error);
