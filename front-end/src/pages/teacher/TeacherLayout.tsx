@@ -1,15 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { GraduationCap, Menu, ShieldCheck, Sparkles } from 'lucide-react';
-import { teacherModuleLinks, teacherTones, teacherDots } from './teacherData';
-
-function ToneBadge({ label, tone }: { label: string; tone: string }) {
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${teacherTones[tone] ?? 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${teacherDots[tone] ?? 'bg-slate-400'}`} />
-      {label}
-    </span>
-  );
-}
+import { GraduationCap, ShieldCheck, Sparkles } from 'lucide-react';
+import { teacherModuleLinks } from './teacherData';
+import TeacherHeader from './TeacherHeader';
 
 export default function TeacherLayout() {
   const location = useLocation();
@@ -67,28 +59,26 @@ export default function TeacherLayout() {
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 border-b border-white/70 bg-white/80 backdrop-blur-xl">
-
-            {!inCourseDetail && (
-              <div className="flex gap-2 overflow-x-auto px-4 pb-4 md:px-6 xl:hidden">
-                {teacherModuleLinks.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === '/teacher'}
-                    className={({ isActive }) =>
-                      `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
-                        isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600'
-                      }`
-                    }
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </header>
+          {!inCourseDetail ? <TeacherHeader /> : null}
+          {!inCourseDetail && (
+            <div className="flex gap-2 overflow-x-auto px-4 py-4 md:px-6 xl:hidden">
+              {teacherModuleLinks.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/teacher'}
+                  className={({ isActive }) =>
+                    `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
+                      isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600'
+                    }`
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
+          )}
 
           <main className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-6 md:py-8 xl:px-8">
             <Outlet />

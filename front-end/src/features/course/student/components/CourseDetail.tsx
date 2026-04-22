@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
-import { couserService } from "../../courseApi";
+import { courseService } from "../../courseApi";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
 const getInitial = (name?: string) => {
     if (!name) return "U";
@@ -93,7 +93,7 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
             user = JSON.parse(localUser);
         }
     }
-    const studentId  = user?.studentId || user?.userId || user?.id;
+    const studentId  = user?.studentId || user?.userId;
     const displayName = fullName || username || "Ẩn danh";
 
     // Lấy chữ cái đầu tiên của tên để làm Avatar
@@ -105,7 +105,7 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
     const [localComments, setLocalComments] = useState<any[]>(initialComments);
     const fetchComments = async () => {
         try {
-            const data = await couserService.getCommentsByPostId(postId);
+            const data = await courseService.getCommentsByPostId(postId);
             setLocalComments(data);
         } catch (error) {
             console.error("Lỗi lấy comment:", error);
@@ -122,7 +122,7 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
             setLoading(true);
 
 
-             await couserService.createComment(postId, commentInput);
+             await courseService.createComment(postId, commentInput);
 
 
             // const newComment = {
