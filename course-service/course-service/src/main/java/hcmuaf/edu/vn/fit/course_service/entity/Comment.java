@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
 public class Comment {
 
     @Id
@@ -19,7 +20,7 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id",nullable = false)
-    private Topic post;
+    private Topic topic;
 
     // Chỉ lưu ID tham chiếu sang User Service (người bình luận)
     @Column(name = "user_id", length = 50)

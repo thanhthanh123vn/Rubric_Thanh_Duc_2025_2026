@@ -10,4 +10,5 @@ public class CourseResponse {
     private Integer credits;
     private String description;
     private String department;
+
 }

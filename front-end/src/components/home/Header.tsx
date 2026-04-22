@@ -98,7 +98,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     const handleEnrollClick = async () => {
         setIsEnrolling(true);
         try {
-            const response = await enrollCourse(user.studentId, offeringId);
+            const response = await enrollCourse(offeringId);
             toast.success("Ghi danh thành công!");
 
 

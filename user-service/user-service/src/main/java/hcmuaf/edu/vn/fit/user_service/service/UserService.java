@@ -5,8 +5,10 @@ import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.response.UserResponse;
+import hcmuaf.edu.vn.fit.user_service.entity.SinhVien;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
+import hcmuaf.edu.vn.fit.user_service.repository.SinhVienRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,7 +28,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
-
+    private final SinhVienRepository svRepository;
 
     public Page<UserResponse> getAllUsers(String keyword, Pageable pageable) {
         Page<User> users;
@@ -42,7 +44,28 @@ public class UserService {
     public UserResponse getUserById(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
-        return  userMapper.toUserResponse(user);
+        String fullName = "";
+        if ("STUDENT".equals(user.getRole())) {
+
+            svRepository.findByUser(user).ifPresent(sv -> {
+
+            });
+
+
+            SinhVien sv = svRepository.findByUser(user).orElse(null);
+            if (sv != null) {
+                fullName = sv.getFullName();
+            }
+        }
+
+        UserResponse userResponse = new UserResponse(
+                user.getUserId(),user.getUsername(),user.getEmail(),user.getRole(),
+                user.getAuthProvider(),fullName
+        );
+
+
+
+        return userResponse;
     }
 
 

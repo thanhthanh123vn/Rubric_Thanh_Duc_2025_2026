@@ -1,20 +1,17 @@
 package hcmuaf.edu.vn.fit.course_service.dto.response;
 
 import lombok.Data;
-
-import java.time.Instant;
-
+import java.sql.Timestamp;
 
 @Data
-public class TopicResponse {
+public class CommentResponse {
+    private String commentId;
     private String postId;
-    private String offeringId;
     private String userId;
     private String username;
     private String fullName;
+    private boolean isMine;
     private String content;
-    private String postType;
-    private Boolean isPinned;
-    private Instant createdAt;
-    private Instant updatedAt;
+    private Timestamp createdAt;
+
 }

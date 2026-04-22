@@ -43,19 +43,17 @@ export const courseService = {
         const response = await courseApi.get(`/courses/offering/${offeringId}/students`);
         return response.data;
     },
-    getAssessmentByOffering: async (offeringId : string) =>{
-        const response = await courseApi.get(`/offerings/${offeringId}/assessments`);
+
+    getCommentsByPostId: async (postId: string) => {
+        const response = await courseApi.get(`/topic/offerings/${postId}/comments`);
         return response.data;
     },
-    getAssessmentDetail : async (assessmentId: string)=> {
-        const response = await courseApi.get(`/assessments/${assessmentId}`)
-        console.log(assessmentId)
+    createComment: async (postId: string, content: string) => {
+        const response = await courseApi.post(`/topic/offerings/${postId}/comments`, { content });
         return response.data;
     },
-    getOBEProgress : async (offeringId: string) => {
-        const response = await courseApi.get(`/courses/offering/${offeringId}/OBE`)
-        return response.data;
-    }
+
+
 };
 export const enrollCourse = async (offeringId: string) => {
 
