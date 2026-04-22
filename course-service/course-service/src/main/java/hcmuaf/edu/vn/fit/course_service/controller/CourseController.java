@@ -24,12 +24,10 @@ public class CourseController {
     public ResponseEntity<List<CourseResponse>> getAll() {
         return ResponseEntity.ok(service.getAllCourses());
     }
-
     @GetMapping("/offering/{offeringId}/course")
-    public ResponseEntity<CourseResponse> getCourseByOfferingId(@PathVariable String offeringId) {
-        return ResponseEntity.ok(service.getCourseByOfferingId(offeringId));
+    public CourseOfferingResponse getCourseByOfferingId(@PathVariable String offeringId) {
+        return service.getCourseOfferingDetail(offeringId);
     }
-
     @PostMapping
     public ResponseEntity<CourseResponse> create(@RequestBody CourseRequest request) {
         return ResponseEntity.ok(service.createCourse(request));

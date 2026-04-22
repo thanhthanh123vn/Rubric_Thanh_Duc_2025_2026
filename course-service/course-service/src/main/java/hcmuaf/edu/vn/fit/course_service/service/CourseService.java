@@ -45,7 +45,13 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
         return courseMapper.toCourseResponse(offering.getCourse());
     }
+    public CourseOfferingResponse getCourseOfferingDetail(String offeringId) {
 
+        CourseOffering offering = courseOfferingRepo.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+
+        return courseMapper.toOfferingResponse(offering);
+    }
     public CourseResponse createCourse(CourseRequest request) {
         if (courseRepo.existsByCourseCode(request.getCourseCode())) {
             throw new RuntimeException("Mã môn học đã tồn tại!");

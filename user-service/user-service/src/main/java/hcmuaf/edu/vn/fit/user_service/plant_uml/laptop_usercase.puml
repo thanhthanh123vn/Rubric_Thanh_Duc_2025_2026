@@ -1,22 +1,174 @@
 @startuml
-'https://plantuml.com/use-case-diagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+    BackgroundColor White
+    BorderColor Black
+}
 
-:Main Admin: as Admin
-(Use the application) as (Use)
+' ==========================================
+' KHAI BÁO CÁC TÁC NHÂN (ACTORS)
+' ==========================================
+actor "Người dùng" as User
+actor "Người mua" as Buyer
+actor "Người bán" as Seller
+actor "Admin" as Admin
+actor "Hệ thống thanh toán" as PaymentSystem
 
-User -> (Start)
-User --> (Use)
+Buyer -up-|> User
+Seller -up-|> User
 
-Admin ---> (Use)
+rectangle "Hệ thống Sàn Laptop Trung gian" {
 
-note right of Admin : This is an example.
+    ' ==========================================
+    ' PHẠM VI 1: QUẢN LÝ TÀI KHOẢN & TƯƠNG TÁC (CHUNG)
+    ' ==========================================
+    package "Phạm vi: Chức năng Chung" {
+        usecase "1. Quản lý Tài khoản" as UC_TK
+        usecase "1.1 Đăng ký" as UC_DangKy
+        usecase "1.2 Đăng nhập" as UC_DangNhap
+        usecase "1.3 Đăng xuất" as UC_DangXuat
+        usecase "1.4 Xác thực email" as UC_XacThucEmail
+        usecase "1.5 Reset mật khẩu" as UC_ResetMK
 
-note right of (Use)
-A note can also
-be on several lines
-end note
+        UC_TK <.. UC_DangKy : <<extend>>
+        UC_TK <.. UC_DangNhap : <<extend>>
+        UC_TK <.. UC_DangXuat : <<extend>>
+        UC_DangNhap .> UC_XacThucEmail : <<include>>
+        UC_DangNhap <.. UC_ResetMK : <<extend>>
 
-note "This note is connected\nto several objects." as N2
-(Start) .. N2
-N2 .. (Use)
+        usecase "2. Chat Real-time" as UC_Chat #LightBlue
+        usecase "2.1 Gửi tin nhắn/Hình ảnh" as UC_Chat1
+        UC_Chat .> UC_Chat1 : <<include>>
+
+        usecase "3. Quản lý ví/Số dư" as UC_QuanLyVi #LightGreen
+        usecase "3.1 Nạp tiền" as UC_NapTien
+        usecase "3.2 Rút tiền" as UC_RutTien
+        usecase "3.3 Xem lịch sử giao dịch" as UC_LichSuVi
+        UC_QuanLyVi .> UC_NapTien : <<include>>
+        UC_QuanLyVi .> UC_RutTien : <<include>>
+        UC_QuanLyVi .> UC_LichSuVi : <<include>>
+
+        usecase "4. Xử lý thanh toán" as UC_XuLyThanhToan
+
+        User --> UC_TK
+        User --> UC_Chat
+        User --> UC_QuanLyVi
+        UC_NapTien .> UC_XuLyThanhToan : <<include>>
+        UC_XuLyThanhToan <-- PaymentSystem
+    }
+
+    ' ==========================================
+    ' PHẠM VI 2: CHỨC NĂNG NGƯỜI MUA
+    ' ==========================================
+    package "Phạm vi: Chức năng Người Mua" {
+        usecase "5. Trải nghiệm mua sắm" as UC_MuaSam
+
+        usecase "5.1 Tìm kiếm laptop" as UC_TimKiem
+        usecase "5.1.1 Lọc theo giá/hãng/cấu hình" as UC_Loc
+        UC_TimKiem <.. UC_Loc : <<extend>>
+
+        usecase "5.2 Xem chi tiết laptop" as UC_XemChiTiet
+        usecase "5.3 Thêm vào danh sách quan tâm" as UC_ThemQuanTam #LightBlue
+
+        usecase "5.4 Mua hàng" as UC_MuaHang
+        usecase "5.4.1 Thêm vào giỏ/Mua ngay" as UC_MuaNgay
+        usecase "5.4.2 Chọn địa chỉ nhận hàng" as UC_DiaChi
+        UC_MuaHang .> UC_MuaNgay : <<include>>
+        UC_MuaNgay .> UC_DiaChi : <<include>>
+        UC_MuaNgay .> UC_XuLyThanhToan : <<include>>
+
+        usecase "5.5 Đánh giá sản phẩm/Người bán" as UC_DanhGia
+        usecase "5.5.1 Viết nhận xét chi tiết" as UC_VietNhanXet
+        UC_DanhGia <.. UC_VietNhanXet : <<extend>>
+
+        usecase "5.6 Quản lý đơn hàng mua" as UC_QLDonMua
+        usecase "5.6.1 Yêu cầu khiếu nại/Hoàn tiền" as UC_YCKhieuNai #Pink
+        UC_QLDonMua <.. UC_YCKhieuNai : <<extend>>
+
+        Buyer --> UC_TimKiem
+        Buyer --> UC_XemChiTiet
+        Buyer --> UC_ThemQuanTam
+        Buyer --> UC_MuaHang
+        Buyer --> UC_DanhGia
+        Buyer --> UC_QLDonMua
+    }
+
+    ' ==========================================
+    ' PHẠM VI 3: CHỨC NĂNG NGƯỜI BÁN
+    ' ==========================================
+    package "Phạm vi: Chức năng Người Bán" {
+        usecase "6. Quản lý bán hàng" as UC_QLBanHang
+
+        usecase "6.1 Quản lý tin rao" as UC_QLTinRao
+        usecase "6.1.1 Đăng tin bán laptop" as UC_DangTin
+        usecase "6.1.1.1 Upload hình ảnh" as UC_Upload
+        usecase "6.1.1.2 Nhập thông số kỹ thuật" as UC_NhapThongSo
+        usecase "6.1.1.3 Đặt giá" as UC_DatGia
+        usecase "6.1.1.4 Gợi ý giá bán" as UC_GoiY
+
+        UC_QLTinRao .> UC_DangTin : <<include>>
+        UC_DangTin .> UC_Upload : <<include>>
+        UC_DangTin .> UC_NhapThongSo : <<include>>
+        UC_DangTin .> UC_DatGia : <<include>>
+        UC_DangTin <.. UC_GoiY : <<extend>>
+
+        usecase "6.1.2 Chỉnh sửa tin" as UC_SuaTin
+        usecase "6.1.3 Xóa/Ẩn tin" as UC_XoaTin
+        UC_QLTinRao <.. UC_SuaTin : <<extend>>
+        UC_QLTinRao <.. UC_XoaTin : <<extend>>
+
+        usecase "6.2 Mua gói đẩy tin/Tin VIP" as UC_MuaGoi #LightBlue
+        UC_MuaGoi .> UC_XuLyThanhToan : <<include>>
+
+        usecase "6.3 Quản lý đơn hàng bán ra" as UC_QLDonBan
+        usecase "6.3.1 Xem chi tiết đơn hàng" as UC_XemChiTietDon
+        usecase "6.3.2 Xác nhận/Hủy đơn" as UC_XacNhanDon
+        UC_QLDonBan .> UC_XemChiTietDon : <<include>>
+        UC_QLDonBan .> UC_XacNhanDon : <<include>>
+
+        Seller --> UC_QLTinRao
+        Seller --> UC_MuaGoi
+        Seller --> UC_QLDonBan
+    }
+
+    ' ==========================================
+    ' PHẠM VI 4: CHỨC NĂNG ADMIN
+    ' ==========================================
+    package "Phạm vi: Chức năng Admin" {
+        usecase "7. Tổng quan (Dashboard)" as UC_TongQuan #FFF2CC
+        usecase "7.1 Xem báo cáo hệ thống" as UC_XemBaoCao
+
+        usecase "8. Quản lý Người dùng" as UC_QLNguoiDung
+        usecase "8.1 Xem danh sách tài khoản" as UC_XemDSUser
+        usecase "8.2 Khóa/Xóa tài khoản" as UC_KhoaTaiKhoan
+        usecase "8.3 Duyệt người bán VIP" as UC_DuyetVIP
+
+        UC_QLNguoiDung .> UC_XemDSUser : <<include>>
+        UC_QLNguoiDung .> UC_KhoaTaiKhoan : <<include>>
+        UC_QLNguoiDung .> UC_DuyetVIP : <<include>>
+
+        usecase "9. Quản lý Tin rao hệ thống" as UC_QLTinHeThong
+        usecase "9.1 Xem danh sách tin" as UC_XemDSTin
+        usecase "9.2 Duyệt tin rao" as UC_DuyetTin
+        usecase "9.3 Xóa tin vi phạm" as UC_XoaTinViPham
+
+        UC_QLTinHeThong .> UC_XemDSTin : <<include>>
+        UC_QLTinHeThong .> UC_DuyetTin : <<include>>
+        UC_QLTinHeThong .> UC_XoaTinViPham : <<include>>
+
+        usecase "10. Quản lý Hỗ trợ/Khiếu nại" as UC_QLHoTro
+        usecase "10.1 Giải quyết khiếu nại" as UC_GiaiQuyetKN #Pink
+        UC_QLHoTro .> UC_GiaiQuyetKN : <<include>>
+
+        usecase "11. Quản lý thông tin cá nhân (Admin)" as UC_QLThongTinAdmin
+
+        Admin --> UC_TongQuan
+        Admin --> UC_XemBaoCao
+        Admin --> UC_QLNguoiDung
+        Admin --> UC_QLTinHeThong
+        Admin --> UC_QLHoTro
+        Admin --> UC_QLThongTinAdmin
+    }
+}
 @enduml

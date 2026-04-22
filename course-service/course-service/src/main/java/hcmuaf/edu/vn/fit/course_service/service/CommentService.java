@@ -37,7 +37,7 @@ public class CommentService {
 
         Comment comment = commentMapper.toEntity(request);
         comment.setCommentId("CMT-" + UUID.randomUUID().toString().substring(0, 8));
-        comment.setPost(topic);
+        comment.setTopic(topic);
         comment.setUserId(userId);
         comment.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
@@ -53,19 +53,20 @@ public class CommentService {
     }
 
 
-    public List<CommentResponse> getCommentsByPostId(String postId) {
+    public List<CommentResponse> getCommentsByPostId(String currentUserId, String postId) {
         List<Comment> comments = commentRepository.findByTopic_PostIdOrderByCreatedAtAsc(postId);
 
-
-        List<String> userIds = comments.stream()
+        // 1. Lọc lấy danh sách ID của những người đã viết comment
+        List<String> authorIds = comments.stream()
                 .map(Comment::getUserId)
                 .distinct()
                 .collect(Collectors.toList());
 
+
         Map<String, UserResponse> users = null;
         try {
-            if (!userIds.isEmpty()) {
-                users = userClient.getUsers(userIds);
+            if (!authorIds.isEmpty()) {
+                users = userClient.getUsers(authorIds);
             }
         } catch (Exception e) {
             log.error("Lỗi khi lấy thông tin user cho comment", e);
@@ -73,20 +74,30 @@ public class CommentService {
 
         final Map<String, UserResponse> finalUsers = users;
 
-        return comments.stream().map(comment -> {
 
+        return comments.stream().map(comment -> {
             CommentResponse res = commentMapper.toResponse(comment);
 
-
             if (finalUsers != null && finalUsers.containsKey(comment.getUserId())) {
-                res.setUsername(finalUsers.get(comment.getUserId()).getUsername());
+                UserResponse userDetail = finalUsers.get(comment.getUserId());
+
+
+                String nameToDisplay = (userDetail.getFullName() != null && !userDetail.getFullName().isEmpty())
+                        ? userDetail.getFullName()
+                        : userDetail.getUsername();
+                res.setUsername(nameToDisplay);
+
+
+                 res.setFullName(userDetail.getFullName());
             } else {
                 res.setUsername("Unknown");
             }
+
+             res.setMine(comment.getUserId().equals(currentUserId));
+
             return res;
         }).collect(Collectors.toList());
     }
-
 
     private String fetchUsername(String userId) {
         try {

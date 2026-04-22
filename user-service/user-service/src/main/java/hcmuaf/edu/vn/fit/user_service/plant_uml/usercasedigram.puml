@@ -1,22 +1,231 @@
 @startuml
-'https://plantuml.com/use-case-diagram
+left to right direction
+skinparam packageStyle rectangle
 
-:Main Admin: as Admin
-(Use the application) as (Use)
+' ==========================================
+' KHAI BÁO CÁC TÁC NHÂN (ACTORS) VÀ KẾ THỪA
+' ==========================================
+actor "Người dùng" as User
+actor "Sinh Viên" as Student
+actor "Giảng Viên" as Teacher
+actor "Giảng Viên\n(CNBM)" as HeadTeacher
+actor "Admin" as Admin
 
-User -> (Start)
-User --> (Use)
+Student -up-|> User
+Teacher -up-|> User
+HeadTeacher -up-|> Teacher
 
-Admin ---> (Use)
+' ==========================================
+' PHẠM VI 1: QUẢN LÝ TÀI KHOẢN CHUNG
+' ==========================================
+package "Phạm vi: Quản lý Tài Khoản" {
+    usecase "1. Quản Lý Tài Khoản" as UC1 #FFF2CC
+    usecase "1.1 Đăng nhập" as UC1_1 #FFF2CC
+    usecase "1.2 Đăng ký" as UC1_2 #FFF2CC
+    usecase "1.3 Quên Mật Khẩu" as UC1_3 #FFF2CC
+    usecase "1.4 Cập Nhật Thông Số" as UC1_4 #FFF2CC
+    usecase "1.5 Đăng Xuất" as UC1_5 #FFF2CC
 
-note right of Admin : This is an example.
+    UC1_1 -up-> UC1
+    UC1_2 -up-> UC1
+    UC1_3 -up-> UC1
+    UC1_4 -up-> UC1
+    UC1_5 -up-> UC1
 
-note right of (Use)
-A note can also
-be on several lines
-end note
+    User --> UC1
+}
 
-note "This note is connected\nto several objects." as N2
-(Start) .. N2
-N2 .. (Use)
+' ==========================================
+' PHẠM VI 2: CHỨC NĂNG CỦA SINH VIÊN
+' ==========================================
+package "Phạm vi: Chức năng Sinh Viên" {
+    usecase "2. Tham Gia Lớp Học" as UC2
+    usecase "2.1 Xem Đánh Giá\nMôn Học" as UC2_1
+    usecase "2.2 Xem Đánh Giá\nRubric" as UC2_2
+    usecase "2.2.1 Đánh Giá\nChuyên Cần" as UC2_2_1
+    usecase "2.2.2 Đánh Giá\nBài Tập" as UC2_2_2
+    usecase "2.2.3 Đánh Giá\nDự Án" as UC2_2_3
+    usecase "2.2.4 Đánh Giá\nBài Tập Cuối Kỳ" as UC2_2_4
+
+    UC2 .> UC2_1 : <<include>>
+    UC2 .> UC2_2 : <<include>>
+    UC2_2_1 .> UC2_2 : <<extend>>
+    UC2_2_2 .> UC2_2 : <<extend>>
+    UC2_2_3 .> UC2_2 : <<extend>>
+    UC2_2_4 .> UC2_2 : <<extend>>
+
+    usecase "3. Xem bài đăng" as UC3
+    usecase "4. Danh Sách Lớp\nHọc" as UC4
+
+    usecase "5. Điểm danh (QR +\nGPS)" as UC5
+    usecase "5.1. Xác Định khoảng\ncách GPS và Điểm danh" as UC5_1
+    UC5 .> UC5_1 : <<include>>
+
+    usecase "6. Làm Bài Tập Trực\nTuyến" as UC6
+    usecase "6.1. Làm Bài Thi Trắc\nNghiệm" as UC6_1
+    usecase "6.2. Làm Bài Tập/Dự\nÁn" as UC6_2
+    usecase "6.3 Xem kết quả &\nPhản hồi chi tiết" as UC6_3
+    usecase "6.3.1. Xem biểu đồ\nnăng lực (Radar Chart)" as UC6_3_1
+
+    UC6 .> UC6_1 : <<include>>
+    UC6 .> UC6_2 : <<include>>
+    UC6_1 .> UC6_3 : <<include>>
+    UC6_2 .> UC6_3 : <<include>>
+    UC6_3 .> UC6_3_1 : <<include>>
+
+    usecase "8. Quản lý Nhóm &\nSinh" as UC8
+    usecase "8.1 Tạo / Chọn Nhóm" as UC8_1
+    usecase "8.2 Thêm Thành Viên" as UC8_2
+    usecase "8.3 Xóa Thành Viên" as UC8_3
+    usecase "8.4 Rời Nhóm" as UC8_4
+    usecase "8.5 Bầu Quyền\nTrưởng Nhóm" as UC8_5
+    usecase "8.6 Giao Nhiệm Vụ" as UC8_6
+
+    UC8 .> UC8_1 : <<include>>
+    UC8 .> UC8_2 : <<include>>
+    UC8 .> UC8_3 : <<include>>
+    UC8 .> UC8_4 : <<include>>
+    UC8 .> UC8_5 : <<include>>
+    UC8 .> UC8_6 : <<include>>
+
+    usecase "Xem Thống Kê" as UCExtra1
+    usecase "Quản Lý Lịch Học" as UCExtra2
+
+    Student --> UC2
+    Student --> UC3
+    Student --> UC4
+    Student --> UC5
+    Student --> UC6
+    Student --> UC8
+    Student --> UCExtra1
+    Student --> UCExtra2
+}
+
+' ==========================================
+' PHẠM VI 3: CHỨC NĂNG CỦA GIẢNG VIÊN
+' ==========================================
+package "Phạm vi: Chức năng Giảng Viên" {
+    usecase "7. Danh Sách Phân\ncông Môn Học" as UC7
+    usecase "9. Tạo Điểm Danh" as UC9
+    usecase "9.1. Xem Danh Sách\nĐiểm Danh" as UC9_1
+    usecase "9.2. Danh Sách Vắng\nmặt" as UC9_2
+    UC9 .> UC9_1 : <<include>>
+    UC9 .> UC9_2 : <<include>>
+
+    usecase "10. Quản Lý Lớp Học" as UC10
+    usecase "10.1. Chốt Thông Tin\nLớp Học" as UC10_1
+    usecase "10.2. Giao Bài Tập" as UC10_2
+    usecase "10.2.1 Chấm Điểm\nTrắc Nghiệm Tự Động" as UC10_2_1
+    usecase "10.2.1.1 Xem Bảng\nĐiểm" as UC10_2_1_1
+    usecase "10.2.1.1.1 Chấm Điểm\nBài Tập" as UC10_2_1_1_1
+    usecase "10.2.1.1.1.1 Chấm\nThủ công/Nhận xét mẫu" as UC10_2_1_1_1_1
+
+    UC10 .> UC10_1 : <<include>>
+    UC10 .> UC10_2 : <<include>>
+    UC10_2 .> UC10_2_1 : <<include>>
+    UC10_2_1 .> UC10_2_1_1 : <<include>>
+    UC10_2_1_1 .> UC10_2_1_1_1 : <<include>>
+    UC10_2_1_1_1_1 .> UC10_2_1_1_1 : <<extend>>
+
+    usecase "10.3 Tạo/Sửa Tình\nTrạng Điểm" as UC10_3
+    usecase "10.4 Thêm Sinh Viên\nVào Lớp" as UC10_4
+    usecase "10.5 Xác Định Vị Trí/\nTọa Độ Lớp Học" as UC10_5
+    UC10 .> UC10_3 : <<include>>
+    UC10 .> UC10_4 : <<include>>
+    UC10 .> UC10_5 : <<include>>
+
+    usecase "13. Quản Lý Câu Hỏi/\nĐề Thi" as UC13
+    usecase "13.1 Tạo Câu Hỏi/Đề\nThi" as UC13_1
+    usecase "13.2 Import câu hỏi từ\nWord/Excel" as UC13_2
+    usecase "13.3 Xuất Đề Thi\n(Word/pdf)" as UC13_3
+    usecase "13.4 Xem/Sửa/Xóa Đề\nThi" as UC13_4
+    usecase "13.5 Tạo Cấu Trúc Đề\nThi" as UC13_5
+    UC13 .> UC13_1 : <<include>>
+    UC13 .> UC13_2 : <<include>>
+    UC13 .> UC13_3 : <<include>>
+    UC13 .> UC13_4 : <<include>>
+    UC13 .> UC13_5 : <<include>>
+
+    usecase "11. Quản lý Kho\nCâu Hỏi Môn Học" as UC11
+    usecase "11.1 Quản lý Kho" as UC11_1
+    usecase "11.1.1 Thêm Câu Hỏi" as UC11_1_1
+    usecase "11.1.2 Sửa Câu Hỏi" as UC11_1_2
+    usecase "11.1.3 Xóa Câu Hỏi" as UC11_1_3
+    usecase "11.1.4 Xem Danh\nSách Câu Hỏi" as UC11_1_4
+    UC11_1 .> UC11 : <<extend>>
+    UC11_1 .> UC11_1_1 : <<include>>
+    UC11_1 .> UC11_1_2 : <<include>>
+    UC11_1 .> UC11_1_3 : <<include>>
+    UC11_1 .> UC11_1_4 : <<include>>
+
+    usecase "12. Nhập Điểm Cuối\nKỳ Cho Môn Học" as UC12
+
+    Teacher --> UC7
+    Teacher --> UC9
+    Teacher --> UC10
+    Teacher --> UC13
+    Teacher --> UC11
+    Teacher --> UC12
+}
+
+' ==========================================
+' PHẠM VI 4: CHỨC NĂNG GIẢNG VIÊN (CNBM)
+' ==========================================
+package "Phạm vi: Chức năng Giảng Viên CNBM" {
+    usecase "13. Quản Lý Đề\nCương" as UCCNBM13
+    usecase "13.1 Tạo CLO +\nRubric Trọng số" as UCCNBM13_1
+    usecase "13.2 Sửa CLO +\nRubric Trọng số" as UCCNBM13_2
+    usecase "13.3 Xóa CLO +\nRubric Trọng số" as UCCNBM13_3
+    usecase "13.4 Xem CLO +\nRubric Trọng số" as UCCNBM13_4
+
+    UCCNBM13 .> UCCNBM13_1 : <<include>>
+    UCCNBM13 .> UCCNBM13_2 : <<include>>
+    UCCNBM13 .> UCCNBM13_3 : <<include>>
+    UCCNBM13 .> UCCNBM13_4 : <<include>>
+
+    usecase "13.5 Tạo Ma Trận\nCLO" as UCCNBM13_5
+
+    HeadTeacher --> UCCNBM13
+    HeadTeacher --> UCCNBM13_5
+}
+
+' ==========================================
+' PHẠM VI 5: CHỨC NĂNG ADMIN
+' ==========================================
+package "Phạm vi: Chức năng Admin" {
+    usecase "Tổng Quan" as UCAdmin1 #FFF2CC
+
+    usecase "14. Quản lý Người\nDùng" as UCAdmin14 #FFF2CC
+    usecase "14.1 Xem Tài Khoản\nngười dùng" as UCAdmin14_1 #FFF2CC
+    usecase "14.2 Tạo User" as UCAdmin14_2 #FFF2CC
+    usecase "14.3 Xóa User" as UCAdmin14_3 #FFF2CC
+    usecase "14.4 Chỉnh Sửa User" as UCAdmin14_4 #FFF2CC
+    usecase "14.5 Phân Quyền\nUser\n(Teacher hoặc Student)" as UCAdmin14_5 #FFF2CC
+    usecase "14.6 Phân Công\nGiảng Viên/Học Sinh\nMôn" as UCAdmin14_6
+
+    UCAdmin14 .> UCAdmin14_1 : <<include>>
+    UCAdmin14 .> UCAdmin14_2 : <<include>>
+    UCAdmin14 .> UCAdmin14_3 : <<include>>
+    UCAdmin14 .> UCAdmin14_4 : <<include>>
+    UCAdmin14 .> UCAdmin14_5 : <<include>>
+    UCAdmin14 .> UCAdmin14_6 : <<include>>
+
+    usecase "15. Quản Lý Cơ Sở\nMôn Học" as UCAdmin15
+    usecase "15.1 Thêm Bộ Câu\nHỏi/Cấu Trúc Đề Khoa" as UCAdmin15_1
+    usecase "15.2 Gắn Bộ Câu Hỏi\n& Đề vào Khoa" as UCAdmin15_2
+    usecase "15.3 Gắn Bộ Câu Hỏi\n& Đề vào Môn Học" as UCAdmin15_3
+    usecase "15.4 Xem Danh Sách\nĐề Thi" as UCAdmin15_4
+    usecase "15.5 Lấy Bộ Đề Thi\n(Ngẫu nhiên Từ Kho)" as UCAdmin15_5
+
+    UCAdmin15 .> UCAdmin15_1 : <<include>>
+    UCAdmin15 .> UCAdmin15_2 : <<include>>
+    UCAdmin15 .> UCAdmin15_3 : <<include>>
+    UCAdmin15 .> UCAdmin15_4 : <<include>>
+    UCAdmin15 .> UCAdmin15_5 : <<include>>
+
+    Admin --> UCAdmin1
+    Admin --> UCAdmin14
+    Admin --> UCAdmin15
+}
+
 @enduml

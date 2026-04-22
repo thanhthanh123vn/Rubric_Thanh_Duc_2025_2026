@@ -2,10 +2,12 @@ package hcmuaf.edu.vn.fit.course_service.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "Users")
@@ -27,4 +29,6 @@ public class User {
 
     private String resetOtp;
     private LocalDateTime resetOtpExpiry;
+
+
 }

@@ -1,8 +1,8 @@
 'use client'
 
 import { SidebarProvider } from '@/components/ui/sidebar.tsx'
-import {  Sidebar } from '@/components/home/Sidebar.tsx'
-import { Header } from '@/components/home/Header.tsx'
+import Sidebar  from '@/components/home/Sidebar.tsx'
+import Header from '@/components/home/Header.tsx'
 
 
 export default function LMSLayout({
