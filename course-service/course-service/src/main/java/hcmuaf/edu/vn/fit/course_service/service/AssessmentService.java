@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
+import hcmuaf.edu.vn.fit.course_service.entity.SubmissionEntity;
 import hcmuaf.edu.vn.fit.course_service.repository.AssessmentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.SubmissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -19,6 +22,12 @@ public class AssessmentService {
 
     @Autowired
     private AssessmentRepository assessmentRepository;
+
+    @Autowired
+    private S3Service s3Service;
+
+    @Autowired
+    private SubmissionRepository submissionRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -105,6 +114,50 @@ public class AssessmentService {
             return dto;
 
         } catch (Exception e) {
+            throw new RuntimeException("Parse error", e);
+        }
+    }
+
+    public Object submitAssignment(
+            String assessmentId,
+            String studentId,
+            MultipartFile file,
+            String link
+    ){
+        try{
+            if ((file == null || file.isEmpty()) ) {
+                throw new RuntimeException("Phải có file");
+            }
+
+            String fileUrl = "";
+
+            if (file != null && !file.isEmpty()) {
+                fileUrl = s3Service.uploadFile(file);
+            }
+            if (!assessmentRepository.existsById(assessmentId)) {
+                throw new RuntimeException("Assessment không tồn tại: " + assessmentId);
+            }
+            SubmissionEntity existing =  submissionRepository.findByAssessmentIdAndStudentId(assessmentId,studentId).orElse(null);
+
+            if(existing != null){
+                existing.setFileUrl(fileUrl);
+                existing.setSubmittedAt(java.time.LocalDateTime.now());
+
+                submissionRepository.save(existing);
+                return existing;
+            }
+
+            SubmissionEntity submission = new SubmissionEntity();
+            submission.setAssessmentId(assessmentId);
+            submission.setStudentId(studentId);
+            submission.setFileUrl(fileUrl);
+            submission.setSubmittedAt(java.time.LocalDateTime.now());
+
+            submissionRepository.save(submission);
+
+            return submission;
+
+        }catch (Exception e){
             throw new RuntimeException("Parse error", e);
         }
     }
