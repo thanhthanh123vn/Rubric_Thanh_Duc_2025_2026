@@ -66,3 +66,9 @@ app:
   jwt:
     secret: your_very_long_and_secret_key_22130260_thanh_nlu
     expiration: 86400000
+
+aws:
+  accessKey: ${AWS_ACCESS_KEY}
+  secretKey: ${AWS_SECRET_KEY}
+  region: us-east-1
+  bucketName: lms-upload-ducvan
