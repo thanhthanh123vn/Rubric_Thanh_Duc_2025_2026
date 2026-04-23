@@ -14,6 +14,7 @@ import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.SinhVienRepository; // Import chuẩn ở đây
 import hcmuaf.edu.vn.fit.user_service.util.JwtUtils;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -32,8 +33,8 @@ public class AuthService {
     private final UserMapper userMapper;
     private final EmailService emailService;
     private final JwtUtils jwtUtils;
-
-        private final SinhVienMapper svMapper;
+    private final HttpSession session;
+    private final SinhVienMapper svMapper;
 
         @Transactional
         public void register(RegisterRequest request) {
@@ -82,7 +83,7 @@ public class AuthService {
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
         String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
 
-        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole(), fullName,refershToken);
+        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole(),user.getAvatarUrl(), fullName,refershToken);
     }
 
 
@@ -115,7 +116,7 @@ public class AuthService {
                 fullName = sv.getFullName();
             }
         }
-        return new LoginResponse(token, user.getUserId(),user.getUsername(), user.getRole(),fullName,refershToken);
+        return new LoginResponse(token, user.getUserId(),user.getUsername(), user.getRole(),user.getAvatarUrl(),fullName,refershToken);
     }
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
@@ -170,6 +171,15 @@ public class AuthService {
         }
 
         throw new RuntimeException("Refresh token is invalid or expired");
+    }
+
+    private void clearSession() {
+        // TODO Auto-generated method stub
+
+        session.removeAttribute("otp");
+        session.removeAttribute("register_request");
+        session.removeAttribute("otp_exp");
+
     }
 }
 

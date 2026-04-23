@@ -10,6 +10,7 @@ public class CommentResponse {
     private String userId;
     private String username;
     private String fullName;
+    private String avatarUrl;
     private boolean isMine;
     private String content;
     private Timestamp createdAt;

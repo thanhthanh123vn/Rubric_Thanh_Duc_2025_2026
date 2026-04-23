@@ -194,12 +194,6 @@ export default function CalendarPage() {
                     </div>
                 </div>
 
-                {/* FOOTER */}
-                <div className="mt-8 pt-5 border-t border-gray-200 text-center pb-4">
-                    <span className="text-[10px] md:text-[11px] text-gray-500 uppercase tracking-[0.15em] font-semibold">
-                        Trường Đại học Nông Lâm Thành phố Hồ Chí Minh
-                    </span>
-                </div>
             </div>
         </LMSLayout>
     );

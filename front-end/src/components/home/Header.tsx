@@ -23,13 +23,14 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     const [user, setUser] = useState<UserInfo | null>(null);
     const [showJoinClass, setShowJoinClass] = useState(false);
     const [isEnrolling, setIsEnrolling] = useState(false);
-
+    const [imageError, setImageError] = useState(false);
     const [offeringId, setOfferingId] = useState("");
     const router = useNavigate();
     const location = useLocation();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         fullName: '',
+        avatarUrl:'',
         dateOfBirth: '',
         nationality: 'Việt Nam',
         cccd: '',
@@ -51,6 +52,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                         fullName: fullData.fullName || '',
                         dateOfBirth: fullData.dateOfBirth || '',
                         nationality: fullData.nationality || 'Việt Nam',
+                        avatarUrl: fullData.avatarUrl || "T",
                         cccd: fullData.cccd || '',
                         gender: fullData.gender || 'Nam',
                         phoneNumber: fullData.phoneNumber || '',
@@ -84,7 +86,17 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     };
 
     if (!user) {
-        return <div className="flex h-screen items-center justify-center">Đang tải thông tin...</div>;
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+                    <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
+                        <div className="absolute inset-0 rounded-full border-4 border-purple-600 border-t-transparent animate-spin"></div>
+                    </div>
+                    <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
+                </div>
+            );
+
     }
     const getInitial = (name?: string) => {
         if (!name) return "U";
@@ -138,22 +150,24 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                         onClick={() => setShowJoinClass(true)}
                         className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors duration-200 border border-emerald-100"
                     >
-                        <Plus size={20} />
+                        <Plus size={20}/>
                         <span className="hidden sm:block font-medium text-sm">Tham gia lớp học</span>
                     </button>
                 )}
 
                 {/* Nút Thông báo (Chuông) */}
                 <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors mr-1">
-                    <Bell size={22} />
+                    <Bell size={22}/>
                     {/* Dấu chấm đỏ báo có thông báo mới */}
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    <span
+                        className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 </button>
 
                 {/* Modal Tham gia lớp học (Không làm mờ) */}
                 {showJoinClass && (
                     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 animate-fadeIn">
-                        <div className="bg-white w-[92%] max-w-md rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
+                        <div
+                            className="bg-white w-[92%] max-w-md rounded-2xl shadow-2xl p-6 transform transition-all scale-100">
                             <h2 className="text-2xl font-semibold text-gray-900 mb-5">
                                 Tham gia lớp học
                             </h2>
@@ -203,9 +217,21 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                 {/* Nút Avatar */}
                 <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-base lg:text-lg hover:ring-4 hover:ring-gray-100 transition-all focus:outline-none"
+                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-bold text-base lg:text-lg hover:ring-4 hover:ring-gray-100 transition-all focus:outline-none"
                 >
-                    {getInitial(formData.fullName)}
+
+                    {formData.avatarUrl && formData.avatarUrl.trim() !== "" && !imageError ? (
+                        <img
+                            src={formData.avatarUrl}
+                            alt="Avatar"
+                            className="w-full h-full object-cover rounded-full"
+                            onError={() => {
+                                setImageError(true);
+                            }}
+                        />
+                    ) : (
+                        getInitial(formData.fullName)
+                    )}
                 </button>
 
                 {/* Profile Menu Popup */}
@@ -219,8 +245,23 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                             </span>
 
                             <div
-                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-purple-600 text-white flex items-center justify-center font-normal text-3xl sm:text-4xl mt-4 mb-2">
-                                {getInitial(formData.fullName)}
+                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mt-4 mb-2 flex items-center justify-center shrink-0">
+                                {formData.avatarUrl && formData.avatarUrl.trim() !== "" && !imageError ? (
+                                    <img
+                                        src={formData.avatarUrl}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover rounded-full"
+                                        onError={() => {
+                                            setImageError(true);
+                                        }}
+                                    />
+                                ) : (
+
+                                    <div
+                                        className="w-full h-full bg-emerald-600 text-white flex items-center justify-center text-2xl sm:text-3xl font-semibold">
+                                        {getInitial(formData.fullName)}
+                                    </div>
+                                )}
                             </div>
 
                             <h2 className="text-lg sm:text-xl text-gray-900 font-normal text-center break-words w-full">

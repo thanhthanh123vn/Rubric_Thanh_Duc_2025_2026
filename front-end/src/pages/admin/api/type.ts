@@ -2,6 +2,7 @@ export interface User {
     userId: string;
     studentId : string;
     username?: string;
+    avatarUrl?: string;
     fullName: string;
     email?: string;
     role: string;
@@ -16,6 +17,7 @@ export interface PageResponse<T> {
 }
 
 export interface StudentProfile {
+    avatarUrl: string;
     nationality: string;
     cccd: string;
     studentId: string;

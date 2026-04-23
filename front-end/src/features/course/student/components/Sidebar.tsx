@@ -26,14 +26,13 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
         { key: "obe", icon: BarChart3, label: "Tiến độ OBE", path: "obe" },
         { key: "groups", icon: Users2, label: "Nhóm của tôi", path: "groups" },
         { key: "students", icon: Users, label: "Sinh viên", path: "students" },
-        { key: "createGroup", icon: Plus, label: "Tạo Nhóm", path: "createGroup" },
         { key: "notifications", icon: Bell, label: "Thông báo", path: "notifications" },
     ];
 
     return (
         <div
             className={`
-            fixed lg:static inset-y-0 left-0 z-40
+            fixed lg:sticky lg:top-0 h-screen left-0 z-40 
             ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
             ${isCollapsed ? "lg:w-20" : "w-[280px] lg:w-72"}
             bg-white border-r border-gray-200
@@ -41,6 +40,8 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             flex flex-col shadow-2xl lg:shadow-none
         `}
         >
+            {/* ... Phần code bên trong giữ nguyên ... */}
+
             {/* HEADER */}
             <div className="p-4 lg:p-6 border-b border-gray-200 flex items-center justify-between h-16 lg:h-[73px]">
                 <div className={`font-bold text-emerald-700 text-lg ${isCollapsed ? "hidden lg:hidden" : "block"}`}>
@@ -68,6 +69,7 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             </div>
 
             {/* MENU */}
+            {/* MENU */}
             <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
@@ -77,6 +79,13 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                             key={item.key}
                             to={`/course/${id}/${item.path}`}
                             end={item.path === ""}
+                            // BỔ SUNG SỰ KIỆN onClick Ở ĐÂY:
+                            onClick={() => {
+                                // Nếu có truyền hàm onClose (tức là đang ở mobile) thì gọi nó để tự đóng menu lại
+                                if (onClose) {
+                                    onClose();
+                                }
+                            }}
                             className={({ isActive }) =>
                                 `w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all ${
                                     isActive

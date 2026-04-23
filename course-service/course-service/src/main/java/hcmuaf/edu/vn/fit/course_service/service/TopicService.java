@@ -52,7 +52,7 @@ public class TopicService {
                 } catch (Exception ignored) {
                 }
             }
-
+            response.setAvatarUrl(user.getAvatarUrl());
             response.setFullName(displayName);
             return response;
         }).collect(Collectors.toList());

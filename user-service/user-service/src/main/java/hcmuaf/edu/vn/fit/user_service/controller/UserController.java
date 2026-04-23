@@ -12,9 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Map;
 
@@ -63,5 +66,18 @@ public class UserController {
     public ResponseEntity<String> deleteUser(@PathVariable String userId) {
         userService.deleteUser(userId);
         return ResponseEntity.ok("Xóa người dùng thành công!");
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> updateAvatar(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam("file") MultipartFile file) {
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File ảnh không được để trống!");
+        }
+
+        String avatarUrl = userService.updateAvatar(userId, file);
+        return ResponseEntity.ok(avatarUrl);
     }
 }
