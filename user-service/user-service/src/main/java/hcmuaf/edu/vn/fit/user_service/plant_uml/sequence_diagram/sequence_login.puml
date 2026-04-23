@@ -1,0 +1,39 @@
+@startuml
+actor "Người dùng" as User
+participant "Frontend (React)" as FE
+participant "User Service" as BE
+database "Database" as DB
+
+User -> FE: Nhập thông tin & Bấm "Đăng nhập"
+FE -> FE: Validate form
+FE -> BE: POST /api/auth/login
+BE -> DB: Truy vấn User theo Username/Email
+
+alt Tài khoản tồn tại
+    DB --> BE: Trả về thông tin User (kèm Hash Pass)
+    BE -> BE: So sánh mật khẩu (Bcrypt)
+
+    alt Mật khẩu khớp
+        BE -> BE: Tạo JWT Token (Role, ID)
+        BE --> FE: 200 OK (Token + UserInfo)
+        FE -> FE: Lưu Token vào localStorage
+
+        alt Role == ADMIN
+            FE --> User: Redirect to /admin/dashboard
+        else Role == TEACHER
+            FE --> User: Redirect to /teacher/courses
+        else Role == STUDENT
+            FE --> User: Redirect to /student/courses
+        end
+
+    else Mật khẩu không khớp
+        BE --> FE: 401 Unauthorized
+        FE --> User: Hiển thị lỗi "Sai mật khẩu"
+    end
+
+else Tài khoản không tồn tại
+    DB --> BE: Null
+    BE --> FE: 404 Not Found
+    FE --> User: Hiển thị lỗi "Tài khoản không tồn tại"
+end
+@enduml

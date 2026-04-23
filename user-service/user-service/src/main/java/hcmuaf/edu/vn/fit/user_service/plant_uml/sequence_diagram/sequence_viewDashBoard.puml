@@ -1,0 +1,32 @@
+@startuml
+actor "Sinh viên" as Student
+participant "Frontend (React)" as FE
+participant "CourseController" as CC
+participant "CourseService" as CS
+participant "CourseRepository" as CR
+database "Database" as DB
+
+Student -> FE: Truy cập Dashboard
+FE -> CC: GET /api/courses/student/{studentId}
+activate CC
+
+CC -> CS: getCoursesByStudentId(studentId)
+activate CS
+
+CS -> CR: findCoursesByStudentId(studentId)
+activate CR
+CR -> DB: SELECT * FROM courses c \nJOIN enrollments e ON c.id = e.course_id \nWHERE e.student_id = ?
+DB --> CR: Danh sách Course Entities
+CR --> CS: List<Course>
+deactivate CR
+
+CS -> CS: Map Course Entities to \nStudentCourseResponse
+CS --> CC: List<StudentCourseResponse>
+deactivate CS
+
+CC --> FE: 200 OK (JSON List)
+deactivate CC
+
+FE -> FE: Cập nhật State (Redux/React State)
+FE --> Student: Hiển thị danh sách khóa học (Tên, Mã môn, Giảng viên...)
+@enduml

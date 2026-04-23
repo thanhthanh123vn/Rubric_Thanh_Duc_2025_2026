@@ -4,6 +4,10 @@ import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.service.CourseService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +23,14 @@ public class CourseController {
 
 
     @GetMapping
-    public ResponseEntity<List<CourseResponse>> getAll() {
-        return ResponseEntity.ok(service.getAllCourses());
+    public ResponseEntity<Page<CourseResponse>> getAllCourses(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "courseId") String sortBy) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(service.getAllCourses(keyword, pageable));
     }
     @GetMapping("/offering/{offeringId}/course")
     public CourseOfferingResponse getCourseByOfferingId(@PathVariable String offeringId) {

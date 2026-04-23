@@ -47,3 +47,19 @@ export interface ScheduleRequest {
     endTime: string;
     color: string;
 }
+
+export interface LecturerProfile {
+    lecturerId: string;
+    userId: string;
+    fullName: string;
+    email: string;
+    department: string;
+    academicTitle: string;
+}
+export interface Course {
+    courseId: string;
+    courseName: string;
+    credits: number;
+    description?: string;
+    status: string;
+}

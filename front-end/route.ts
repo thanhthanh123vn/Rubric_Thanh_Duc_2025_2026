@@ -34,7 +34,10 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import UserManagement from "@/pages/admin/managerUser/UserManagement";
 import AdminCreateUser from "@/pages/admin/managerUser/AdminCreateUser";
+import LecturerManagement from "@/pages/admin/managerUser/LecturerManagement.tsx";
+import CourseManagement from "@/pages/admin/managerUser/CourseManagement.tsx";
 import ListStudent from "@/pages/admin/managerUser/StudentManagement"
+import AdminManagement from "@/pages/admin/managerUser/AdminManagement.tsx";
 
 export const router = createBrowserRouter([
 
@@ -134,9 +137,13 @@ export const router = createBrowserRouter([
                 path: "users/list-users",
                 Component: UserManagement,
             },
-            // Các module khác sau này:
+
             { path: "users/create-user", Component: AdminCreateUser },
             { path: "users/list-students", Component: ListStudent },
+            { path: "users/list-lecturers", Component: LecturerManagement },
+            { path: "users/list-admins", Component: AdminManagement },
+            { path: "courses/list", Component: CourseManagement },
+
         ],
     }
 ]);

@@ -1,0 +1,58 @@
+@startuml
+actor "Sinh viên" as Student
+participant "AccountManagement\n(Frontend)" as FE
+participant "UserController" as UC
+participant "UserService" as US
+participant "UserRepository" as UR
+database "Database" as DB
+
+== Xem Profile ==
+Student -> FE: Truy cập trang cá nhân
+FE -> UC: GET /api/users/profile
+activate UC
+
+UC -> US: getProfile()
+activate US
+US -> UR: findById(userId)
+activate UR
+UR -> DB: SELECT * FROM users WHERE id = ?
+DB --> UR: User Entity
+deactivate UR
+
+US -> US: Map User to ProfileResponse
+US --> UC: ProfileResponse
+deactivate US
+
+UC --> FE: 200 OK
+deactivate UC
+FE -> Student: Hiển thị thông tin cá nhân
+
+== Cập nhật Profile ==
+Student -> FE: Thay đổi thông tin & Lưu
+FE -> FE: Validate form
+FE -> UC: PUT /api/users/profile (UpdateProfileRequest)
+activate UC
+
+UC -> US: updateProfile(request)
+activate US
+
+US -> UR: findById(userId)
+activate UR
+UR --> US: User Entity
+deactivate UR
+
+US -> US: Update fields (name, phone, etc.)
+US -> UR: save(user)
+activate UR
+UR -> DB: UPDATE users SET ...
+DB --> UR: Updated Entity
+deactivate UR
+
+US --> UC: Updated Profile
+deactivate US
+
+UC --> FE: 200 OK
+deactivate UC
+
+FE --> Student: Thông báo "Cập nhật thành công"
+@enduml

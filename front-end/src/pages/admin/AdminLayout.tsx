@@ -1,7 +1,7 @@
 
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
-    Users, BookOpen, FileText, Bell, LayoutDashboard
+    Users, BookOpen, FileText, Bell, LayoutDashboard, GraduationCap, UserCheck, Settings
 } from 'lucide-react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '../../components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
@@ -12,10 +12,16 @@ export default function AdminLayout() {
     
     const MOBILE_MENU_ITEMS = [
         { title: 'Tổng quan', url: '/admin', icon: LayoutDashboard },
-        { title: 'Người dùng', url: '/admin/users', icon: Users },
-        { title: 'Tạo người dùng', url: '/admin/users', icon: Users },
+        {
+            title: 'Người dùng',
+            url: '/admin/users/list-users',
+            icon: Users,
+
+        },
+
         { title: 'Khóa học', url: '/admin/courses', icon: BookOpen },
         { title: 'Rubrics', url: '/admin/rubrics', icon: FileText },
+        { title: 'Cài đặt', url: '/admin/settings', icon: Settings },
     ];
 
     return (

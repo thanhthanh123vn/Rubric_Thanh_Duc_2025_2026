@@ -1,13 +1,17 @@
 package hcmuaf.edu.vn.fit.user_service.controller;
 
 import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.ProfileResponse;
 import hcmuaf.edu.vn.fit.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/user-service/lecturer")
@@ -15,6 +19,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class LecturerController {
     private final UserService userService;
 
+
+    @GetMapping("/lecturers")
+    public ResponseEntity<Page<LecturerResponse>> getAllLecturers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "lecturerId") String sortBy) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        Page<LecturerResponse> response = userService.getAllLecturers(keyword, pageable);
+        return ResponseEntity.ok(response);
+    }
     @GetMapping("/lecturers/{lecturerId}")
     public ResponseEntity<LecturerResponse> getLecturerById(@PathVariable String lecturerId) {
 
