@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/v1/user-service/admin/users")
-@CrossOrigin(origins = "*")
+
 @RequiredArgsConstructor
 public class AdminUserController {
 
@@ -32,7 +32,16 @@ public class AdminUserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         return ResponseEntity.ok(userService.getAllUsers(keyword, pageable));
     }
+    @GetMapping("/admins")
+    public ResponseEntity<Page<UserResponse>> getAllAdmins(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "userId") String sortBy) {
 
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return ResponseEntity.ok(userService.getAllAdmins(keyword, pageable));
+    }
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable String userId) {
         return ResponseEntity.ok(userService.getUserById(userId));

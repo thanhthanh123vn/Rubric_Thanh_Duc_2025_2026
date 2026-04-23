@@ -16,5 +16,6 @@ public interface UserMapper {
     @Mapping(target = "passwordHash", ignore = true)
     User toUser(RegisterRequest request);
 
+    @Mapping(target = "fullName", ignore = true)
     UserResponse toUserResponse(User user);
 }

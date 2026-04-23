@@ -1,0 +1,41 @@
+@startuml
+skinparam style strictuml
+
+|Sinh viên|
+start
+:Truy cập trang "Quản lý tài khoản";
+
+|Frontend (React)|
+:Lấy User ID từ Token;
+:Gọi API GET /api/users/profile;
+
+|Backend (User Service)|
+:Nhận yêu cầu lấy Profile;
+:Tìm User và thông tin Sinh viên tương ứng;
+:Ánh xạ dữ liệu sang ProfileResponse;
+:Trả về dữ liệu (HTTP 200);
+
+|Frontend (React)|
+:Hiển thị thông tin lên Form (AccountManagement);
+
+|Sinh viên|
+:Chỉnh sửa thông tin (Họ tên, SĐT, Avatar...);
+:Bấm nút "Cập nhật";
+
+|Frontend (React)|
+:Validate dữ liệu đầu vào;
+:Gọi API PUT /api/users/profile (UpdateProfileRequest);
+
+|Backend (User Service)|
+:Nhận dữ liệu cập nhật;
+:Kiểm tra User tồn tại;
+:Cập nhật các trường thông tin vào Database;
+:Trả về kết quả thành công;
+
+|Frontend (React)|
+:Hiển thị thông báo "Cập nhật thành công!";
+:Cập nhật lại State/Redux;
+
+|Sinh viên|
+stop
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+skinparam style strictuml
+
+|Sinh viên|
+start
+:Truy cập trang chủ/Dashboard;
+
+|Frontend (React)|
+:Lấy Student ID từ JWT Token (localStorage);
+:Gọi API GET /api/courses/student/{studentId};
+
+|Backend (Course Service)|
+:Nhận yêu cầu lấy khóa học;
+:Truy vấn bảng Enrollment để tìm các Course ID\nmà sinh viên đã tham gia;
+:Truy vấn chi tiết thông tin các Course tương ứng;
+:Ánh xạ dữ liệu sang StudentCourseResponse/Projection;
+:Trả về danh sách khóa học (HTTP 200 OK);
+
+|Frontend (React)|
+:Nhận danh sách khóa học;
+:Render danh sách lên giao diện (CourseCard);
+
+|Sinh viên|
+:Xem danh sách các khóa học của mình;
+stop
+@enduml

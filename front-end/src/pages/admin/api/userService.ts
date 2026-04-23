@@ -6,12 +6,19 @@ import type {PageResponse, User} from "@/pages/admin/api/type.ts";
 const userService = {
 
     getAllUser: async (page: number = 0, size: number = 10, keyword?: string): Promise<PageResponse<User>> => {
-        const response = await api.get<PageResponse<User>>('/users', {
+        const response = await api.get<PageResponse<User>>('/admin/users', {
             params: {
                 page: page,
                 size: size,
                 keyword: keyword
             }
+        });
+        return response.data;
+    },
+    getAdmins: async (page: number, size: number, keyword: string) => {
+
+        const response = await api.get(`/admin/users/admins`, {
+            params: { page, size, keyword }
         });
         return response.data;
     },

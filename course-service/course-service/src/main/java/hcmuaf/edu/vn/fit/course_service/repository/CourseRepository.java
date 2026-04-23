@@ -1,6 +1,8 @@
 package hcmuaf.edu.vn.fit.course_service.repository;
 import hcmuaf.edu.vn.fit.course_service.dto.response.OBEProgressResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,4 +51,8 @@ public interface CourseRepository extends JpaRepository<Course, String> {
     GROUP BY c.clo_id, c.clo_code, c.description
 """, nativeQuery = true)
     List<Object[]> getOBEByOffering(@Param("offeringId") String offeringId);
+
+
+
+    Page<Course> findByCourseNameContainingIgnoreCaseOrCourseIdContainingIgnoreCase(String courseName, String courseId, Pageable pageable);
 }

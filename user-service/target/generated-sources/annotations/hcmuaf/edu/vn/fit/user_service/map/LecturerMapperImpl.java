@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-23T15:36:42+0700",
+    date = "2026-04-23T23:00:53+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
@@ -22,17 +22,17 @@ public class LecturerMapperImpl implements LecturerMapper {
 
         String userId = null;
         String title = null;
+        String email = null;
         String lecturerId = null;
         String fullName = null;
         String department = null;
 
         userId = lecturerUserUserId( lecturer );
         title = lecturer.getAcademicTitle();
+        email = lecturerUserEmail( lecturer );
         lecturerId = lecturer.getLecturerId();
         fullName = lecturer.getFullName();
         department = lecturer.getDepartment();
-
-        String email = null;
 
         LecturerResponse lecturerResponse = new LecturerResponse( lecturerId, userId, fullName, email, department, title );
 
@@ -60,5 +60,13 @@ public class LecturerMapperImpl implements LecturerMapper {
             return null;
         }
         return user.getUserId();
+    }
+
+    private String lecturerUserEmail(Lecturer lecturer) {
+        User user = lecturer.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        return user.getEmail();
     }
 }

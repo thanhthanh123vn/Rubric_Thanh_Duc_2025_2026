@@ -12,6 +12,8 @@ import hcmuaf.edu.vn.fit.course_service.repository.CourseRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,10 +32,19 @@ public class CourseService {
     private final CourseOfferingRepository courseOfferingRepo;
     private final CourseMapper courseMapper;
 
-    public List<CourseResponse> getAllCourses() {
-        return courseRepo.findAll().stream()
-                .map(courseMapper::toCourseResponse)
-                .collect(Collectors.toList());
+    public Page<CourseResponse> getAllCourses(String keyword, Pageable pageable) {
+        Page<Course> courses;
+
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            courses = courseRepo.findByCourseNameContainingIgnoreCaseOrCourseIdContainingIgnoreCase(keyword, keyword, pageable);
+        } else {
+            courses = courseRepo.findAll(pageable);
+        }
+
+
+        return courses.map(courseMapper::toCourseResponse);
+
     }
 
     public CourseResponse getCourseByOfferingId(String offeringId) {

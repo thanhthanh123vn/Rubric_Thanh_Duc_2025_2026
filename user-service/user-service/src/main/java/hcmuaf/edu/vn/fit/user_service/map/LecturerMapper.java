@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 public interface LecturerMapper {
     @Mapping(target = "userId", source = "user.userId")
     @Mapping(target = "title" , source = "academicTitle")
-
+    @Mapping(source = "user.email", target = "email")
     LecturerResponse toResponse(Lecturer lecturer);
 
     Lecturer toEntity(LecturerResponse response);
