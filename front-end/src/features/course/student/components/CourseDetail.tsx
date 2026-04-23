@@ -19,11 +19,11 @@ const Banner = ({ title, description }: any) => {
     );
 };
 
-const CreatePostBox = ({onPostSuccess, fullName}: { onPostSuccess: () => void, fullName?: string }) => {
+const CreatePostBox = ({onPostSuccess, fullName,avatarUrl}: { onPostSuccess: () => void, fullName?: string,avatarUrl?:string }) => {
 
     const { id } = useParams<{ id: string }>();
     const offeringId = id || "";
-
+    console.log(avatarUrl);
     const [content, setContent] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -45,13 +45,29 @@ const CreatePostBox = ({onPostSuccess, fullName}: { onPostSuccess: () => void, f
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4 md:mb-6">
             <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-sm md:text-base">
-                    {getInitial(fullName)}
+                <div
+                    className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold text-sm md:text-base relative">
+                    {avatarUrl && avatarUrl.trim() !== "" ? (
+                        <img
+                            src={avatarUrl}
+                            alt="avatar"
+                            className="w-full h-full object-cover absolute inset-0"
+                            onError={(e) => {
+
+                                e.currentTarget.style.display = 'none';
+                            }}
+                        />
+                    ) : getInitial(fullName)}
+
+
+
                 </div>
                 <input
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handlePost(); }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") handlePost();
+                    }}
                     disabled={loading}
                     placeholder="Thông báo gì đó cho lớp..."
                     className="flex-1 bg-gray-100 rounded-full px-3 py-2 md:px-4 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
@@ -80,7 +96,7 @@ const UpcomingBox = () => {
         </div>
     );
 };
-const Post = ({ postId, username, fullName, createdAt, content, comments: initialComments = [] }: any) => {
+const Post = ({ postId, username, fullName,avatarUrl, createdAt, content, comments: initialComments = [] ,avatarUrlMe }: any) => {
 
     const formattedDate = new Date(createdAt).toLocaleDateString("vi-VN", {
         day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
@@ -96,7 +112,7 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
     const studentId  = user?.studentId || user?.userId;
     const displayName = fullName || username || "Ẩn danh";
 
-
+    console.log(avatarUrlMe);
 
 
     const [showComments, setShowComments] = useState(false);
@@ -151,9 +167,18 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
             {/* NỘI DUNG BÀI ĐĂNG */}
             <div className="p-4 md:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-semibold">
-                        {fullName ? getInitial(displayName): "U"}
+                    <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-sm md:text-base">
+                        {avatarUrl && avatarUrl.trim() !== "" ?(
+                            <img
+                                src={avatarUrl}
+                                alt="avatar"
+                                className="w-full h-full object-cover rounded-full"
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                        ):getInitial(fullName)}
+
                     </div>
+
                     <div>
                         <p className="font-semibold text-gray-900">{fullName}</p>
                         <p className="text-xs text-gray-500">{formattedDate}</p>
@@ -175,8 +200,9 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
                         className="text-sm text-emerald-600 font-medium cursor-pointer hover:underline mb-4 flex items-center gap-1"
                         onClick={() => setShowComments(!showComments)}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2}
+                             stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
                         </svg>
                         {showComments ? "Ẩn nhận xét lớp học" : `${localComments.length} nhận xét của lớp học`}
                     </div>
@@ -192,7 +218,15 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
                                 <div key={cmt.commentId} className="flex gap-3">
                                     <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-semibold shrink-0">
 
-                                        {getInitial(displayName)}
+                                        {cmt.avatarUrl && cmt.avatarUrl.trim() !== "" ? (
+                                            <img
+                                                src={cmt.avatarUrl}
+                                                alt="avatar"
+                                                className="w-full h-full object-cover rounded-full"
+                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                            />
+                                        ):getInitial(displayName)}
+                                        {/*<span className="relative z-0">{getInitial(displayName)}</span>*/}
                                     </div>
                                     <div>
                                         <div className="flex items-baseline gap-2">
@@ -213,9 +247,19 @@ const Post = ({ postId, username, fullName, createdAt, content, comments: initia
 
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-xs shrink-0">
-                        {getInitial(user.fullName)}
+                        {avatarUrlMe && avatarUrlMe.trim() !== "" ? (
+                            <img
+                                src={avatarUrlMe}
+                                alt="avatar"
+                                className="w-full h-full object-cover rounded-full"
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                        ) : getInitial(user.fullName)}
                     </div>
-                    <div className="flex-1 flex items-center bg-white border border-gray-200 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
+                    <div
+                        className="flex-1 flex items-center bg-white border border-gray-200 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
                         <input
                             value={commentInput}
                             onChange={(e) => setCommentInput(e.target.value)}
@@ -252,7 +296,9 @@ const ClassroomContent = () => {
             user = JSON.parse(localUser);
         }
     }
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+    const [refreshKey, setRefreshKey] = useState(0);
     const { id } = useParams<{ id: string }>();
     const offeringId = id || "";
 
@@ -282,15 +328,25 @@ const ClassroomContent = () => {
     }, [offeringId]);
 
     if (loading && !course) {
-        return <div className="min-h-screen flex items-center justify-center">Đang tải dữ liệu...</div>;
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+                <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="text-gray-600">Đang tải dữ liệu...</div>
+            </div>
+        );
     }
-
     return (
         <div className="bg-gray-50 min-h-screen flex flex-col">
-            <Header />
+            <Header
+                onMenuClick={() => setIsMobileMenuOpen(true)}
+                onEnrollSuccess={() => setRefreshKey(prev => prev + 1)}
+            />
             <div className="flex flex-1 flex-col md:flex-row">
                 <div className="w-full md:w-64 shrink-0">
-                    <Sidebar />
+                    <Sidebar
+                        isOpen={isMobileMenuOpen}
+                        onClose={() => setIsMobileMenuOpen(false)}
+                    />
                 </div>
                 <div className="flex-1 p-3 sm:p-4 md:p-6 w-full">
                     <div className="max-w-3xl mx-auto w-full">
@@ -298,7 +354,9 @@ const ClassroomContent = () => {
                             title={course?.course?.courseName || "Lớp Học"}
                             description={`Giảng viên: ${course?.lecturerName} - Mã lớp: ${offeringId}`}
                         />
-                        <CreatePostBox onPostSuccess={fetchData}  fullName={user.fullName}/>
+
+
+                        <CreatePostBox onPostSuccess={fetchData}  fullName={user.fullName} avatarUrl={user.avatarUrl} />
 
                         <div className="hidden md:block">
                             <UpcomingBox />
@@ -311,7 +369,7 @@ const ClassroomContent = () => {
                                 </div>
                             ) : (
                                 posts.map((post: any) => (
-                                    <Post key={post.postId} {...post} />
+                                    <Post key={post.postId} {...post} avatarUrlMe={user.avatarUrl} />
                                 ))
                             )}
                         </div>

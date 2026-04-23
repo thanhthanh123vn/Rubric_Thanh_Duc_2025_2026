@@ -6,6 +6,7 @@ public record UserResponse(
         String username,
         String email,
         String role,
+        String avatarUrl,
         String authProvider,
         String fullName
 ) {

@@ -36,38 +36,39 @@ public class CommentService {
         Topic topic = topicRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài đăng với ID: " + postId));
 
-
         Comment comment = commentMapper.toEntity(request);
         comment.setCommentId("CMT-" + UUID.randomUUID().toString().substring(0, 8));
         comment.setTopic(topic);
         comment.setUserId(userId);
         comment.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
         Comment savedComment = commentRepository.save(comment);
         CommentResponse response = commentMapper.toResponse(savedComment);
 
-
         try {
-            SinhVienResponse sv = userClient.getSinhVien(comment.getUserId());
-            if (sv != null && sv.getFullName() != null) {
-                response.setFullName(sv.getFullName());
-                response.setUsername(sv.getFullName()); // Hoặc tên gì bạn muốn hiển thị
+
+            UserResponse user = userClient.getUser(comment.getUserId());
+
+            if (user != null) {
+                String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                        ? user.getFullName()
+                        : user.getUsername();
+                response.setFullName(displayName);
+                response.setUsername(displayName);
+
+
             } else {
-                LecturerResponse lecturerResponse =userClient.getLecturerByUserId(comment.getUserId());
-                if (lecturerResponse != null && lecturerResponse.getFullName() != null) {
-                    response.setFullName(lecturerResponse.getFullName());
-                    response.setUsername(lecturerResponse.getFullName());
-                }
+                response.setFullName("Unknown");
+                response.setUsername("Unknown");
             }
         } catch (Exception e) {
-            log.error("Không tìm thấy user {} cho comment", comment.getUserId());
+            log.error("Lỗi khi lấy thông tin user {} cho comment: {}", comment.getUserId(), e.getMessage());
             response.setFullName("Unknown");
             response.setUsername("Unknown");
         }
 
-
         return response;
     }
-
 
 
     public List<CommentResponse> getCommentsByPostId(String currentUserId, String postId) {
@@ -78,19 +79,21 @@ public class CommentService {
 
             try {
 
-                SinhVienResponse sv = userClient.getSinhVien(comment.getUserId());
-                if (sv != null && sv.getFullName() != null) {
-                    res.setFullName(sv.getFullName());
-                    res.setUsername(sv.getFullName()); // Hoặc tên gì bạn muốn hiển thị
+                UserResponse user = userClient.getUser(comment.getUserId());
+
+                if (user != null) {
+                    String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                            ? user.getFullName()
+                            : user.getUsername();
+                    res.setFullName(displayName);
+                    res.setUsername(displayName);
+                    res.setAvatarUrl(user.getAvatarUrl());
                 } else {
-                    LecturerResponse lecturerResponse =userClient.getLecturerByUserId(comment.getUserId());
-                    if (lecturerResponse != null && lecturerResponse.getFullName() != null) {
-                        res.setFullName(lecturerResponse.getFullName());
-                        res.setUsername(lecturerResponse.getFullName());
-                    }
+                    res.setFullName("Unknown");
+                    res.setUsername("Unknown");
                 }
             } catch (Exception e) {
-                log.error("Không tìm thấy user {} cho comment", comment.getUserId());
+                log.error("Lỗi khi lấy thông tin user {} cho comment: {}", comment.getUserId(), e.getMessage());
                 res.setFullName("Unknown");
                 res.setUsername("Unknown");
             }

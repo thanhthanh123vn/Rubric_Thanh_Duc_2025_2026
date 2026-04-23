@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-04-20T03:52:52+0700",
+    date = "2026-04-23T14:28:18+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
@@ -39,15 +39,19 @@ public class UserMapperImpl implements UserMapper {
         String username = null;
         String email = null;
         String role = null;
+        String avatarUrl = null;
         String authProvider = null;
 
         userId = user.getUserId();
         username = user.getUsername();
         email = user.getEmail();
         role = user.getRole();
+        avatarUrl = user.getAvatarUrl();
         authProvider = user.getAuthProvider();
 
-        UserResponse userResponse = new UserResponse( userId, username, email, role, authProvider );
+        String fullName = null;
+
+        UserResponse userResponse = new UserResponse( userId, username, email, role, avatarUrl, authProvider, fullName );
 
         return userResponse;
     }

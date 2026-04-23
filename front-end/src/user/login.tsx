@@ -46,7 +46,8 @@ export default function LoginPage() {
             localStorage.setItem('user', JSON.stringify({
                 studentId: data.studentId,
                 role: data.role,
-                fullName: data.fullName
+                fullName: data.fullName,
+                avatarUrl: data.avatarUrl
             }));
 
             dispatch(setCredentials({
@@ -54,7 +55,8 @@ export default function LoginPage() {
                     userId: data.studentId,
                     studentId: data.studentId,
                     fullName: data.fullName,
-                    role: data.role
+                    role: data.role,
+                    avatarUrl: data.avatarUrl
                 },
                 token: data.token
             }));

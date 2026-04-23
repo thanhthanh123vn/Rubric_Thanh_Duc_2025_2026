@@ -12,6 +12,7 @@ public class TopicResponse {
     private String userId;
     private String username;
     private String fullName;
+    private String avatarUrl;
     private String content;
     private String postType;
     private Boolean isPinned;

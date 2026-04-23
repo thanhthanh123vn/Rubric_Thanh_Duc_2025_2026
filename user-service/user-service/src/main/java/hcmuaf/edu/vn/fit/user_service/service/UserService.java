@@ -20,9 +20,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,7 +36,9 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final SinhVienRepository svRepository;
+
     private final LecturerMapper lecturerMapper;
+    private final CloudinaryService cloudinaryService;
 
     public Page<UserResponse> getAllUsers(String keyword, Pageable pageable) {
         Page<User> users;
@@ -46,31 +51,36 @@ public class UserService {
     }
 
 
-    public UserResponse getUserById(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
-        String fullName = "";
+    public UserResponse getUserById(String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+
+        String fullName = user.getUsername();
+        String avatarUrl = null;
+
         if ("STUDENT".equals(user.getRole())) {
-
-            svRepository.findByUser(user).ifPresent(sv -> {
-
-            });
-
-
-            SinhVien sv = svRepository.findByUser(user).orElse(null);
-            if (sv != null) {
-                fullName = sv.getFullName();
+            Optional<SinhVien> sv = svRepository.findById(id);
+            if (sv.isPresent()) {
+                fullName = sv.get().getFullName();
+                avatarUrl = user.getAvatarUrl();
+            }
+        } else if ("TEACHER".equals(user.getRole())) {
+            Optional<Lecturer> lec = lecturerRepository.findById(id);
+            if (lec.isPresent()) {
+                fullName = lec.get().getFullName();
+                avatarUrl = user.getAvatarUrl();
             }
         }
 
-        UserResponse userResponse = new UserResponse(
-                user.getUserId(),user.getUsername(),user.getEmail(),user.getRole(),
-                user.getAuthProvider(),fullName
+        return new UserResponse(
+                user.getUserId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole(),
+                avatarUrl,
+                user.getAuthProvider(),
+                fullName
         );
-
-
-
-        return userResponse;
     }
 
 
@@ -172,5 +182,23 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Lecturer not found"));
 
         return lecturerMapper.toResponse(lecturer);
+    }
+
+    @Transactional
+    public String updateAvatar(String userId, MultipartFile file) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+
+        try {
+
+            String avatarUrl = cloudinaryService.uploadImage(file);
+
+            user.setAvatarUrl(avatarUrl);
+            userRepository.save(user);
+
+            return avatarUrl;
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi khi tải ảnh lên Cloudinary", e);
+        }
     }
 }

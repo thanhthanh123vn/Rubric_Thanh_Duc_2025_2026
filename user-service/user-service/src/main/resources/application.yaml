@@ -65,5 +65,7 @@ app:
   jwt:
     secret: your_very_long_and_secret_key_22130260_thanh_nlu
     expiration: 86400000
-
-
+cloudinary:
+  cloud_name: ${CLOUDINARY_CLOUD_NAME}
+  api_key: ${CLOUDINARY_API_KEY}
+  api_secret: ${CLOUDINARY_API_SECRET}

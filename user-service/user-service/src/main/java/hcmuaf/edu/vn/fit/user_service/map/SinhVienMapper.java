@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-
+@Mapper(componentModel = "spring")
 public interface SinhVienMapper {
 
     @Mapping(target = "user", ignore = true)

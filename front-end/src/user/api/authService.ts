@@ -33,8 +33,8 @@ export const getProfile = async () => {
     const response = await api.get(`/sinhvien/profile/me`);
     return response.data;
 };
-export const updateProfile = async (studentId: string, data: any) => {
-    const response = await api.put(`/sinhvien/profile/${studentId}`, data);
+export const updateProfile = async (data: any) => {
+    const response = await api.put(`/sinhvien/profile/me`, data);
     return response.data;
 };
 export const forgotPassword = async (email: string) => {
@@ -51,4 +51,18 @@ export const resetPassword = async (email: string, otp: string, newPassword: str
     });
     return response.status;
 }
+export const uploadAvatar = async ( formData: FormData) => {
+    const response = await api.post(
+        `/users/me/avatar`,
+        formData,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+
+            }
+        }
+    );
+
+    return response.data;
+};
 export default authService;

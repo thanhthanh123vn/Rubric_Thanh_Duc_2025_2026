@@ -1,14 +1,18 @@
 
 package hcmuaf.edu.vn.fit.user_service.dto.request;
 
-import java.time.LocalDate;
+import lombok.Builder;
+import lombok.Data;
 
-public record UpdateProfileRequest(
-        String fullName,
-        LocalDate dateOfBirth,
-        String nationality,
-        String cccd,
-        String gender,
-        String phoneNumber,
-        String address
-) {}
+import java.time.LocalDate;
+@Builder
+@Data
+public class UpdateProfileRequest {
+    String fullName;
+    LocalDate dateOfBirth;
+    String nationality;
+    String cccd;
+    String gender;
+    String phoneNumber;
+    String address;
+}
