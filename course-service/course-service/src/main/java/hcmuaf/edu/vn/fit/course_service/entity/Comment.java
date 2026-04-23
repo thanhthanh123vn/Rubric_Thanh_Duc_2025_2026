@@ -10,7 +10,6 @@ import java.sql.Timestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Comment {
 
     @Id

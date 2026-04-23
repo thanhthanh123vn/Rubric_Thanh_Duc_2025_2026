@@ -54,6 +54,30 @@ export const courseService = {
     },
 
 
+    getOBEProgress : async (offeringId: string) => {
+            const response = await courseApi.get(`/courses/offering/${offeringId}/OBE`)
+            return response.data;
+    },
+    getAssessmentByOffering: async (offeringId : string) =>{
+        const response = await courseApi.get(`/offerings/${offeringId}/assessments`);
+        return response.data;
+    },
+    getAssessmentDetail : async (assessmentId: string)=> {
+        const response = await courseApi.get(`/assessments/${assessmentId}`)
+        console.log(assessmentId)
+        return response.data;
+    },
+    submitAssignment : async (assignmentId: string, formData: FormData) => {
+        const response = await courseApi.post(
+            `/assessments/${assignmentId}/submit`,formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                }
+            },
+        )
+        console.log(response)
+        return response.data;
+    }
 };
 export const enrollCourse = async (offeringId: string) => {
 
