@@ -1,6 +1,7 @@
 export interface User {
     userId: string;
     studentId : string;
+    lecturerId : string;
     username?: string;
     avatarUrl?: string;
     fullName: string;

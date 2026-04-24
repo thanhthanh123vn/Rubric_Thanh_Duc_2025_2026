@@ -28,50 +28,69 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const currentIdentifier = role === "student" ? studentId : email;
+        const isEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
 
+        // 🔥 xác định identifier
+        const currentIdentifier = role === "student" ? studentId.trim() : email.trim();
+
+        // validate chung
         if (!currentIdentifier || !password) {
-            alert("nhập đủ tài khoản và mật khẩu !");
+            alert("Nhập đủ tài khoản và mật khẩu!");
+            return;
+        }
+
+        // 🔥 rule: teacher chỉ được dùng email
+        if (role === "teacher" && !isEmail(currentIdentifier)) {
+            alert("Giảng viên phải đăng nhập bằng email!");
             return;
         }
 
         try {
-
-            const data: any = await authService.login({
+            const data = await authService.login({
                 identifier: currentIdentifier,
                 password: password,
             });
 
+            const profile = data.role === "STUDENT" ? data.student : data.lecturer;
+            const displayName = profile?.fullName || data.userId;
+
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify({
-                studentId: data.studentId,
+                userId: data.userId,
                 role: data.role,
-                fullName: data.fullName,
-                avatarUrl: data.avatarUrl
+                fullName: displayName,
+                avatarUrl: data.avatarUrl,
+                studentId: data.student?.studentId,
+                lecturerId: data.lecturer?.lecturerId
             }));
 
             dispatch(setCredentials({
                 user: {
-                    userId: data.studentId,
-                    studentId: data.studentId,
-                    fullName: data.fullName,
+                    userId: data.userId,
                     role: data.role,
-                    avatarUrl: data.avatarUrl
+                    fullName: displayName,
+                    avatarUrl: data.avatarUrl,
+                    studentId: data.student?.studentId,
+                    lecturerId: data.lecturer?.lecturerId
                 },
                 token: data.token
             }));
+
             console.log("DISPATCH XONG");
 
-            const displayName = data.fullName ? data.fullName : data.studentId;
             alert(`Đăng nhập thành công! Chào ${displayName}`);
-            const targetPath = String(data.role || role).toLowerCase() === 'teacher' ? '/teacher' : '/dashboard';
+
+            // 🔥 điều hướng
+            const targetPath =
+                data.role === 'TEACHER' ? '/teacher' : '/dashboard';
+
             navigate(targetPath);
 
         } catch (error: any) {
             console.error("Lỗi Login:", error);
-            alert(error.response?.data?.message || "Sai tài khoản hoặc mật khẩu rồi!");
+            alert(error.response?.data?.message || "Sai tài khoản hoặc mật khẩu!");
         }
-    }
+    };
     const handleWithGoogle = (e: React.FormEvent) => {
         e.preventDefault();
         authService.loginWithGoogle();

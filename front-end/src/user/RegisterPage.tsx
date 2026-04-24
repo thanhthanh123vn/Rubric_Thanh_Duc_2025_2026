@@ -26,7 +26,7 @@ export default function RegisterPage() {
 
 
         const requestPayload = {
-            Id: formData.studentId,
+            studentId: formData.studentId,
             fullName: formData.fullName,
             email: formData.email,
             password: formData.password

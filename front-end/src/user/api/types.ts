@@ -1,12 +1,30 @@
+export interface StudentProfile {
+    studentId: string;
+    fullName: string;
+    className?: string;
+    major?: string;
+    cohort?: string;
+}
 
-// Trong file types.ts của Frontend
+export interface LecturerProfile {
+    lecturerId: string;
+    fullName: string;
+    department?: string;
+    academicTitle?: string;
+}
+
 export interface LoginResponse {
     token: string;
-    studentId: string;
-    userName: string;
-    role: string;
-    fullName: string; // Chữ 'n' phải viết thường
+    role: "STUDENT" | "TEACHER";
+    userId: string;
+
+    student?: StudentProfile;
+    lecturer?: LecturerProfile;
+
+    avatarUrl?: string;
+    refreshToken: string;
 }
+
 export interface RegisterRequest {
     studentId: string;
     fullName: string;
@@ -19,8 +37,13 @@ export interface LoginRequest {
     password: string;
 }
 
-
 export interface UserProfile {
-    studentId: string;
-    role: string;
+    userId: string;
+    role: "STUDENT" | "TEACHER";
+    fullName: string;
+
+    studentId?: string;
+    lecturerId?: string;
+
+    avatarUrl?: string;
 }
