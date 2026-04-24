@@ -5,12 +5,16 @@ import hcmuaf.edu.vn.fit.user_service.dto.request.ForgotPasswordRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.LoginRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.ResetPasswordRequest;
+import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerProfileResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.StudentProfileResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.TokenResponse;
+import hcmuaf.edu.vn.fit.user_service.entity.Lecturer;
 import hcmuaf.edu.vn.fit.user_service.entity.SinhVien;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.SinhVienMapper;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
+import hcmuaf.edu.vn.fit.user_service.repository.LecturerRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.SinhVienRepository; // Import chuẩn ở đây
 import hcmuaf.edu.vn.fit.user_service.util.JwtUtils;
@@ -29,6 +33,7 @@ import java.util.Random;
 public class AuthService {
     private final UserRepository userRepository;
     private final SinhVienRepository svRepository;
+    private final LecturerRepository lecturerRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final EmailService emailService;
@@ -59,31 +64,56 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
 
-        User user = userRepository.findByUsername(request.identifier())
-                .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
+        User user = null;
+        boolean isEmail = request.identifier().contains("@");
 
+        if (isEmail) {
+            user = userRepository.findByEmail(request.identifier())
+                    .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
+        } else {
+            user = userRepository.findByUsername(request.identifier())
+                    .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
+        }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!");
         }
 
-        String fullName = "";
+        StudentProfileResponse studentProfile = null;
+        LecturerProfileResponse lecturerProfile = null;
+
         if ("STUDENT".equals(user.getRole())) {
-
-            svRepository.findByUser(user).ifPresent(sv -> {
-
-            });
-
-
             SinhVien sv = svRepository.findByUser(user).orElse(null);
             if (sv != null) {
-                fullName = sv.getFullName();
+                studentProfile = new StudentProfileResponse(
+                        sv.getStudentId(),
+                        sv.getFullName(),
+                        sv.getClassName(),
+                        sv.getMajor()
+                );
+            }
+        } else if ("TEACHER".equals(user.getRole())) {
+            Lecturer gv = lecturerRepository.findByUser(user).orElse(null);
+            if (gv != null) {
+                lecturerProfile = new LecturerProfileResponse(
+                        gv.getLecturerId(),
+                        gv.getFullName(),
+                        gv.getDepartment(),
+                        gv.getAcademicTitle()
+                );
             }
         }
 
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
-        String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
 
-        return new LoginResponse(token, user.getUserId(), user.getUsername(), user.getRole(),user.getAvatarUrl(), fullName,refershToken);
+        return new LoginResponse(
+                token,
+                user.getRole(),
+                user.getUserId(),
+                studentProfile,
+                lecturerProfile,
+                refreshToken
+        );
     }
 
 
@@ -108,15 +138,22 @@ public class AuthService {
 
         String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
         String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
+        StudentProfileResponse studentProfile = null;
+        LecturerProfileResponse lecturerProfile = null;
 
         String fullName = "";
         if ("STUDENT".equals(user.getRole())) {
             SinhVien sv = svRepository.findByUser(user).orElse(null);
             if (sv != null) {
-                fullName = sv.getFullName();
+                studentProfile = new StudentProfileResponse(
+                        sv.getStudentId(),
+                        sv.getFullName(),
+                        sv.getClassName(),
+                        sv.getMajor()
+                );
             }
         }
-        return new LoginResponse(token, user.getUserId(),user.getUsername(), user.getRole(),user.getAvatarUrl(),fullName,refershToken);
+        return new LoginResponse(token, user.getUserId(),user.getUsername(),studentProfile,lecturerProfile,fullName);
     }
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {

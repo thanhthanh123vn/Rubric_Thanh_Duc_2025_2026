@@ -6,11 +6,9 @@ import lombok.Builder;
 @Builder
 public record LoginResponse(
         String token,
-        String studentId,
-        String userName,
         String role,
-        String avatarUrl,
-        String fullName,
+        String userId,
+        StudentProfileResponse student,
+        LecturerProfileResponse lecturer,
         String refreshToken
-
 ) {}
