@@ -10,7 +10,8 @@ public interface LecturerMapper {
     @Mapping(target = "userId", source = "user.userId")
     @Mapping(target = "title" , source = "academicTitle")
     @Mapping(source = "user.email", target = "email")
+    @Mapping(source = "department.departmentName" , target="department")
     LecturerResponse toResponse(Lecturer lecturer);
-
+    @Mapping(target = "department.departmentName" , source="department")
     Lecturer toEntity(LecturerResponse response);
 }

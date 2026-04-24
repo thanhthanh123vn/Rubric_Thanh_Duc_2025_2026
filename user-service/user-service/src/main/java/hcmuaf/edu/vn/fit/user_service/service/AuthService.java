@@ -97,7 +97,7 @@ public class AuthService {
                 lecturerProfile = new LecturerProfileResponse(
                         gv.getLecturerId(),
                         gv.getFullName(),
-                        gv.getDepartment(),
+                        gv.getDepartment().getDepartmentName(),
                         gv.getAcademicTitle()
                 );
             }
@@ -110,6 +110,7 @@ public class AuthService {
                 token,
                 user.getRole(),
                 user.getUserId(),
+                user.getAvatarUrl(),
                 studentProfile,
                 lecturerProfile,
                 refreshToken
@@ -153,7 +154,7 @@ public class AuthService {
                 );
             }
         }
-        return new LoginResponse(token, user.getUserId(),user.getUsername(),studentProfile,lecturerProfile,fullName);
+        return new LoginResponse(token, user.getUserId(),user.getUsername(),user.getAvatarUrl(), studentProfile,lecturerProfile,fullName);
     }
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {

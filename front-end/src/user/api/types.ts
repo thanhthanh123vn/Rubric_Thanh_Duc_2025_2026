@@ -14,13 +14,12 @@ export interface LecturerProfile {
 }
 
 export interface LoginResponse {
+    fullName: string;
     token: string;
-    role: "STUDENT" | "TEACHER";
+    role: "STUDENT" | "TEACHER" | "ADMIN";
     userId: string;
-
     student?: StudentProfile;
     lecturer?: LecturerProfile;
-
     avatarUrl?: string;
     refreshToken: string;
 }
@@ -41,9 +40,7 @@ export interface UserProfile {
     userId: string;
     role: "STUDENT" | "TEACHER";
     fullName: string;
-
     studentId?: string;
     lecturerId?: string;
-
     avatarUrl?: string;
 }

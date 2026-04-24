@@ -63,4 +63,5 @@ export interface Course {
     credits: number;
     description?: string;
     status: string;
+    department?:string;
 }

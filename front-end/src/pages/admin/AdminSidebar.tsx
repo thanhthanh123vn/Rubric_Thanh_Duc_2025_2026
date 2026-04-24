@@ -61,7 +61,7 @@ const menuGroups = [
                 icon: BookOpen,
                 subItems: [
                     { title: 'Danh sách khóa học', url: '/admin/courses/list', icon: List },
-                    { title: 'Quản lý Syllabus', url: '/admin/courses/syllabus', icon: FileText }
+                    { title: 'Quản lý Syllabus', url: '/admin/courses/assessments', icon: FileText }
                 ]
             },
             {

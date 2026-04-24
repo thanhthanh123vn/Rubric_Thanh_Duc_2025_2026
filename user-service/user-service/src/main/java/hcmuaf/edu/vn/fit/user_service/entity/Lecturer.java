@@ -25,8 +25,9 @@ public class Lecturer {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "department")
-    private String department;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
     @Column(name = "academic_title")
     private String academicTitle;
