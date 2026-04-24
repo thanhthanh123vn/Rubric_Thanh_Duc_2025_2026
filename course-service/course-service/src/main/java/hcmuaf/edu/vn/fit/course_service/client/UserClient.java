@@ -34,5 +34,6 @@ public interface UserClient {
 
     @GetMapping("/lecturer/lecturers/by-user/{userId}")
     LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
+
 }
 

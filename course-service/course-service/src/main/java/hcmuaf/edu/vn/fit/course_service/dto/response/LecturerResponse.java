@@ -10,4 +10,5 @@ public class LecturerResponse {
     private String email;
     private String department;
     private String title;
+    private String academicTitle;
 }

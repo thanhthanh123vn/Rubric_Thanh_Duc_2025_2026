@@ -1,10 +1,35 @@
 import { BookOpen, ChevronLeft, GraduationCap, LayoutDashboard, PanelLeft, Users2 } from 'lucide-react';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
-import { teacherCourseMenu, teacherCourses } from './teacherCourseData';
+import {type TeacherCourseItem, teacherCourseMenu, teacherCourses} from './teacherCourseData';
+import {useEffect, useState} from "react";
+import courseService from "@/pages/admin/api/courseService.ts";
 
 export default function TeacherCourseLayout() {
   const { id } = useParams<{ id: string }>();
-  const course = teacherCourses.find((item) => item.id === id);
+  const [courses, setCourses] = useState<TeacherCourseItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setIsLoading(true);
+
+        const data = await courseService.getLecturerDashBoardCourses();
+        console.log(data);
+
+
+        setCourses(data);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách lớp:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+const course = courses.find(item => item.offeringId === id);
+console.log(course)
 
   return (
     <div className="min-h-[calc(100vh-2rem)] rounded-[2rem] bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6f3_100%)] font-sans antialiased">
@@ -23,7 +48,7 @@ export default function TeacherCourseLayout() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-emerald-50/80">Học phần</p>
-                  <h2 className="mt-1 text-lg font-bold leading-tight">{course?.courseTitle || 'Học phần'}</h2>
+                  <h2 className="mt-1 text-lg font-bold leading-tight">{course?.courseName || 'Học phần'}</h2>
                 </div>
               </div>
 

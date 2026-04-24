@@ -7,5 +7,6 @@ public record LecturerResponse(
         String fullName,
         String email,
         String department,
-        String title
+        String academicTitle
+
 ) {}

@@ -246,4 +246,74 @@ public class CourseService {
         CourseOffering savedOffering = courseOfferingRepo.save(offering);
         return courseMapper.toResponse(savedOffering);
     }
+
+    public List<DashboardCourseResponse> getDashboardCoursesForTeacher(String userId) {
+        LecturerResponse lecturer = null;
+
+
+        try {
+            lecturer = userClient.getLecturerByUserId(userId);
+            if (lecturer == null || lecturer.getLecturerId() == null) {
+                return List.of();
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi lấy thông tin giảng viên: " + e.getMessage());
+            return List.of();
+        }
+
+
+        List<CourseOffering> offerings = courseOfferingRepo.findByLecturerId(lecturer.getLecturerId());
+
+
+        final String lecturerName = lecturer.getFullName();
+        final String academicTitle = lecturer.getAcademicTitle();
+        return offerings.stream().map(offering -> {
+            DashboardCourseResponse res = new DashboardCourseResponse();
+            res.setOfferingId(offering.getOfferingId());
+            res.setCourseCode(offering.getCourse() != null ? offering.getCourse().getCourseCode() : "");
+            res.setCourseName(offering.getCourse() != null ? offering.getCourse().getCourseName() : "Môn học không xác định");
+            res.setCredits(offering.getCourse() != null ? offering.getCourse().getCredits() : 0);
+
+            res.setAcademicTitle(academicTitle);
+             res.setSemester(offering.getSemester());
+             res.setAcademicYear(offering.getAcademicYear());
+
+            res.setLecturerName(lecturerName);
+            return res;
+        }).collect(Collectors.toList());
+    }
+    public List<TeacherCourseResponse> getTeacherCourses(String userId) {
+
+        List<CourseOffering> offerings = courseOfferingRepo.findByLecturerId(userId);
+
+
+        String lecturerName = "Unknown Lecturer";
+        try {
+            LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
+            if (lecturer != null) {
+                offerings = courseOfferingRepo.findByLecturerId(lecturer.getLecturerId());
+                lecturerName = lecturer.getFullName();
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi gọi UserClient lấy thông tin giảng viên: " + e.getMessage());
+        }
+
+        final String finalLecturerName = lecturerName;
+
+
+        return offerings.stream().map(offering -> {
+            long studentCount = enrollmentRepo.countByCourseOffering_OfferingId(offering.getOfferingId());
+
+            return TeacherCourseResponse.builder()
+                    .offeringId(offering.getOfferingId())
+                    .courseCode(offering.getCourse().getCourseCode())
+                    .courseName(offering.getCourse().getCourseName())
+                    .courseTitle(offering.getCourse().getCourseName())
+                    .semester("HK1 " + offering.getAcademicYear())
+                    .studentCount(studentCount)
+                    .obeProgress(0)
+                    .lecturerName(finalLecturerName)
+                    .build();
+        }).collect(Collectors.toList());
+    }
 }

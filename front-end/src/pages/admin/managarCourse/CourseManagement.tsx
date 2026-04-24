@@ -55,7 +55,7 @@ export default function CourseManagement() {
                 setTotalPages(data.totalPages || 0);
             } catch (err) {
                 console.error(err);
-                setError("Không thể tải danh sách khóa học.");
+
             } finally {
                 setIsLoading(false);
             }

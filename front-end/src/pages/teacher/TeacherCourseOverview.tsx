@@ -1,10 +1,34 @@
 import { BookOpen, ClipboardList, FileText, Users, Workflow } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { teacherCourses } from './teacherCourseData';
+import {type TeacherCourseItem, teacherCourses} from './teacherCourseData';
+import {useEffect, useState} from "react";
+import courseService from "@/pages/admin/api/courseService.ts";
 
 export default function TeacherCourseOverview() {
   const { id } = useParams<{ id: string }>();
-  const course = teacherCourses.find((item) => item.id === id);
+
+  const [courses, setCourses] = useState<TeacherCourseItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setIsLoading(true);
+
+        const data = await courseService.getLecturerDashBoardCourses();
+        console.log(data);
+
+
+        setCourses(data);
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách lớp:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+  const course = courses.find((item) => item.offeringId === id);
 
   const stats = [
     { label: 'Sinh vien', value: course?.studentCount || 0, icon: Users },
