@@ -27,7 +27,19 @@ const courseService = {
             lecturerId: lecturerId
         });
         return response.data;
+    },
+
+        getTeacherCourses: async () => {
+
+            const response = await courseApi.get(`/courses/teacher/me/dashboard`);
+            return response.data;
+        },
+    getLecturerDashBoardCourses: async () => {
+
+        const response = await courseApi.get(`/courses/lecturer/me/dashboard`);
+        return response.data;
     }
+
 };
 
 export default courseService;

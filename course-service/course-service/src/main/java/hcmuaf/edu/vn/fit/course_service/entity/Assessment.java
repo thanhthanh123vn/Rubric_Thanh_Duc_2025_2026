@@ -27,8 +27,6 @@ public class Assessment {
     @Column(name = "assessment_name", length = 255)
     private String assessmentName;
 
-    private String description;
-
     @Column(name = "assessment_type", length = 100)
     private String assessmentType;
 

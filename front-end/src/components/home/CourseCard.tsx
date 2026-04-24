@@ -13,6 +13,7 @@ interface CourseCardProps {
     obeProgress: number;
     semester: string;
     colorClass?: string;
+    academicTitle?: string;
 }
 
 const CourseCard: React.FC<CourseCardProps> = ({

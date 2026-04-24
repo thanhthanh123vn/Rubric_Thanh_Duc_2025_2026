@@ -11,6 +11,9 @@ import java.util.Optional;
 @Repository
 
 public interface CourseOfferingRepository extends JpaRepository<CourseOffering, String> {
-    // Bạn có thể thêm các phương thức tìm kiếm tùy chỉnh tại đây nếu cần
+
+    List<CourseOffering> findByLecturerId(String lecturerId);
+
+
 
 }

@@ -1,23 +1,26 @@
 import { BarChart3, BookOpen, ClipboardList, FileText, TimerReset, Users, Workflow } from 'lucide-react';
 
 export interface TeacherCourseItem {
-  id: string;
-  courseTitle: string;
+  offeringId: string;
   courseCode: string;
-  lecturerName: string;
-  semester: string;
+  courseName: string;
+  courseTitle: string;
   studentCount: number;
-  rubricCount: number;
-  assignmentCount: number;
+  semester: string;
   obeProgress: number;
-  colorClass: string;
-}
+  lecturerName: string;
 
+
+  rubricCount?: number;
+  assignmentCount?: number;
+  colorClass?: string;
+}
 export const teacherCourses: TeacherCourseItem[] = [
   {
-    id: 'TC-001',
-    courseTitle: 'Phân tích và thiết kế hệ thống',
+    offeringId: 'TC-001',
     courseCode: 'PTTKHT',
+    courseName: 'Phân tích và thiết kế hệ thống',
+    courseTitle: 'Phân tích và thiết kế hệ thống',
     lecturerName: 'ThS. Trần Lê Như Quỳnh',
     semester: 'HK2 - 2025-2026',
     studentCount: 52,
@@ -27,9 +30,10 @@ export const teacherCourses: TeacherCourseItem[] = [
     colorClass: 'from-emerald-600 to-teal-500',
   },
   {
-    id: 'TC-002',
-    courseTitle: 'Nhập môn lập trình',
+    offeringId: 'TC-002',
     courseCode: 'NMLT',
+    courseName: 'Nhập môn lập trình',
+    courseTitle: 'Nhập môn lập trình',
     lecturerName: 'ThS. Trần Lê Như Quỳnh',
     semester: 'HK2 - 2025-2026',
     studentCount: 64,
@@ -39,9 +43,10 @@ export const teacherCourses: TeacherCourseItem[] = [
     colorClass: 'from-cyan-600 to-blue-500',
   },
   {
-    id: 'TC-003',
-    courseTitle: 'Cơ sở dữ liệu',
+    offeringId: 'TC-003',
     courseCode: 'CSDL',
+    courseName: 'Cơ sở dữ liệu',
+    courseTitle: 'Cơ sở dữ liệu',
     lecturerName: 'ThS. Trần Lê Như Quỳnh',
     semester: 'HK2 - 2025-2026',
     studentCount: 48,

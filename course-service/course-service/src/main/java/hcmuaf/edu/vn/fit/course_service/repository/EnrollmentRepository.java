@@ -16,7 +16,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
 
     // 1. Sửa lại thành studentId (Vì trong Enrollment đổi thành String studentId)
     List<Enrollment> findByStudentId(String studentId);
-
+    long countByCourseOffering_OfferingId(String offeringId);
     // 2. Sửa lại thành studentId
     Optional<Enrollment> findByStudentIdAndCourseOffering_OfferingId(String studentId, String offeringId);
 

@@ -92,4 +92,13 @@ public class CourseController {
 
         return ResponseEntity.ok(service.assignLecturer(courseId, lecturerId));
     }
+    @GetMapping("/teacher/me/dashboard")
+    public ResponseEntity<List<DashboardCourseResponse>> getTeacherDashboardCourses(@RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(service.getDashboardCoursesForTeacher(userId));
+    }
+    @GetMapping("/lecturer/me/dashboard")
+    public ResponseEntity<List<TeacherCourseResponse>> getTeacherCourses(
+            @RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(service.getTeacherCourses(userId));
+    }
 }
