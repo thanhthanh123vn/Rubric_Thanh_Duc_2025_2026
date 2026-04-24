@@ -31,6 +31,8 @@ public class LecturerController {
         Page<LecturerResponse> response = userService.getAllLecturers(keyword, pageable);
         return ResponseEntity.ok(response);
     }
+
+
     @GetMapping("/lecturers/{lecturerId}")
     public ResponseEntity<LecturerResponse> getLecturerById(@PathVariable String lecturerId) {
 

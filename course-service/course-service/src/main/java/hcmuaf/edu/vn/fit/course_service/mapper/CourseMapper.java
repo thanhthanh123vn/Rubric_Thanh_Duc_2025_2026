@@ -15,6 +15,7 @@ import org.mapstruct.MappingTarget;
 public interface CourseMapper {
 
     Course toCourse(CourseRequest request);
+
     CourseResponse toCourseResponse(Course course);
     void updateCourseFromRequest(CourseRequest request, @MappingTarget Course course);
 

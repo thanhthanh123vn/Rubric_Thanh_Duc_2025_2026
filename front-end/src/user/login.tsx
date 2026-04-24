@@ -30,7 +30,7 @@ export default function LoginPage() {
 
         const isEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
 
-        // 🔥 xác định identifier
+        // xác định identifier
         const currentIdentifier = role === "student" ? studentId.trim() : email.trim();
 
         // validate chung
@@ -39,7 +39,7 @@ export default function LoginPage() {
             return;
         }
 
-        // 🔥 rule: teacher chỉ được dùng email
+        //  rule: teacher chỉ được dùng email
         if (role === "teacher" && !isEmail(currentIdentifier)) {
             alert("Giảng viên phải đăng nhập bằng email!");
             return;
@@ -52,7 +52,7 @@ export default function LoginPage() {
             });
 
             const profile = data.role === "STUDENT" ? data.student : data.lecturer;
-            const displayName = profile?.fullName || data.userId;
+            const displayName = profile?.fullName || data.userId||data.fullName;
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify({
@@ -80,9 +80,14 @@ export default function LoginPage() {
 
             alert(`Đăng nhập thành công! Chào ${displayName}`);
 
-            // 🔥 điều hướng
-            const targetPath =
-                data.role === 'TEACHER' ? '/teacher' : '/dashboard';
+
+            let targetPath = '/dashboard';
+
+            if (data.role === 'TEACHER') {
+                targetPath = '/teacher';
+            } else if (data.role === 'ADMIN') {
+                targetPath = '/admin';
+            }
 
             navigate(targetPath);
 

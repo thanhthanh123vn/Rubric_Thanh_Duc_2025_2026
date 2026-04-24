@@ -35,10 +35,11 @@ import AdminLayout from "@/pages/admin/AdminLayout";
 import UserManagement from "@/pages/admin/managerUser/UserManagement";
 import AdminCreateUser from "@/pages/admin/managerUser/AdminCreateUser";
 import LecturerManagement from "@/pages/admin/managerUser/LecturerManagement.tsx";
-import CourseManagement from "@/pages/admin/managerUser/CourseManagement.tsx";
+import CourseManagement from "@/pages/admin/managarCourse/CourseManagement.tsx";
 import ListStudent from "@/pages/admin/managerUser/StudentManagement"
 import AdminManagement from "@/pages/admin/managerUser/AdminManagement.tsx";
-
+import AdminProtectedRoute from "@/components/AdminProtectedRoute";
+import AssessmentManagement from "@/pages/admin/managarCourse/AssessmentManagement.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -129,7 +130,7 @@ export const router = createBrowserRouter([
 
     {
         path: "/admin",
-        Component: AdminLayout,
+        Component: AdminProtectedRoute,
         children: [
 
             { index: true, Component: AdminDashboard },
@@ -143,6 +144,7 @@ export const router = createBrowserRouter([
             { path: "users/list-lecturers", Component: LecturerManagement },
             { path: "users/list-admins", Component: AdminManagement },
             { path: "courses/list", Component: CourseManagement },
+            { path: "courses/assessments", Component: AssessmentManagement },
 
         ],
     }

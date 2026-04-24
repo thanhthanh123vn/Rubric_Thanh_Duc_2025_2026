@@ -186,7 +186,7 @@ public class UserService {
                 userId,
                 fullName,
                 email,
-                lecturer.getDepartment(),
+                lecturer.getDepartment().getDepartmentName(),
                 lecturer.getAcademicTitle()
         );
     }

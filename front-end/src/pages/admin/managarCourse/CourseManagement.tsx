@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Edit, Trash2, BookOpen, X, AlertCircle, Save, Loader2, AlignLeft } from 'lucide-react';
+// Bổ sung import UserPlus từ lucide-react
+import { Search, Plus, Edit, Trash2, BookOpen, X, AlertCircle, Loader2, AlignLeft, UserPlus } from 'lucide-react';
 import { Button } from '../../../components/ui/button.tsx';
 import { Input } from '../../../components/ui/input.tsx';
 import {
@@ -11,6 +12,9 @@ import {
 } from "../../../components/ui/alert-dialog.tsx";
 import type { Course } from "@/pages/admin/api/type.ts";
 import courseService from "@/pages/admin/api/courseService.ts";
+
+// Import Modal Phân công giảng viên vừa tạo
+import AssignLecturerModal from './AssignLecturerModal.tsx';
 
 export default function CourseManagement() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -28,12 +32,17 @@ export default function CourseManagement() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
+    // State cho Phân công GV
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [selectedCourse, setSelectedCourse] = useState<{id: string, name: string, dept: string} | null>(null);
+
     const [formData, setFormData] = useState<Partial<Course>>({
         courseId: '',
         courseName: '',
         credits: 3,
         description: '',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        department: ''
     });
 
     useEffect(() => {
@@ -60,7 +69,7 @@ export default function CourseManagement() {
     }, [currentPage, searchQuery, refreshTrigger]);
 
     const resetForm = () => {
-        setFormData({ courseId: '', courseName: '', credits: 3, description: '', status: 'ACTIVE' });
+        setFormData({ courseId: '', courseName: '', credits: 3, description: '', status: 'ACTIVE', department: ''});
         setFormError(null);
     };
 
@@ -118,6 +127,11 @@ export default function CourseManagement() {
         }
     };
 
+    const openAssignModal = (courseId: string, courseName: string, department: string) => {
+        setSelectedCourse({ id: courseId, name: courseName, dept: department });
+        setIsAssignModalOpen(true);
+    };
+
     const getStatusBadge = (status: string) => {
         if (status === 'ACTIVE') return <span className="px-2 py-1 bg-green-100 text-green-700 text-[11px] font-semibold rounded-md uppercase">Đang mở</span>;
         return <span className="px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-md uppercase">Đã đóng</span>;
@@ -162,6 +176,7 @@ export default function CourseManagement() {
                                 <TableHead className="text-slate-500">Tên khóa học</TableHead>
                                 <TableHead className="text-slate-500">Số tín chỉ</TableHead>
                                 <TableHead className="text-slate-500">Trạng thái</TableHead>
+                                <TableHead className="text-slate-500">Bộ Môn</TableHead>
                                 <TableHead className="text-right text-slate-500 pr-6">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -172,31 +187,37 @@ export default function CourseManagement() {
                                     <TableCell className="font-medium text-slate-700">{course.courseName}</TableCell>
                                     <TableCell className="text-slate-500">{course.credits}</TableCell>
                                     <TableCell>{getStatusBadge(course.status || 'ACTIVE')}</TableCell>
+                                    <TableCell className="text-slate-500">{course.department}</TableCell>
                                     <TableCell className="text-right pr-4">
                                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button onClick={() => handleOpenEdit(course)} variant="ghost" size="icon" className="h-9 w-9 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></Button>
-                                            <Button onClick={() => setDeletingCourse(course)} variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></Button>
+                                            {/* Thêm Nút Phân Công (UserPlus) */}
+                                            <Button title="Phân công giảng viên" onClick={() => openAssignModal(course.courseId, course.courseName, course.department)} variant="ghost" size="icon" className="h-9 w-9 text-indigo-600 hover:bg-indigo-50 rounded-lg"><UserPlus className="w-4 h-4" /></Button>
+
+                                            <Button title="Chỉnh sửa" onClick={() => handleOpenEdit(course)} variant="ghost" size="icon" className="h-9 w-9 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></Button>
+                                            <Button title="Xóa" onClick={() => setDeletingCourse(course)} variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             )) : (
-                                <TableRow><TableCell colSpan={5} className="h-32 text-center text-slate-500">Không tìm thấy khóa học nào.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={6} className="h-32 text-center text-slate-500">Không tìm thấy khóa học nào.</TableCell></TableRow>
                             )}
                         </TableBody>
                     </Table>
                 </div>
             </div>
 
-            {/* CARD MOBILE */}
+
             <div className="md:hidden space-y-3 pb-4 relative">
                 {isLoading && <div className="absolute inset-0 bg-white/50 z-10 flex justify-center pt-10"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>}
                 {courses.length > 0 ? courses.map((course) => (
                     <div key={course.courseId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col gap-3 relative">
                         <div className="absolute top-3 right-3 flex gap-1">
+
+                            <button title="Phân công GV" onClick={() => openAssignModal(course.courseId, course.courseName, course.department)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full bg-indigo-50/50"><UserPlus className="w-4 h-4" /></button>
                             <button onClick={() => handleOpenEdit(course)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full bg-blue-50/50"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => setDeletingCourse(course)} className="p-2 text-red-500 hover:bg-red-50 rounded-full bg-red-50/50"><Trash2 className="w-4 h-4" /></button>
                         </div>
-                        <div className="flex items-center gap-3 pr-16">
+                        <div className="flex items-center gap-3 pr-24">
                             <div className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center shadow-inner border border-slate-100 bg-blue-100 text-blue-600">
                                 <BookOpen className="w-6 h-6" />
                             </div>
@@ -223,7 +244,7 @@ export default function CourseManagement() {
                 )}
             </div>
 
-            {/* PHÂN TRANG */}
+
             {totalPages > 1 && (
                 <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm mt-4">
                     <Button variant="outline" disabled={currentPage === 0 || isLoading} onClick={() => setCurrentPage(p => p - 1)}>Trước</Button>
@@ -232,15 +253,15 @@ export default function CourseManagement() {
                 </div>
             )}
 
-            {/* MODAL CREATE / EDIT */}
+
             {(isCreateModalOpen || editingCourse) && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 animate-in fade-in">
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 animate-in fade-in">
                     <div className="bg-white w-full sm:w-[500px] sm:rounded-2xl rounded-t-3xl shadow-2xl p-6 animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-8 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-800">{editingCourse ? "Chỉnh sửa Khóa học" : "Tạo Khóa học mới"}</h3>
                             </div>
-                            <button onClick={closeAllModals} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600"><X className="w-5 h-5" /></button>
+                            <button type="button" onClick={closeAllModals} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-600"><X className="w-5 h-5" /></button>
                         </div>
                         {formError && <div className="p-3 mb-4 bg-red-50 text-red-600 border border-red-100 rounded-xl text-sm font-medium">{formError}</div>}
 
@@ -267,6 +288,10 @@ export default function CourseManagement() {
                                 </div>
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Khoa / Bộ môn</label>
+                                <Input name="department" value={formData.department} onChange={handleInputChange} placeholder="VD: CNTT" className="h-11 bg-slate-50 rounded-xl" />
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả</label>
                                 <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 resize-none" placeholder="Nhập mô tả khóa học..." />
                             </div>
@@ -281,7 +306,7 @@ export default function CourseManagement() {
                 </div>
             )}
 
-            {/* ALERT XÓA */}
+
             <AlertDialog open={!!deletingCourse} onOpenChange={(open) => !open && setDeletingCourse(null)}>
                 <AlertDialogContent className="max-w-sm rounded-3xl">
                     <AlertDialogHeader className="text-center sm:text-center">
@@ -299,6 +324,18 @@ export default function CourseManagement() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+
+            {selectedCourse && (
+                <AssignLecturerModal
+                    isOpen={isAssignModalOpen}
+                    onClose={() => setIsAssignModalOpen(false)}
+                    courseId={selectedCourse.id}
+                    courseName={selectedCourse.name}
+                    courseDepartment={selectedCourse.dept}
+                    onSuccess={() => setRefreshTrigger(prev => prev + 1)}
+                />
+            )}
         </div>
     );
 }

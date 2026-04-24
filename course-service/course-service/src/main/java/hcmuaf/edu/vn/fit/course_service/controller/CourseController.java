@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/course-service/courses")
@@ -75,5 +76,20 @@ public class CourseController {
     @GetMapping("/offering/{offeringId}/OBE")
     public ResponseEntity<List<OBEProgressResponse>> getOBEProgress(@PathVariable String offeringId) {
         return ResponseEntity.ok(service.getOBEProgress(offeringId));
+    }
+
+    @PostMapping("/{courseId}/assign-lecturer")
+    public ResponseEntity<CourseOfferingResponse> assignLecturer(
+            @PathVariable String courseId,
+            @RequestBody Map<String, String> requestBody) {
+
+        String lecturerId = requestBody.get("lecturerId");
+
+        if (lecturerId == null || lecturerId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã giảng viên (lecturerId) không được để trống!");
+        }
+
+
+        return ResponseEntity.ok(service.assignLecturer(courseId, lecturerId));
     }
 }

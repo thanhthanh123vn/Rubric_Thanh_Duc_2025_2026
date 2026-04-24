@@ -210,4 +210,40 @@ public class CourseService {
             throw new RuntimeException("User không hợp lệ");
         }
     }
+    public CourseOfferingResponse assignLecturer(String courseId, String lecturerId) {
+        // 1. Tìm Course gốc
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học với ID: " + courseId));
+
+        // 2. Kiểm tra Giảng viên
+        LecturerResponse lecturer = null;
+        try {
+            lecturer = userClient.getLecturer(lecturerId);
+            if (lecturer == null) {
+                throw new RuntimeException("Giảng viên không tồn tại trong hệ thống!");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi kết nối tới User Service hoặc không tìm thấy GV!");
+        }
+
+
+
+        String courseDept = course.getDepartment();
+        String lecturerDept = lecturer.getDepartment();
+
+        if (courseDept != null && !courseDept.equalsIgnoreCase(lecturerDept)) {
+            throw new IllegalArgumentException("Giảng viên " + lecturer.getFullName() +
+                    " thuộc bộ môn [" + lecturerDept + "], không được phép dạy môn của bộ môn [" + courseDept + "]!");
+        }
+
+
+
+        CourseOffering offering = new CourseOffering();
+        offering.setOfferingId("CO-" + System.currentTimeMillis());
+        offering.setCourse(course);
+        offering.setLecturerId(lecturerId);
+
+        CourseOffering savedOffering = courseOfferingRepo.save(offering);
+        return courseMapper.toResponse(savedOffering);
+    }
 }
