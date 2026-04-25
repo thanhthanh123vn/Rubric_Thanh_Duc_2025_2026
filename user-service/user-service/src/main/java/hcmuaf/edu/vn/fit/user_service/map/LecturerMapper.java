@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface LecturerMapper {
     @Mapping(target = "userId", source = "user.userId")
-    @Mapping(target = "title" , source = "academicTitle")
+//    @Mapping(target = "title" , source = "academicTitle")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "department.departmentName" , target="department")
     LecturerResponse toResponse(Lecturer lecturer);

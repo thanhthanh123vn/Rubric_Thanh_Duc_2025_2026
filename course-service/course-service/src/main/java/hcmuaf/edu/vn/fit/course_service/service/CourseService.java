@@ -186,18 +186,6 @@ public class CourseService {
         }).collect(Collectors.toList());
     }
 
-    public List<OBEProgressResponse> getOBEProgress(String offeringId) {
-        List<Object[]> rows = courseRepo.getOBEByOffering(offeringId);
-
-        return rows.stream().map(r -> new OBEProgressResponse(
-                (String) r[0],
-                (String) r[1],
-                (String) r[2],
-                r[3] != null ? ((Number) r[3]).doubleValue() : 0,
-                r[4] != null ? ((Number) r[4]).doubleValue() : 0,
-                r[5] != null ? ((Number) r[5]).doubleValue() : 0
-        )).toList();
-    }
     private void validateUser(String userId) {
         try {
             SinhVienResponse user = userClient.getSinhVien(userId);
@@ -302,7 +290,7 @@ public class CourseService {
 
 
         return offerings.stream().map(offering -> {
-            long studentCount = enrollmentRepo.countByCourseOffering_OfferingId(offering.getOfferingId());
+            int studentCount = enrollmentRepo.countByCourseOffering_OfferingId(offering.getOfferingId());
 
             return TeacherCourseResponse.builder()
                     .offeringId(offering.getOfferingId())
