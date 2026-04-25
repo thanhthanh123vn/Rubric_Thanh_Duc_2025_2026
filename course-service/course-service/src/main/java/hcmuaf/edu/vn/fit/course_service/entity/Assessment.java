@@ -1,4 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Timestamp;
@@ -16,6 +19,7 @@ public class Assessment {
     private String assessmentId;
 
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "offering_id")
     private CourseOffering courseOffering;
@@ -32,6 +36,13 @@ public class Assessment {
 
     @Column(name = "weight")
     private Float weight;
+
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "file_url", length = 500)
+    private String fileUrl;
 
     @Column(name = "start_time", nullable = false, updatable = false)
     @Builder.Default

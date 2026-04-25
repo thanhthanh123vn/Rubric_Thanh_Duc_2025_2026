@@ -3,32 +3,43 @@ package hcmuaf.edu.vn.fit.course_service.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentLecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
-import hcmuaf.edu.vn.fit.course_service.entity.SubmissionEntity;
-import hcmuaf.edu.vn.fit.course_service.repository.AssessmentRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.SubmissionRepository;
+import hcmuaf.edu.vn.fit.course_service.entity.*;
+import hcmuaf.edu.vn.fit.course_service.mapper.AssessmentMapper;
+import hcmuaf.edu.vn.fit.course_service.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 
 @Service
+@RequiredArgsConstructor
 public class AssessmentService {
 
+
+    private final AssessmentRepository assessmentRepository;
+
+
+    private  final S3Service s3Service;
+
+    private final AssessmentMapper assessmentMapper;
+    private final SubmissionRepository submissionRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
     @Autowired
-    private AssessmentRepository assessmentRepository;
+    private AssessmentCLORepository assessmentCLORepository;
 
     @Autowired
-    private S3Service s3Service;
-
-    @Autowired
-    private SubmissionRepository submissionRepository;
-
+    private CourseCLORepository courseCLORepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<AssessmentReponse> getAssByCourseOffering(String courseOffering, String studentId) {
@@ -160,5 +171,132 @@ public class AssessmentService {
         }catch (Exception e){
             throw new RuntimeException("Parse error", e);
         }
+    }
+
+    @Transactional
+    public AssessmentLecturerResponse createAssessment(
+            String offeringId,
+            String assessmentName,
+            String description,
+            Float weight,
+            String assessmentType,
+            String endTimeStr,
+            String rubricId,
+            List<String> cloIds,
+            MultipartFile file
+    ) {
+        try {
+
+            String fileUrl = (file != null && !file.isEmpty()) ? s3Service.uploadFile(file) : null;
+            Timestamp endTime = (endTimeStr != null && !endTimeStr.isEmpty())
+                    ? Timestamp.valueOf(LocalDateTime.parse(endTimeStr)) : null;
+
+            CourseOffering offering = courseOfferingRepository.findById(offeringId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+            String finalRubricId = (rubricId != null && !rubricId.trim().isEmpty()) ? rubricId : null;
+
+            Assessment assessment = Assessment.builder()
+                    .assessmentId(UUID.randomUUID().toString())
+                    .courseOffering(offering)
+                    .assessmentName(assessmentName)
+                    .description(description)
+                    .weight(weight)
+                    .assessmentType(assessmentType)
+                    .rubricId(finalRubricId)
+                    .fileUrl(fileUrl)
+                    .startTime(new Timestamp(System.currentTimeMillis()))
+                    .endTime(endTime)
+                    .weight(0f)
+                    .build();
+
+            Assessment savedAssessment = assessmentRepository.save(assessment);
+
+
+            if (cloIds != null && !cloIds.isEmpty()) {
+                List<AssessmentCLO> assessmentCLOs = cloIds.stream().map(cloId -> {
+                    CourseCLO clo = courseCLORepository.findById(cloId)
+                            .orElseThrow(() -> new RuntimeException("CLO không tồn tại: " + cloId));
+                    return AssessmentCLO.builder()
+                            .assessmentCloId(UUID.randomUUID().toString())
+                            .assessment(savedAssessment)
+                            .courseCLO(clo)
+                            .build();
+                }).toList();
+                assessmentCLORepository.saveAll(assessmentCLOs);
+            }
+
+            return assessmentMapper.toResponse(savedAssessment);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi: " + e.getMessage());
+        }
+    }
+    @Transactional
+    public AssessmentLecturerResponse updateAssessment(
+            String assessmentId,
+            String assessmentName,
+            String description,
+            Float weight,
+            String assessmentType,
+            String endTimeStr,
+            String rubricId,
+            List<String> cloIds,
+            MultipartFile file
+    ) {
+        try {
+            // 1. Tìm bài tập cũ
+            Assessment assessment = assessmentRepository.findById(assessmentId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập: " + assessmentId));
+
+            // 2. Cập nhật thông tin cơ bản
+            assessment.setAssessmentName(assessmentName);
+            assessment.setDescription(description);
+            assessment.setWeight(weight);
+            assessment.setAssessmentType(assessmentType);
+
+            if (endTimeStr != null && !endTimeStr.isEmpty()) {
+                assessment.setEndTime(Timestamp.valueOf(LocalDateTime.parse(endTimeStr)));
+            }
+
+            String finalRubricId = (rubricId != null && !rubricId.trim().isEmpty()) ? rubricId : null;
+            assessment.setRubricId(finalRubricId);
+
+            // 3. Nếu có file mới thì upload và ghi đè url cũ
+            if (file != null && !file.isEmpty()) {
+                String fileUrl = s3Service.uploadFile(file);
+                assessment.setFileUrl(fileUrl);
+            }
+
+            Assessment savedAssessment = assessmentRepository.save(assessment);
+
+            // 4. Cập nhật lại danh sách CLO (Xóa cũ -> Thêm mới)
+            assessmentCLORepository.deleteByAssessment_AssessmentId(assessmentId);
+
+            if (cloIds != null && !cloIds.isEmpty()) {
+                List<AssessmentCLO> assessmentCLOs = cloIds.stream().map(cloId -> {
+                    CourseCLO clo = courseCLORepository.findById(cloId)
+                            .orElseThrow(() -> new RuntimeException("CLO không tồn tại: " + cloId));
+                    return AssessmentCLO.builder()
+                            .assessmentCloId(UUID.randomUUID().toString())
+                            .assessment(savedAssessment)
+                            .courseCLO(clo)
+                            .build();
+                }).toList();
+                assessmentCLORepository.saveAll(assessmentCLOs);
+            }
+
+            return assessmentMapper.toResponse(savedAssessment);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi cập nhật bài tập: " + e.getMessage(), e);
+        }
+    }
+
+
+    public List<AssessmentLecturerResponse> getAssessmentsByOfferingId(String offeringId) {
+        List<Assessment> assessments = assessmentRepository.findByCourseOffering_OfferingIdOrderByStartTimeDesc(offeringId);
+
+
+        return assessments.stream()
+                .map(assessmentMapper::toResponse)
+                .toList();
     }
 }

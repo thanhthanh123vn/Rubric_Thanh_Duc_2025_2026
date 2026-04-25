@@ -92,4 +92,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     s.submitted_at; 
     """, nativeQuery = true)
     List<Object[]> getAssignmentDetail(String assessmentId,String studentId);
+
+
+    List<Assessment> findByCourseOffering_OfferingIdOrderByStartTimeDesc(String offeringId);
 }
