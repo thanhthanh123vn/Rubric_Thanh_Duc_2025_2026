@@ -5,6 +5,14 @@ spring:
   application:
     name: course-service
 
+    jpa:
+      show-sql: false
+
+    logging:
+      level:
+        org.hibernate.SQL: OFF
+        org.hibernate.type.descriptor.sql: OFF
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/db_rubric?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true

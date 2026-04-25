@@ -45,7 +45,7 @@ export const router = createBrowserRouter([
     {
         path: "/",
 
-        loader: () => redirect("/dashboard"),
+        loader: () => redirect("/login"),
     },
     {
         path: "/dashboard",
