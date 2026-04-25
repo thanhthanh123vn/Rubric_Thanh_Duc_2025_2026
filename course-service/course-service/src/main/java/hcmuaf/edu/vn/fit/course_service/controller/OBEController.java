@@ -16,10 +16,19 @@ public class OBEController {
 
     private final OBEService obeService;
 
-    @GetMapping("/teacher/offering/{offeringId}")
+    @GetMapping("/teacher/offerings/{offeringId}")
     public ResponseEntity<?> getOBEForLecturer(
             @PathVariable String offeringId
     ){
         return ResponseEntity.ok(obeService.getOBEForLecturer(offeringId));
+    }
+    @GetMapping("/teacher/offerings/{offeringId}/clos/{cloId}")
+    public ResponseEntity<?> getCloDetail(
+            @PathVariable String offeringId,
+            @PathVariable String cloId
+    ){
+        return ResponseEntity.ok(
+                obeService.getCloDetail(offeringId, cloId)
+        );
     }
 }
