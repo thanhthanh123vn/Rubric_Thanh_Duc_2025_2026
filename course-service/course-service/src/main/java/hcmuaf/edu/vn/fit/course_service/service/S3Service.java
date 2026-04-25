@@ -36,7 +36,34 @@ public class S3Service {
                 RequestBody.fromBytes(file.getBytes())
         );
 
-        // URL public
+
         return "https://" + bucketName + ".s3.amazonaws.com/" + fileName;
+    }
+    public void deleteFile(String fileUrl) {
+        if (fileUrl == null || fileUrl.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            String key = extractKeyFromUrl(fileUrl);
+
+            s3Client.deleteObject(builder -> builder
+                    .bucket(bucketName)
+                    .key(key)
+            );
+
+            System.out.println("Đã xóa file trên S3: " + key);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi xóa file S3: " + e.getMessage());
+        }
+    }
+    private String extractKeyFromUrl(String url) {
+        try {
+            return url.substring(url.lastIndexOf("/") + 1);
+        } catch (Exception e) {
+            throw new RuntimeException("URL không hợp lệ: " + url);
+        }
     }
 }

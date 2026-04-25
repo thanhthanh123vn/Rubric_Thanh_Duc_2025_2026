@@ -5,11 +5,13 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentLecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/course-service")
@@ -47,7 +49,7 @@ public class AssessmentController {
     }
 
 
-// Trong file hcmuaf.edu.vn.fit.course_service.controller.AssessmentController.java
+
 
     @PostMapping("/offerings/{offeringId}/assessments")
     public Object createAssessment(
@@ -97,5 +99,23 @@ public class AssessmentController {
                 endTime, rubricId, cloIds, file
         );
         return ResponseEntity.ok(response);
+    }
+    @DeleteMapping(value = "/assessments/{assessmentId}", produces = "application/json")
+    public ResponseEntity<?> deleteAssessment(@PathVariable String assessmentId) {
+        try {
+            assessmentService.deleteAssessment(assessmentId);
+            return ResponseEntity
+                    .ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "success", true,
+                            "message", "Xóa bài tập thành công!"
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Lỗi: " + e.getMessage()
+            ));
+        }
     }
 }

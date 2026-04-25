@@ -54,7 +54,7 @@ export const assessmentService = {
     },
     updateAssessmentWithFormData: async (assessmentId: string, formData: FormData) => {
         const response = await courseApi.put(
-            `/api/v1/course-service/assessments/${assessmentId}`,
+            `/assessments/${assessmentId}`,
             formData,
             { headers: { 'Content-Type': 'multipart/form-data' } }
         );
