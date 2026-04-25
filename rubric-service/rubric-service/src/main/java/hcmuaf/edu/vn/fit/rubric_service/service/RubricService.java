@@ -1,6 +1,5 @@
 package hcmuaf.edu.vn.fit.rubric_service.service;
 
-import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
