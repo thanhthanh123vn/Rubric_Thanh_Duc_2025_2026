@@ -1,18 +1,18 @@
 import {
     ClipboardList, Plus, UploadCloud, X, MoreVertical,
-    FileText, Loader2, ChevronDown, Clock, Paperclip, CheckCircle, Pencil
+    FileText, Loader2, ChevronDown, Clock, Paperclip, CheckCircle, Pencil, Trash2
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
-
+import { toast } from "sonner";
 export default function TeacherCourseAssignments() {
     const { id } = useParams<{ id: string }>();
     const offeringId = id;
 
     const [assignments, setAssignments] = useState<any[]>([]);
 
-    // --- STATE MỚI ĐỂ QUẢN LÝ VIỆC SỬA ---
+
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const [isUploading, setIsUploading] = useState(false);
@@ -66,7 +66,7 @@ export default function TeacherCourseAssignments() {
     const handleEdit = (item: any, e: React.MouseEvent) => {
         e.stopPropagation(); // Ngăn mở accordion khi bấm nút Sửa
 
-        // Đổ dữ liệu cũ vào Form (Lưu ý: Input datetime-local cần format YYYY-MM-DDThh:mm)
+
         const dateObj = new Date(item.endTime);
         const formattedDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
 
@@ -79,10 +79,10 @@ export default function TeacherCourseAssignments() {
         });
 
         setSelectedRubric(item.rubricId || "");
-        setEditingId(item.assessmentId); // Ghi nhớ ID đang sửa
-        setIsUploading(true); // Mở Form lên
-        setExpandedIdx(null); // Đóng accordion lại cho gọn
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Cuộn lên đầu trang
+        setEditingId(item.assessmentId);
+        setIsUploading(true);
+        setExpandedIdx(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // --- HÀM ĐÓNG FORM VÀ RESET DATA ---
@@ -116,13 +116,15 @@ export default function TeacherCourseAssignments() {
 
         try {
             if (editingId) {
-                // GỌI API CẬP NHẬT
+
                 await assessmentService.updateAssessmentWithFormData(editingId, dataToSubmit);
-                alert("Cập nhật bài tập thành công!");
+
+                toast.success("Cập nhật bài tập thành công!");
             } else {
-                // GỌI API TẠO MỚI
+
                 await assessmentService.createAssessmentForOffering(offeringId!, dataToSubmit);
-                alert("Tạo bài tập thành công!");
+                toast.success("Tạo bài tập thành công!");
+
             }
 
             fetchAssignments();
@@ -135,7 +137,20 @@ export default function TeacherCourseAssignments() {
             setIsLoading(false);
         }
     };
+    const handleDelete = async (assessmentId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
 
+        if (window.confirm("Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.")) {
+            try {
+                await assessmentService.deleteAssessment(assessmentId);
+                toast.success("Xóa bài tập thành công!");
+                fetchAssignments();
+            } catch (error) {
+                toast.error("Đã xảy ra lỗi khi xóa bài tập!");
+                console.error(error);
+            }
+        }
+    };
     return (
         <div className="rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
             {/* Header */}
@@ -309,14 +324,24 @@ export default function TeacherCourseAssignments() {
                                             title="Sửa bài tập"
                                             className="rounded-lg p-2 text-slate-400 hover:bg-emerald-100 hover:text-emerald-700 transition-colors"
                                         >
-                                            <Pencil className="h-4 w-4" />
+                                            <Pencil className="h-4 w-4"/>
+                                        </button>
+                                        {/* --- NÚT XÓA --- */}
+                                        <button
+                                            onClick={(e) => handleDelete(item.assessmentId, e)}
+                                            title="Xóa bài tập"
+                                            className="rounded-lg p-2 text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash2 className="h-4 w-4"/>
                                         </button>
 
-                                        <button onClick={(e) => e.stopPropagation()} className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 transition-colors">
-                                            <MoreVertical className="h-5 w-5" />
+                                        <button onClick={(e) => e.stopPropagation()}
+                                                className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 transition-colors">
+                                            <MoreVertical className="h-5 w-5"/>
                                         </button>
-                                        <div className={`rounded-lg p-1 transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-180 text-emerald-600' : ''}`}>
-                                            <ChevronDown className="h-5 w-5" />
+                                        <div
+                                            className={`rounded-lg p-1 transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-180 text-emerald-600' : ''}`}>
+                                            <ChevronDown className="h-5 w-5"/>
                                         </div>
                                     </div>
                                 </div>

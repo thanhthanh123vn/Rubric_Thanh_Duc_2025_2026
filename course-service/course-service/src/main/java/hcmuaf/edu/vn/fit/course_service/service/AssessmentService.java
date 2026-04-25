@@ -289,7 +289,24 @@ public class AssessmentService {
             throw new RuntimeException("Lỗi khi cập nhật bài tập: " + e.getMessage(), e);
         }
     }
+    @Transactional
+    public void deleteAssessment(String assessmentId) {
+        try {
+            Assessment assessment = assessmentRepository.findById(assessmentId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập: " + assessmentId));
 
+
+            assessmentCLORepository.deleteByAssessment_AssessmentId(assessmentId);
+            submissionRepository.deleteByAssessmentId(assessmentId);
+
+
+            assessmentRepository.delete(assessment);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi khi xóa bài tập: " + e.getMessage(), e);
+        }
+    }
 
     public List<AssessmentLecturerResponse> getAssessmentsByOfferingId(String offeringId) {
         List<Assessment> assessments = assessmentRepository.findByCourseOffering_OfferingIdOrderByStartTimeDesc(offeringId);
