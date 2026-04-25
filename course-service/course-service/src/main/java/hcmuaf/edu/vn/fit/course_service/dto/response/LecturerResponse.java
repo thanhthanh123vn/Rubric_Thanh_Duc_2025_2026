@@ -5,10 +5,10 @@ import lombok.Data;
 @Data
 public class LecturerResponse {
     private String lecturerId;
+    private String title;
     private String userId;
     private String fullName;
     private String email;
     private String department;
-    private String title;
     private String academicTitle;
 }

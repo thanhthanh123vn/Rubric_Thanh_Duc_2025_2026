@@ -134,7 +134,7 @@ const CourseOBE = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await courseService.getOBEProgress(offeringId);
+                const res = await courseService.getOBEProgressByStudent(offeringId);
                 console.log(res)
                 setClos(res);
             } catch (err) {

@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.course_service.controller;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.service.CourseService;
+import hcmuaf.edu.vn.fit.course_service.service.OBEService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,8 @@ public class CourseController {
 
 
     private final CourseService service;
+
+    private final OBEService obeService;
 
 
     @GetMapping
@@ -74,8 +77,11 @@ public class CourseController {
         return ResponseEntity.ok(service.getStudentsByOfferingId(offeringId));
     }
     @GetMapping("/offering/{offeringId}/OBE")
-    public ResponseEntity<List<OBEProgressResponse>> getOBEProgress(@PathVariable String offeringId) {
-        return ResponseEntity.ok(service.getOBEProgress(offeringId));
+    public ResponseEntity<List<OBEProgressResponse>> getOBEProgress(
+            @PathVariable String offeringId
+            ,@RequestHeader("X-User-Id") String studentId
+                                                                    ) {
+        return ResponseEntity.ok(obeService.getOBEProgressByStudentId(offeringId,studentId));
     }
 
     @PostMapping("/{courseId}/assign-lecturer")

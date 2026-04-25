@@ -3,7 +3,6 @@ import {createBrowserRouter, redirect} from "react-router-dom";
 
 import Dashboard from "@/pages/Dashboard";
 import CalendarPage from "@/pages/CalendarPage";
-import WeeklyCalendar from "@/pages/WeeklyCalendar";
 import RegisterPage from "@/user/RegisterPage";
 import ForgotPasswordPage from "@/user/ForgotPasswordPage";
 import AccountManagement from "@/user/AccountManagement/AccountManagement";
@@ -31,7 +30,6 @@ import TeacherReport from "@/pages/teacher/TeacherReport";
 import TeacherRubric from "@/pages/teacher/TeacherRubric";
 import TeacherQuestionBank from "@/pages/teacher/TeacherQuestionBank";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminLayout from "@/pages/admin/AdminLayout";
 import UserManagement from "@/pages/admin/managerUser/UserManagement";
 import AdminCreateUser from "@/pages/admin/managerUser/AdminCreateUser";
 import LecturerManagement from "@/pages/admin/managerUser/LecturerManagement.tsx";
@@ -40,6 +38,8 @@ import ListStudent from "@/pages/admin/managerUser/StudentManagement"
 import AdminManagement from "@/pages/admin/managerUser/AdminManagement.tsx";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import AssessmentManagement from "@/pages/admin/managarCourse/AssessmentManagement.tsx";
+import TeacherOBEDetail from "@/pages/teacher/TeacherOBEDetail.tsx";
+import TeacherOBEAnalytics from "@/pages/teacher/TeacherOBEAnalytics.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -115,6 +115,8 @@ export const router = createBrowserRouter([
                     { path: "assignments", Component: TeacherCourseAssignments },
                     { path: "rubric", Component: TeacherCourseRubric },
                     { path: "obe", Component: TeacherCourseOBE },
+                    { path: "obe/analytics", Component: TeacherOBEAnalytics },
+                    {path : "obe/:cloId",Component : TeacherOBEDetail},
                     { path: "groups", Component: TeacherCourseGroups },
                     { path: "grading", Component: TeacherGrading },
                     { path: "projects", Component: TeacherProjects },

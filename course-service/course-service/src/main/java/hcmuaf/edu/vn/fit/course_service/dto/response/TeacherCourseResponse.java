@@ -16,7 +16,7 @@ public class TeacherCourseResponse {
     private String courseCode;
     private String courseName;
     private String courseTitle;
-    private long studentCount;
+    private int studentCount;
     private String semester;
     private int obeProgress;
     private String lecturerName;

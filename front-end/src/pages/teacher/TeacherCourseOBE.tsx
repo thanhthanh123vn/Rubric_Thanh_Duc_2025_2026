@@ -1,34 +1,114 @@
-import { BarChart3 } from 'lucide-react';
+import { BarChart3 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import {useEffect, useState} from "react";
+import {courseService} from "@/features/course/courseApi.ts";
 
 export default function TeacherCourseOBE() {
-  return (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-600">OBE</p>
-          <h4 className="mt-1 text-2xl font-bold text-slate-900">Tien do OBE cua hoc phan</h4>
+
+
+
+    const navigate = useNavigate();
+    const { id } = useParams();
+
+    const [clos, setClos] = useState<any[]>([]);
+    const [totalStudents, setTotalStudents] = useState(0);
+    const [overallProgress, setOverallProgress] = useState(0);
+
+
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchOBE = async () => {
+            try {
+                const data = await courseService.getOBEProgress(id);
+
+                setClos(data.clos || []);
+                setTotalStudents(data.totalStudents || 0);
+                setOverallProgress(data.overallProgress || 0);
+
+            } catch (err) {
+                console.error("Lỗi fetch OBE:", err);
+            }
+        };
+
+        fetchOBE();
+    }, [id]);
+
+
+
+
+    const getColor = (p: number) => {
+        if (p >= 70) return "bg-green-500";
+        if (p >= 40) return "bg-yellow-500";
+        return "bg-red-500";
+    };
+
+    return (
+        <div className="p-6 space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">OBE Dashboard</h2>
+                <BarChart3
+                    className="cursor-pointer"
+                    onClick={() => navigate(`/teacher/course/${id}/obe/analytics`)}
+                />
+            </div>
+
+            {/* Overall */}
+            <div className="bg-white p-4 rounded-xl shadow">
+                <div className="flex justify-between mb-2">
+                    <span>Tổng tiến độ</span>
+                    <span>{Math.round(overallProgress || 0)}%</span>
+                </div>
+                <div className="h-3 bg-gray-200 rounded">
+                    <div
+                        className={`h-3 rounded ${getColor(overallProgress || 0)}`}
+                        style={{ width: `${overallProgress || 0}%` }}
+                    />
+                </div>
+            </div>
+
+            {/* CLO list */}
+            {clos?.map((c) => {
+                const passed = c.passedStudents ?? 0;
+                const failed = c.failedStudents ?? 0;
+                const isWeak = (c.progressPercent ?? 0) < 40;
+
+                return (
+                    <div
+                        key={c.cloId}
+                        onClick={() =>
+                            navigate(`/teacher/course/${id}/obe/${c.cloId}`)
+                        }
+                        className={`cursor-pointer p-4 rounded-xl shadow ${
+                            isWeak
+                                ? "bg-red-50 border border-red-300"
+                                : "bg-white"
+                        }`}
+                    >
+                        <div className="flex justify-between">
+                            <div>
+                                <p className="font-bold">{c.cloCode}</p>
+                                <p className="text-sm text-gray-500">
+                                    {c.cloDescription}
+                                </p>
+                            </div>
+                            <span>{Math.round(c.progressPercent || 0)}%</span>
+                        </div>
+
+                        <div className="h-2 bg-gray-200 rounded mt-2">
+                            <div
+                                className={`h-2 rounded ${getColor(c.progressPercent || 0)}`}
+                                style={{ width: `${c.progressPercent || 0}%` }}
+                            />
+                        </div>
+
+                        <div className="text-xs text-gray-500 mt-2">
+                            Đạt: {passed}/{totalStudents || 0} • Fail: {failed}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
-        <BarChart3 className="h-5 w-5 text-cyan-600" />
-      </div>
-
-      <div className="mt-6 space-y-4">
-        {[
-          { clo: 'CLO1', progress: 90 },
-          { clo: 'CLO2', progress: 82 },
-          { clo: 'CLO3', progress: 74 },
-        ].map((item) => (
-          <div key={item.clo}>
-            <div className="mb-1 flex items-center justify-between text-sm">
-              <span className="font-medium text-slate-700">{item.clo}</span>
-              <span className="font-semibold text-slate-900">{item.progress}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-slate-100">
-              <div className="h-2 rounded-full bg-cyan-500" style={{ width: `${item.progress}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    );
 }
-

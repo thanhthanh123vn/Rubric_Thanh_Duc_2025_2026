@@ -54,8 +54,12 @@ export const courseService = {
     },
 
 
-    getOBEProgress : async (offeringId: string) => {
+    getOBEProgressByStudent : async (offeringId: string) => {
             const response = await courseApi.get(`/courses/offering/${offeringId}/OBE`)
+            return response.data;
+    },
+    getOBEProgress : async (offeringId: string) => {
+            const response = await courseApi.get(`/obe/teacher/offering/${offeringId}`)
             return response.data;
     },
     getAssessmentByOffering: async (offeringId : string) =>{
