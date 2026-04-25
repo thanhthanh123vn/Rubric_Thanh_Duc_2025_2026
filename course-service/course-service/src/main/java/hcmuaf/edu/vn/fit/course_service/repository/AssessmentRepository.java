@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.course_service.repository;
 import hcmuaf.edu.vn.fit.course_service.entity.Assessment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
         s.submission_id,
         s.submitted_at,
 
-        rr.calculated_score,
+        sum(rr.calculated_score) as total_score,
         rr.lecturer_comment,
             
         CONCAT('[', GROUP_CONCAT(DISTINCT CONCAT('"', c.clo_code, '"')), ']') AS clos
@@ -42,7 +43,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     WHERE a.offering_id = :offeringId
     group by a.assessment_id
     """, nativeQuery = true)
-    List<Object[]> getAssignmentByCourseOffering(String offeringId, String studentId);
+    List<Object[]> getAssignmentByCourseOffering(@Param("offeringId") String offeringId,@Param("studentId") String studentId);
 
     @Query(value = """
     SELECT 
@@ -55,7 +56,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
         s.submission_id,
         s.submitted_at,
 
-        rr.calculated_score,
+        sum(rr.calculated_score) as total_score,
         rr.lecturer_comment,
             CONCAT(
                    '[',

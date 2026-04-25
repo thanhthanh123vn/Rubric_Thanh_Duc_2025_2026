@@ -46,27 +46,28 @@ public class AssessmentService {
 
         List<Object[]> res = assessmentRepository
                 .getAssignmentByCourseOffering(courseOffering, studentId);
-
+        System.out.println(res.toString());
         return res.stream().map(item -> {
             try {
                 AssessmentReponse dto = new AssessmentReponse();
 
                 dto.setAssessmentId(item[0] != null ? item[0].toString() : null);
                 dto.setAssessmentName(item[1] != null ? item[1].toString() : null);
-
-                dto.setWeight(item[2] != null ? ((Number) item[2]).floatValue() : null);
+                dto.setWeight(item[2] != null ? ((Double) item[2]) : null);
 
                 dto.setEndTime((Timestamp) item[3]);
+                if(item[4] != null){
+                    dto.setSubmissionId(item[4].toString());
+                    dto.setSubmissionAt((Timestamp) item[5]);
 
-                dto.setSubmissionId(item[4] != null ? item[4].toString() : null);
-                dto.setSubmissionAt((Timestamp) item[5]);
+                    dto.setCalculatedScore(item[6] != null ? ((Double) item[6]) / 10 : null);
 
-                dto.setCalculatedScore(item[6] != null ? ((Number) item[6]).floatValue() : null);
+                    dto.setLecturerComment(item[7] != null ? item[7].toString() : null);
 
-                dto.setLecturerComment(item[7] != null ? item[7].toString() : null);
+                }
 
                 if (item[8] != null) {
-                    String closJson = item[8].toString(); // ["CLO1","CLO2"]
+                    String closJson = item[8].toString();
                     List<String> clos = objectMapper.readValue(
                             closJson,
                             new TypeReference<List<String>>() {}
@@ -104,7 +105,7 @@ public class AssessmentService {
             dto.setSubmissionId((String) res[5]);
             dto.setSubmissionAt((Timestamp) res[6]);
 
-            dto.setCalculatedScore(res[7] != null ? ((Number) res[7]).doubleValue() : 0);
+            dto.setCalculatedScore(res[7] != null ? ((Number) res[7]).doubleValue() / 10 : 0);
             dto.setLecturerComment((String) res[8]);
 
             String closJson = (String) res[9];
