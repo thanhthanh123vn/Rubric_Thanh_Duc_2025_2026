@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {assessmentService} from "@/pages/admin/api/assessmentService.ts";
+
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import {courseService} from "@/features/course/courseApi.ts";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
+import {assessmentCommentApi} from "@/features/course/student/api/AssignmentDetailPost.ts";
 
 const AssignmentDetailPost = () => {
     const {id: offeringId, assignmentId} = useParams<{ id: string; assignmentId: string }>();
@@ -24,18 +26,14 @@ const AssignmentDetailPost = () => {
     const [assignment, setAssignment] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
+
+    const isPastDeadline = assignment?.endTime ? new Date() > new Date(assignment.endTime) : false;
     const [showComments, setShowComments] = useState(false);
     const [commentInput, setCommentInput] = useState("");
     const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-    const [localComments, setLocalComments] = useState([
-        {
-            id: 1,
-            fullName: "Nguyễn Văn A",
-            createdAt: new Date().toISOString(),
-            content: "Thầy ơi cho em hỏi bài này nộp file zip được không ạ?"
-        }
-    ]);
+    const [localComments, setLocalComments] = useState<any[]>([]);
     const { user: reduxUser } = useAppSelector((state) => state.auth);
     let user = reduxUser;
     if (!user) {
@@ -44,32 +42,44 @@ const AssignmentDetailPost = () => {
             user = JSON.parse(localUser);
         }
     }
-    const handleAddComment = () => {
+    const fetchComments = async () => {
+        try {
+            const comments = await assessmentCommentApi.getComments(assignmentId!);
+            setLocalComments(comments);
+        } catch (error) {
+            console.error("Lỗi khi tải bình luận:", error);
+        }
+    };
+
+
+    const handleAddComment = async () => {
         if (!commentInput.trim()) return;
         setIsSubmittingComment(true);
 
-        // Giả lập gọi API gửi comment
-        setTimeout(() => {
-            setLocalComments([...localComments, {
-                id: Date.now(),
-                fullName: "Tên Của Bạn",
-                createdAt: new Date().toISOString(),
-                content: commentInput
-            }]);
-            
+        try {
+            const newComment = await assessmentCommentApi.addComment(assignmentId!, commentInput.trim());
+
+
+            setLocalComments(prev => [...prev, newComment]);
+
             setCommentInput("");
-            setIsSubmittingComment(false);
             setShowComments(true);
-        }, 500);
+        } catch (error) {
+            console.error("Lỗi khi gửi bình luận:", error);
+            toast.error("Không thể gửi bình luận. Vui lòng thử lại!");
+        } finally {
+            setIsSubmittingComment(false);
+        }
     };
     const fetchDetail = async () => {
         if (!assignmentId) return;
         try {
             setLoading(true);
 
-            const data = await assessmentService.getAssessmentsByOffering(offeringId!);
-            const detail = data.find((a: any) => a.assessmentId === assignmentId);
-            setAssignment(detail);
+            const data = await assessmentCommentApi.getAssessmentDetail(assignmentId!);
+
+            setAssignment(data);
+            setIsSubmitted(!!data.submittedLink);
         } catch (error) {
             console.error("Lỗi tải chi tiết bài tập:", error);
         } finally {
@@ -79,6 +89,7 @@ const AssignmentDetailPost = () => {
     useEffect(() => {
 
         fetchDetail();
+        fetchComments();
     }, [assignmentId, offeringId]);
     const [file, setFile] = useState<File | null>(null);
     const [link, setLink] = useState("");
@@ -96,7 +107,6 @@ const AssignmentDetailPost = () => {
     };
 
     const handleSubmit = async () => {
-        // 1. Kiểm tra xem người dùng đã chọn file hoặc nhập link chưa
         if (!file && !link.trim()) {
             toast.error("Vui lòng đính kèm file hoặc nhập link trước khi nộp!");
             return;
@@ -106,29 +116,49 @@ const AssignmentDetailPost = () => {
         try {
             if (!assignmentId) return;
 
-
             const formData = new FormData();
-
-            if (file) {
-                formData.append("file", file);
-            }
-            if (link.trim()) {
-                formData.append("link", link.trim());
-            }
+            if (file) formData.append("file", file);
+            if (link.trim()) formData.append("link", link.trim());
 
 
             await courseService.submitAssignment(assignmentId, formData);
 
-
             toast.success("Nộp bài thành công!");
-
-          fetchDetail();
+            setIsSubmitted(true);
+            fetchDetail();
 
         } catch (error) {
             console.error("Lỗi khi nộp bài:", error);
-            alert("Nộp bài thất bại, vui lòng thử lại sau!");
+            toast.error("Nộp bài thất bại, vui lòng thử lại sau!");
         } finally {
-            setIsSubmitting(false); // Tắt trạng thái xoay loading
+            setIsSubmitting(false);
+        }
+    };
+
+
+    const handleUnsubmit = async () => {
+        // Kiểm tra xem đã quá hạn chưa
+        const isPastDeadline = new Date() > new Date(assignment.endTime);
+        if (isPastDeadline) {
+            toast.error("Đã quá hạn, bạn không thể hủy nộp bài!");
+            return;
+        }
+
+        if (!window.confirm("Bạn có chắc chắn muốn hủy nộp bài không?")) return;
+
+        setIsSubmitting(true);
+        try {
+            await assessmentCommentApi.unsubmitAssignment(assignmentId!);
+            toast.success("Đã hủy nộp bài thành công!");
+
+
+            setFile(null);
+            setLink("");
+            fetchDetail();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Lỗi khi hủy nộp bài");
+        } finally {
+            setIsSubmitting(false);
         }
     };
     if (loading) return <div className="p-10 text-center">Đang tải...</div>;
@@ -175,11 +205,80 @@ const AssignmentDetailPost = () => {
                                     {assignment.description || "Không có mô tả cho bài tập này."}
                                 </p>
                             </div>
+
+
+                            {/* PHẦN CHUẨN ĐẦU RA (CLO) */}
+
+                            {assignment.clos && Object.keys(assignment.clos).length > 0 && (
+                                <div className="mt-8 border-t pt-6 border-gray-100">
+                                    <h3 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                                        <ClipboardList className="w-4 h-4"/> Chuẩn đầu ra (CLO)
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.entries(assignment.clos).map(([code, description], index) => (
+                                            <span
+                                                key={index}
+                                                className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-xs font-medium"
+                                            >
+                                                {code}: {description as string}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PHẦN RUBRIC CHẤM ĐIỂM */}
+                            {assignment.rubric && (
+                                <div className="mt-8 border-t pt-6 border-gray-100">
+                                    <h3 className="text-sm font-semibold text-emerald-800 mb-4 flex items-center gap-2">
+                                        <Paperclip className="w-4 h-4"/> Rubric chấm điểm: {assignment.rubric.rubricId}
+                                    </h3>
+
+                                    <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                            <tr>
+                                                <th className="px-4 py-3 font-semibold text-gray-700 w-1/4">Tiêu chí
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold text-gray-700 w-1/6">Trọng số
+                                                </th>
+                                                <th className="px-4 py-3 font-semibold text-gray-700">Mức độ đạt được
+                                                </th>
+                                            </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                            {assignment.rubric.criteriaList?.map((criteria: any, idx: number) => (
+                                                <tr key={idx} className="hover:bg-gray-50/50">
+                                                    <td className="px-4 py-4 font-medium text-gray-900">
+                                                        {criteria.criteriaName}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-gray-600">
+                                                        {criteria.weight}%
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {criteria.levels?.map((level: any, lIdx: number) => (
+                                                                <div key={lIdx}
+                                                                     className="text-xs p-2 bg-white border border-gray-100 rounded-md">
+                                                                    <span
+                                                                        className="font-semibold text-emerald-600">{level.levelName} ({level.score}đ):</span>
+                                                                    <p className="text-gray-500 mt-0.5">{level.description}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                             {assignment.fileUrl && (() => {
 
                                 const extractFileInfo = (url: string) => {
                                     try {
-                                        const cleanUrl = url.split('?')[0]; // Cắt bỏ các tham số phía sau dấu ?
+                                        const cleanUrl = url.split('?')[0];
                                         const fileName = cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1);
                                         const fileFull = fileName.split('-').pop();
 
@@ -259,9 +358,19 @@ const AssignmentDetailPost = () => {
                                     <div className="space-y-4 mb-6 px-1">
                                         {localComments.map((cmt) => (
                                             <div key={cmt.id} className="flex gap-3">
-                                                <div
-                                                    className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                                                    {cmt.fullName.charAt(0)}
+                                                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                                                    {cmt.avatarUrl ? (
+                                                        <img
+                                                            src={cmt.avatarUrl}
+                                                            alt="avatar"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className="w-full h-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+                                                            {cmt.fullName.charAt(0)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <div className="flex items-baseline gap-2">
@@ -291,7 +400,8 @@ const AssignmentDetailPost = () => {
                                             className="w-9 h-9 rounded-full object-cover shrink-0"
                                         />
                                     ) : (
-                                        <div className="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold shrink-0">
+                                        <div
+                                            className="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold shrink-0">
                                             {user.fullName?.charAt(0) || "U"}
                                         </div>
                                     )}
@@ -330,21 +440,68 @@ const AssignmentDetailPost = () => {
                             </div>
                         </div>
 
-                        {/* PHẦN NỘP BÀI (Phải trên Desktop, Dưới trên Mobile) */}
+
+                        {/* PHẦN NỘP BÀI */}
+
+                        {/* PHẦN NỘP BÀI (Khóa cứng sau khi nộp) */}
                         <div className="w-full lg:w-80">
                             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sticky top-24">
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-xl font-medium">Bài tập của bạn</h2>
-                                    <span className="text-xs font-semibold text-emerald-600 uppercase">Đã giao</span>
+                                    <span className={`text-xs font-semibold uppercase ${isSubmitted ? 'text-emerald-600' : 'text-gray-500'}`}>
+                                        {isSubmitted ? 'Đã nộp' : 'Đã giao'}
+                                    </span>
                                 </div>
 
-                                {/* KHU VỰC HIỂN THỊ FILE HOẶC NÚT UPLOAD */}
-                                {file ? (
-                                    // Trạng thái 1: Đã chọn file
-                                    <div
-                                        className="mb-4 bg-emerald-50/50 border border-emerald-200 rounded-xl overflow-hidden">
-                                        <div
-                                            className="p-3 flex justify-between items-center bg-white border-b border-gray-100">
+                                {/* KHU VỰC HIỂN THỊ FILE / NÚT UPLOAD */}
+                                {isSubmitted ? (
+                                    // TRẠNG THÁI 1: ĐÃ NỘP BÀI (KHÓA GIAO DIỆN)
+                                    <div className="mb-4 space-y-2">
+                                        {(assignment?.submittedFileUrl || file) && (
+                                            <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl overflow-hidden">
+                                                <div className="p-3 flex items-center gap-3 bg-white border-b border-emerald-100">
+                                                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600 shrink-0">
+                                                        <FileText className="w-4 h-4"/>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-emerald-800 truncate">
+                                                            {file ? file.name : assignment?.submittedFileUrl?.split('/').pop()?.split('?')[0] || "Tệp đính kèm"}
+                                                        </p>
+                                                        {assignment?.submittedFileUrl && !file && (
+                                                            <a href={assignment.submittedFileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline mt-0.5 block">
+                                                                Tải xuống tệp
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(assignment?.submittedLink || link) && (
+                                            <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl overflow-hidden px-3 py-2 flex items-center gap-2">
+                                                <Paperclip className="w-4 h-4 text-emerald-600 shrink-0"/>
+                                                <a href={assignment?.submittedLink || link} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 hover:underline truncate flex-1">
+                                                    {assignment?.submittedLink || link}
+                                                </a>
+                                            </div>
+                                        )}
+
+                                        {!assignment?.submittedFileUrl && !file && !assignment?.submittedLink && !link && (
+                                            <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 text-center text-sm text-emerald-700">
+                                                Đã nộp bài thành công (Không đính kèm tệp)
+                                            </div>
+                                        )}
+
+                                        {assignment?.submissionAt && (
+                                            <p className="text-xs text-gray-500 text-center mt-2">
+                                                Đã nộp lúc: {new Date(assignment.submissionAt).toLocaleTimeString("vi-VN", {hour: '2-digit', minute: '2-digit'})} - {new Date(assignment.submissionAt).toLocaleDateString("vi-VN")}
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : file ? (
+                                    // TRẠNG THÁI 2: ĐÃ CHỌN FILE NHƯNG CHƯA NỘP
+                                    <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="p-3 flex justify-between items-center bg-white border-b border-gray-100">
                                             <div className="flex items-center gap-3 overflow-hidden">
                                                 <div className="p-2 bg-gray-100 rounded-lg text-gray-500">
                                                     <FileText className="w-4 h-4"/>
@@ -354,56 +511,74 @@ const AssignmentDetailPost = () => {
                                                     <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={handleRemoveFile}
-                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                            >
+                                            <button onClick={handleRemoveFile} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                                                 <X className="w-4 h-4"/>
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    // Trạng thái 2: Chưa chọn file -> Hiện nút Upload & Input Link
+                                    // TRẠNG THÁI 3: CHƯA CÓ GÌ
                                     <div className="space-y-3 mb-4">
                                         <button
                                             onClick={() => document.getElementById("fileInput")?.click()}
-                                            className="w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed border-gray-300 rounded-lg text-emerald-600 font-medium hover:bg-emerald-50 transition-colors"
+                                            disabled={isPastDeadline}
+                                            className={`w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed rounded-lg font-medium transition-colors ${
+                                                isPastDeadline
+                                                    ? "border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50"
+                                                    : "border-gray-300 text-emerald-600 hover:bg-emerald-50 cursor-pointer"
+                                            }`}
                                         >
                                             <FileUp className="w-5 h-5"/>
-                                            <span>Thêm hoặc tạo</span>
+                                            <span>Thêm tệp đính kèm</span>
                                         </button>
-                                        {/* Thẻ input bị ẩn đi, chỉ kích hoạt khi bấm nút ở trên */}
                                         <input type="file" id="fileInput" hidden onChange={handleFileChange}/>
 
-                                        {/* Ô nhập Link mở rộng (Tuỳ chọn) */}
                                         <input
                                             value={link}
                                             onChange={(e) => setLink(e.target.value)}
+                                            disabled={isPastDeadline}
                                             placeholder="Hoặc dán liên kết (Drive, GitHub)..."
-                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-all"
+                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                                         />
                                     </div>
                                 )}
 
-                                {/* NÚT NỘP BÀI / ĐÁNH DẤU HOÀN THÀNH */}
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={isSubmitting || (!file && !link)} // Disable nếu chưa có file/link hoặc đang loading
-                                    className={`w-full py-2.5 rounded-lg font-semibold transition shadow-md flex items-center justify-center gap-2 ${
-                                        file || link
-                                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                            : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                    }`}
-                                >
-                                    {isSubmitting ? (
-                                        <div
-                                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    ) : file || link ? (
-                                        "Nộp bài"
-                                    ) : (
-                                        "Đánh dấu là đã hoàn thành"
-                                    )}
-                                </button>
+                                {/* VÙNG NÚT BẤM */}
+                                {isSubmitted ? (
+                                    // GIAO DIỆN KHI ĐÃ NỘP BÀI (KHÓA CỨNG - KHÔNG CHO HỦY)
+                                    <button
+                                        onClick={isSubmitted ? handleUnsubmit : undefined}
+                                        disabled={!isSubmitted}
+                                        className={`w-full py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2
+                                        ${isSubmitted
+                                            ? "bg-red-100 text-red-700 hover:bg-red-200"
+                                            : "bg-emerald-100 text-emerald-700 cursor-not-allowed"
+                                        }`}
+                                    >
+                                        {isSubmitted ? "Hủy nộp bài" : "Nộp bài thành công"}
+                                    </button>
+                                ) : (
+                                    // GIAO DIỆN KHI CHƯA NỘP
+                                    <button
+                                        onClick={handleSubmit}
+                                        disabled={isSubmitting || (!file && !link) || isPastDeadline}
+                                        className={`w-full py-2.5 rounded-lg font-semibold transition shadow-md flex items-center justify-center gap-2 ${
+                                            (file || link) && !isPastDeadline
+                                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                        }`}
+                                    >
+                                        {isSubmitting ? (
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        ) : isPastDeadline ? (
+                                            "Đã hết hạn nộp bài"
+                                        ) : file || link ? (
+                                            "Nộp bài"
+                                        ) : (
+                                            "Đánh dấu là đã hoàn thành"
+                                        )}
+                                    </button>
+                                )}
 
                                 <div className="mt-6 border-t pt-4">
                                     <p className="text-xs text-center text-gray-500 italic">

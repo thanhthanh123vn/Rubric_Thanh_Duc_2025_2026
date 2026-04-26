@@ -5,12 +5,12 @@ import lombok.*;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "comments")
+@Table(name = "assessment_comments")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Comment {
+public class AssessmentComment {
 
     @Id
     @Column(name = "comment_id", length = 50)
@@ -18,9 +18,8 @@ public class Comment {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Topic topic;
-
+    @JoinColumn(name = "assessment_id", nullable = false)
+    private Assessment assessment;
 
     @Column(name = "user_id", length = 50)
     private String userId;

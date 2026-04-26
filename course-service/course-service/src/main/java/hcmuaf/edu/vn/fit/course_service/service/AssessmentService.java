@@ -2,11 +2,12 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentLecturerResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
+import hcmuaf.edu.vn.fit.course_service.client.UserClient;
+import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.mapper.AssessmentMapper;
+import hcmuaf.edu.vn.fit.course_service.mapper.CommentMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -41,7 +40,9 @@ public class AssessmentService {
     @Autowired
     private CourseCLORepository courseCLORepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    private final AssessmentCommentRepository assessmentCommentRepository;
+     private final UserClient userClient;
+     private final CommentMapper commentMapper;
     public List<AssessmentReponse> getAssByCourseOffering(String courseOffering, String studentId) {
 
         List<Object[]> res = assessmentRepository
@@ -316,5 +317,122 @@ public class AssessmentService {
         return assessments.stream()
                 .map(assessmentMapper::toResponse)
                 .toList();
+    }
+    public CommentResponse addAssessmentComment(String assessmentId, String userId, CommentRequest request) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập: " + assessmentId));
+
+        AssessmentComment comment = AssessmentComment.builder()
+                .commentId("ACM-" + UUID.randomUUID().toString().substring(0, 8))
+                .assessment(assessment)
+                .userId(userId)
+                .content(request.getContent())
+                .createdAt(new Timestamp(System.currentTimeMillis()))
+                .build();
+
+        AssessmentComment savedComment = assessmentCommentRepository.save(comment);
+
+
+        CommentResponse response = commentMapper.toResponse(savedComment);
+        response.setMine(true);
+
+
+        try {
+            UserResponse user = userClient.getUser(userId);
+            if (user != null) {
+                String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                        ? user.getFullName() : user.getUsername();
+                response.setFullName(displayName);
+                response.setUsername(displayName);
+                response.setAvatarUrl(user.getAvatarUrl());
+            }
+        } catch (Exception e) {
+            response.setFullName("Unknown");
+        }
+        return response;
+    }
+
+    public List<CommentResponse> getCommentsByAssessmentId(String currentUserId, String assessmentId) {
+        List<AssessmentComment> comments = assessmentCommentRepository.findByAssessment_AssessmentIdOrderByCreatedAtAsc(assessmentId);
+
+        return comments.stream().map(comment -> {
+
+            CommentResponse res = commentMapper.toResponse(comment);
+            res.setMine(comment.getUserId().equals(currentUserId));
+
+
+            try {
+                UserResponse user = userClient.getUser(comment.getUserId());
+                if (user != null) {
+                    String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                            ? user.getFullName() : user.getUsername();
+                    res.setFullName(displayName);
+                    res.setUsername(displayName);
+                    res.setAvatarUrl(user.getAvatarUrl());
+                }
+            } catch (Exception e) {
+                res.setFullName("Unknown");
+            }
+            return res;
+        }).collect(Collectors.toList());
+    }
+    public AssessmentDetailResponse getAssessmentDetail(String assessmentId, String studentId) {
+
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập!"));
+
+
+        AssessmentDetailResponse response = assessmentMapper.toDetailResponse(assessment);
+       List< AssessmentCLO> assessmentCLOS = assessmentCLORepository.getByAssessment_AssessmentId(assessment.getAssessmentId());
+        System.out.println("Chuẩn CLOS getAssessmentDetail "+assessmentCLOS);
+        // 3.  Nếu  có Rubric và CLO chi tiết, hãy gọi sang Rubric Service hoặc map tại đây
+         response.setRubricId((assessment.getRubricId()));
+        Optional<SubmissionEntity> submissionOpt = submissionRepository.findByAssessmentIdAndStudentId(assessmentId, studentId);
+        if (submissionOpt.isPresent()) {
+            SubmissionEntity sub = submissionOpt.get();
+            response.setSubmissionId(sub.getId());
+            response.setSubmissionAt(Timestamp.valueOf(sub.getSubmittedAt())); // Hoặc trường lưu thời gian nộp của bạn
+
+            
+            response.setSubmittedFileUrl(sub.getFileUrl());
+            response.setSubmittedLink(sub.getFileUrl());
+        }
+        if (assessmentCLOS != null && !assessmentCLOS.isEmpty()) {
+            Map<String, String> cloMap = assessmentCLOS.stream()
+                    .collect(Collectors.toMap(
+
+                            clo -> clo.getCourseCLO().getCloCode(),
+
+
+                            clo -> clo.getCourseCLO().getDescription(),
+
+
+                            (existing, replacement) -> existing
+                    ));
+
+            response.setClos(cloMap);
+        }
+
+        return response;
+    }
+
+    public void unsubmitAssignment(String assessmentId, String studentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập!"));
+
+
+        if (assessment.getEndTime() != null) {
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            if (now.after(assessment.getEndTime())) {
+                throw new RuntimeException("Đã quá hạn nộp bài, không thể hủy nộp!");
+            }
+        }
+
+
+        SubmissionEntity submission = submissionRepository
+                .findByAssessmentIdAndStudentId(assessmentId, studentId)
+                .orElseThrow(() -> new RuntimeException("Bạn chưa nộp bài này!"));
+
+        submissionRepository.delete(submission);
     }
 }

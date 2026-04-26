@@ -19,4 +19,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
     @Transactional
     @Query("DELETE FROM SubmissionEntity s WHERE s.assessmentId = :assessmentId")
     void deleteByAssessmentId(@Param("assessmentId") String assessmentId);
+
+
+
 }
