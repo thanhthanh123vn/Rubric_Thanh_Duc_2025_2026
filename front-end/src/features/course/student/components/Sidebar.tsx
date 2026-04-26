@@ -79,9 +79,9 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                             key={item.key}
                             to={`/course/${id}/${item.path}`}
                             end={item.path === ""}
-                            // BỔ SUNG SỰ KIỆN onClick Ở ĐÂY:
+
                             onClick={() => {
-                                // Nếu có truyền hàm onClose (tức là đang ở mobile) thì gọi nó để tự đóng menu lại
+
                                 if (onClose) {
                                     onClose();
                                 }

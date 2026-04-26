@@ -40,6 +40,7 @@ import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import AssessmentManagement from "@/pages/admin/managarCourse/AssessmentManagement.tsx";
 import TeacherOBEDetail from "@/pages/teacher/TeacherOBEDetail.tsx";
 import TeacherOBEAnalytics from "@/pages/teacher/TeacherOBEAnalytics.tsx";
+import AssignmentDetailPost from "@/features/course/student/components/AssignmentDetailPost.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
     {
         path: "/course/:id/assignments/:assignmentId",
         Component: AssignmentDetail,
+    },
+    {
+        path: "/course/:id/assignments/Post/:assignmentId",
+        Component: AssignmentDetailPost,
     },
     {
         path: "/course/:id/createGroup",
