@@ -11,6 +11,7 @@ public interface AssessmentMapper {
 
 
     @Mapping(source = "courseOffering.offeringId", target = "offeringId")
+
     AssessmentLecturerResponse toResponse(Assessment assessment);
 
 }
