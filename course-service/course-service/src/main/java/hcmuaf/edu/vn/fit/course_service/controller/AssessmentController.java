@@ -1,8 +1,10 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
+import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentLecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.CommentResponse;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -117,5 +119,40 @@ public class AssessmentController {
                     "message", "Lỗi: " + e.getMessage()
             ));
         }
+    }
+
+    @GetMapping("/assessments/{assessmentId}/comments")
+    public ResponseEntity<List<CommentResponse>> getAssessmentComments(
+            @RequestHeader("X-User-Id") String currentUserId,
+            @PathVariable String assessmentId
+    ) {
+        List<CommentResponse> comments = assessmentService.getCommentsByAssessmentId(currentUserId, assessmentId);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PostMapping("/assessments/{assessmentId}/comments")
+    public ResponseEntity<CommentResponse> addAssessmentComment(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String assessmentId,
+            @RequestBody CommentRequest request
+    ) {
+        CommentResponse response = assessmentService.addAssessmentComment(assessmentId, userId, request);
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/assessments/{assessmentId}/detail")
+    public ResponseEntity<AssessmentDetailResponse> getDetail(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String assessmentId
+    ) {
+        return ResponseEntity.ok(assessmentService.getAssessmentDetail(assessmentId, userId));
+    }
+
+    @DeleteMapping("/assessments/{assessmentId}/unsubmit")
+    public ResponseEntity<?> unsubmit(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String assessmentId
+    ) {
+        assessmentService.unsubmitAssignment(assessmentId, userId);
+        return ResponseEntity.ok(Map.of("message", "Hủy nộp bài thành công"));
     }
 }

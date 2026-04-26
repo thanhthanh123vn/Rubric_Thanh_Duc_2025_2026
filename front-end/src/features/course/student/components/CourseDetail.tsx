@@ -114,7 +114,7 @@ const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offe
 
     return (
         <div
-            onClick={() => navigate(`/course/${offeringId}/assignment/${assessmentId}`)}
+            onClick={() => navigate(`/course/${offeringId}/assignments/Post/${assessmentId}`)}
             className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4 hover:shadow-md transition cursor-pointer flex items-center p-4 md:p-5 gap-4"
         >
             <div className="w-10 h-10 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center">
