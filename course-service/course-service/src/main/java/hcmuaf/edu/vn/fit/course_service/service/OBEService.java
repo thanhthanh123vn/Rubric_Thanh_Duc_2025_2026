@@ -15,9 +15,9 @@ public class OBEService {
     private final CourseRepository courseRepo;
     private final EnrollmentRepository enrollmentRepo;
 
-    // =========================================================
+
     // 1. STUDENT OBE PROGRESS
-    // =========================================================
+
     public List<OBEProgressResponse> getOBEProgressByStudentId(String offeringId, String studentId) {
 
         List<Object[]> rows = courseRepo.getOBEByOfferingByStudent(offeringId, studentId);
@@ -40,9 +40,9 @@ public class OBEService {
         }).toList();
     }
 
-    // =========================================================
+
     // 2. LECTURER CLO PROGRESS
-    // =========================================================
+
     public OBELecturerProcessResponse getOBEForLecturer(String offeringId) {
 
         List<Object[]> cloRows = courseRepo.getOBEByOffering(offeringId);
@@ -90,9 +90,9 @@ public class OBEService {
                 .build();
     }
 
-    // =========================================================
+
     // 3. CLO DETAIL BY STUDENT
-    // =========================================================
+
     public OBECloDetailResponse getCloDetail(String offeringId, String cloId) {
 
         List<Object[]> studentRows = courseRepo.getStudentScoresByCLO(offeringId, cloId);

@@ -393,7 +393,7 @@ public class AssessmentService {
             response.setSubmissionId(sub.getId());
             response.setSubmissionAt(Timestamp.valueOf(sub.getSubmittedAt())); // Hoặc trường lưu thời gian nộp của bạn
 
-            
+
             response.setSubmittedFileUrl(sub.getFileUrl());
             response.setSubmittedLink(sub.getFileUrl());
         }
