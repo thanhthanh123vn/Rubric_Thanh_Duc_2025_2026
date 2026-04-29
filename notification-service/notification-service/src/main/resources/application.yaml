@@ -6,9 +6,10 @@ spring:
     name: NOTIFICATION-SERVICE
 
   datasource:
-    url: jdbc:mysql://localhost:3306/elearning
-    username: root
-    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/db_rubric?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    username: ${DB_NAME}
+    password: ${DB_PW}
 
   jpa:
     hibernate:
@@ -18,11 +19,14 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: your-email@gmail.com
-    password: your-app-password
+    username: ${GOOGLE_APP_USERNAME}
+    password: ${GOOGLE_APP_PW}
     properties:
-      mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 eureka:
   client:
