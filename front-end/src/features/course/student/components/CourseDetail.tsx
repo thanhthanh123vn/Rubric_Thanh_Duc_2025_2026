@@ -5,7 +5,9 @@ import Sidebar from "./Sidebar";
 import {courseService}  from "../../courseApi.ts";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
-
+import SockJS from "sockjs-client";
+import { Stomp } from "@stomp/stompjs";
+import { toast } from "sonner";
 const getInitial = (name?: string) => {
     if (!name) return "U";
     const words = name.trim().split(' ');
@@ -352,15 +354,13 @@ const ClassroomContent = () => {
             const [courseData, postsData, assignmentsData] = await Promise.all([
                 courseService.getCourseById(offeringId),
                 courseService.getTopicsByOfferingId(offeringId),
-                assessmentService.getAssessmentsByOffering(offeringId) // <--- Lấy danh sách bài tập
+                assessmentService.getAssessmentsByOffering(offeringId)
             ]);
             setCourse(courseData);
-
 
             const formattedAssignments = (assignmentsData || []).map((a: any) => ({
                 ...a,
                 feedType: 'ASSIGNMENT',
-
                 sortTime: new Date(a.createdAt || a.endTime || new Date()).getTime()
             }));
 
@@ -370,12 +370,8 @@ const ClassroomContent = () => {
                 sortTime: new Date(p.createdAt).getTime()
             }));
 
-
             const combinedFeed = [...formattedAssignments, ...formattedPosts].sort((a, b) => b.sortTime - a.sortTime);
 
-
-            // const combinedFeed = [...formattedAssignments, ...formattedPosts];
-            console.log("Bài Tập" ,formattedPosts);
             setFeed(combinedFeed);
         } catch (error) {
             console.error("Lỗi tải dữ liệu trang:", error);
@@ -388,6 +384,48 @@ const ClassroomContent = () => {
         fetchData();
     }, [offeringId, refreshKey]);
 
+
+
+
+    useEffect(() => {
+        if (!user || !user.userId) return;
+
+
+        const socket = new SockJS(import.meta.env.VITE_WS_URL + '/ws-notifications');
+        const stompClient = Stomp.over(socket);
+
+
+        stompClient.debug = () => {};
+
+        stompClient.connect({}, () => {
+
+            stompClient.subscribe(`/topic/user/${user.userId}`, (payload) => {
+                const notification = JSON.parse(payload.body);
+
+
+                if (toast) {
+                    toast.info(notification.message);
+                } else {
+                    alert(notification.message);
+                }
+
+
+                fetchData();
+            });
+        }, (error: any) => {
+            console.error("Lỗi kết nối WebSocket:", error);
+        });
+
+
+        return () => {
+            if (stompClient.connected) {
+                stompClient.disconnect(() => {
+                    console.log("Đã ngắt kết nối WebSocket");
+                });
+            }
+        };
+    }, [user, offeringId]);
+
     if (loading && !course) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -399,6 +437,7 @@ const ClassroomContent = () => {
 
     return (
         <div className="bg-gray-50 min-h-screen flex flex-col">
+
             <Header
                 onMenuClick={() => setIsMobileMenuOpen(true)}
                 onEnrollSuccess={() => setRefreshKey(prev => prev + 1)}
@@ -425,24 +464,23 @@ const ClassroomContent = () => {
 
                         <div className="space-y-4">
                             {feed.length === 0 ? (
-                            <div className="text-center text-gray-500 mt-8 text-sm md:text-base">
-                                Chưa có thông báo và bài tập nào.
-                            </div>
-                        ) : (
-                            feed.map((item: any, idx: number) => {
-                                if (item.feedType === 'ASSIGNMENT') {
-                                    return (
-                                        <AssignmentPost
-                                            key={`assign-${item.assessmentId || idx}`}
-                                            {...item}
-
-                                            lecturerName={course?.lecturerName}
-                                        />
-                                    );
-                                }
-                                return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user.avatarUrl} />;
-                            })
-                        )}
+                                <div className="text-center text-gray-500 mt-8 text-sm md:text-base">
+                                    Chưa có thông báo và bài tập nào.
+                                </div>
+                            ) : (
+                                feed.map((item: any, idx: number) => {
+                                    if (item.feedType === 'ASSIGNMENT') {
+                                        return (
+                                            <AssignmentPost
+                                                key={`assign-${item.assessmentId || idx}`}
+                                                {...item}
+                                                lecturerName={course?.lecturerName}
+                                            />
+                                        );
+                                    }
+                                    return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user.avatarUrl} />;
+                                })
+                            )}
                         </div>
                     </div>
                 </div>
@@ -450,5 +488,7 @@ const ClassroomContent = () => {
         </div>
     );
 };
+
+
 
 export default ClassroomContent;

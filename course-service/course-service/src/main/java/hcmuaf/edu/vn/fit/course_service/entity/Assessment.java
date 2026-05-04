@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Entity
 @Table(name = "assessments")
@@ -17,7 +18,6 @@ public class Assessment {
     @Id
     @Column(name = "assessment_id", length = 50)
     private String assessmentId;
-
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)

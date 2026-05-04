@@ -39,6 +39,7 @@ export default function AssessmentManagement() {
             setIsLoading(true);
             try {
                 const data = await assessmentService.getAllAssessments(currentPage, 10, searchQuery);
+
                 setAssessments(data.content || []);
                 setTotalPages(data.totalPages || 0);
             } catch (err) {

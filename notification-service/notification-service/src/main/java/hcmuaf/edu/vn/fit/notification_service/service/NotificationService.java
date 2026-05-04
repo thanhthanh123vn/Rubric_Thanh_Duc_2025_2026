@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,7 +44,7 @@ public class NotificationService {
     }
 
 
-    public Notification notifyHomeworkAssigned(Long studentId, String assignmentTitle) {
+    public Notification notifyHomeworkAssigned(String studentId, String assignmentTitle) {
         Notification n = new Notification();
         n.setUserId(studentId);
         n.setMessage("Giảng viên đã giao bài tập mới: " + assignmentTitle);
@@ -54,7 +55,7 @@ public class NotificationService {
     }
 
 
-    public List<Notification> notifyHomeworkAssignedToMultipleStudents(List<Long> studentIds, String assignmentTitle) {
+    public List<Notification> notifyHomeworkAssignedToMultipleStudents(List<String> studentIds, String assignmentTitle) {
         List<Notification> notifications = studentIds.stream().map(studentId -> {
             Notification n = new Notification();
             n.setUserId(studentId);
@@ -76,8 +77,8 @@ public class NotificationService {
         return savedList;
     }
 
-    // 3. Sinh viên nộp bài
-    public Notification notifyHomeworkSubmitted(Long lecturerId, String studentName, String assignmentTitle) {
+
+    public Notification notifyHomeworkSubmitted(String lecturerId, String studentName, String assignmentTitle) {
         Notification n = new Notification();
         n.setUserId(lecturerId);
         n.setMessage("Sinh viên " + studentName + " vừa nộp bài tập: " + assignmentTitle);
@@ -87,7 +88,7 @@ public class NotificationService {
         return saveAndBroadcast(n);
     }
 
-    public Notification sendNotification(Long userId, String message) {
+    public Notification sendNotification(String userId, String message) {
         Notification n = new Notification();
         n.setUserId(userId);
         n.setMessage(message);
@@ -104,7 +105,63 @@ public class NotificationService {
         mailSender.send(mail);
     }
 
-    public List<Notification> getUserNotifications(Long userId) {
+    public List<Notification> getUserNotifications(String userId) {
         return repo.findByUserId(userId);
+    }
+    public List<Notification> notifyHomeworkUpdatedToMultipleStudents(List<String> studentIds, String assignmentTitle) {
+        List<Notification> notifications = studentIds.stream().map(studentId -> {
+            Notification n = new Notification();
+            n.setUserId(studentId);
+            n.setMessage("Giảng viên đã cập nhật bài tập: " + assignmentTitle);
+            n.setType("HOMEWORK_UPDATED");
+            n.setCreatedAt(LocalDateTime.now());
+            return n;
+        }).collect(Collectors.toList());
+
+        List<Notification> savedList = repo.saveAll(notifications);
+
+        // Broadcast cho từng sinh viên qua Redis
+        savedList.forEach(n -> {
+            try {
+                redisTemplate.convertAndSend("notification-channel", objectMapper.writeValueAsString(n));
+            } catch (Exception e) {}
+        });
+
+        return savedList;
+    }
+    @Transactional
+    public Notification markAsRead(String notificationId) {
+        Notification notification = repo.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông báo: " + notificationId));
+
+        notification.setRead(true);
+        return repo.save(notification);
+    }
+
+    // 2. Đánh dấu tất cả thông báo của một user là đã đọc
+    @Transactional
+    public void markAllAsRead(String userId) {
+
+        List<Notification> unreadNotifications = repo.findByUserIdAndIsReadFalse(userId);
+
+        for (Notification notification : unreadNotifications) {
+            notification.setRead(true);
+        }
+
+        repo.saveAll(unreadNotifications);
+    }
+
+
+    @Transactional
+    public void deleteNotification(String notificationId) {
+        if (!repo.existsById(notificationId)) {
+            throw new RuntimeException("Thông báo không tồn tại để xóa");
+        }
+        repo.deleteById(notificationId);
+    }
+
+
+    public long countUnreadNotifications(String userId) {
+        return repo.countByUserIdAndIsReadFalse(userId);
     }
 }

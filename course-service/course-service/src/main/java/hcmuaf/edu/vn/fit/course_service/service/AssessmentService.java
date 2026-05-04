@@ -301,7 +301,7 @@ public class AssessmentService {
             assessmentCLORepository.deleteByAssessment_AssessmentId(assessmentId);
             submissionRepository.deleteByAssessmentId(assessmentId);
 
-
+            assessmentCommentRepository.deleteByAssessment_AssessmentId(assessmentId);
             assessmentRepository.delete(assessment);
 
         } catch (Exception e) {
