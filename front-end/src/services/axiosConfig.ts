@@ -1,6 +1,6 @@
 import axios, {type AxiosInstance, type InternalAxiosRequestConfig} from 'axios';
 const BASE = import.meta.env.VITE_API_BASE;
-console.log(import.meta.env.VITE_API_BASE);
+
 const attachToken = (config : InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
 
@@ -18,7 +18,7 @@ export const api = axios.create({
     },
 });
 
-export const noticationServiceApi = axios.create({
+export const notificationServiceApi = axios.create({
     baseURL: `${BASE}/notification-service`,
     headers: {
         'Content-Type': 'application/json',
@@ -36,5 +36,5 @@ export const courseApi = axios.create({
 
 api.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 courseApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
-noticationServiceApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
+notificationServiceApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 export default api;

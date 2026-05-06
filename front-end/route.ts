@@ -76,12 +76,9 @@ export const router = createBrowserRouter([
         path: "/course/:id/groups",
         Component: CourseGroups,
     },
+
     {
         path: "/course/:id/assignments/:assignmentId",
-        Component: AssignmentDetail,
-    },
-    {
-        path: "/course/:id/assignments/Post/:assignmentId",
         Component: AssignmentDetailPost,
     },
     {

@@ -1,6 +1,5 @@
 server:
-  port: 8761 # Cổng mặc định của Eureka Server
-
+  port: 8761
 spring:
   application:
     name: eureka-server

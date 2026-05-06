@@ -24,7 +24,7 @@ public class RedisNotificationSubscriber {
 
 
 
-            messagingTemplate.convertAndSend("/topic/user/" + notification.getUserId(), notification);
+            messagingTemplate.convertAndSend("/topic/user/" + notification.getOwnerId(), notification);
 
         } catch (Exception e) {
             e.printStackTrace();

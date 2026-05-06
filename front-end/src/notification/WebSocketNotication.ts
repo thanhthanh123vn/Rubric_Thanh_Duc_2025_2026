@@ -7,7 +7,7 @@ export const connectWebSocket = (
     onMessageReceived: (notification: any) => void
 ) => {
 
-    const socket = new SockJS(`${import.meta.env.VITE_WS_URL}/ws-notifications`);
+    const socket = new SockJS(`${import.meta.env.VITE_WS_URL_NOTICATION}/ws-notifications`);
     const stompClient = Stomp.over(socket);
 
 

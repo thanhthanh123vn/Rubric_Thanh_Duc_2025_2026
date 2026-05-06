@@ -11,7 +11,7 @@ import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 @Configuration
 public class RedisConfig {
 
-    // Cấu hình lắng nghe kênh "notification-channel"
+
     @Bean
     public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory,
                                                    MessageListenerAdapter listenerAdapter) {

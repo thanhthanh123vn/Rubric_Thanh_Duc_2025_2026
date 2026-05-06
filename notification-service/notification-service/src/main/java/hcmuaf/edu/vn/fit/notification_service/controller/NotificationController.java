@@ -15,14 +15,18 @@ public class NotificationController {
     @Autowired
     private NotificationService service;
 
+    // Gửi thông báo hệ thống chung
     @PostMapping
     public Notification create(
             @RequestParam String userId,
-            @RequestParam String message) {
+            @RequestParam String title,
+            @RequestParam String content) {
 
-        return service.sendNotification(userId, message);
+
+        return service.sendNotification(userId, title, content);
     }
 
+    // Gửi email
     @PostMapping("/email")
     public String sendEmail(
             @RequestParam String to,
@@ -33,32 +37,47 @@ public class NotificationController {
         return "Email sent!";
     }
 
+    // Lấy danh sách thông báo của user đang đăng nhập
     @GetMapping("/getNotification/me")
     public List<Notification> getUserNotifications(@RequestHeader("X-User-Id") String userId) {
         return service.getUserNotifications(userId);
     }
+
+    // Giao bài tập cho nhiều sinh viên
     @PostMapping("/homework-assigned-multiple")
     public ResponseEntity<?> notifyMultipleStudents(
             @RequestBody List<String> studentIds,
-            @RequestParam("assignmentTitle") String assignmentTitle
-    ) {
-
-        service.notifyHomeworkAssignedToMultipleStudents(studentIds, assignmentTitle);
-        return ResponseEntity.ok("Đã phát thông báo");
-    }
-
-    @PostMapping("/homework-updated-multiple")
-    public ResponseEntity<?> notifyHomeworkUpdated(
-            @RequestBody List<String> studentIds,
+            @RequestParam("senderId") String senderId,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("assignmentId") String assignmentId,
             @RequestParam("assignmentTitle") String assignmentTitle
     ) {
         try {
-            List<Notification> notifications = service.notifyHomeworkUpdatedToMultipleStudents(studentIds, assignmentTitle);
+            service.notifyHomeworkAssignedToMultipleStudents(senderId, courseId, studentIds, assignmentId, assignmentTitle);
+            return ResponseEntity.ok("Đã phát thông báo giao bài tập thành công");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi gửi thông báo: " + e.getMessage());
+        }
+    }
+
+    // Cập nhật bài tập cho nhiều sinh viên
+    @PostMapping("/homework-updated-multiple")
+    public ResponseEntity<?> notifyHomeworkUpdated(
+            @RequestBody List<String> studentIds,
+            @RequestParam("senderId") String senderId,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("assignmentId") String assignmentId,
+            @RequestParam("assignmentTitle") String assignmentTitle
+    ) {
+        try {
+            List<Notification> notifications = service.notifyHomeworkUpdatedToMultipleStudents(senderId, courseId, studentIds, assignmentId, assignmentTitle);
             return ResponseEntity.ok(notifications);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi khi gửi thông báo: " + e.getMessage());
         }
     }
+
+    // Đánh dấu 1 thông báo là đã đọc
     @PutMapping("/{notificationId}/read")
     public ResponseEntity<?> markAsRead(@PathVariable String notificationId) {
         try {
@@ -68,6 +87,8 @@ public class NotificationController {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
+
+    // Đánh dấu TẤT CẢ thông báo của user là đã đọc
     @PutMapping("/user/{userId}/read-all")
     public ResponseEntity<?> markAllAsRead(@PathVariable String userId) {
         try {
@@ -77,6 +98,8 @@ public class NotificationController {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
+
+    // Xóa thông báo
     @DeleteMapping("/{notificationId}")
     public ResponseEntity<?> deleteNotification(@PathVariable String notificationId) {
         try {
@@ -86,9 +109,20 @@ public class NotificationController {
             return ResponseEntity.badRequest().body("Lỗi khi xóa: " + e.getMessage());
         }
     }
+
+    // Đếm số thông báo chưa đọc
     @GetMapping("/user/{userId}/unread-count")
     public ResponseEntity<Long> getUnreadCount(@PathVariable String userId) {
         long count = service.countUnreadNotifications(userId);
         return ResponseEntity.ok(count);
+    }
+    @DeleteMapping("/resource/{linkedResourceId}")
+    public ResponseEntity<?> deleteNotificationsByResource(@PathVariable String linkedResourceId) {
+        try {
+            service.deleteNotificationsByLinkedResourceId(linkedResourceId);
+            return ResponseEntity.ok("Đã xóa các thông báo liên quan");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi xóa thông báo: " + e.getMessage());
+        }
     }
 }

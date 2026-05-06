@@ -1,85 +1,44 @@
 package hcmuaf.edu.vn.fit.notification_service.entity;
 
+import hcmuaf.edu.vn.fit.notification_service.entity.enums.NotificationType;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
-@Table(name = "notifications") // Nên khai báo rõ tên bảng
-public class Notification {
+@Table(name = "notifications")
+@Getter
+@Setter
+public class Notification extends AbstractEntity<Notification> {
 
-    @Id
+    @Column(name="sender_id")
+    private String senderId;
 
+    @Column(name="owner_id")
+    private String ownerId;
 
-    private String id;
+    @Column(name="course_id")
+    private String courseId;
 
-    private String userId;
-    private String message;
-    private String type;
+    @Column(name="title")
+    private String title;
 
+    @Column(name="content", columnDefinition = "TEXT")
+    private String content;
 
-    @Column(name = "is_read", columnDefinition = "boolean default false")
+    @Column(name="is_read")
     private boolean isRead = false;
-    private LocalDateTime createdAt;
 
-    public Notification() {
-    }
-
-
-    @PrePersist
-    protected void onCreate() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
-
-    // --- GETTERS VÀ SETTERS ---
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    @Column(name="notification_type", length = 30)
+    @Enumerated(EnumType.STRING)
+    private NotificationType notificationType;
 
 
-    public boolean isRead() {
-        return isRead;
-    }
+    @Column(name="linked_resource_id")
+    private String linkedResourceId;
 
-    public void setRead(boolean read) {
-        isRead = read;
-    }
+
+    @Column(name="reference_url")
+    private String referenceUrl;
+
 }

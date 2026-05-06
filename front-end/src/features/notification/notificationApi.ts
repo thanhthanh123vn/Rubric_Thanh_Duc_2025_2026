@@ -1,13 +1,16 @@
-import noticationServiceApi from "@/services/axiosConfig";
+import {notificationServiceApi} from "@/services/axiosConfig";
 
 export const notificationApi = {
 
     getNotifications: () => {
-        return noticationServiceApi.get(`/getNotification/me}`);
+        return notificationServiceApi.get(`/getNotification/me`);
     },
 
 
     markAsRead: (notificationId: string) => {
-        return noticationServiceApi.put(`/${notificationId}/read`);
+        return notificationServiceApi.put(`/${notificationId}/read`);
+    },
+    markAllAsRead: (userId: string) => {
+        return notificationServiceApi.put(`/user/${userId}/read-all`);
     }
 };

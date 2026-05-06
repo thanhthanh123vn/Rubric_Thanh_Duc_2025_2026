@@ -1,9 +1,8 @@
 package hcmuaf.edu.vn.fit.course_service.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 
@@ -11,15 +10,24 @@ import java.util.List;
 public interface NotificationClient {
 
 
-    @PostMapping("/api/v1/notifications/homework-assigned-multiple")
+    @PostMapping("/api/v1/notification-service/homework-assigned-multiple")
     void notifyHomeworkAssignedToMultipleStudents(
             @RequestBody List<String> studentIds,
+            @RequestParam("senderId") String senderId,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("assignmentId") String assignmentId,
             @RequestParam("assignmentTitle") String assignmentTitle
     );
 
-    @PostMapping("/api/v1/notifications/homework-updated-multiple")
+    @PostMapping("/api/v1/notification-service/homework-updated-multiple")
     void notifyHomeworkUpdatedToMultipleStudents(
-            @RequestBody List<Long> studentIds,
+            @RequestBody List<String> studentIds,
+            @RequestParam("senderId") String senderId,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("assignmentId") String assignmentId,
             @RequestParam("assignmentTitle") String assignmentTitle
     );
+
+    @DeleteMapping("/api/v1/notification-service/resource/{linkedResourceId}")
+    void deleteNotificationsByLinkedResource(@PathVariable("linkedResourceId") String linkedResourceId);
 }
