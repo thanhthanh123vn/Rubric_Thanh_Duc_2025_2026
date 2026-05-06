@@ -49,7 +49,7 @@ export default function CourseManagement() {
         const fetchCourses = async () => {
             setIsLoading(true);
             try {
-                // Đảm bảo backend trả về dạng Page<Course>
+
                 const data = await courseService.getAllCourses(currentPage, 10, searchQuery);
                 setCourses(data.content || []);
                 setTotalPages(data.totalPages || 0);
