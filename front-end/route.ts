@@ -11,6 +11,7 @@ import CourseDetail from "@/features/course/student/components/CourseDetail";
 import CourseStudentList from "@/features/course/student/components/CourseStudentList";
 import CourseOBE from "@/features/course/student/components/CourseOBE";
 import CourseAssignments from "@/features/course/student/components/CourseAssignments";
+import CourseEvaluations from "@/features/course/student/components/CourseEvaluations";
 import CourseGroups from "@/features/course/student/components/CourseGroups";
 import AssignmentDetail from "@/features/course/student/components/AssignmentDetail";
 import CreateGroup from "@/features/course/student/components/CreateGroup";
@@ -70,6 +71,10 @@ export const router = createBrowserRouter([
     {
         path: "/course/:id/assignments",
         Component: CourseAssignments,
+    },
+    {
+        path: "/course/:id/evaluations",
+        Component: CourseEvaluations,
     },
     {
         path: "/course/:id/groups",
