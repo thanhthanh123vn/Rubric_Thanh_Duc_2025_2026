@@ -3,10 +3,11 @@ import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import { useParams } from "react-router-dom";
 import { courseService } from "@/features/course/courseApi";
+import {assessmentService} from "@/pages/admin/api/assessmentService.ts";
 
 const AssignmentDetail = () => {
-    const { assignmentId } = useParams();
 
+    const { id: offeringId, assignmentId } = useParams<{ id: string; assignmentId: string }>();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -14,14 +15,16 @@ const AssignmentDetail = () => {
     const [link, setLink] = useState("");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    // ================= FETCH =================
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 if (!assignmentId) return;
 
-                const res = await courseService.getAssessmentDetail(assignmentId);
-                setData(res);
+                const data = await assessmentService.getAssessmentsByOffering(offeringId!);
+                const detail = data.find((a: any) => a.assessmentId === assignmentId);
+
+                setData(detail);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -30,9 +33,12 @@ const AssignmentDetail = () => {
         };
 
         fetchData();
-    }, [assignmentId]);
+    }, [assignmentId,offeringId]);
 
-    // ================= CLEANUP =================
+
+
+
+
     useEffect(() => {
         return () => {
             if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -52,7 +58,7 @@ const AssignmentDetail = () => {
             setFile(selectedFile);
             setPreviewUrl(url);
 
-            // allow re-select same file
+
             e.target.value = "";
         }
     };

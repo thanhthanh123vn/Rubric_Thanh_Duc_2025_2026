@@ -38,6 +38,12 @@ spring:
             - Path=/api/v1/rubrics/**
           filters:
             - name: JwtAuthenticationFilter
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/api/v1/notification-service/**
+          filters:
+            - name: JwtAuthenticationFilter
 
 
 

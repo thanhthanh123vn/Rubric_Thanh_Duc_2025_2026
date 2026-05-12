@@ -22,7 +22,8 @@ public class AssessmentCLO {
     @JoinColumn(name = "assessment_id")
     private Assessment assessment;
 
-
+    @Column(name = "clo_weight")
+    private Double cloWeight;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "clo_id")
     private CourseCLO courseCLO;

@@ -18,10 +18,10 @@ public class Comment {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id",nullable = false)
+    @JoinColumn(name = "post_id")
     private Topic topic;
 
-    // Chỉ lưu ID tham chiếu sang User Service (người bình luận)
+
     @Column(name = "user_id", length = 50)
     private String userId;
 

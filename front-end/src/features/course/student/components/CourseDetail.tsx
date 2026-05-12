@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams,useNavigate } from "react-router-dom";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import {courseService}  from "../../courseApi.ts";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
+import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
+import SockJS from "sockjs-client";
+import { Stomp } from "@stomp/stompjs";
+import { toast } from "sonner";
 const getInitial = (name?: string) => {
     if (!name) return "U";
     const words = name.trim().split(' ');
@@ -93,6 +97,44 @@ const UpcomingBox = () => {
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-6">
             <p className="text-gray-800 font-medium">Sắp đến hạn</p>
             <p className="text-sm text-gray-500 mt-1">Tuyệt vời, không có bài tập nào sắp đến hạn!</p>
+        </div>
+    );
+};
+// Thêm lecturerName vào danh sách props
+const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offeringId, lecturerName }: any) => {
+    const navigate = useNavigate();
+    const dateToFormat = createdAt || new Date().toISOString();
+    const formattedDate = new Date(dateToFormat).toLocaleDateString("vi-VN", {
+        day: "numeric", month: "long"
+    });
+
+    const formattedEndTime = endTime
+        ? new Date(endTime).toLocaleDateString("vi-VN", {
+            day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit"
+        })
+        : "Không có hạn";
+
+    return (
+        <div
+            onClick={() => navigate(`/course/${offeringId}/assignments/${assessmentId}`)}
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4 hover:shadow-md transition cursor-pointer flex items-center p-4 md:p-5 gap-4"
+        >
+            <div className="w-10 h-10 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                </svg>
+            </div>
+            <div className="flex-1">
+                {/* HIỂN THỊ TÊN GIẢNG VIÊN Ở ĐÂY */}
+                <p className="font-semibold text-gray-900 text-sm md:text-base">
+                    {lecturerName || "Giảng viên"} đã đăng một bài tập mới: {assessmentName}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                    <span>{formattedDate}</span>
+                    <span>•</span>
+                    <span className="font-medium text-emerald-600">Hạn nộp: {formattedEndTime}</span>
+                </div>
+            </div>
         </div>
     );
 };
@@ -288,7 +330,7 @@ const Post = ({ postId, username, fullName,avatarUrl, createdAt, content, commen
     );
 };
 const ClassroomContent = () => {
-    const { user:reduxUser } = useAppSelector((state) => state.auth);
+    const { user: reduxUser } = useAppSelector((state) => state.auth);
     let user = reduxUser;
     if (!user) {
         const localUser = localStorage.getItem("user");
@@ -297,25 +339,40 @@ const ClassroomContent = () => {
         }
     }
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
     const [refreshKey, setRefreshKey] = useState(0);
     const { id } = useParams<{ id: string }>();
     const offeringId = id || "";
 
     const [course, setCourse] = useState<any>(null);
-    const [posts, setPosts] = useState<any[]>([]);
+    const [feed, setFeed] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         if (!offeringId) return;
         try {
             setLoading(true);
-            const [courseData, postsData] = await Promise.all([
+            const [courseData, postsData, assignmentsData] = await Promise.all([
                 courseService.getCourseById(offeringId),
-                courseService.getTopicsByOfferingId(offeringId)
+                courseService.getTopicsByOfferingId(offeringId),
+                assessmentService.getAssessmentsByOffering(offeringId)
             ]);
             setCourse(courseData);
-            setPosts(postsData);
+
+            const formattedAssignments = (assignmentsData || []).map((a: any) => ({
+                ...a,
+                feedType: 'ASSIGNMENT',
+                sortTime: new Date(a.createdAt || a.endTime || new Date()).getTime()
+            }));
+
+            const formattedPosts = (postsData || []).map((p: any) => ({
+                ...p,
+                feedType: 'POST',
+                sortTime: new Date(p.createdAt).getTime()
+            }));
+
+            const combinedFeed = [...formattedAssignments, ...formattedPosts].sort((a, b) => b.sortTime - a.sortTime);
+
+            setFeed(combinedFeed);
         } catch (error) {
             console.error("Lỗi tải dữ liệu trang:", error);
         } finally {
@@ -325,7 +382,49 @@ const ClassroomContent = () => {
 
     useEffect(() => {
         fetchData();
-    }, [offeringId]);
+    }, [offeringId, refreshKey]);
+
+
+
+
+    useEffect(() => {
+        if (!user || !user.userId) return;
+
+
+        const socket = new SockJS(import.meta.env.VITE_WS_URL + '/ws-notifications');
+        const stompClient = Stomp.over(socket);
+
+
+        stompClient.debug = () => {};
+
+        stompClient.connect({}, () => {
+
+            stompClient.subscribe(`/topic/user/${user.userId}`, (payload) => {
+                const notification = JSON.parse(payload.body);
+
+
+                if (toast) {
+                    toast.info(notification.message);
+                } else {
+                    alert(notification.message);
+                }
+
+
+                fetchData();
+            });
+        }, (error: any) => {
+            console.error("Lỗi kết nối WebSocket:", error);
+        });
+
+
+        return () => {
+            if (stompClient.connected) {
+                stompClient.disconnect(() => {
+                    console.log("Đã ngắt kết nối WebSocket");
+                });
+            }
+        };
+    }, [user, offeringId]);
 
     if (loading && !course) {
         return (
@@ -335,8 +434,10 @@ const ClassroomContent = () => {
             </div>
         );
     }
+
     return (
         <div className="bg-gray-50 min-h-screen flex flex-col">
+
             <Header
                 onMenuClick={() => setIsMobileMenuOpen(true)}
                 onEnrollSuccess={() => setRefreshKey(prev => prev + 1)}
@@ -355,22 +456,30 @@ const ClassroomContent = () => {
                             description={`Giảng viên: ${course?.lecturerName} - Mã lớp: ${offeringId}`}
                         />
 
-
-                        <CreatePostBox onPostSuccess={fetchData}  fullName={user.fullName} avatarUrl={user.avatarUrl} />
+                        <CreatePostBox onPostSuccess={fetchData} fullName={user.fullName} avatarUrl={user.avatarUrl} />
 
                         <div className="hidden md:block">
                             <UpcomingBox />
                         </div>
 
                         <div className="space-y-4">
-                            {posts.length === 0 ? (
+                            {feed.length === 0 ? (
                                 <div className="text-center text-gray-500 mt-8 text-sm md:text-base">
-                                    Chưa có thông báo nào.
+                                    Chưa có thông báo và bài tập nào.
                                 </div>
                             ) : (
-                                posts.map((post: any) => (
-                                    <Post key={post.postId} {...post} avatarUrlMe={user.avatarUrl} />
-                                ))
+                                feed.map((item: any, idx: number) => {
+                                    if (item.feedType === 'ASSIGNMENT') {
+                                        return (
+                                            <AssignmentPost
+                                                key={`assign-${item.assessmentId || idx}`}
+                                                {...item}
+                                                lecturerName={course?.lecturerName}
+                                            />
+                                        );
+                                    }
+                                    return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user.avatarUrl} />;
+                                })
                             )}
                         </div>
                     </div>
@@ -379,5 +488,7 @@ const ClassroomContent = () => {
         </div>
     );
 };
+
+
 
 export default ClassroomContent;

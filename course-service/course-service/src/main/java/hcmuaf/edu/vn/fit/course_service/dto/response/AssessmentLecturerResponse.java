@@ -13,6 +13,7 @@ import java.sql.Timestamp;
 public class AssessmentLecturerResponse {
     private String assessmentId;
     private String assessmentName;
+    private String lecturerName;
     private String description;
     private String assessmentType;
     private Float weight;

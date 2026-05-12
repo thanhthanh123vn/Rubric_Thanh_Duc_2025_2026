@@ -45,5 +45,9 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
             "AND e.status = 'ACTIVE' COLLATE utf8mb4_unicode_520_ci",
             nativeQuery = true)
     List<StudentCourseProjection> findStudentsByOfferingId(@Param("offeringId") String offeringId);
-
+    @Query(value = "SELECT e.student_id FROM enrollments e " +
+            "WHERE e.offering_id = :offeringId COLLATE utf8mb4_unicode_520_ci " +
+            "AND e.status = 'ACTIVE' COLLATE utf8mb4_unicode_520_ci",
+            nativeQuery = true)
+    List<String> findStudentIdsByOfferingId(@Param("offeringId") String offeringId);
 }

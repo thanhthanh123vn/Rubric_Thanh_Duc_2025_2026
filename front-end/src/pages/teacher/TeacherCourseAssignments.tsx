@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
 import { toast } from "sonner";
+import {Stomp} from "@stomp/stompjs";
+import SockJS from "sockjs-client";
+import {useAppSelector} from "@/hooks/useAppSelector.ts";
 export default function TeacherCourseAssignments() {
     const { id } = useParams<{ id: string }>();
     const offeringId = id;
@@ -32,7 +35,14 @@ export default function TeacherCourseAssignments() {
 
     const listClos = [ { id: "CLO1", code: "CLO1" }, { id: "CLO2", code: "CLO2" } ];
     const listRubrics = [ { id: "R001", name: "Rubric Báo cáo" }, { id: "R002", name: "Rubric Quiz" } ];
-
+    const { user:reduxUser } = useAppSelector((state) => state.auth);
+    let user = reduxUser;
+    if (!user) {
+        const localUser = localStorage.getItem("user");
+        if (localUser) {
+            user = JSON.parse(localUser);
+        }
+    }
     const fetchAssignments = async () => {
         if (!offeringId) return;
         try {

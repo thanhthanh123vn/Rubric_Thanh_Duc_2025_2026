@@ -5,6 +5,7 @@ import {useLocation, useNavigate} from "react-router-dom";
 import {enrollCourse} from "@/features/course/courseApi.ts";
 import {toast} from "sonner";
 import sinhVienService from "@/pages/admin/api/sinhVienService.ts";
+import {NotificationBell} from "@/components/home/NotificationBell.tsx";
 
 interface UserInfo {
     studentId: string;
@@ -157,8 +158,8 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
 
                 {/* Nút Thông báo (Chuông) */}
                 <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors mr-1">
-                    <Bell size={22}/>
-                    {/* Dấu chấm đỏ báo có thông báo mới */}
+                    <NotificationBell />
+
                     <span
                         className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 </button>
