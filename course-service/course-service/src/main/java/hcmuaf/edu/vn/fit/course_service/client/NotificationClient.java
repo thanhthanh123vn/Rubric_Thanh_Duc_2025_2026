@@ -30,4 +30,15 @@ public interface NotificationClient {
 
     @DeleteMapping("/api/v1/notification-service/resource/{linkedResourceId}")
     void deleteNotificationsByLinkedResource(@PathVariable("linkedResourceId") String linkedResourceId);
+
+
+    @PostMapping("/api/v1/notification-service/homework-submitted")
+    void notifyHomeworkSubmitted(
+            @RequestParam("studentId") String studentId,
+            @RequestParam("lecturerId") String lecturerId,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("submissionId") String submissionId,
+            @RequestParam("studentName") String studentName,
+            @RequestParam("assignmentTitle") String assignmentTitle
+    );
 }

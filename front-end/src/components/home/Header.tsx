@@ -160,8 +160,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                 <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors mr-1">
                     <NotificationBell />
 
-                    <span
-                        className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+
                 </button>
 
                 {/* Modal Tham gia lớp học (Không làm mờ) */}

@@ -96,4 +96,83 @@ public class GroupService {
             throw new RuntimeException("User không hợp lệ");
         }
     }
+    @Transactional
+    public GroupResponse addMember(String groupId, String newMemberId, String requesterId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhóm"));
+        String conversationId = group.getConversation().getId();
+
+        Participant requester = participantRepository.findByConversation_IdAndUserId(conversationId, requesterId)
+                .orElseThrow(() -> new RuntimeException("Bạn không thuộc nhóm này"));
+
+        if (requester.getParticipantRole() != ParticipantRole.ADMIN) {
+            throw new RuntimeException("Chỉ trưởng nhóm mới được thêm thành viên");
+        }
+
+        if (participantRepository.findByConversation_IdAndUserId(conversationId, newMemberId).isPresent()) {
+            throw new RuntimeException("Thành viên này đã có trong nhóm");
+        }
+
+        validateUser(newMemberId);
+
+        Participant newParticipant = new Participant();
+        newParticipant.setConversation(group.getConversation());
+        newParticipant.setUserId(newMemberId);
+        newParticipant.setParticipantRole(ParticipantRole.MEMBER);
+        participantRepository.save(newParticipant);
+
+
+        group.getConversation().getParticipants().add(newParticipant);
+
+
+        return groupMapper.toGroupResponse(group);
+    }
+
+    @Transactional
+    public GroupResponse removeMember(String groupId, String memberIdToRemove, String requesterId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhóm"));
+        String conversationId = group.getConversation().getId();
+
+        Participant requester = participantRepository.findByConversation_IdAndUserId(conversationId, requesterId)
+                .orElseThrow(() -> new RuntimeException("Bạn không thuộc nhóm này"));
+
+        if (requester.getParticipantRole() != ParticipantRole.ADMIN && !requesterId.equals(memberIdToRemove)) {
+            throw new RuntimeException("Bạn không có quyền xóa thành viên này");
+        }
+
+        Participant target = participantRepository.findByConversation_IdAndUserId(conversationId, memberIdToRemove)
+                .orElseThrow(() -> new RuntimeException("Thành viên không tồn tại trong nhóm"));
+
+        participantRepository.delete(target);
+
+
+        group.getConversation().getParticipants().remove(target);
+
+
+        return groupMapper.toGroupResponse(group);
+    }
+
+    @Transactional
+    public GroupResponse changeMemberRole(String groupId, String targetMemberId, ParticipantRole newRole, String requesterId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy nhóm"));
+        String conversationId = group.getConversation().getId();
+
+        Participant requester = participantRepository.findByConversation_IdAndUserId(conversationId, requesterId)
+                .orElseThrow(() -> new RuntimeException("Bạn không thuộc nhóm này"));
+
+        if (requester.getParticipantRole() != ParticipantRole.ADMIN) {
+            throw new RuntimeException("Chỉ trưởng nhóm mới được thay đổi quyền");
+        }
+
+        Participant target = participantRepository.findByConversation_IdAndUserId(conversationId, targetMemberId)
+                .orElseThrow(() -> new RuntimeException("Thành viên không tồn tại trong nhóm"));
+
+        target.setParticipantRole(newRole);
+        participantRepository.save(target);
+
+
+        return groupMapper.toGroupResponse(group);
+    }
 }

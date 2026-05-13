@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.notification_service.controller;
 
+import hcmuaf.edu.vn.fit.notification_service.dto.response.NotificationResponse;
 import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
 import hcmuaf.edu.vn.fit.notification_service.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,10 +38,10 @@ public class NotificationController {
         return "Email sent!";
     }
 
-    // Lấy danh sách thông báo của user đang đăng nhập
+
     @GetMapping("/getNotification/me")
-    public List<Notification> getUserNotifications(@RequestHeader("X-User-Id") String userId) {
-        return service.getUserNotifications(userId);
+    public List<NotificationResponse> getUserNotifications(@RequestHeader("X-User-Id") String userId) {
+        return service.getUserNotifications(userId); // Gọi hàm đã được update ở Bước 2
     }
 
     // Giao bài tập cho nhiều sinh viên
@@ -125,4 +126,23 @@ public class NotificationController {
             return ResponseEntity.badRequest().body("Lỗi khi xóa thông báo: " + e.getMessage());
         }
     }
+    // Sinh viên nộp bài
+    @PostMapping("/homework-submitted")
+    public ResponseEntity<?> notifyHomeworkSubmitted(
+            @RequestParam("studentId") String studentId,
+            @RequestParam("lecturerId") String lecturerId,
+            @RequestParam("courseId") String courseId,
+            @RequestParam("submissionId") String submissionId,
+            @RequestParam("studentName") String studentName,
+            @RequestParam("assignmentTitle") String assignmentTitle
+    ) {
+        try {
+            Notification notif = service.notifyHomeworkSubmitted(
+                    studentId, lecturerId, courseId, submissionId, studentName, assignmentTitle);
+            return ResponseEntity.ok(notif);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi gửi thông báo: " + e.getMessage());
+        }
+    }
+
 }

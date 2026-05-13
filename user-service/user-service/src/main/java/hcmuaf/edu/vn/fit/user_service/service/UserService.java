@@ -63,7 +63,11 @@ public class UserService {
 
         return users.map(userMapper::toUserResponse);
     }
+    public String findUserIdByLecturerId(String lecturerId) {
 
+        return lecturerRepository.findUserIdById(lecturerId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy User ID cho Giảng viên có mã: " + lecturerId));
+    }
     public UserResponse getUserById(String id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
