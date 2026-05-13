@@ -19,6 +19,16 @@ export const courseService = {
         });
         return response.data;
     },
+    unenrollCourse: async (studentId: string, offeringId: string) => {
+
+        const response = await courseApi.delete('/courses/enroll', {
+            params: {
+                studentId: studentId,
+                offeringId: offeringId
+            }
+        });
+        return response.data;
+    },
     getCourseById: async (offeringId: string) => {
 
         const response = await courseApi.get(`/courses/offering/${offeringId}/course`);
