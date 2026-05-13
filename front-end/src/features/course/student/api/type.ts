@@ -35,3 +35,21 @@ export interface GroupResponse {
     conversationId: string;
     participants: ParticipantResponse[];
 }
+export interface GroupTaskResponse {
+    id: string;
+    title: string;
+    description: string;
+    assigneeId: string;
+    assignerId: string;
+    status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+    deadline: string;
+    createdAt: string;
+}
+
+export interface CreateTaskRequest {
+    groupId: string;
+    title: string;
+    description: string;
+    assigneeId: string;
+    deadline?: string;
+}

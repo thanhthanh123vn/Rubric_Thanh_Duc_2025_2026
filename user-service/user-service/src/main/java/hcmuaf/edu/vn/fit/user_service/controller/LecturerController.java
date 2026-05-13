@@ -2,6 +2,7 @@ package hcmuaf.edu.vn.fit.user_service.controller;
 
 import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.ProfileResponse;
+import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
 import hcmuaf.edu.vn.fit.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ public class LecturerController {
     private final UserService userService;
 
 
+
     @GetMapping("/lecturers")
     public ResponseEntity<Page<LecturerResponse>> getAllLecturers(
             @RequestParam(required = false) String keyword,
@@ -31,7 +33,12 @@ public class LecturerController {
         Page<LecturerResponse> response = userService.getAllLecturers(keyword, pageable);
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/{lecturerId}/user-id")
+    public ResponseEntity<String> getUserIdByLecturerId(@PathVariable String lecturerId) {
 
+        String userId = userService.findUserIdByLecturerId(lecturerId);
+        return ResponseEntity.ok(userId);
+    }
 
     @GetMapping("/lecturers/{lecturerId}")
     public ResponseEntity<LecturerResponse> getLecturerById(@PathVariable String lecturerId) {

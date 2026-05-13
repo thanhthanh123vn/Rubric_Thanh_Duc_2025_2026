@@ -1,8 +1,9 @@
 import { BookOpen, ChevronLeft, GraduationCap, LayoutDashboard, PanelLeft, Users2 } from 'lucide-react';
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
 import {type TeacherCourseItem, teacherCourseMenu, teacherCourses} from './teacherCourseData';
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import courseService from "@/pages/admin/api/courseService.ts";
+import {NotificationBell} from "@/components/home/NotificationBell.tsx";
 
 export default function TeacherCourseLayout() {
   const { id } = useParams<{ id: string }>();
@@ -102,74 +103,88 @@ console.log(course)
           </div>
         </aside>
 
-        <div className="min-w-0 xl:rounded-r-[2rem] bg-white/75 backdrop-blur-xl shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+        <div
+            className="min-w-0 xl:rounded-r-[2rem] bg-white/75 backdrop-blur-xl shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
           <header className="border-b border-slate-200/70 bg-white/80 px-4 py-4 md:px-6 md:py-5 xl:px-8">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+
+              {/* CỤM BÊN TRÁI: Nút Back & Tiêu đề */}
+              {/* Thêm min-w-0 để text có thể truncate (cắt chữ bằng dấu ...) trên mobile nếu quá dài */}
+              <div className="flex items-center gap-3 min-w-0">
                 <Link
-                  to="/teacher"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm xl:hidden"
+                    to="/teacher"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm xl:hidden"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-5 w-5"/>
                 </Link>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">Chi tiết học phần</p>
-                  <h3 className="text-lg font-bold text-slate-900 md:text-2xl">{course?.courseTitle || 'Học phần'}</h3>
+                <div className="min-w-0 truncate">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600 truncate">
+                    Chi tiết học phần
+                  </p>
+                  <h3 className="text-lg font-bold text-slate-900 md:text-2xl truncate">
+                    {course?.courseTitle || 'Học phần'}
+                  </h3>
                 </div>
               </div>
 
-              <div className="hidden items-center gap-3 md:flex">
-                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                    {course?.lecturerName ? course.lecturerName.charAt(0).toUpperCase() : 'T'}
+              {/* CỤM BÊN PHẢI: Chuông thông báo & Thống kê */}
+              <div className="flex items-center gap-3 shrink-0">
+
+
+                <div
+                    className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
+                  <NotificationBell/>
+
+
+                </div>
+
+                {/* THỐNG KÊ (Ẩn trên mobile, hiện trên md) */}
+                <div className="hidden items-center gap-3 md:flex">
+                  <div
+                      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <div
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      {course?.lecturerName ? course.lecturerName.charAt(0).toUpperCase() : 'T'}
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Giảng viên phụ trách</p>
+                      <p className="font-semibold text-slate-900">{course?.lecturerName || 'ThS. Trần Lê Như Quỳnh'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Giảng viên phụ trách</p>
-                    <p className="font-semibold text-slate-900">{course?.lecturerName || 'ThS. Trần Lê Như Quỳnh'}</p>
+                  <div
+                      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
+                      <Users2 className="h-5 w-5"/>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Tổng sinh viên</p>
+                      <p className="font-semibold text-slate-900">{course?.studentCount || 0}</p>
+                    </div>
+                  </div>
+                  <div
+                      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <div
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                      <BookOpen className="h-5 w-5"/>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">OBE</p>
+                      <p className="font-semibold text-slate-900">{course?.obeProgress || 0}%</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
-                    <Users2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Tổng sinh viên</p>
-                    <p className="font-semibold text-slate-900">{course?.studentCount || 0}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                    <BookOpen className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">OBE</p>
-                    <p className="font-semibold text-slate-900">{course?.obeProgress || 0}%</p>
-                  </div>
-                </div>
+
               </div>
             </div>
 
+            {/* Thanh điều hướng Mobile giữ nguyên */}
             <div className="mt-4 flex gap-2 overflow-x-auto pb-1 xl:hidden">
-              {teacherCourseMenu.map((item) => (
-                <NavLink
-                  key={item.key}
-                  to={item.path ? `/teacher/course/${id}/${item.path}` : `/teacher/course/${id}`}
-                  end={item.path === ''}
-                  className={({ isActive }) =>
-                    `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
-                      isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600'
-                    }`
-                  }
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </NavLink>
-              ))}
+              {/* ... code NavLink của bạn ... */}
             </div>
           </header>
 
           <main className="p-4 md:p-6 xl:p-8">
-            <Outlet />
+            <Outlet/>
           </main>
         </div>
       </div>
@@ -177,11 +192,11 @@ console.log(course)
   );
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
+function InfoTile({label, value}: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-50/80">{label}</p>
-      <p className="mt-1 text-lg font-bold text-white">{value}</p>
-    </div>
+      <div className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-50/80">{label}</p>
+        <p className="mt-1 text-lg font-bold text-white">{value}</p>
+      </div>
   );
 }

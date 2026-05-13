@@ -131,7 +131,7 @@ public class AssessmentService {
         }
     }
 
-    public Object submitAssignment(
+    public SubmissionEntity submitAssignment(
             String assessmentId,
             String studentId,
             MultipartFile file,
@@ -435,4 +435,5 @@ public class AssessmentService {
 
         submissionRepository.delete(submission);
     }
+
 }

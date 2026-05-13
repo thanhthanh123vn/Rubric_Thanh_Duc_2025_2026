@@ -17,4 +17,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
 
     @Transactional
     void deleteByLinkedResourceId(String linkedResourceId);
+
+    List<Notification> findByOwnerIdOrderByCreatedAtDesc(String userId);
 }

@@ -1,12 +1,11 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.client.NotificationClient;
+import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentDetailResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentLecturerResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentReponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.CommentResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Assessment;
+import hcmuaf.edu.vn.fit.course_service.entity.SubmissionEntity;
 import hcmuaf.edu.vn.fit.course_service.repository.AssessmentRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentService;
@@ -29,6 +28,7 @@ public class AssessmentController {
     private AssessmentService assessmentService;
     private final EnrollmentRepository enrollmentRepository;
     private final NotificationClient notificationClient;
+    private final UserClient userClient  ;
     @Autowired
     private AssessmentRepository assessmentRepository;
 
@@ -49,13 +49,49 @@ public class AssessmentController {
     }
 
     @PostMapping("/assessments/{assessmentId}/submit")
-    public Object submitAssignment(
+    public ResponseEntity<?> submitAssignment(
             @RequestHeader("X-User-Id") String studentId,
             @PathVariable String assessmentId,
             @RequestParam(required = false) MultipartFile file,
             @RequestParam(required = false) String link
     ){
-        return assessmentService.submitAssignment(assessmentId,studentId,file,link);
+        try {
+
+            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link);
+
+
+            Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
+
+            if (assessment != null && assessment.getCourseOffering() != null) {
+
+                String courseId = assessment.getCourseOffering().getOfferingId();
+
+
+                String lecturerId = assessment.getCourseOffering().getLecturerId();
+
+                LecturerResponse lecturerResponse = userClient.getLecturerByUserId(lecturerId);
+                String assignmentTitle = assessment.getAssessmentName();
+
+
+                String studentName = "Sinh viên " + studentId;
+
+
+                String submissionId = submission.getId();
+
+
+                try {
+                    notificationClient.notifyHomeworkSubmitted(
+                            studentId, lecturerResponse.getUserId(), courseId, submissionId, studentName, assignmentTitle
+                    );
+                } catch (Exception e) {
+                    System.err.println("Lỗi khi gửi thông báo nộp bài: " + e.getMessage());
+                }
+            }
+
+            return ResponseEntity.ok(submission);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi nộp bài: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/offerings/{offeringId}/assessments")
