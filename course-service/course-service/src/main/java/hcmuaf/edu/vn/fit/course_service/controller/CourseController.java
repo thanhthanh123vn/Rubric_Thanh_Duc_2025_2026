@@ -56,11 +56,27 @@ public class CourseController {
         return ResponseEntity.ok("Đã xóa khóa học thành công!");
     }
     @PostMapping("/enroll")
-    public Object enroll(
-            @RequestHeader("X-User-Id") String studentId,
+    public ResponseEntity<?> enroll(
+            @RequestParam(required = false) String studentId,
+
             @RequestParam String offeringId) {
         try {
-            return service.enroll(studentId, offeringId);
+
+            String targetStudentId = (studentId != null && !studentId.trim().isEmpty()) ? studentId : "";
+            
+            service.enroll(targetStudentId, offeringId);
+            return ResponseEntity.ok("Thêm sinh viên thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @DeleteMapping("/enroll")
+    public ResponseEntity<?> unenroll(
+            @RequestParam String studentId,
+            @RequestParam String offeringId) {
+        try {
+            service.unenroll(studentId, offeringId);
+            return ResponseEntity.ok("Xóa sinh viên khỏi lớp học phần thành công!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

@@ -158,7 +158,14 @@ public class CourseService {
 
         return enrollmentRepo.save(newEnrollment);
     }
+    public void unenroll(String studentId, String offeringId) {
 
+        Enrollment existing = enrollmentRepo.findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId)
+                .orElseThrow(() -> new IllegalArgumentException("Sinh viên chưa đăng ký hoặc không tồn tại trong lớp học phần này!"));
+
+
+        enrollmentRepo.delete(existing);
+    }
     public List<StudentCourseResponse> getStudentsByOfferingId(String offeringId) {
 
         List<Enrollment> enrollments = enrollmentRepo.findByCourseOffering_OfferingId(offeringId);
