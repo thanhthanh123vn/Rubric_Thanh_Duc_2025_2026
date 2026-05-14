@@ -24,7 +24,12 @@ export const notificationServiceApi = axios.create({
         'Content-Type': 'application/json',
     },
 });
-
+export const rubricServiceApi = axios.create({
+    baseURL: `${BASE}/rubrics-service`,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
 
 export const courseApi = axios.create({
     baseURL: `${BASE}/course-service`,
@@ -36,5 +41,6 @@ export const courseApi = axios.create({
 
 api.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 courseApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
+rubricServiceApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 notificationServiceApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 export default api;

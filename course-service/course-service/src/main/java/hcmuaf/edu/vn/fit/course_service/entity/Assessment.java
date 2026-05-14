@@ -2,6 +2,7 @@ package hcmuaf.edu.vn.fit.course_service.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.AssessmentType;
 import jakarta.persistence.*;
 import lombok.*;
 import java.sql.Timestamp;

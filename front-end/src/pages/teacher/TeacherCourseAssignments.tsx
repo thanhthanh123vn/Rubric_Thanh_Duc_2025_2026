@@ -6,17 +6,18 @@ import { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
 import { toast } from "sonner";
-import {Stomp} from "@stomp/stompjs";
+import { Stomp } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
-import {useAppSelector} from "@/hooks/useAppSelector.ts";
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
+import {getAllRubrics, type RubricDTO} from "@/pages/mainlecturer/api/RubricAPI.ts";
+
 export default function TeacherCourseAssignments() {
     const { id } = useParams<{ id: string }>();
     const offeringId = id;
 
     const [assignments, setAssignments] = useState<any[]>([]);
-
-
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [listRubrics, setListRubrics] = useState<RubricDTO[]>([]);
 
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -34,8 +35,25 @@ export default function TeacherCourseAssignments() {
     const [selectedRubric, setSelectedRubric] = useState("");
 
     const listClos = [ { id: "CLO1", code: "CLO1" }, { id: "CLO2", code: "CLO2" } ];
-    const listRubrics = [ { id: "R001", name: "Rubric Báo cáo" }, { id: "R002", name: "Rubric Quiz" } ];
-    const { user:reduxUser } = useAppSelector((state) => state.auth);
+    const [assignment, setAssignment] = useState({
+        title: '',
+        rubricId: '', // Lưu R1, R2 hoặc R3
+    })
+    useEffect(() => {
+        const fetchRubrics = async () => {
+            try {
+                const data = await getAllRubrics();
+                setListRubrics(data);
+            } catch (error) {
+                console.error("Lỗi khi tải danh sách Rubric:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchRubrics();
+    }, []);
+    const { user: reduxUser } = useAppSelector((state) => state.auth);
     let user = reduxUser;
     if (!user) {
         const localUser = localStorage.getItem("user");
@@ -43,6 +61,7 @@ export default function TeacherCourseAssignments() {
             user = JSON.parse(localUser);
         }
     }
+
     const fetchAssignments = async () => {
         if (!offeringId) return;
         try {
@@ -62,6 +81,16 @@ export default function TeacherCourseAssignments() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Tự động map assessmentType khi chọn Rubric
+    const handleRubricChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        setSelectedRubric(val);
+        const matchedRubric = listRubrics.find(r => r.rubricId === val);
+        if (matchedRubric) {
+            setFormData(prev => ({ ...prev, assessmentType: matchedRubric.defaultType }));
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             setFile(e.target.files[0]);
@@ -74,8 +103,7 @@ export default function TeacherCourseAssignments() {
 
     // --- HÀM MỞ FORM ĐỂ SỬA BÀI TẬP ---
     const handleEdit = (item: any, e: React.MouseEvent) => {
-        e.stopPropagation(); // Ngăn mở accordion khi bấm nút Sửa
-
+        e.stopPropagation();
 
         const dateObj = new Date(item.endTime);
         const formattedDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
@@ -126,27 +154,23 @@ export default function TeacherCourseAssignments() {
 
         try {
             if (editingId) {
-
                 await assessmentService.updateAssessmentWithFormData(editingId, dataToSubmit);
-
                 toast.success("Cập nhật bài tập thành công!");
             } else {
-
                 await assessmentService.createAssessmentForOffering(offeringId!, dataToSubmit);
                 toast.success("Tạo bài tập thành công!");
-
             }
 
             fetchAssignments();
             handleCloseForm();
-
         } catch (error) {
-            alert("Đã xảy ra lỗi, vui lòng thử lại!");
+            toast.error("Đã xảy ra lỗi, vui lòng thử lại!");
             console.error(error);
         } finally {
             setIsLoading(false);
         }
     };
+
     const handleDelete = async (assessmentId: string, e: React.MouseEvent) => {
         e.stopPropagation();
 
@@ -161,6 +185,21 @@ export default function TeacherCourseAssignments() {
             }
         }
     };
+
+    const getAssessmentTypeDisplay = (type: string) => {
+        switch(type) {
+            case 'attendance': return { label: 'Chuyên cần', icon: <CheckCircle className="w-4 h-4"/> };
+            case 'exam': return { label: 'Thi tự luận', icon: <FileText className="w-4 h-4"/> };
+            case 'project': return { label: 'Đồ án môn học', icon: <ClipboardList className="w-4 h-4"/> };
+            case 'quiz': return { label: 'Trắc nghiệm', icon: <ClipboardList className="w-4 h-4"/> };
+            default: return { label: 'Nộp file', icon: <UploadCloud className="w-4 h-4"/> };
+        }
+    };
+
+    const getRubricName = (id: string) => {
+        return listRubrics.find(r => r.rubricId === id)?.rubricName || "Rubric chuẩn";
+    };
+
     return (
         <div className="rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
             {/* Header */}
@@ -170,7 +209,7 @@ export default function TeacherCourseAssignments() {
                         <ClipboardList className="h-5 w-5 text-emerald-600 sm:hidden" />
                         <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">Bài tập</p>
                     </div>
-                    <h4 className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">Quản lý bài tập & Quiz</h4>
+                    <h4 className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">Quản lý bài tập & Đánh giá</h4>
                 </div>
 
                 {!isUploading && (
@@ -200,7 +239,6 @@ export default function TeacherCourseAssignments() {
                     </div>
 
                     <form className="space-y-4" onSubmit={handleSubmit}>
-                        {/* --- TOÀN BỘ CÁC INPUT CỦA FORM BẠN GIỮ NGUYÊN CODE CŨ Ở ĐÂY --- */}
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-slate-700">Tên bài tập <span className="text-red-500">*</span></label>
                             <input type="text" name="assessmentName" value={formData.assessmentName} onChange={handleInputChange} required className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1" />
@@ -212,23 +250,26 @@ export default function TeacherCourseAssignments() {
                         </div>
 
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-slate-700">Điểm <span className="text-red-500">*</span></label>
+                            <label className="mb-1.5 block text-sm font-medium text-slate-700">Trọng số (Điểm %) <span className="text-red-500">*</span></label>
                             <input type="number" name="weight" value={formData.weight} onChange={handleInputChange} required className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1" />
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Chọn Rubric chấm điểm</label>
-                                <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" value={selectedRubric} onChange={(e) => setSelectedRubric(e.target.value)}>
+                                <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" value={selectedRubric} onChange={handleRubricChange}>
                                     <option value="">-- Không sử dụng Rubric --</option>
-                                    {listRubrics.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    {listRubrics.map(r => <option key={r.rubricId} value={r.rubricId}>{r.rubricName}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-slate-700">Loại bài tập</label>
-                                <select name="assessmentType" value={formData.assessmentType} onChange={handleInputChange} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1">
+                                <label className="mb-1.5 block text-sm font-medium text-slate-700">Loại hình thức</label>
+                                <select name="assessmentType" value={formData.assessmentType} onChange={handleInputChange} className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1 bg-white">
                                     <option value="upload">Nộp file (Upload)</option>
                                     <option value="quiz">Trắc nghiệm (Quiz)</option>
+                                    <option value="attendance">Chuyên cần (Attendance)</option>
+                                    <option value="exam">Thi tự luận (Exam)</option>
+                                    <option value="project">Đồ án môn học (Project)</option>
                                 </select>
                             </div>
                         </div>
@@ -260,7 +301,7 @@ export default function TeacherCourseAssignments() {
                                 <UploadCloud className="mx-auto h-8 w-8 text-slate-400"/>
                                 <div className="mt-2 flex text-sm text-slate-600 justify-center">
                                     <label className="cursor-pointer rounded-md font-semibold text-emerald-600 hover:text-emerald-500">
-                                        <span>Tải file mới lên {editingId && "(Thay thế file cũ)"}</span>
+                                        <span>Tải file/đề bài mới lên {editingId && "(Thay thế file cũ)"}</span>
                                         <input type="file" className="sr-only" onChange={handleFileChange} />
                                     </label>
                                 </div>
@@ -287,7 +328,7 @@ export default function TeacherCourseAssignments() {
             <div className="mt-6 space-y-4">
                 {assignments.length === 0 && !isUploading && (
                     <p className="text-center text-slate-500 py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                        Chưa có bài tập nào trong khóa học này.
+                        Chưa có dữ liệu bài tập/đánh giá nào trong khóa học này.
                     </p>
                 )}
 
@@ -295,6 +336,7 @@ export default function TeacherCourseAssignments() {
                     const endDate = new Date(item.endTime);
                     const isExpired = endDate < new Date();
                     const isExpanded = expandedIdx === idx;
+                    const typeInfo = getAssessmentTypeDisplay(item.assessmentType);
 
                     return (
                         <div key={idx} className={`group flex flex-col rounded-2xl border bg-white transition-all duration-200 overflow-hidden ${isExpanded ? 'border-emerald-300 shadow-md ring-2 ring-emerald-50' : 'border-slate-200 hover:border-emerald-200 shadow-sm'}`}>
@@ -302,7 +344,7 @@ export default function TeacherCourseAssignments() {
                                 {/* Trái */}
                                 <div className="flex items-start gap-3.5 w-full sm:w-auto">
                                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${isExpanded ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
-                                        <FileText className="h-6 w-6"/>
+                                        {typeInfo.icon}
                                     </div>
                                     <div className="flex-1">
                                         <h5 className="text-[15px] sm:text-base font-bold text-slate-900 leading-tight pr-2">
@@ -316,6 +358,11 @@ export default function TeacherCourseAssignments() {
                                             <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                                                 {item.weight} điểm
                                             </span>
+                                            {item.rubricId && (
+                                                <span className="font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 hidden sm:inline-flex">
+                                                    {getRubricName(item.rubricId)}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -324,11 +371,10 @@ export default function TeacherCourseAssignments() {
                                 <div className="flex items-center justify-between sm:justify-end gap-3 border-t border-slate-100 sm:border-none pt-3 sm:pt-0 w-full sm:w-auto">
                                     <span className={`rounded-full px-3 py-1 text-[11px] sm:text-xs font-semibold flex items-center gap-1 ${!isExpired ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
                                         {!isExpired ? <CheckCircle className="w-3.5 h-3.5"/> : <X className="w-3.5 h-3.5"/>}
-                                        {!isExpired ? "Đang mở" : "Đã hết hạn"}
+                                        {!isExpired ? "Đang mở" : "Đã kết thúc"}
                                     </span>
 
                                     <div className="flex items-center gap-1">
-                                        {/* --- NÚT SỬA --- */}
                                         <button
                                             onClick={(e) => handleEdit(item, e)}
                                             title="Sửa bài tập"
@@ -336,7 +382,6 @@ export default function TeacherCourseAssignments() {
                                         >
                                             <Pencil className="h-4 w-4"/>
                                         </button>
-                                        {/* --- NÚT XÓA --- */}
                                         <button
                                             onClick={(e) => handleDelete(item.assessmentId, e)}
                                             title="Xóa bài tập"
@@ -361,17 +406,17 @@ export default function TeacherCourseAssignments() {
                             {isExpanded && (
                                 <div className="px-4 pb-5 pt-2 border-t border-slate-100 bg-slate-50/50">
                                     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mt-2">
-                                        <h6 className="text-sm font-bold text-slate-800 mb-2">Mô tả bài tập:</h6>
+                                        <h6 className="text-sm font-bold text-slate-800 mb-2">Mô tả/ Yêu cầu:</h6>
                                         <p className="text-sm text-slate-600 whitespace-pre-wrap">{item.description}</p>
 
                                         <div className="mt-4 flex flex-wrap gap-2">
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
-                                                {item.assessmentType === 'upload' ? <UploadCloud className="w-4 h-4"/> : <ClipboardList className="w-4 h-4"/>}
-                                                {item.assessmentType === 'upload' ? 'Nộp File' : 'Trắc nghiệm'}
+                                                {typeInfo.icon}
+                                                {typeInfo.label}
                                             </span>
                                             {item.rubricId && (
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100">
-                                                    Đánh giá qua Rubric
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100 sm:hidden">
+                                                    {getRubricName(item.rubricId)}
                                                 </span>
                                             )}
                                             {item.fileUrl && (

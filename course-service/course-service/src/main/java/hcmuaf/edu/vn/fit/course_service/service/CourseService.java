@@ -15,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -26,7 +28,7 @@ public class CourseService {
 
 
     private final CourseRepository courseRepo;
-
+    private final S3Service s3Service;
     private final UserClient userClient;
     private final EnrollmentRepository enrollmentRepo;
     private final CourseOfferingRepository courseOfferingRepo;
@@ -191,6 +193,23 @@ public class CourseService {
 
             return response;
         }).collect(Collectors.toList());
+    }
+    public CourseResponse uploadSyllabus(String courseId, MultipartFile file)  {
+        Course course = courseRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học!"));
+
+
+        String fileUrl = null;
+        try {
+            fileUrl = s3Service.uploadFile(file);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        course.setSyllabusUrl(fileUrl);
+        courseRepo.save(course);
+
+        return courseMapper.toCourseResponse(course);
     }
 
     private void validateUser(String userId) {

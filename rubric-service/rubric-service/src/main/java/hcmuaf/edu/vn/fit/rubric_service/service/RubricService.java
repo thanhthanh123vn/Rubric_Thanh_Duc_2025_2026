@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.rubric_service.service;
 
+import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,15 +16,16 @@ public class RubricService {
         return repository.findAll();
     }
 
-    public Rubric getById(Long id) {
-        return repository.findById(id).orElse(null);
+    public Rubric getRubricById(String id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Rubric"));
     }
 
     public Rubric create(Rubric rubric) {
         return repository.save(rubric);
     }
 
-    public void delete(Long id) {
+    public void delete(String id) {
         repository.deleteById(id);
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,7 @@ public class CourseController {
         try {
 
             String targetStudentId = (studentId != null && !studentId.trim().isEmpty()) ? studentId : "";
-            
+
             service.enroll(targetStudentId, offeringId);
             return ResponseEntity.ok("Thêm sinh viên thành công!");
         } catch (Exception e) {
@@ -81,7 +82,17 @@ public class CourseController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
+    @PostMapping("/{courseId}/upload-syllabus")
+    public ResponseEntity<?> uploadSyllabus(
+            @PathVariable String courseId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            service.uploadSyllabus(courseId, file);
+            return ResponseEntity.ok("Tải giáo trình lên thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+        }
+    }
 
     @GetMapping("/student/me/dashboard")
     public List<DashboardCourseResponse> getStudentDashboardCourses(@RequestHeader("X-User-Id") String studentId) {

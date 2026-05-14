@@ -19,6 +19,7 @@ export const teacherModuleLinks = [
   { label: 'Tổng quan', path: '/teacher', icon: LayoutDashboard },
   { label: 'LO & Rubric', path: '/teacher/rubric', icon: Target },
   { label: 'Ngân hàng câu hỏi', path: '/teacher/questions', icon: ClipboardList },
+  { label: 'Quản Lý Môn Học', path: '/teacher/course', icon: BookOpen },
 ];
 
 export const quickStats = [
