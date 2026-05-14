@@ -6,8 +6,9 @@ import {
     Bell,
     Users2,
     BarChart3,
+    CheckCircle2,
     ChevronLeft,
-    X, Plus
+    X,
 } from "lucide-react";
 import { NavLink, useParams } from "react-router-dom";
 
@@ -23,6 +24,7 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     const menuItems = [
         { key: "posts", icon: FileText, label: "Bài đăng", path: "" },
         { key: "assignments", icon: ClipboardList, label: "Bài tập", path: "assignments" },
+        { key: "evaluations", icon: CheckCircle2, label: "Đánh giá", path: "evaluations" },
         { key: "obe", icon: BarChart3, label: "Tiến độ OBE", path: "obe" },
         { key: "groups", icon: Users2, label: "Nhóm của tôi", path: "groups" },
         { key: "students", icon: Users, label: "Sinh viên", path: "students" },
@@ -40,15 +42,11 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             flex flex-col shadow-2xl lg:shadow-none
         `}
         >
-            {/* ... Phần code bên trong giữ nguyên ... */}
-
-            {/* HEADER */}
             <div className="p-4 lg:p-6 border-b border-gray-200 flex items-center justify-between h-16 lg:h-[73px]">
                 <div className={`font-bold text-emerald-700 text-lg ${isCollapsed ? "hidden lg:hidden" : "block"}`}>
                     Lớp học
                 </div>
 
-                {/* Mobile Close */}
                 <button
                     onClick={onClose}
                     className="p-2 lg:hidden hover:bg-gray-100 rounded-lg text-gray-500"
@@ -56,7 +54,6 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                     <X size={20} />
                 </button>
 
-                {/* Collapse */}
                 <button
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="hidden lg:block p-2 hover:bg-gray-100 rounded-lg text-gray-500"
@@ -68,8 +65,6 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                 </button>
             </div>
 
-            {/* MENU */}
-            {/* MENU */}
             <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
@@ -79,9 +74,7 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                             key={item.key}
                             to={`/course/${id}/${item.path}`}
                             end={item.path === ""}
-
                             onClick={() => {
-
                                 if (onClose) {
                                     onClose();
                                 }

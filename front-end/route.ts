@@ -11,6 +11,7 @@ import CourseDetail from "@/features/course/student/components/CourseDetail";
 import CourseStudentList from "@/features/course/student/components/CourseStudentList";
 import CourseOBE from "@/features/course/student/components/CourseOBE";
 import CourseAssignments from "@/features/course/student/components/CourseAssignments";
+import CourseEvaluations from "@/features/course/student/components/CourseEvaluations";
 import CourseGroups from "@/features/course/student/components/CourseGroups";
 import AssignmentDetail from "@/features/course/student/components/AssignmentDetail";
 import CreateGroup from "@/features/course/student/components/CreateGroup";
@@ -41,6 +42,13 @@ import AssessmentManagement from "@/pages/admin/managarCourse/AssessmentManageme
 import TeacherOBEDetail from "@/pages/teacher/TeacherOBEDetail.tsx";
 import TeacherOBEAnalytics from "@/pages/teacher/TeacherOBEAnalytics.tsx";
 import AssignmentDetailPost from "@/features/course/student/components/AssignmentDetailPost.tsx";
+import MainLecturerLayout from "@/pages/mainlecturer/MainLecturerLayout.tsx";
+import MainLecturerOverview from "@/pages/mainlecturer/MainLecturerOverview.tsx";
+import CLOManagement from "@/pages/mainlecturer/CLOManagement.tsx";
+import RubricBuilder from "@/pages/mainlecturer/RubricBuilder.tsx";
+import RubricMatrix from "@/pages/mainlecturer/RubricMatrix.tsx";
+import SemesterManagement from "@/pages/mainlecturer/SemesterManagement.tsx";
+import CourseAssignment from "@/pages/mainlecturer/CourseAssignment.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -71,6 +79,10 @@ export const router = createBrowserRouter([
     {
         path: "/course/:id/assignments",
         Component: CourseAssignments,
+    },
+    {
+        path: "/course/:id/evaluations",
+        Component: CourseEvaluations,
     },
     {
         path: "/course/:id/groups",
@@ -128,6 +140,18 @@ export const router = createBrowserRouter([
             },
             { path: "rubric", Component: TeacherRubric },
             { path: "questions", Component: TeacherQuestionBank },
+        ],
+    },
+    {
+        path: "/mainlecturer",
+        Component: MainLecturerLayout,
+        children: [
+            { index: true, Component: MainLecturerOverview },
+            { path: "clo", Component: CLOManagement },
+            { path: "rubric", Component: RubricBuilder },
+            { path: "rubric-matrix", Component: RubricMatrix },
+            { path: "semester", Component: SemesterManagement },
+            { path: "assign", Component: CourseAssignment },
         ],
     },
 
