@@ -42,6 +42,13 @@ import AssessmentManagement from "@/pages/admin/managarCourse/AssessmentManageme
 import TeacherOBEDetail from "@/pages/teacher/TeacherOBEDetail.tsx";
 import TeacherOBEAnalytics from "@/pages/teacher/TeacherOBEAnalytics.tsx";
 import AssignmentDetailPost from "@/features/course/student/components/AssignmentDetailPost.tsx";
+import MainLecturerLayout from "@/pages/mainlecturer/MainLecturerLayout.tsx";
+import MainLecturerOverview from "@/pages/mainlecturer/MainLecturerOverview.tsx";
+import CLOManagement from "@/pages/mainlecturer/CLOManagement.tsx";
+import RubricBuilder from "@/pages/mainlecturer/RubricBuilder.tsx";
+import RubricMatrix from "@/pages/mainlecturer/RubricMatrix.tsx";
+import SemesterManagement from "@/pages/mainlecturer/SemesterManagement.tsx";
+import CourseAssignment from "@/pages/mainlecturer/CourseAssignment.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -133,6 +140,18 @@ export const router = createBrowserRouter([
             },
             { path: "rubric", Component: TeacherRubric },
             { path: "questions", Component: TeacherQuestionBank },
+        ],
+    },
+    {
+        path: "/mainlecturer",
+        Component: MainLecturerLayout,
+        children: [
+            { index: true, Component: MainLecturerOverview },
+            { path: "clo", Component: CLOManagement },
+            { path: "rubric", Component: RubricBuilder },
+            { path: "rubric-matrix", Component: RubricMatrix },
+            { path: "semester", Component: SemesterManagement },
+            { path: "assign", Component: CourseAssignment },
         ],
     },
 

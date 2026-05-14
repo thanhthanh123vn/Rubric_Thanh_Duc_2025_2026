@@ -73,7 +73,7 @@ public class NotificationService {
         }).collect(Collectors.toList());
 
         List<Notification> savedList = repo.saveAll(notifications);
-
+        System.out.println(savedList);
         // Broadcast từng thông báo cho từng sinh viên
         savedList.forEach(n -> {
             try {
