@@ -42,13 +42,13 @@ export default function RubricBuilder() {
             </div>
 
             {/* Tags */}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {rubric.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {/*<div className="mt-4 flex flex-wrap gap-2">*/}
+            {/*  {rubric.tags.map((tag) => (*/}
+            {/*    <span key={tag} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">*/}
+            {/*      {tag}*/}
+            {/*    </span>*/}
+            {/*  ))}*/}
+            {/*</div>*/}
 
             {/* Criteria */}
             <div className="mt-4 space-y-2">

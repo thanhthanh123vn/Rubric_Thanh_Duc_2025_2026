@@ -87,6 +87,12 @@ public class UserService {
                 fullName = lec.get().getFullName();
                 avatarUrl = user.getAvatarUrl();
             }
+        }else if ("MAIN_LECTURER".equals(user.getRole())) {
+            Optional<Lecturer> lec = lecturerRepository.findById(id);
+            if (lec.isPresent()) {
+                fullName = lec.get().getFullName();
+                avatarUrl = user.getAvatarUrl();
+            }
         }
 
         return new UserResponse(
