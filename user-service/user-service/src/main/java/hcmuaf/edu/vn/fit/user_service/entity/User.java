@@ -24,7 +24,7 @@ public class User {
 
     private String passwordHash;
     private String email;
-    private String role; // STUDENT, TEACHER
+    private String role; // STUDENT, TEACHER,MAIN_LECTURER,ADMIN,
     private String authProvider; // LOCAL, GOOGLE
     private String googleId;
     @Column(name = "avatar_url")

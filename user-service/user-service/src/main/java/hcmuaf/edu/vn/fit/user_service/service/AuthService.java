@@ -91,7 +91,7 @@ public class AuthService {
                         sv.getMajor()
                 );
             }
-        } else if ("TEACHER".equals(user.getRole())) {
+        } else if ("TEACHER".equals(user.getRole()) || "MAIN_LECTURER".equals(user.getRole())) {
             Lecturer gv = lecturerRepository.findByUser(user).orElse(null);
             if (gv != null) {
                 lecturerProfile = new LecturerProfileResponse(

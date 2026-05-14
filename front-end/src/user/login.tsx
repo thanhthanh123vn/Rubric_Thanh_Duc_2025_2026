@@ -85,7 +85,10 @@ export default function LoginPage() {
 
             if (data.role === 'TEACHER') {
                 targetPath = '/teacher';
-            } else if (data.role === 'ADMIN') {
+            } else if(data.role === 'MAIN_LECTURER'){
+                targetPath = '/mainlecturer'
+            }
+            else if (data.role === 'ADMIN') {
                 targetPath = '/admin';
             }
 

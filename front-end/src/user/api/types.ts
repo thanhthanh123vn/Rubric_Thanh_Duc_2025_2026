@@ -16,7 +16,7 @@ export interface LecturerProfile {
 export interface LoginResponse {
     fullName: string;
     token: string;
-    role: "STUDENT" | "TEACHER" | "ADMIN";
+    role: "STUDENT" | "TEACHER" | "ADMIN" | "MAIN_LECTURER";
     userId: string;
     student?: StudentProfile;
     lecturer?: LecturerProfile;
