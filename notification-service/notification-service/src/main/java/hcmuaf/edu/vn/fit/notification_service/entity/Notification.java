@@ -32,6 +32,8 @@ public class Notification extends AbstractEntity<Notification> {
     @Column(name="notification_type", length = 30)
     @Enumerated(EnumType.STRING)
     private NotificationType notificationType;
+    @Column(name = "avatar_url")
+    private String avatarUrl;
 
 
     @Column(name="linked_resource_id")

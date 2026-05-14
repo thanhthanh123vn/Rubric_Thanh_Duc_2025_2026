@@ -28,6 +28,7 @@ public interface UserClient {
 
     @GetMapping("/lecturer/lecturers/by-user/{userId}")
     LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
-
+    @GetMapping("/lecturers/{lecturerId}/user-id")
+    String getUserIdByLecturerId(@PathVariable("lecturerId") String lecturerId);
 }
 

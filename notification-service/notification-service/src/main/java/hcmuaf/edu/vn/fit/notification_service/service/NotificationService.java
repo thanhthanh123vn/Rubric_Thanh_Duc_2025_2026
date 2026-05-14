@@ -1,6 +1,11 @@
 package hcmuaf.edu.vn.fit.notification_service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hcmuaf.edu.vn.fit.notification_service.client.UserClient;
+import hcmuaf.edu.vn.fit.notification_service.dto.response.LecturerResponse;
+import hcmuaf.edu.vn.fit.notification_service.dto.response.NotificationResponse;
+import hcmuaf.edu.vn.fit.notification_service.dto.response.SinhVienResponse;
+import hcmuaf.edu.vn.fit.notification_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
 import hcmuaf.edu.vn.fit.notification_service.entity.enums.NotificationType;
 import hcmuaf.edu.vn.fit.notification_service.repository.NotificationRepository;
@@ -11,6 +16,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,6 +31,8 @@ public class NotificationService {
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+    @Autowired
+    private  UserClient userClient;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -64,6 +72,17 @@ public class NotificationService {
             n.setSenderId(senderId);
             n.setOwnerId(studentId);
             n.setCourseId(courseId);
+//            try{
+//                String userCurId = userClient.getUserIdByLecturerId(senderId);
+//                UserResponse userResponse = userClient.getUser(userCurId);
+////                n.setAvatarUrl(userResponse.getAvatarUrl());
+//
+//
+//
+//            } catch (Exception e) {
+//                throw new RuntimeException("không tìm thấy giảng viên");
+//            }
+
             n.setTitle("Bài tập mới");
             n.setContent("Giảng viên đã giao bài tập mới: " + assignmentTitle);
             n.setNotificationType(NotificationType.ASSIGNMENT_NEW);
@@ -91,8 +110,18 @@ public class NotificationService {
         n.setOwnerId(lecturerId); // Người nhận là giảng viên
         n.setCourseId(courseId);
         n.setTitle("Nộp bài tập");
+        try{
+
+            UserResponse userResponse = userClient.getUser(studentId);
+            n.setAvatarUrl(userResponse.getAvatarUrl());
+
+
+
+        } catch (Exception e) {
+            throw new RuntimeException("không tìm thấy giảng viên");
+        }
         n.setContent("Sinh viên " + studentName + " vừa nộp bài tập: " + assignmentTitle);
-        n.setNotificationType(NotificationType.COURSE_ANNOUNCEMENT); // Tùy chỉnh enum tương ứng
+        n.setNotificationType(NotificationType.COURSE_ANNOUNCEMENT);
         n.setLinkedResourceId(submissionId);
         n.setReferenceUrl("/course/" + courseId + "/submissions/" + submissionId);
 
@@ -121,6 +150,7 @@ public class NotificationService {
             n.setNotificationType(NotificationType.ASSIGNMENT_NEW);
             n.setLinkedResourceId(assignmentId);
             n.setReferenceUrl("/course/" + courseId + "/assignments/" + assignmentId);
+
             return n;
         }).collect(Collectors.toList());
 
@@ -136,11 +166,67 @@ public class NotificationService {
     }
 
     // Lấy thông báo theo ownerId
-    public List<Notification> getUserNotifications(String userId) {
-        // Cần đổi tên hàm trong Repository thành findByOwnerId
-        return repo.findByOwnerId(userId);
-    }
 
+    public List<NotificationResponse> getUserNotifications(String userId) {
+        List<Notification> notifications = repo.findByOwnerIdOrderByCreatedAtDesc(userId); // Hoặc hàm lấy list tương ứng của bạn
+
+        return notifications.stream().map(notif -> {
+            NotificationResponse dto = new NotificationResponse();
+            dto.setId(notif.getId());
+            dto.setTitle(notif.getTitle());
+            dto.setContent(notif.getContent());
+            dto.setRead(notif.isRead());
+            dto.setCreatedAt(LocalDateTime.from(notif.getCreatedAt()));
+            dto.setReferenceUrl(notif.getReferenceUrl());
+            dto.setSenderId(notif.getSenderId());
+
+
+            try {
+                if (notif.getSenderId() != null) {
+                    String senderId = notif.getSenderId();
+                    boolean isFound = false;
+
+
+                    try {
+                        UserResponse user = userClient.getUser(senderId);
+                        if (user != null && user.getFullName() != null) {
+                            dto.setSenderName(user.getFullName());
+                            dto.setSenderAvatar(user.getAvatarUrl());
+                            isFound = true;
+                        }
+                    } catch (Exception ignored) {
+
+                    }
+
+
+                    if (!isFound) {
+                        try {
+                            LecturerResponse lecturer = userClient.getLecturer(senderId);
+                            if (lecturer != null && lecturer.getFullName() != null) {
+                                UserResponse userResponse = userClient.getUser(lecturer.getUserId());
+                                dto.setSenderName(userResponse.getFullName());
+                                dto.setSenderAvatar(userResponse.getAvatarUrl());
+
+
+                                isFound = true;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+
+                    if (!isFound) {
+                        dto.setSenderName("Hệ thống LMS");
+                    }
+                } else {
+                    dto.setSenderName("Hệ thống LMS");
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi khi lấy thông tin người gửi: " + e.getMessage());
+                dto.setSenderName("Hệ thống LMS");
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
     @Transactional
     public Notification markAsRead(String notificationId) {
         Notification notification = repo.findById(notificationId)
