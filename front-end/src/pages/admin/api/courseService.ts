@@ -38,6 +38,22 @@ const courseService = {
 
         const response = await courseApi.get(`/courses/lecturer/me/dashboard`);
         return response.data;
+    },
+    uploadSyllabus: async (courseId: string, file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await courseApi.post(
+            `/courses/${courseId}/upload-syllabus`,
+            formData,
+            {
+                headers: {
+
+                    "Content-Type": "multipart/form-data",
+                }
+            }
+        );
+        return response.data;
     }
 
 };

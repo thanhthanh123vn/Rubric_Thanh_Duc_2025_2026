@@ -29,4 +29,6 @@ public class Course {
 
     @Column(name = "department", length = 100)
     private String department;
+    @Column(name = "syllabus_url")
+    private String syllabusUrl;
 }

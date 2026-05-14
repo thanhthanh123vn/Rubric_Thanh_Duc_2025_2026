@@ -24,6 +24,7 @@ import TeacherCourseAssignments from "@/pages/teacher/TeacherCourseAssignments";
 import TeacherCourseRubric from "@/pages/teacher/TeacherCourseRubric";
 import TeacherCourseOBE from "@/pages/teacher/TeacherCourseOBE";
 import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
+import TeacherCourses from "@/pages/teacher/TeacherCourses";
 import TeacherGrading from "@/pages/teacher/TeacherGrading";
 import TeacherProjects from "@/pages/teacher/TeacherProjects";
 import TeacherAttendance from "@/pages/teacher/TeacherAttendance";
@@ -127,6 +128,7 @@ export const router = createBrowserRouter([
                     { index: true, Component: TeacherCourseOverview },
                     { path: "students", Component: TeacherCourseStudents },
                     { path: "assignments", Component: TeacherCourseAssignments },
+
                     { path: "rubric", Component: TeacherCourseRubric },
                     { path: "obe", Component: TeacherCourseOBE },
                     { path: "obe/analytics", Component: TeacherOBEAnalytics },
@@ -138,6 +140,7 @@ export const router = createBrowserRouter([
                     { path: "report", Component: TeacherReport },
                 ],
             },
+            { path: "course", Component: TeacherCourses },
             { path: "rubric", Component: TeacherRubric },
             { path: "questions", Component: TeacherQuestionBank },
         ],
