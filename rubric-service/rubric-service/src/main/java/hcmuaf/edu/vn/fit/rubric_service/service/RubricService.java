@@ -40,6 +40,7 @@ public class RubricService {
                                         .stream()
                                         .map(c -> CriteriaResponse.builder()
                                                 .id(c.getCriteriaId())
+                                                .cloId(c.getCloId())
                                                 .name(c.getCriteriaName())
                                                 .weight(c.getWeight())
                                                 .build()

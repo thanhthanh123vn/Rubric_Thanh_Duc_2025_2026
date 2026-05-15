@@ -1,6 +1,7 @@
 import { Plus, Copy, Trash2, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getAllRubric } from "@/features/rubric/rubricApi.ts";
+import CreateRubricModal from "@/features/rubric/components/CreateRubricModal.tsx";
 
 type CriteriaType = {
     id: string;
@@ -177,38 +178,10 @@ export default function RubricBuilder() {
             {/* Modal */}
             {showModal && (
 
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-
-                    <div className="w-full max-w-3xl rounded-2xl bg-white p-8">
-
-                        <h2 className="text-2xl font-bold text-slate-900">
-                            {selectedRubric ? 'Chỉnh sửa Rubric' : 'Tạo Rubric mới'}
-                        </h2>
-
-                        <div className="mt-6">
-                            Nội dung modal...
-                        </div>
-
-                        <div className="mt-6 flex gap-3">
-
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
-                            >
-                                Hủy
-                            </button>
-
-                            <button
-                                className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
-                            >
-                                {selectedRubric ? 'Cập nhật' : 'Tạo'}
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </div>
+                <CreateRubricModal
+                    open={showModal}
+                    onClose={() => setShowModal(false)}
+                />
 
             )}
 

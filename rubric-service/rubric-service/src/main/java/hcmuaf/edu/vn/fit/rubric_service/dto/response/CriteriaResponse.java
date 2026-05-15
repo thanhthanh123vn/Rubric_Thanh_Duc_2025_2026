@@ -9,6 +9,7 @@ import lombok.*;
 public class CriteriaResponse {
 
     private String id;
+    private String cloId;
 
     private String name;
 
