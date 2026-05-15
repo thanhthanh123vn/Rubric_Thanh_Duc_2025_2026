@@ -4,6 +4,7 @@ server:
 spring:
   application:
     name: rubric-service
+
     jpa:
       show-sql: false
 

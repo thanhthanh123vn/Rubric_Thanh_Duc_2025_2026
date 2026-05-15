@@ -17,5 +17,5 @@ public class RubricResponse {
 
     private Float totalWeight;
 
-    private List<String> criteria;
+    private List<CriteriaResponse> criteria;
 }
