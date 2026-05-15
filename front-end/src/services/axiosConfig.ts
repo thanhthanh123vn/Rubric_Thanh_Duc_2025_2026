@@ -25,7 +25,7 @@ export const notificationServiceApi = axios.create({
     },
 });
 export const rubricServiceApi = axios.create({
-    baseURL: `${BASE}/rubrics-service`,
+    baseURL: `${BASE}/rubric-service`,
     headers: {
         'Content-Type': 'application/json',
     },

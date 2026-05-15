@@ -35,9 +35,10 @@ spring:
         - id: rubric-service
           uri: lb://RUBRIC-SERVICE
           predicates:
-            - Path=/api/v1/rubrics/**
+            - Path=/api/v1/rubric-service/**
           filters:
             - name: JwtAuthenticationFilter
+
         - id: notification-service
           uri: lb://NOTIFICATION-SERVICE
           predicates:

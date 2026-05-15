@@ -647,7 +647,7 @@ const CourseGroups = () => {
         const localUser = localStorage.getItem("user");
         if (localUser) user = JSON.parse(localUser);
     }
-    const currentUserId = user?.studentId || user?.userId || user?.id; // Đảm bảo bắt đúng ID của user
+    const currentUserId = user?.studentId || user?.userId || null;
 
     // States
     const [students, setStudents] = useState<Type[]>([]);

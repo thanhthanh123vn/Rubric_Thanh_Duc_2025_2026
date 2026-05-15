@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.rubric_service.service;
 
+import hcmuaf.edu.vn.fit.rubric_service.dto.response.CriteriaResponse;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.RubricResponse;
 import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
@@ -20,8 +21,11 @@ public class RubricService {
 
         return rubrics.stream()
                 .map(rubric -> RubricResponse.builder()
+
                         .id(rubric.getRubricId())
+
                         .name(rubric.getRubricName())
+
                         .description(rubric.getDescription())
 
                         .totalWeight(
@@ -34,7 +38,13 @@ public class RubricService {
                         .criteria(
                                 rubric.getCriteria()
                                         .stream()
-                                        .map(c -> c.getCriteriaName())
+                                        .map(c -> CriteriaResponse.builder()
+                                                .id(c.getCriteriaId())
+                                                .cloId(c.getCloId())
+                                                .name(c.getCriteriaName())
+                                                .weight(c.getWeight())
+                                                .build()
+                                        )
                                         .toList()
                         )
 
