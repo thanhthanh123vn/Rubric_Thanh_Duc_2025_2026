@@ -6,7 +6,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "rubric_levels")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
