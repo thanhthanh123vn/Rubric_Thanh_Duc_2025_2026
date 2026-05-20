@@ -6,10 +6,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
 import { toast } from "sonner";
-import { Stomp } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
-import {getAllRubrics, type RubricDTO} from "@/pages/mainlecturer/api/RubricAPI.ts";
+import { getAllRubrics, type RubricDTO } from "@/pages/mainlecturer/api/RubricAPI.ts";
 
 export default function TeacherCourseAssignments() {
     const { id } = useParams<{ id: string }>();
@@ -18,6 +16,9 @@ export default function TeacherCourseAssignments() {
     const [assignments, setAssignments] = useState<any[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [listRubrics, setListRubrics] = useState<RubricDTO[]>([]);
+
+    // Lưu trữ danh sách CLO bóc tách độc nhất từ Rubric được chọn
+    const [rubricClos, setRubricClos] = useState<{ id: string; code: string }[]>([]);
 
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -34,11 +35,7 @@ export default function TeacherCourseAssignments() {
     const [selectedClos, setSelectedClos] = useState<string[]>([]);
     const [selectedRubric, setSelectedRubric] = useState("");
 
-    const listClos = [ { id: "CLO1", code: "CLO1" }, { id: "CLO2", code: "CLO2" } ];
-    const [assignment, setAssignment] = useState({
-        title: '',
-        rubricId: '', // Lưu R1, R2 hoặc R3
-    })
+
     useEffect(() => {
         const fetchRubrics = async () => {
             try {
@@ -46,20 +43,16 @@ export default function TeacherCourseAssignments() {
                 setListRubrics(data);
             } catch (error) {
                 console.error("Lỗi khi tải danh sách Rubric:", error);
-            } finally {
-                setIsLoading(false);
             }
         };
-
         fetchRubrics();
     }, []);
+
     const { user: reduxUser } = useAppSelector((state) => state.auth);
     let user = reduxUser;
     if (!user) {
         const localUser = localStorage.getItem("user");
-        if (localUser) {
-            user = JSON.parse(localUser);
-        }
+        if (localUser) user = JSON.parse(localUser);
     }
 
     const fetchAssignments = async () => {
@@ -68,7 +61,7 @@ export default function TeacherCourseAssignments() {
             const data = await assessmentService.getAssessmentsByOffering(offeringId);
             setAssignments(data);
         } catch (error) {
-            console.error("Lỗi tải danh sách:", error);
+            console.error("Lỗi tải danh sách bài tập:", error);
         }
     };
 
@@ -81,13 +74,47 @@ export default function TeacherCourseAssignments() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Tự động map assessmentType khi chọn Rubric
+    // --- LOGIC TỰ ĐỘNG BÓC TÁCH CLO KHI CHỌN RUBRIC ---
     const handleRubricChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSelectedRubric(val);
-        const matchedRubric = listRubrics.find(r => r.rubricId === val);
+
+        if (!val) {
+            setRubricClos([]);
+            setSelectedClos([]);
+            return;
+        }
+
+        const matchedRubric = listRubrics.find(r => r.id === val);
         if (matchedRubric) {
-            setFormData(prev => ({ ...prev, assessmentType: matchedRubric.defaultType }));
+            // Map loại hình thức mặc định từ Rubric nếu có định nghĩa
+            if (matchedRubric.defaultType) {
+                setFormData(prev => ({ ...prev, assessmentType: matchedRubric.defaultType }));
+            }
+
+            // Lọc ra các cloId độc nhất từ danh sách criteria của backend trả về
+            const uniqueCloIds = new Set<string>();
+            if (matchedRubric.criteria && Array.isArray(matchedRubric.criteria)) {
+                matchedRubric.criteria.forEach(crit => {
+                    if (crit.cloId) {
+                        uniqueCloIds.add(crit.cloId.trim());
+                    }
+                });
+            }
+
+            // Chuyển đổi Set thành mảng object phục vụ render UI checkbox
+            const extractedClos = Array.from(uniqueCloIds).map(cloId => ({
+                id: cloId,
+                code: cloId // Lấy luôn giá trị cloId làm nhãn hiển thị (Ví dụ: "CLO1", "CLO2")
+            }));
+
+            setRubricClos(extractedClos);
+
+            // Tự động tích chọn (gán) sẵn toàn bộ CLO thuộc về Rubric này cho bài tập
+            setSelectedClos(extractedClos.map(c => c.id));
+        } else {
+            setRubricClos([]);
+            setSelectedClos([]);
         }
     };
 
@@ -101,7 +128,7 @@ export default function TeacherCourseAssignments() {
         setExpandedIdx(prev => prev === idx ? null : idx);
     };
 
-    // --- HÀM MỞ FORM ĐỂ SỬA BÀI TẬP ---
+    // --- KHÔI PHỤC DANH SÁCH CLO CHECKBOX KHI ẤN SỬA BÀI TẬP ---
     const handleEdit = (item: any, e: React.MouseEvent) => {
         e.stopPropagation();
 
@@ -116,24 +143,46 @@ export default function TeacherCourseAssignments() {
             assessmentType: item.assessmentType || 'upload',
         });
 
-        setSelectedRubric(item.rubricId || "");
+        const currentRubricId = item.rubricId || "";
+        setSelectedRubric(currentRubricId);
+
+        // Khôi phục lại danh sách hiển thị các checkbox CLO từ Rubric mà bài tập này đang liên kết
+        const matchedRubric = listRubrics.find(r => r.id === currentRubricId);
+        if (matchedRubric && matchedRubric.criteria) {
+            const uniqueCloIds = new Set<string>();
+            matchedRubric.criteria.forEach(crit => {
+                if (crit.cloId) uniqueCloIds.add(crit.cloId.trim());
+            });
+            setRubricClos(Array.from(uniqueCloIds).map(cloId => ({ id: cloId, code: cloId })));
+        } else {
+            setRubricClos([]);
+        }
+
+
+        if (item.cloIds) {
+            setSelectedClos(item.cloIds);
+        } else if (item.clos) {
+            setSelectedClos(item.clos.map((c: any) => c.id || c.cloId));
+        } else {
+            setSelectedClos([]);
+        }
+
         setEditingId(item.assessmentId);
         setIsUploading(true);
         setExpandedIdx(null);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // --- HÀM ĐÓNG FORM VÀ RESET DATA ---
     const handleCloseForm = () => {
         setIsUploading(false);
         setEditingId(null);
         setFormData({ assessmentName: '', description: '', weight: '', endTime: '', assessmentType: 'upload' });
         setSelectedClos([]);
         setSelectedRubric("");
+        setRubricClos([]);
         setFile(null);
     };
 
-    // --- HÀM SUBMIT XỬ LÝ CẢ TẠO MỚI & CẬP NHẬT ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -173,8 +222,7 @@ export default function TeacherCourseAssignments() {
 
     const handleDelete = async (assessmentId: string, e: React.MouseEvent) => {
         e.stopPropagation();
-
-        if (window.confirm("Bạn có chắc chắn muốn xóa bài tập này không? Hành động này không thể hoàn tác.")) {
+        if (window.confirm("Bạn có chắc chắn muốn xóa bài tập này không?")) {
             try {
                 await assessmentService.deleteAssessment(assessmentId);
                 toast.success("Xóa bài tập thành công!");
@@ -197,7 +245,7 @@ export default function TeacherCourseAssignments() {
     };
 
     const getRubricName = (id: string) => {
-        return listRubrics.find(r => r.rubricId === id)?.rubricName || "Rubric chuẩn";
+        return listRubrics.find(r => r.id === id)?.name || "Rubric chuẩn";
     };
 
     return (
@@ -257,9 +305,9 @@ export default function TeacherCourseAssignments() {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Chọn Rubric chấm điểm</label>
-                                <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm" value={selectedRubric} onChange={handleRubricChange}>
+                                <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm bg-white outline-none focus:border-emerald-500" value={selectedRubric} onChange={handleRubricChange}>
                                     <option value="">-- Không sử dụng Rubric --</option>
-                                    {listRubrics.map(r => <option key={r.rubricId} value={r.rubricId}>{r.rubricName}</option>)}
+                                    {listRubrics.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -275,19 +323,24 @@ export default function TeacherCourseAssignments() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            {/* HIỂN THỊ CÁC CHUẨN ĐẦU RA (CLO) ĐƯỢC MAP ĐỘNG TỪ DANH SÁCH CRITERIA CỦA RUBRIC */}
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-slate-700">Gán chuẩn đầu ra (CLO)</label>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                    {listClos.map(clo => (
-                                        <label key={clo.id} className="flex items-center gap-2 bg-white border px-3 py-1.5 rounded-lg cursor-pointer hover:bg-emerald-50">
-                                            <input type="checkbox" value={clo.id} checked={selectedClos.includes(clo.id)} onChange={(e) => {
-                                                if (e.target.checked) setSelectedClos([...selectedClos, clo.id]);
-                                                else setSelectedClos(selectedClos.filter(id => id !== clo.id));
-                                            }} />
-                                            <span className="text-sm">{clo.code}</span>
-                                        </label>
-                                    ))}
-                                </div>
+                                <label className="mb-1.5 block text-sm font-medium text-slate-700">Chuẩn đầu ra môn học (CLO)</label>
+                                {rubricClos.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {rubricClos.map(clo => (
+                                            <label key={clo.id} className="flex items-center gap-2 bg-white border border-emerald-200 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-emerald-50 transition-colors">
+                                                <input type="checkbox" value={clo.id} checked={selectedClos.includes(clo.id)} onChange={(e) => {
+                                                    if (e.target.checked) setSelectedClos([...selectedClos, clo.id]);
+                                                    else setSelectedClos(selectedClos.filter(id => id !== clo.id));
+                                                }} />
+                                                <span className="text-sm font-semibold text-slate-700">{clo.code}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-slate-400 italic mt-2">Vui lòng lựa chọn Rubric chấm điểm để đồng bộ chuẩn CLO tự động.</p>
+                                )}
                             </div>
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Hạn nộp <span className="text-red-500">*</span></label>
@@ -356,7 +409,7 @@ export default function TeacherCourseAssignments() {
                                                 {endDate.toLocaleString('vi-VN')}
                                             </span>
                                             <span className="font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                                {item.weight} điểm
+                                                {item.weight}% trọng số
                                             </span>
                                             {item.rubricId && (
                                                 <span className="font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 hidden sm:inline-flex">
@@ -367,7 +420,7 @@ export default function TeacherCourseAssignments() {
                                     </div>
                                 </div>
 
-                                {/* Phải (Status + Các Nút bấm) */}
+                                {/* Phải */}
                                 <div className="flex items-center justify-between sm:justify-end gap-3 border-t border-slate-100 sm:border-none pt-3 sm:pt-0 w-full sm:w-auto">
                                     <span className={`rounded-full px-3 py-1 text-[11px] sm:text-xs font-semibold flex items-center gap-1 ${!isExpired ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
                                         {!isExpired ? <CheckCircle className="w-3.5 h-3.5"/> : <X className="w-3.5 h-3.5"/>}
@@ -375,34 +428,20 @@ export default function TeacherCourseAssignments() {
                                     </span>
 
                                     <div className="flex items-center gap-1">
-                                        <button
-                                            onClick={(e) => handleEdit(item, e)}
-                                            title="Sửa bài tập"
-                                            className="rounded-lg p-2 text-slate-400 hover:bg-emerald-100 hover:text-emerald-700 transition-colors"
-                                        >
+                                        <button onClick={(e) => handleEdit(item, e)} title="Sửa bài tập" className="rounded-lg p-2 text-slate-400 hover:bg-emerald-100 hover:text-emerald-700 transition-colors">
                                             <Pencil className="h-4 w-4"/>
                                         </button>
-                                        <button
-                                            onClick={(e) => handleDelete(item.assessmentId, e)}
-                                            title="Xóa bài tập"
-                                            className="rounded-lg p-2 text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors"
-                                        >
+                                        <button onClick={(e) => handleDelete(item.assessmentId, e)} title="Xóa bài tập" className="rounded-lg p-2 text-slate-400 hover:bg-red-100 hover:text-red-600 transition-colors">
                                             <Trash2 className="h-4 w-4"/>
                                         </button>
-
-                                        <button onClick={(e) => e.stopPropagation()}
-                                                className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 transition-colors">
-                                            <MoreVertical className="h-5 w-5"/>
-                                        </button>
-                                        <div
-                                            className={`rounded-lg p-1 transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-180 text-emerald-600' : ''}`}>
+                                        <div className={`rounded-lg p-1 transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-180 text-emerald-600' : ''}`}>
                                             <ChevronDown className="h-5 w-5"/>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Chi tiết */}
+                            {/* Chi tiết bài tập */}
                             {isExpanded && (
                                 <div className="px-4 pb-5 pt-2 border-t border-slate-100 bg-slate-50/50">
                                     <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mt-2">
@@ -414,11 +453,12 @@ export default function TeacherCourseAssignments() {
                                                 {typeInfo.icon}
                                                 {typeInfo.label}
                                             </span>
-                                            {item.rubricId && (
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100 sm:hidden">
-                                                    {getRubricName(item.rubricId)}
+                                            {/* HIỂN THỊ DANH SÁCH CÁC CHUẨN CLO ĐÃ ĐƯỢC LƯU CHO ASSIGNMENT NÀY */}
+                                            {item.clos && item.clos.map((clo: any) => (
+                                                <span key={clo.id || clo.cloId} className="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+                                                    {clo.code || clo.cloId}
                                                 </span>
-                                            )}
+                                            ))}
                                             {item.fileUrl && (
                                                 <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold border transition-colors">
                                                     <Paperclip className="w-4 h-4"/> Tải tài liệu đính kèm
