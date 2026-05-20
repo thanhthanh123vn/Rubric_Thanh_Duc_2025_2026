@@ -1,5 +1,6 @@
 import { Plus, Edit2, Trash2, Eye, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { bloomLevels } from './mainLecturerData';
 import { getAllClo, createClo } from '@/features/rubric/rubricApi.ts';
 
@@ -135,9 +136,12 @@ export default function CLOManagement() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                                <Link
+                                    to={`/mainlecturer/clo/${clo.cloId}`}
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                                >
                                     <Eye className="h-5 w-5" />
-                                </button>
+                                </Link>
 
                                 <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
                                     <Edit2 className="h-5 w-5" />

@@ -3,13 +3,15 @@ package hcmuaf.edu.vn.fit.rubric_service.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "rubrics")
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Getter
+@Setter
 public class Rubric {
 
     @Id
@@ -27,5 +29,5 @@ public class Rubric {
 
 
     @OneToMany(mappedBy = "rubric", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<RubricCriteria> criteria;
+    private Set<RubricCriteria> criteria;
 }

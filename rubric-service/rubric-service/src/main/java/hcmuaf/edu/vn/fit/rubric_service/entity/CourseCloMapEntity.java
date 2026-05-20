@@ -2,10 +2,7 @@ package hcmuaf.edu.vn.fit.rubric_service.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(
@@ -14,7 +11,8 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(columnNames = {"course_id", "clo_id"})
         }
 )
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

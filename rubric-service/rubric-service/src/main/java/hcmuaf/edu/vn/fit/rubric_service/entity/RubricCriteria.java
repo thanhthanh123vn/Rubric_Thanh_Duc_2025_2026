@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "rubric_criteria")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -34,5 +36,5 @@ public class RubricCriteria {
 
 
     @OneToMany(mappedBy = "criteria", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<RubricLevel> levels;
+    private Set<RubricLevel> levels;
 }
