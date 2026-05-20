@@ -53,3 +53,27 @@ export interface CreateTaskRequest {
     assigneeId: string;
     deadline?: string;
 }
+export interface AssessmentSubmission {
+    assessmentId: string;
+    description: string;
+    assessmentName: string;
+    fileUrl: string | null;
+    weight: number;
+    endTime: string;
+
+    submissionId: string | null;
+    submissionAt: string | null;
+
+    calculatedScore: number;
+    lecturerComment: string | null;
+
+    rubricId: string;
+
+
+    clos: Record<string, string>;
+
+    submittedFileUrl: string | null;
+    submittedLink: string | null;
+
+
+}

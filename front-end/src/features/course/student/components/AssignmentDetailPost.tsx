@@ -19,6 +19,8 @@ import Sidebar from "./Sidebar";
 import {courseService} from "@/features/course/courseApi.ts";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
 import {assessmentCommentApi} from "@/features/course/student/api/AssignmentDetailPost.ts";
+import {getRubricById, type RubricDTO} from "@/api/RubricApi.ts";
+import {ru} from "react-day-picker/locale";
 
 const AssignmentDetailPost = () => {
     const {id: offeringId, assignmentId} = useParams<{ id: string; assignmentId: string }>();
@@ -27,6 +29,7 @@ const AssignmentDetailPost = () => {
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [rubric, setRubric] = useState<RubricDTO | null>(null);
 
 
     const isPastDeadline = assignment?.endTime ? new Date() > new Date(assignment.endTime) : false;
@@ -71,25 +74,40 @@ const AssignmentDetailPost = () => {
             setIsSubmittingComment(false);
         }
     };
-    const fetchDetail = async () => {
+    const fetchData = async () => {
         if (!assignmentId) return;
+
         try {
             setLoading(true);
 
-            const data = await assessmentCommentApi.getAssessmentDetail(assignmentId!);
+
+            const data = await assessmentCommentApi.getAssessmentDetail(assignmentId);
 
             setAssignment(data);
             setIsSubmitted(!!data.submittedLink);
+
+
+            if (data.rubricId) {
+
+                const rubricResponse = await getRubricById(data.rubricId);
+
+
+                setRubric(rubricResponse.data || rubricResponse);
+            }
+
         } catch (error) {
-            console.error("Lỗi tải chi tiết bài tập:", error);
+            console.error("Lỗi tải chi tiết bài tập và Rubric:", error);
         } finally {
             setLoading(false);
         }
     };
+
+
     useEffect(() => {
 
-        fetchDetail();
+        fetchData();
         fetchComments();
+
     }, [assignmentId, offeringId]);
     const [file, setFile] = useState<File | null>(null);
     const [link, setLink] = useState("");
@@ -125,7 +143,7 @@ const AssignmentDetailPost = () => {
 
             toast.success("Nộp bài thành công!");
             setIsSubmitted(true);
-            fetchDetail();
+            fetchData();
 
         } catch (error) {
             console.error("Lỗi khi nộp bài:", error);
@@ -154,7 +172,7 @@ const AssignmentDetailPost = () => {
 
             setFile(null);
             setLink("");
-            fetchDetail();
+            fetchData();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Lỗi khi hủy nộp bài");
         } finally {
@@ -206,7 +224,16 @@ const AssignmentDetailPost = () => {
                                 </p>
                             </div>
 
-
+                            {rubric.name && (
+                                <div className="mt-8 border-t pt-6 border-gray-100">
+                                    <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
+                                        <ClipboardList className="w-4 h-4 text-purple-600"/> Rubric đánh giá
+                                    </h3>
+                                    <div className="inline-flex items-center px-4 py-2 bg-purple-50 text-purple-700 border border-purple-100 rounded-xl text-xs font-semibold shadow-sm">
+                                        {rubric.name}
+                                    </div>
+                                </div>
+                            )}
                             {/* PHẦN CHUẨN ĐẦU RA (CLO) */}
 
                             {assignment.clos && Object.keys(assignment.clos).length > 0 && (

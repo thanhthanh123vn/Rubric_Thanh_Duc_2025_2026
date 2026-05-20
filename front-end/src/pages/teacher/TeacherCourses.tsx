@@ -64,9 +64,9 @@ export default function TeacherCourses() {
     }
   };
 
-  // 3. Xử lý Xóa môn học
+
   const handleDelete = async (course: any) => {
-    const courseId = course.courseId || course.id; // Lấy ID thực của môn học
+    const courseId = course.courseId || course.id;
     if (window.confirm(`Bạn có chắc chắn muốn xóa môn học "${course.courseName}" không?`)) {
       try {
         await courseService.deleteCourse(courseId);

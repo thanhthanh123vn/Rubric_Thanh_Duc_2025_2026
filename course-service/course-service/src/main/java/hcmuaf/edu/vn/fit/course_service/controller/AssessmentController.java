@@ -104,6 +104,7 @@ public class AssessmentController {
             @RequestParam("assessmentType") String assessmentType,
             @RequestParam("endTime") String endTimeStr,
             @RequestParam(value = "rubricId", required = false) String rubricId,
+
             @RequestParam(value = "cloIds", required = false) List<String> cloIds,
             @RequestParam(value = "file", required = false) MultipartFile file
     ) {
