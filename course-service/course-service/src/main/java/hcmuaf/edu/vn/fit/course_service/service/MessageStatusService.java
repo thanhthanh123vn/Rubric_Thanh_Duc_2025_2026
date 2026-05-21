@@ -27,7 +27,7 @@ public class MessageStatusService {
         // 1. Cập nhật thời gian đọc cuối cùng của sinh viên đối với lớp học này
         enrollmentRepository.findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId)
                 .ifPresent(enrollment -> {
-                    // Cập nhật timestamp (Bạn cần thêm trường này vào Entity)
+                    // Cập nhật timestamp
                     enrollment.setLastReadTime(new Timestamp(System.currentTimeMillis()).toLocalDateTime());
                     enrollmentRepository.save(enrollment);
                 });
@@ -41,8 +41,7 @@ public class MessageStatusService {
                 new MessageStatusUpdate(offeringId, "ALL_READ")
         );
 
-        // (Lưu ý: Với E-learning, ta thường KHÔNG broadcast việc "Đã xem"
-        // của 1 sinh viên cho toàn bộ 99 sinh viên khác để tránh spam mạng)
+
     }
 
     // DTO thông báo trạng thái

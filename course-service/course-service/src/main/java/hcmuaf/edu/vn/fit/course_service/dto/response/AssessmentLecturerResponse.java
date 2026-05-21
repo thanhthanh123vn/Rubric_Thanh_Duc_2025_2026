@@ -22,4 +22,8 @@ public class AssessmentLecturerResponse {
 
     private Timestamp startTime;
     private Timestamp endTime;
+    private Long totalStudents;
+    private Long gradedCount;
+    private Long pendingCount;
+    private Long submittedCount;
 }

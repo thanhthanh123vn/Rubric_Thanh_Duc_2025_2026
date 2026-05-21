@@ -19,12 +19,14 @@ public class NotificationController {
     // Gửi thông báo hệ thống chung
     @PostMapping
     public Notification create(
-            @RequestParam String userId,
+            @RequestParam String senderId,
+            @RequestParam String owenrID,
             @RequestParam String title,
-            @RequestParam String content) {
+            @RequestParam String content
+    ) {
 
 
-        return service.sendNotification(userId, title, content);
+        return service.sendNotification(senderId,owenrID, title, content);
     }
 
     // Gửi email

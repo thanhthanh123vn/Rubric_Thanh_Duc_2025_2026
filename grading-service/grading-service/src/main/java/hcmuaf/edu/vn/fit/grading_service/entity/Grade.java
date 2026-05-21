@@ -11,8 +11,15 @@ public class Grade {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long studentId;
-    private Long rubricId;
+    private String grade;
+    private String submissionId;
+    private String assessmentId;
+    private String comment;
+
+    private String studentId;
+    private String rubricId;
+    private String status;
 
     private double totalScore;
+
 }

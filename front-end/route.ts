@@ -25,7 +25,7 @@ import TeacherCourseRubric from "@/pages/teacher/TeacherCourseRubric";
 import TeacherCourseOBE from "@/pages/teacher/TeacherCourseOBE";
 import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
 import TeacherCourses from "@/pages/teacher/TeacherCourses";
-import TeacherGrading from "@/pages/teacher/TeacherGrading";
+import TeacherAssessmentList from "@/pages/teacher/TeacherAssessmentList.tsx";
 import TeacherProjects from "@/pages/teacher/TeacherProjects";
 import TeacherAttendance from "@/pages/teacher/TeacherAttendance";
 import TeacherReport from "@/pages/teacher/TeacherReport";
@@ -53,6 +53,8 @@ import RubricMatrix from "@/pages/mainlecturer/RubricMatrix.tsx";
 import SemesterManagement from "@/pages/mainlecturer/SemesterManagement.tsx";
 import CourseAssignment from "@/pages/mainlecturer/CourseAssignment.tsx";
 import TeacherRubricDetail from "@/pages/teacher/TeacherRubricDetail.tsx";
+import TeacherSubmissions from "@/pages/teacher/TeacherSubmissions.tsx";
+import TeacherGrading from "@/pages/teacher/TeacherGrading.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -131,18 +133,21 @@ export const router = createBrowserRouter([
                     { index: true, Component: TeacherCourseOverview },
                     { path: "students", Component: TeacherCourseStudents },
                     { path: "assignments", Component: TeacherCourseAssignments },
+                    { path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions },
 
                     { path: "rubric", Component: TeacherCourseRubric },
                     { path: "obe", Component: TeacherCourseOBE },
                     { path: "obe/analytics", Component: TeacherOBEAnalytics },
                     {path : "obe/:cloId",Component : TeacherOBEDetail},
                     { path: "groups", Component: TeacherCourseGroups },
-                    { path: "grading", Component: TeacherGrading },
+                    { path: "grading", Component: TeacherAssessmentList },
+                    { path: "assessment/:assessmentId/grading", Component: TeacherGrading },
                     { path: "projects", Component: TeacherProjects },
                     { path: "attendance", Component: TeacherAttendance },
                     { path: "report", Component: TeacherReport },
                 ],
             },
+
             { path: "course", Component: TeacherCourses },
             { path: "rubric", Component: TeacherRubric },
             { path:"rubric/:id" ,Component:TeacherRubricDetail },

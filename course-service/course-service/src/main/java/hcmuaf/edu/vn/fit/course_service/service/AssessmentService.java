@@ -2,13 +2,17 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hcmuaf.edu.vn.fit.course_service.client.GradingClient;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.GradeStatus;
 import hcmuaf.edu.vn.fit.course_service.mapper.AssessmentMapper;
 import hcmuaf.edu.vn.fit.course_service.mapper.CommentMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.*;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,10 +31,13 @@ public class AssessmentService {
 
 
     private final AssessmentRepository assessmentRepository;
+    private final  EnrollmentRepository enrollmentRepository;
+    private final GradingClient gradingClient;
 
 
     private  final S3Service s3Service;
-
+    @Enumerated(EnumType.STRING)
+    private GradeStatus status = GradeStatus.PENDING;
     private final AssessmentMapper assessmentMapper;
     private final SubmissionRepository submissionRepository;
     private final CourseOfferingRepository courseOfferingRepository;
@@ -130,12 +137,17 @@ public class AssessmentService {
             throw new RuntimeException("Parse error", e);
         }
     }
+    public List<SubmissionEntity> getSubmissions(String assessmentId) {
 
+        return submissionRepository.findByAssessmentId(assessmentId);
+    }
     public SubmissionEntity submitAssignment(
             String assessmentId,
             String studentId,
             MultipartFile file,
-            String link
+            String link,
+            String rubricId
+
     ){
         try{
             if ((file == null || file.isEmpty()) ) {
@@ -165,6 +177,8 @@ public class AssessmentService {
             submission.setStudentId(studentId);
             submission.setFileUrl(fileUrl);
             submission.setSubmittedAt(java.time.LocalDateTime.now());
+            submission.setRubricId(rubricId);
+//            submission.setStatus(String.valueOf(status));
 
             submissionRepository.save(submission);
 
@@ -315,9 +329,31 @@ public class AssessmentService {
         List<Assessment> assessments = assessmentRepository.findByCourseOffering_OfferingIdOrderByStartTimeDesc(offeringId);
 
 
-        return assessments.stream()
-                .map(assessmentMapper::toResponse)
-                .toList();
+        List<String> studentIds = enrollmentRepository.findStudentIdsByOfferingId(offeringId);
+        Long totalStudents = studentIds != null ? (long) studentIds.size() : 0L;
+
+        return assessments.stream().map(assessment -> {
+            AssessmentLecturerResponse response = assessmentMapper.toResponse(assessment);
+            response.setTotalStudents(totalStudents);
+
+
+            Long submittedCount = submissionRepository.countByAssessmentId(assessment.getAssessmentId());
+            response.setSubmittedCount(submittedCount);
+
+
+            try {
+
+                Long gradedCount = gradingClient.getGradedCount(assessment.getAssessmentId());
+                response.setGradedCount(gradedCount);
+                response.setPendingCount(submittedCount - gradedCount);
+            } catch (Exception e) {
+
+                response.setGradedCount(0L);
+                response.setPendingCount(submittedCount);
+            }
+
+            return response;
+        }).toList();
     }
     public CommentResponse addAssessmentComment(String assessmentId, String userId, CommentRequest request) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
