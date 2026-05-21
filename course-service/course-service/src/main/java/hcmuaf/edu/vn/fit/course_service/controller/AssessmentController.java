@@ -47,17 +47,25 @@ public class AssessmentController {
     ) {
         return assessmentService.getAssById(assessmentId, studentId);
     }
+    @GetMapping("/assessments/{assessmentId}/submissions")
+    public ResponseEntity<List<SubmissionEntity>> getSubmissionsByAssessment(
+            @PathVariable String assessmentId
+    ) {
 
+        List<SubmissionEntity> submissions = assessmentService.getSubmissions(assessmentId);
+        return ResponseEntity.ok(submissions);
+    }
     @PostMapping("/assessments/{assessmentId}/submit")
     public ResponseEntity<?> submitAssignment(
             @RequestHeader("X-User-Id") String studentId,
             @PathVariable String assessmentId,
             @RequestParam(required = false) MultipartFile file,
-            @RequestParam(required = false) String link
+            @RequestParam(required = false) String link,
+              @RequestParam(required = false) String rubricId
     ){
         try {
 
-            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link);
+            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link,rubricId);
 
 
             Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);

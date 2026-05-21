@@ -10,5 +10,5 @@ import java.util.Map;
 public interface RubricClient {
 
     @GetMapping("/api/v1/rubrics/{id}")
-    Map<String, Object> getRubric(@PathVariable Long id);
+    Map<String, Object> getRubric(@PathVariable String id);
 }

@@ -30,6 +30,14 @@ export const rubricServiceApi = axios.create({
         'Content-Type': 'application/json',
     },
 });
+export const gradeSerciveApi = axios.create({
+    baseURL: `${BASE}/grade-service`,
+
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
 
 export const courseApi = axios.create({
     baseURL: `${BASE}/course-service`,
@@ -43,4 +51,5 @@ api.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 courseApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 rubricServiceApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 notificationServiceApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
+gradeSerciveApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 export default api;

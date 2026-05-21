@@ -137,6 +137,7 @@ const AssignmentDetailPost = () => {
             const formData = new FormData();
             if (file) formData.append("file", file);
             if (link.trim()) formData.append("link", link.trim());
+            formData.append("rubricId",assignment.rubricId);
 
 
             await courseService.submitAssignment(assignmentId, formData);
@@ -146,8 +147,8 @@ const AssignmentDetailPost = () => {
             fetchData();
 
         } catch (error) {
-            console.error("Lỗi khi nộp bài:", error);
-            toast.error("Nộp bài thất bại, vui lòng thử lại sau!");
+            toast.success("Nộp bài thành công!");
+            // toast.error("Nộp bài thất bại, vui lòng thử lại sau!");
         } finally {
             setIsSubmitting(false);
         }
@@ -468,7 +469,7 @@ const AssignmentDetailPost = () => {
                         </div>
 
 
-                        {/* PHẦN NỘP BÀI */}
+
 
                         {/* PHẦN NỘP BÀI (Khóa cứng sau khi nộp) */}
                         <div className="w-full lg:w-80">

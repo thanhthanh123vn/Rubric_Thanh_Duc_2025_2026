@@ -1,0 +1,51 @@
+@startuml
+skinparam style strictuml
+
+|Giảng viên|
+start
+:Truy cập chi tiết Bài tập/Khóa học;
+:Chọn Sinh viên cần chấm điểm;
+
+|Frontend (React)|
+:Gọi API lấy chi tiết bài nộp của Sinh viên;
+:Gọi API GET /api/rubrics/{id};
+
+|Backend (Rubric Service)|
+:Truy vấn Rubric, Criteria (Tiêu chí), Level;
+:Trả về cấu trúc Rubric;
+
+|Frontend (React)|
+:Hiển thị bảng Rubric (các mức điểm);
+
+|Giảng viên|
+:Đọc nội dung bài nộp của Sinh viên;
+:Chọn các mức Level tương ứng \ncho từng Criterion (Tiêu chí);
+:Nhập nhận xét (Comment) (nếu có);
+:Bấm nút "Lưu Điểm";
+
+|Frontend (React)|
+:Tính toán tổng điểm (dựa trên % trọng số);
+:Đóng gói dữ liệu (GradeRequest);
+:Gọi API POST /api/grades;
+
+|Backend (Grading Service)|
+:Nhận dữ liệu chấm điểm;
+:Giao tiếp với Rubric Client (FeignClient)\nđể xác minh Rubric;
+:Lưu Grade vào Database;
+:Kích hoạt sự kiện gửi thông báo (Kafka/RabbitMQ hoặc API call);
+
+|Backend (Notification Service)|
+:Nhận sự kiện có điểm mới;
+:Tạo Notification cho Sinh viên;
+:Gửi Email thông báo điểm (Email Service);
+
+|Backend (Grading Service)|
+:Trả về HTTP 200 OK cho Frontend;
+
+|Frontend (React)|
+:Hiển thị "Chấm điểm thành công!";
+:Cập nhật trạng thái bài nộp thành "Đã chấm";
+
+|Giảng viên|
+stop
+@enduml

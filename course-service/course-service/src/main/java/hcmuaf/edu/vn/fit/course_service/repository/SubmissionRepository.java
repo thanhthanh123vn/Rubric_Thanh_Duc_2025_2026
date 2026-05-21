@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -20,6 +21,9 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
     @Query("DELETE FROM SubmissionEntity s WHERE s.assessmentId = :assessmentId")
     void deleteByAssessmentId(@Param("assessmentId") String assessmentId);
 
+    List<SubmissionEntity> findByAssessmentId(String assessmentId);
 
 
+
+    Long countByAssessmentId(String assessmentId);
 }

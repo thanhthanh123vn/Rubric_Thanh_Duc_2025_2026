@@ -1,0 +1,36 @@
+@startuml
+actor "Giảng viên" as Teacher
+participant "Frontend\n(React)" as FE
+participant "Rubric Service" as RS
+participant "Grading Service" as GS
+participant "Notification Service" as NS
+database "Database" as DB
+
+== Tải giao diện chấm điểm ==
+Teacher -> FE: Truy cập bài nộp & Chọn sinh viên
+FE -> RS: GET /api/rubrics/{id}
+RS -> DB: Truy vấn Rubric, Criteria, Level
+DB --> RS: Dữ liệu Rubric
+RS --> FE: Trả về cấu trúc Rubric
+FE --> Teacher: Hiển thị bảng Rubric chi tiết
+
+== Thực hiện chấm điểm ==
+Teacher -> Teacher: Đọc bài nộp
+Teacher -> FE: Chọn Level từng tiêu chí,\nNhập comment & Bấm "Lưu điểm"
+FE -> FE: Tính tổng điểm dựa trên trọng số
+FE -> GS: POST /api/grades (GradeRequest)
+
+== Xử lý tại Backend (Microservices) ==
+GS -> RS: Gọi FeignClient xác minh Rubric hợp lệ
+RS --> GS: Xác nhận hợp lệ
+GS -> DB: Lưu kết quả (Grade) vào Database
+GS -> NS: Kích hoạt sự kiện (Message Queue / API)
+activate NS
+NS -> DB: Lưu Notification cho sinh viên
+NS -> NS: Gửi Email thông báo (Async)
+deactivate NS
+GS --> FE: Trả về 200 OK
+
+FE --> Teacher: Thông báo "Chấm điểm thành công!"
+FE -> FE: Cập nhật trạng thái "Đã chấm"
+@enduml

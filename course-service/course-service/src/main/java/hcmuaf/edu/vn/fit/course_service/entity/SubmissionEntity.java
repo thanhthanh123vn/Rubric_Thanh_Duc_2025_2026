@@ -25,10 +25,13 @@ public class SubmissionEntity {
     private String studentId;
     @Column(name = "file_url")
     private String fileUrl;
+
+    private String rubricId;
 //    private String link;
 //
 //    private Double score;
 //    private String lecturerComment;
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
+    private String status;
 }

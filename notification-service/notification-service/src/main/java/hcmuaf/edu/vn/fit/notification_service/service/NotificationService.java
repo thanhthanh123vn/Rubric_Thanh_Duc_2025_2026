@@ -129,9 +129,10 @@ public class NotificationService {
     }
 
     // Gửi thông báo hệ thống chung
-    public Notification sendNotification(String userId, String title, String content) {
+    public Notification sendNotification(String senderId,String owenrID,String title, String content) {
         Notification n = new Notification();
-        n.setOwnerId(userId);
+        n.setSenderId(senderId);
+        n.setOwnerId(owenrID);
         n.setTitle(title);
         n.setContent(content);
         n.setNotificationType(NotificationType.SYSTEM_ALERT);

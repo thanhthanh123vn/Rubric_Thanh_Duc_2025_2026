@@ -59,7 +59,7 @@ public class MessageService {
         CourseOffering offering = getValidOffering(offeringId);
 
         try {
-            // Logic Cloudinary (Giữ nguyên từ dự án cũ của bạn)
+
 //            String fileName = file.getOriginalFilename() + "_" + UUID.randomUUID().toString();
 //            // Map params = ObjectUtils.asMap("folder", "lms_messages", "public_id", fileName, "resource_type", "auto");
 //            // Map result = cloudinary.uploader().upload(file.getBytes(), params);
@@ -84,10 +84,10 @@ public class MessageService {
         }
     }
 
-    // --- CÁC HÀM HỖ TRỢ ---
+
 
     private void sendToWebSocket(Message message, String offeringId) {
-        // Nên map Message sang MessageResponse DTO trước khi gửi để giấu các thông tin nhạy cảm
+
         simpMessagingTemplate.convertAndSend("/topic/course/" + offeringId, message);
     }
 
@@ -96,7 +96,7 @@ public class MessageService {
                 .orElseThrow(() -> new RuntimeException("Lớp học phần không tồn tại"));
     }
 
-    /* // LUỒNG TẠO THÔNG BÁO CHO LỚP HỌC (Thay thế cho logic cũ)
+    /* // LUỒNG TẠO THÔNG BÁO CHO LỚP HỌC
     private void sendNotificationToClass(Message message, CourseOffering offering, String senderId) {
         // Lấy danh sách sinh viên
         List<String> participantIds = enrollmentRepository.findByCourseOffering(offering)
@@ -107,7 +107,7 @@ public class MessageService {
         // Thêm giảng viên vào danh sách nhận
         participantIds.add(offering.getLecturerId());
 
-        // Gửi thông báo cho mọi người (Trừ người vừa nhắn)
+        // Gửi thông báo cho mọi người
         for (String recipientId : participantIds) {
             if (!recipientId.equals(senderId)) {
                 // Kiểm tra xem user có đang mở khung chat lớp này không (Dùng WebSocketEventListener)
