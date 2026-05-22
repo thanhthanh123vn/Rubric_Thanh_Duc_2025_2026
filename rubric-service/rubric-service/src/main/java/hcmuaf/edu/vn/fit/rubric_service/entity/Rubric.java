@@ -28,6 +28,6 @@ public class Rubric {
     private String description;
 
 
-    @OneToMany(mappedBy = "rubric", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "rubric", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<RubricCriteria> criteria;
 }

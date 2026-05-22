@@ -133,7 +133,7 @@ export default function CourseAssignment() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">Phân công</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">Phân công</p>
         <h3 className="mt-1 text-2xl font-bold text-slate-900">Phân công Giáo viên + Gắn Rubric</h3>
       </div>
 
@@ -144,7 +144,7 @@ export default function CourseAssignment() {
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-full font-bold transition-all ${
                 s <= step
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-green-700 text-white'
                   : 'bg-slate-200 text-slate-600'
               }`}
             >
@@ -173,8 +173,8 @@ export default function CourseAssignment() {
                   }}
                   className={`rounded-lg border-2 p-4 text-left transition-all ${
                     selectedSemester === sem.id
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-slate-200 hover:border-indigo-300'
+                      ? 'border-green-700 bg-green-50'
+                      : 'border-slate-200 hover:border-green-300'
                   }`}
                 >
                   <p className="font-bold text-slate-900">{sem.code} {sem.year}</p>
@@ -199,8 +199,8 @@ export default function CourseAssignment() {
                   }}
                   className={`rounded-lg border-2 p-4 text-left transition-all ${
                     selectedCourse === course.id
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-slate-200 hover:border-indigo-300'
+                      ? 'border-green-700 bg-green-50'
+                      : 'border-slate-200 hover:border-green-300'
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -208,7 +208,7 @@ export default function CourseAssignment() {
                       <p className="font-bold text-slate-900">{course.name}</p>
                       <p className="text-sm text-slate-600">{course.code}</p>
                     </div>
-                    <span className="text-sm font-medium text-indigo-600">{course.classes.length} lớp</span>
+                    <span className="text-sm font-medium text-green-700">{course.classes.length} lớp</span>
                   </div>
                 </button>
               ))}
@@ -226,8 +226,8 @@ export default function CourseAssignment() {
                   key={cls.id}
                   className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
                     selectedClasses.includes(cls.id)
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-slate-200 hover:border-indigo-300'
+                      ? 'border-green-700 bg-green-50'
+                      : 'border-slate-200 hover:border-green-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -235,7 +235,7 @@ export default function CourseAssignment() {
                       type="checkbox"
                       checked={selectedClasses.includes(cls.id)}
                       onChange={() => toggleClass(cls.id)}
-                      className="h-5 w-5 rounded border-slate-300 text-indigo-600"
+                      className="h-5 w-5 rounded border-slate-300 text-green-700"
                     />
                     <div className="flex-1">
                       <p className="font-bold text-slate-900">{cls.name}</p>
@@ -252,7 +252,7 @@ export default function CourseAssignment() {
             {selectedClasses.length > 0 && (
               <button
                 onClick={() => setStep(4)}
-                className="mt-6 w-full rounded-lg bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-700"
+                className="mt-6 w-full rounded-lg bg-green-700 py-3 font-medium text-white hover:bg-green-800"
               >
                 Tiếp tục: Chọn Rubric →
               </button>
@@ -274,8 +274,8 @@ export default function CourseAssignment() {
                   key={rubric.id}
                   className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
                     selectedRubric === rubric.id
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-slate-200 hover:border-indigo-300'
+                      ? 'border-green-700 bg-green-50'
+                      : 'border-slate-200 hover:border-green-300'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -285,14 +285,14 @@ export default function CourseAssignment() {
                       value={rubric.id}
                       checked={selectedRubric === rubric.id}
                       onChange={() => setSelectedRubric(rubric.id)}
-                      className="mt-1 h-5 w-5 text-indigo-600"
+                      className="mt-1 h-5 w-5 text-green-700"
                     />
                     <div className="flex-1">
                       <p className="font-bold text-slate-900">{rubric.name}</p>
                       <div className="mt-2 space-y-1">
                         {rubric.criteria.map((criterion) => (
                           <div key={criterion} className="flex items-center gap-2 text-sm text-slate-600">
-                            <div className="h-2 w-2 rounded-full bg-indigo-600" />
+                            <div className="h-2 w-2 rounded-full bg-green-700" />
                             {criterion}
                           </div>
                         ))}
@@ -305,12 +305,12 @@ export default function CourseAssignment() {
 
             {/* Rubric Matrix Preview */}
             {selectedRubric && (
-              <div className="mt-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+              <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
                 <h5 className="mb-3 font-bold text-slate-900">Ma trận ánh xạ CLO → Tiêu chí</h5>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-indigo-200">
+                      <tr className="border-b border-green-200">
                         <th className="px-3 py-2 text-left font-semibold text-slate-700">CLO</th>
                         <th className="px-3 py-2 text-left font-semibold text-slate-700">Mức độ</th>
                         <th className="px-3 py-2 text-left font-semibold text-slate-700">Tiêu chí</th>
@@ -319,7 +319,7 @@ export default function CourseAssignment() {
                     </thead>
                     <tbody>
                       {rubricMatrices.map((row, idx) => (
-                        <tr key={idx} className="border-b border-indigo-100">
+                        <tr key={idx} className="border-b border-green-100">
                           <td className="px-3 py-2 text-slate-900">{row.clo}</td>
                           <td className="px-3 py-2 text-slate-600">{row.bloomLevel}</td>
                           <td className="px-3 py-2 text-slate-600">{row.criteria.join(', ')}</td>
@@ -335,7 +335,7 @@ export default function CourseAssignment() {
             {selectedRubric && (
               <button
                 onClick={() => setStep(5)}
-                className="mt-6 w-full rounded-lg bg-indigo-600 py-3 font-medium text-white hover:bg-indigo-700"
+                className="mt-6 w-full rounded-lg bg-green-700 py-3 font-medium text-white hover:bg-green-800"
               >
                 Tiếp tục: Chọn Giáo viên →
               </button>
@@ -354,8 +354,8 @@ export default function CourseAssignment() {
                   key={teacher.id}
                   className={`cursor-pointer rounded-lg border-2 p-4 transition-all ${
                     selectedTeacher === teacher.id
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-slate-200 hover:border-indigo-300'
+                      ? 'border-green-700 bg-green-50'
+                      : 'border-slate-200 hover:border-green-300'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -365,7 +365,7 @@ export default function CourseAssignment() {
                       value={teacher.id}
                       checked={selectedTeacher === teacher.id}
                       onChange={() => setSelectedTeacher(teacher.id)}
-                      className="mt-1 h-5 w-5 text-indigo-600"
+                      className="mt-1 h-5 w-5 text-green-700"
                     />
                     <div className="flex-1">
                       <p className="font-bold text-slate-900">{teacher.name}</p>
@@ -407,7 +407,7 @@ export default function CourseAssignment() {
                 </div>
                 <div className="flex justify-between border-t border-slate-200 pt-2">
                   <span className="text-slate-600">Rubric:</span>
-                  <span className="font-medium text-indigo-600">{rubricData?.name}</span>
+                  <span className="font-medium text-green-700">{rubricData?.name}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Giáo viên:</span>
@@ -462,3 +462,4 @@ export default function CourseAssignment() {
     </div>
   );
 }
+

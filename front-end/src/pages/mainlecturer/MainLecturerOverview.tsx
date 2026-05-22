@@ -7,10 +7,10 @@ export default function MainLecturerOverview() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">Chào mừng</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">Chào mừng</p>
           <h3 className="mt-1 text-3xl font-bold text-slate-900">Quản lý chuẩn chất lượng đào tạo</h3>
         </div>
-        <button className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-indigo-700 font-medium hover:bg-indigo-100">
+        <button className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-green-700 font-medium hover:bg-green-100">
           <Calendar className="h-5 w-5" />
           Xem theo Học kì
         </button>
@@ -43,23 +43,23 @@ export default function MainLecturerOverview() {
               <h4 className="text-xl font-bold text-slate-900">CLO gần đây</h4>
               <p className="mt-1 text-sm text-slate-500">Những chuẩn đầu ra đang quản lý</p>
             </div>
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100">
+            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-green-50 text-green-700 hover:bg-green-100">
               <Plus className="h-5 w-5" />
             </button>
           </div>
 
           <div className="mt-6 space-y-3">
             {cloItems.map((item) => (
-              <div key={item.code} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors">
+              <div key={item.code} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 hover:border-green-200 hover:bg-green-50/30 transition-colors">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 font-semibold text-sm shrink-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-700 font-semibold text-sm shrink-0">
                       {item.code.replace('CLO', '')}
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-slate-900">{item.title}</p>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700">{item.bloom}</span>
+                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">{item.bloom}</span>
                         <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                           item.status === 'Duyệt' ? 'bg-green-100 text-green-700' :
                           item.status === 'Chờ duyệt' ? 'bg-amber-100 text-amber-700' :
@@ -78,7 +78,7 @@ export default function MainLecturerOverview() {
             ))}
           </div>
 
-          <button className="mt-4 w-full rounded-xl border border-indigo-200 bg-indigo-50 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-100">
+          <button className="mt-4 w-full rounded-xl border border-green-200 bg-green-50 py-2 text-sm font-medium text-green-700 hover:bg-green-100">
             Xem tất cả CLO →
           </button>
         </div>
@@ -110,3 +110,4 @@ export default function MainLecturerOverview() {
     </div>
   );
 }
+

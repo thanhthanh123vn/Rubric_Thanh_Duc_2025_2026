@@ -1,43 +1,71 @@
-import { Plus, Eye, Edit2, Trash2 } from "lucide-react";
+import { Edit2, Eye, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getRubricMatrix } from "@/features/rubric/rubricApi";
+import RubricMatrixEditor, {
+    type CloOption,
+    type RubricMatrixResponse,
+    type RubricOption,
+} from "@/features/rubric/components/RubricMatrixEditor";
+import RubricSamplePreview from "@/features/rubric/components/RubricSamplePreview.tsx";
+import type {
+    MatrixCriterionDraft,
+    MatrixLevelDraft,
+} from "@/features/rubric/components/RubricMatrixPreview.tsx";
+import { getAllClo, getAllRubric, getRubricMatrix } from "@/features/rubric/rubricApi";
 
-interface RubricLevel {
-    levelId: string;
-    levelName: string;
-    description: string;
-    score: number;
-}
+const PERCENT_RATIO_EPSILON = 0.0001;
 
-interface RubricMatrixRow {
-    cloId: string | null;
-    criteriaId: string;
-    criteriaName: string;
-    weight: number;
-    levels: RubricLevel[];
-}
+const formatWeight = (weight: number) => {
+    if (weight <= 1 + PERCENT_RATIO_EPSILON) {
+        return `${Math.round(weight * 100)}%`;
+    }
 
-interface RubricMatrixResponse {
-    id: string;
-    name: string;
-    description: string;
-    courses: number;
-    cloCount: number;
-    criteriaCount: number;
-    totalWeight: number;
-    status: string;
-    rows: RubricMatrixRow[];
-}
+    return `${weight}%`;
+};
+
+const normalizeWeight = (weight: number) => {
+    if (weight <= 1 + PERCENT_RATIO_EPSILON) {
+        return Math.round(weight * 100);
+    }
+
+    return weight;
+};
+
+const sortLevels = (levels: MatrixLevelDraft[]) => [...levels].sort((a, b) => b.score - a.score || a.orderIndex - b.orderIndex);
+
+const matrixToPreviewCriteria = (matrix: RubricMatrixResponse | null): MatrixCriterionDraft[] => {
+    if (!matrix) {
+        return [];
+    }
+
+    return matrix.rows.map((row) => ({
+        id: row.criteriaId,
+        name: row.criteriaName,
+        weight: normalizeWeight(row.weight),
+        cloId: row.cloId ?? "",
+        levels: sortLevels(
+            row.levels.map((level, index) => ({
+                id: level.levelId,
+                name: level.levelName,
+                orderIndex: index + 1,
+                score: level.score,
+                description: level.description,
+            })),
+        ),
+    }));
+};
 
 export default function RubricMatrix() {
     const [matrices, setMatrices] = useState<RubricMatrixResponse[]>([]);
+    const [rubrics, setRubrics] = useState<RubricOption[]>([]);
+    const [clos, setClos] = useState<CloOption[]>([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
-    const [selectedMatrix, setSelectedMatrix] =
-        useState<RubricMatrixResponse | null>(null);
+    const [selectedMatrix, setSelectedMatrix] = useState<RubricMatrixResponse | null>(null);
+    const [previewMatrix, setPreviewMatrix] = useState<RubricMatrixResponse | null>(null);
 
     useEffect(() => {
-        fetchRubricMatrix();
+        void fetchRubricMatrix();
+        void fetchOptions();
     }, []);
 
     const fetchRubricMatrix = async () => {
@@ -46,18 +74,45 @@ export default function RubricMatrix() {
             const res = await getRubricMatrix();
             setMatrices(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
-            console.error("Lỗi load rubric matrix:", error);
+            console.error("Lỗi khi tải ma trận rubric:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const formatWeight = (weight: number) => {
-        if (weight <= 1) {
-            return `${Math.round(weight * 100)}%`;
+    const fetchOptions = async () => {
+        try {
+            const [cloRes, rubricRes] = await Promise.all([getAllClo(), getAllRubric()]);
+            setClos(Array.isArray(cloRes.data) ? cloRes.data : []);
+            setRubrics(
+                (Array.isArray(rubricRes.data) ? rubricRes.data : []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    description: item.description,
+                    totalWeight: item.totalWeight,
+                })),
+            );
+        } catch (error) {
+            console.error("Lỗi khi tải tùy chọn ma trận rubric:", error);
         }
+    };
 
-        return `${weight}%`;
+    const openEditor = (matrix: RubricMatrixResponse | null) => {
+        setSelectedMatrix(matrix);
+        setShowModal(true);
+    };
+
+    const closeEditor = () => {
+        setShowModal(false);
+        setSelectedMatrix(null);
+    };
+
+    const openPreview = (matrix: RubricMatrixResponse) => {
+        setPreviewMatrix(matrix);
+    };
+
+    const closePreview = () => {
+        setPreviewMatrix(null);
     };
 
     if (loading) {
@@ -66,10 +121,9 @@ export default function RubricMatrix() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
                         Ánh xạ tiêu chí
                     </p>
                     <h3 className="mt-1 text-2xl font-bold text-slate-900">
@@ -78,30 +132,19 @@ export default function RubricMatrix() {
                 </div>
 
                 <button
-                    onClick={() => {
-                        setSelectedMatrix(null);
-                        setShowModal(true);
-                    }}
-                    className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700"
+                    onClick={() => openEditor(null)}
+                    className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
                 >
                     <Plus className="h-5 w-5" />
                     Ma trận mới
                 </button>
             </div>
 
-            {/* Info Box */}
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-medium text-blue-700">
-                    💡 Ma trận Rubric giúp ánh xạ CLO với tiêu chí chấm điểm và các mức đánh giá.
-                </p>
-            </div>
-
-            {/* Matrix List */}
             <div className="space-y-4">
                 {matrices.map((matrix) => (
                     <div
                         key={matrix.id}
-                        className="rounded-xl border border-slate-200 bg-white p-6 hover:shadow-md transition-shadow"
+                        className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md"
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -113,29 +156,28 @@ export default function RubricMatrix() {
                                     {matrix.description}
                                 </p>
 
-                                {/* Stats */}
                                 <div className="mt-4 grid grid-cols-4 gap-4">
-                                    <div className="rounded-lg bg-indigo-50 p-3">
+                                    <div className="rounded-lg bg-green-50 p-3">
                                         <p className="text-xs font-medium text-slate-600">
                                             Học phần
                                         </p>
-                                        <p className="mt-1 text-xl font-bold text-indigo-600">
+                                        <p className="mt-1 text-xl font-bold text-green-700">
                                             {matrix.courses}
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg bg-purple-50 p-3">
+                                    <div className="rounded-lg bg-green-50 p-3">
                                         <p className="text-xs font-medium text-slate-600">CLO</p>
-                                        <p className="mt-1 text-xl font-bold text-purple-600">
+                                        <p className="mt-1 text-xl font-bold text-green-700">
                                             {matrix.cloCount}
                                         </p>
                                     </div>
 
-                                    <div className="rounded-lg bg-blue-50 p-3">
+                                    <div className="rounded-lg bg-green-50 p-3">
                                         <p className="text-xs font-medium text-slate-600">
                                             Tiêu chí
                                         </p>
-                                        <p className="mt-1 text-xl font-bold text-blue-600">
+                                        <p className="mt-1 text-xl font-bold text-green-700">
                                             {matrix.criteriaCount}
                                         </p>
                                     </div>
@@ -150,29 +192,33 @@ export default function RubricMatrix() {
                                     </div>
                                 </div>
 
-                                {/* Status */}
                                 <div className="mt-4">
-                  <span
-                      className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                          matrix.status === "Hoàn tất"
-                              ? "bg-green-100 text-green-700"
-                              : matrix.status === "Chờ duyệt"
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-slate-100 text-slate-700"
-                      }`}
-                  >
-                    {matrix.status}
-                  </span>
+                                    <span
+                                        className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
+                                            matrix.status === "Hoàn tất"
+                                                ? "bg-green-100 text-green-700"
+                                                : matrix.status === "Chờ duyệt"
+                                                    ? "bg-amber-100 text-amber-700"
+                                                    : "bg-slate-100 text-slate-700"
+                                        }`}
+                                    >
+                                        {matrix.status}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Actions */}
                             <div className="flex gap-2">
-                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                                <button
+                                    onClick={() => openPreview(matrix)}
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
+                                >
                                     <Eye className="h-5 w-5" />
                                 </button>
 
-                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                                <button
+                                    onClick={() => openEditor(matrix)}
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
+                                >
                                     <Edit2 className="h-5 w-5" />
                                 </button>
 
@@ -182,7 +228,6 @@ export default function RubricMatrix() {
                             </div>
                         </div>
 
-                        {/* Matrix Preview */}
                         <div className="mt-6 overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
@@ -218,15 +263,15 @@ export default function RubricMatrix() {
                                             key={row.criteriaId}
                                             className="border-b border-slate-100 hover:bg-slate-50"
                                         >
-                                            <td className="px-4 py-2 text-slate-900 font-medium">
-                                                {row.cloId ?? "Chưa gắn CLO"}
+                                            <td className="px-4 py-2 font-medium text-slate-900">
+                                                {row.cloId ?? "Chưa gán CLO"}
                                             </td>
 
                                             <td className="px-4 py-2 text-slate-600">
                                                 {row.criteriaName}
                                             </td>
 
-                                            <td className="px-4 py-2 text-slate-900 font-medium">
+                                            <td className="px-4 py-2 font-medium text-slate-900">
                                                 {formatWeight(row.weight)}
                                             </td>
 
@@ -239,14 +284,14 @@ export default function RubricMatrix() {
                                                                 title={level.description}
                                                                 className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700"
                                                             >
-                                  {level.levelName} - {level.score}
-                                </span>
+                                                                    {level.levelName} - {level.score}
+                                                                </span>
                                                         ))}
                                                     </div>
                                                 ) : (
                                                     <span className="text-slate-400">
-                              Chưa có mức đánh giá
-                            </span>
+                                                            Chưa có mức đánh giá
+                                                        </span>
                                                 )}
                                             </td>
                                         </tr>
@@ -259,25 +304,23 @@ export default function RubricMatrix() {
                 ))}
             </div>
 
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="w-full max-w-3xl rounded-2xl bg-white p-8 max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl font-bold text-slate-900">
-                            {selectedMatrix ? "Chỉnh sửa Ma trận" : "Tạo Ma trận Rubric mới"}
-                        </h2>
+            <RubricMatrixEditor
+                open={showModal}
+                selectedMatrix={selectedMatrix}
+                clos={clos}
+                rubrics={rubrics}
+                onClose={closeEditor}
+            />
 
-                        <div className="mt-6">
-                            <button
-                                type="button"
-                                onClick={() => setShowModal(false)}
-                                className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
-                            >
-                                Đóng
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <RubricSamplePreview
+                open={previewMatrix !== null}
+                name={previewMatrix?.name ?? ""}
+                description={previewMatrix?.description ?? ""}
+                criteria={matrixToPreviewCriteria(previewMatrix)}
+                totalWeight={previewMatrix ? normalizeWeight(previewMatrix.totalWeight) : 0}
+                sortLevels={sortLevels}
+                onClose={closePreview}
+            />
         </div>
     );
 }

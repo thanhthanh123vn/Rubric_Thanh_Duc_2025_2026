@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ClipboardList, Layers3, Link2, Scale, SquareDashedBottom } from "lucide-react";
+import { ArrowLeft, ClipboardList, ExternalLink, Layers3, Scale, SquareDashedBottom } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
     type CriterionLevelDescriptor,
@@ -49,7 +49,7 @@ function CriterionLevelTable({
                     <h3 className="mt-1 text-xl font-bold text-slate-900">{criterion.name}</h3>
                 </div>
 
-                <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+                <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-2 text-sm font-semibold text-green-700">
                     <Scale className="h-4 w-4" />
                     Weight {formatWeight(criterion.weight)}
                 </div>
@@ -106,7 +106,6 @@ export default function RubricDetail() {
     const [clos, setClos] = useState<CloOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [criterionCloMap, setCriterionCloMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
         let mounted = true;
@@ -143,19 +142,6 @@ export default function RubricDetail() {
         };
     }, [rubricId]);
 
-    useEffect(() => {
-        if (!rubric) {
-            return;
-        }
-
-        setCriterionCloMap(
-            rubric.criteria.reduce<Record<string, string>>((lookup, criterion) => {
-                lookup[criterion.id] = criterion.cloId ?? "";
-                return lookup;
-            }, {}),
-        );
-    }, [rubric]);
-
     const descriptorLookup = useMemo(() => {
         return (rubric?.criterionLevelDescriptors ?? []).reduce<DescriptorLookup>((lookup, descriptor) => {
             lookup[`${descriptor.criterionId}:${descriptor.levelId}`] = descriptor;
@@ -171,7 +157,11 @@ export default function RubricDetail() {
     }, [clos]);
 
     const hasLevelMatrix = (rubric?.levels?.length ?? 0) > 0;
-    const mappedCriteriaCount = Object.values(criterionCloMap).filter(Boolean).length;
+    const criteria = rubric?.criteria ?? [];
+    const levels = rubric?.levels ?? [];
+    const mappedCriteriaCount = criteria.filter((criterion) => criterion.cloId).length;
+    const totalDescriptors = rubric?.criterionLevelDescriptors?.length ?? 0;
+    const expectedDescriptors = criteria.length * levels.length;
 
     if (loading) {
         return (
@@ -186,7 +176,7 @@ export default function RubricDetail() {
             <div className="space-y-4">
                 <Link
                     to="/mainlecturer/rubric"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-indigo-700 hover:text-indigo-800"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:text-green-800"
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Quay lai danh sach rubric
@@ -203,42 +193,54 @@ export default function RubricDetail() {
         <div className="space-y-6">
             <Link
                 to="/mainlecturer/rubric"
-                className="inline-flex items-center gap-2 text-sm font-medium text-indigo-700 hover:text-indigo-800"
+                className="inline-flex items-center gap-2 text-sm font-medium text-green-700 hover:text-green-800"
             >
                 <ArrowLeft className="h-4 w-4" />
                 Quay lai danh sach rubric
             </Link>
 
             <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-                <div className="bg-[linear-gradient(135deg,_rgba(79,70,229,0.10),_rgba(14,165,233,0.08))] px-6 py-6 md:px-8">
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">Rubric Detail</p>
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">{rubric.name}</h1>
-                    <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                        {rubric.description || "Rubric nay chua co mo ta tong quan."}
-                    </p>
+                <div className="bg-[linear-gradient(135deg,_rgba(22,163,74,0.12),_rgba(74,222,128,0.10))] px-6 py-6 md:px-8">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">Rubric Detail</p>
+                            <h1 className="mt-2 text-3xl font-bold text-slate-900">{rubric.name}</h1>
+                            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                                {rubric.description || "Rubric nay chua co mo ta tong quan."}
+                            </p>
+                        </div>
+
+                        <Link
+                            to="/mainlecturer/rubric-matrix"
+                            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+                        >
+                            Chinh sua trong Rubric Matrix
+                            <ExternalLink className="h-4 w-4" />
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="grid gap-4 px-6 py-6 md:grid-cols-3 md:px-8">
+                <div className="grid gap-4 px-6 py-6 md:grid-cols-4 md:px-8">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-2xl bg-white p-3 text-indigo-600 shadow-sm">
+                            <div className="rounded-2xl bg-white p-3 text-green-700 shadow-sm">
                                 <ClipboardList className="h-5 w-5" />
                             </div>
                             <div>
                                 <p className="text-sm text-slate-500">Criteria</p>
-                                <p className="text-2xl font-bold text-slate-900">{rubric.criteria.length}</p>
+                                <p className="text-2xl font-bold text-slate-900">{criteria.length}</p>
                             </div>
                         </div>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center gap-3">
-                            <div className="rounded-2xl bg-white p-3 text-cyan-600 shadow-sm">
+                            <div className="rounded-2xl bg-white p-3 text-green-700 shadow-sm">
                                 <Layers3 className="h-5 w-5" />
                             </div>
                             <div>
                                 <p className="text-sm text-slate-500">Levels</p>
-                                <p className="text-2xl font-bold text-slate-900">{rubric.levels?.length ?? 0}</p>
+                                <p className="text-2xl font-bold text-slate-900">{levels.length}</p>
                             </div>
                         </div>
                     </div>
@@ -254,117 +256,113 @@ export default function RubricDetail() {
                             </div>
                         </div>
                     </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-2xl bg-white p-3 text-amber-600 shadow-sm">
+                                <Scale className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-500">Mapping Status</p>
+                                <p className="text-2xl font-bold text-slate-900">{mappedCriteriaCount}/{criteria.length}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
+
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">CLO Mapping</p>
-                        <h2 className="mt-2 text-2xl font-bold text-slate-900">Gan CLO vao criteria</h2>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                            Phan nay dung cho viec map `clo_id` vao tung `rubric_criteria`. Moi criterion co the duoc gan mot CLO de tao dung flow OBE.
-                        </p>
+                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Criteria Overview</p>
+                        <h2 className="mt-2 text-2xl font-bold text-slate-900">Danh sach criteria va CLO</h2>
                     </div>
 
-                    <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
-                        <Link2 className="h-4 w-4" />
-                        {mappedCriteriaCount}/{rubric.criteria.length} criteria da gan CLO
-                    </div>
+                    <Link
+                        to="/mainlecturer/rubric-matrix"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800"
+                    >
+                        Mo Rubric Matrix
+                        <ExternalLink className="h-4 w-4" />
+                    </Link>
                 </div>
 
-                <div className="mt-6 grid gap-4 xl:grid-cols-2">
-                    {rubric.criteria.map((criterion) => {
-                        const selectedCloId = criterionCloMap[criterion.id] ?? "";
-                        const selectedClo = selectedCloId ? cloLookup[selectedCloId] : null;
+                <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-slate-200">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                        Criterion
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                        Weight
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                        CLO
+                                    </th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                        Bloom
+                                    </th>
+                                </tr>
+                            </thead>
 
-                        return (
-                            <article key={criterion.id} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-lg font-bold text-slate-900">{criterion.name}</h3>
-                                            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {criteria.map((criterion) => {
+                                    const clo = criterion.cloId ? cloLookup[criterion.cloId] : null;
+
+                                    return (
+                                        <tr key={criterion.id}>
+                                            <td className="px-4 py-4">
+                                                <p className="font-semibold text-slate-900">{criterion.name}</p>
+                                            </td>
+                                            <td className="px-4 py-4 text-sm font-semibold text-slate-900">
                                                 {formatWeight(criterion.weight)}
-                                            </span>
-                                        </div>
-                                        <p className="mt-2 text-sm leading-6 text-slate-600">
-                                            Chon CLO phu hop cho criterion nay. Sau khi noi API, gia tri se map vao truong `clo_id`.
-                                        </p>
-                                    </div>
-
-                                    <div className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                        selectedClo ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                                    }`}>
-                                        {selectedClo ? "Da gan CLO" : "Chua gan CLO"}
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 rounded-2xl bg-white p-4">
-                                    <label className="text-sm font-medium text-slate-700">CLO ap dung</label>
-                                    <select
-                                        value={selectedCloId}
-                                        onChange={(event) =>
-                                            setCriterionCloMap((current) => ({
-                                                ...current,
-                                                [criterion.id]: event.target.value,
-                                            }))
-                                        }
-                                        className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
-                                    >
-                                        <option value="">Chon CLO cho criterion nay</option>
-                                        {clos.map((clo) => (
-                                            <option key={clo.cloId} value={clo.cloId}>
-                                                {clo.cloCode} - {clo.cloName}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    {selectedClo ? (
-                                        <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700">
-                                                    {selectedClo.cloCode}
-                                                </span>
-                                                {selectedClo.bloomLevel && (
-                                                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                                                        {selectedClo.bloomLevel}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                {clo ? (
+                                                    <div>
+                                                        <p className="font-semibold text-green-700">{clo.cloCode}</p>
+                                                        <p className="mt-1 text-sm text-slate-600">{clo.cloName}</p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                                                        Chua gan CLO
                                                     </span>
                                                 )}
-                                            </div>
-                                            <p className="mt-3 font-semibold text-slate-900">{selectedClo.cloName}</p>
-                                            <p className="mt-1 text-sm leading-6 text-slate-600">
-                                                Criterion nay se duoc tinh vao phan danh gia cua CLO da chon trong rubric detail.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                                            Chua co CLO nao duoc gan cho criterion nay.
-                                        </div>
-                                    )}
-                                </div>
-                            </article>
-                        );
-                    })}
+                                            </td>
+                                            <td className="px-4 py-4 text-sm text-slate-600">
+                                                {clo?.bloomLevel || "-"}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
             {!hasLevelMatrix && (
                 <section className="rounded-[2rem] border border-amber-200 bg-amber-50 p-5 text-amber-800 shadow-sm">
-                    Rubric nay hien chua co du lieu `Rubric Level`. Trang van hien thi thong tin tong quan va se tu render ma tran khi backend tra ve `levels` cung `criterionLevelDescriptors`.
+                    Rubric nay hien chua co du lieu `Rubric Level`. Hay cau hinh level va descriptor trong `Rubric Matrix` de hoan thien nghiep vu cham diem.
                 </section>
             )}
 
-            <div className="space-y-5">
-                {rubric.criteria.map((criterion) => (
-                    <CriterionLevelTable
-                        key={criterion.id}
-                        criterion={criterion}
-                        levels={rubric.levels ?? []}
-                        descriptorLookup={descriptorLookup}
-                    />
-                ))}
-            </div>
+            {hasLevelMatrix && (
+                <div className="space-y-5">
+                    {criteria.map((criterion) => (
+                        <CriterionLevelTable
+                            key={criterion.id}
+                            criterion={criterion}
+                            levels={levels}
+                            descriptorLookup={descriptorLookup}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
+

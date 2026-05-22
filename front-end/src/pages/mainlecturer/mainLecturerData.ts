@@ -84,26 +84,26 @@ export const rubricMatrixData = [
 ];
 
 export const bloomLevels = [
-  { level: 'Nhớ', color: 'bg-red-50 text-red-700 border-red-100' },
-  { level: 'Hiểu', color: 'bg-orange-50 text-orange-700 border-orange-100' },
-  { level: 'Vận dụng', color: 'bg-yellow-50 text-yellow-700 border-yellow-100' },
+  { level: 'Nhớ', color: 'bg-green-50 text-green-700 border-green-100' },
+  { level: 'Hiểu', color: 'bg-green-50 text-green-700 border-green-100' },
+  { level: 'Vận dụng', color: 'bg-green-50 text-green-700 border-green-100' },
   { level: 'Phân tích', color: 'bg-green-50 text-green-700 border-green-100' },
-  { level: 'Đánh giá', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-  { level: 'Tổng hợp', color: 'bg-purple-50 text-purple-700 border-purple-100' },
+  { level: 'Đánh giá', color: 'bg-green-50 text-green-700 border-green-100' },
+  { level: 'Tổng hợp', color: 'bg-green-50 text-green-700 border-green-100' },
 ];
 
 export const mainLecturerTones: Record<string, string> = {
-  indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-  purple: 'bg-purple-50 text-purple-700 border-purple-100',
-  blue: 'bg-blue-50 text-blue-700 border-blue-100',
-  fuchsia: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100',
+  indigo: 'bg-green-50 text-green-700 border-green-100',
+  purple: 'bg-green-50 text-green-700 border-green-100',
+  blue: 'bg-green-50 text-green-700 border-green-100',
+  fuchsia: 'bg-green-50 text-green-700 border-green-100',
 };
 
 export const mainLecturerDots: Record<string, string> = {
-  indigo: 'bg-indigo-500',
-  purple: 'bg-purple-500',
-  blue: 'bg-blue-500',
-  fuchsia: 'bg-fuchsia-500',
+  indigo: 'bg-green-500',
+  purple: 'bg-green-500',
+  blue: 'bg-green-500',
+  fuchsia: 'bg-green-500',
 };
 
 export const mainLecturerHighlights = [
@@ -111,3 +111,4 @@ export const mainLecturerHighlights = [
   { title: 'Rubric chuẩn hóa', tone: 'purple' },
   { title: 'Kiểm soát chất lượng', tone: 'blue' },
 ];
+

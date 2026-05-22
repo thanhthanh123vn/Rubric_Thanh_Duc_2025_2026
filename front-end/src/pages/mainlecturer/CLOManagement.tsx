@@ -72,7 +72,7 @@ export default function CLOManagement() {
             {/* HEADER */}
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
                         Quản lý chuẩn đầu ra
                     </p>
 
@@ -83,7 +83,7 @@ export default function CLOManagement() {
 
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700"
+                    className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800"
                 >
                     <Plus className="h-5 w-5" />
                     Tạo CLO mới
@@ -99,7 +99,7 @@ export default function CLOManagement() {
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3">
-                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-indigo-100 font-bold text-indigo-600">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-green-100 font-bold text-green-700">
                                     {clo.cloCode}
                                 </div>
 
@@ -113,7 +113,7 @@ export default function CLOManagement() {
                                     </p>
 
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
+                                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
                                             {clo.bloomLevel}
                                         </span>
 
@@ -121,7 +121,7 @@ export default function CLOManagement() {
                                             clo.courseMappings.map((mapping, index) => (
                                                 <span
                                                     key={index}
-                                                    className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700"
+                                                    className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700"
                                                 >
                                                     {mapping.courseId}
                                                 </span>
@@ -138,12 +138,12 @@ export default function CLOManagement() {
                             <div className="flex items-center gap-2">
                                 <Link
                                     to={`/mainlecturer/clo/${clo.cloId}`}
-                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600"
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
                                 >
                                     <Eye className="h-5 w-5" />
                                 </Link>
 
-                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700">
                                     <Edit2 className="h-5 w-5" />
                                 </button>
 
@@ -219,7 +219,7 @@ export default function CLOManagement() {
                                         })
                                     }
                                     placeholder="VD: CLO1"
-                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none"
+                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none"
                                 />
                             </div>
 
@@ -238,7 +238,7 @@ export default function CLOManagement() {
                                         })
                                     }
                                     placeholder="VD: Làm việc nhóm"
-                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none"
+                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none"
                                 />
                             </div>
 
@@ -257,7 +257,7 @@ export default function CLOManagement() {
                                         })
                                     }
                                     placeholder="Mô tả CLO..."
-                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none"
+                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none"
                                 />
                             </div>
 
@@ -274,7 +274,7 @@ export default function CLOManagement() {
                                             bloomLevel: e.target.value,
                                         })
                                     }
-                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:outline-none"
+                                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 focus:border-green-600 focus:outline-none"
                                 >
                                     <option value="">
                                         Chọn Bloom Level
@@ -302,7 +302,7 @@ export default function CLOManagement() {
 
                                 <button
                                     type="submit"
-                                    className="flex-1 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white hover:bg-indigo-700"
+                                    className="flex-1 rounded-xl bg-green-700 px-4 py-3 font-semibold text-white hover:bg-green-800"
                                 >
                                     Tạo CLO
                                 </button>
@@ -314,3 +314,4 @@ export default function CLOManagement() {
         </div>
     );
 }
+

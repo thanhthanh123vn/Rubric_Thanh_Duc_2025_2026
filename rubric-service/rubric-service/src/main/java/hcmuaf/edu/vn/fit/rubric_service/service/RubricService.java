@@ -3,14 +3,25 @@ package hcmuaf.edu.vn.fit.rubric_service.service;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.*;
 import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricCriteria;
+import hcmuaf.edu.vn.fit.rubric_service.entity.RubricLevel;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 public class RubricService {
+
+    private static final Comparator<RubricLevel> LEVEL_SCORE_DESC_COMPARATOR =
+            Comparator.comparing(
+                    RubricLevel::getScore,
+                    Comparator.nullsLast(Comparator.reverseOrder())
+            ).thenComparing(
+                    RubricLevel::getLevelName,
+                    Comparator.nullsLast(String::compareToIgnoreCase)
+            );
 
     @Autowired
     private RubricRepository rubricRepository;
@@ -91,6 +102,7 @@ public class RubricService {
                         .levels(
                                 c.getLevels() == null ? List.of() :
                                         c.getLevels().stream()
+                                                .sorted(LEVEL_SCORE_DESC_COMPARATOR)
                                                 .map(l -> RubricLevelResponse.builder()
                                                         .levelId(l.getLevelId())
                                                         .levelName(l.getLevelName())
@@ -116,7 +128,6 @@ public class RubricService {
                 .rows(rows)
                 .build();
     }
-
 
     public Rubric getById(String id) {
         return rubricRepository.findById(id).orElse(null);
