@@ -51,13 +51,13 @@ export default function RubricBuilder() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">Rubric Studio</p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">Rubric Studio</p>
                     <h3 className="mt-1 text-2xl font-bold text-slate-900">Tạo và quản lý rubric</h3>
                 </div>
 
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+                    className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
                 >
                     <Plus className="h-5 w-5" />
                     Rubric mới
@@ -90,29 +90,29 @@ export default function RubricBuilder() {
                                     className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2"
                                 >
                                     <div className="flex items-center gap-2 text-sm text-slate-700">
-                                        <div className="h-2 w-2 rounded-full bg-indigo-600" />
+                                        <div className="h-2 w-2 rounded-full bg-green-700" />
                                         <span>{criterion.name}</span>
                                     </div>
 
-                                    <span className="text-sm font-semibold text-indigo-600">{formatPercent(criterion.weight)}</span>
+                                    <span className="text-sm font-semibold text-green-700">{formatPercent(criterion.weight)}</span>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="mt-5 rounded-xl bg-indigo-50 p-4">
+                        <div className="mt-5 rounded-xl bg-green-50 p-4">
                             <p className="text-xs font-medium text-slate-600">Tổng trọng số</p>
-                            <p className="mt-1 text-lg font-bold text-indigo-700">{formatPercent(rubric.totalWeight)}</p>
+                            <p className="mt-1 text-lg font-bold text-green-700">{formatPercent(rubric.totalWeight)}</p>
                         </div>
 
                         <div className="mt-5 flex gap-2">
                             <Link
                                 to={`/mainlecturer/rubric/${rubric.id}`}
-                                className="flex-1 rounded-lg border border-indigo-200 bg-indigo-50 py-2 text-center text-sm font-medium text-indigo-700 hover:bg-indigo-100"
+                                className="flex-1 rounded-lg border border-green-200 bg-green-50 py-2 text-center text-sm font-medium text-green-700 hover:bg-green-100"
                             >
                                 Chi tiết
                             </Link>
 
-                            <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                            <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700">
                                 <Copy className="h-5 w-5" />
                             </button>
 
@@ -128,3 +128,4 @@ export default function RubricBuilder() {
         </div>
     );
 }
+

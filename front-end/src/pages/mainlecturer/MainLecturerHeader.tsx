@@ -10,7 +10,7 @@ export default function MainLecturerHeader() {
             <input
               type="text"
               placeholder="Tìm kiếm CLO, rubric..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm placeholder:text-slate-500 focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600"
             />
           </div>
         </div>
@@ -27,3 +27,4 @@ export default function MainLecturerHeader() {
     </header>
   );
 }
+

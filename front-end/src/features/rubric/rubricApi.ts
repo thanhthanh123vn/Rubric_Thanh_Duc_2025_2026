@@ -164,3 +164,6 @@ export const createClo = (data: Clo) => {
 export const getRubricMatrix = () => {
     return rubricServiceApi.get('/rubrics/matrix');
 }
+export const updateRubricMatrix = (payload : any) => {
+    return rubricServiceApi.post('/rubric-matrices',payload);
+}

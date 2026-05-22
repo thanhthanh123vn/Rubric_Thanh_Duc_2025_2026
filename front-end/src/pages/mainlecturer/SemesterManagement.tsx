@@ -75,7 +75,7 @@ export default function SemesterManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-600">Quản lý phân công</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">Quản lý phân công</p>
         <h3 className="mt-1 text-2xl font-bold text-slate-900">Phân công giáo viên theo Học kì</h3>
       </div>
 
@@ -87,8 +87,8 @@ export default function SemesterManagement() {
             onClick={() => setSelectedSemester(semester)}
             className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
               selectedSemester?.id === semester.id
-                ? 'border-indigo-600 bg-indigo-50'
-                : 'border-slate-200 bg-white hover:border-indigo-300'
+                ? 'border-green-700 bg-green-50'
+                : 'border-slate-200 bg-white hover:border-green-300'
             }`}
           >
             <div className="flex items-start justify-between">
@@ -114,13 +114,13 @@ export default function SemesterManagement() {
                 <p className="text-xs font-medium text-slate-600">Môn học</p>
                 <p className="mt-1 text-lg font-bold text-slate-900">{semester.courseCount}</p>
               </div>
-              <div className="rounded-lg bg-indigo-50 p-2 text-center">
-                <p className="text-xs font-medium text-indigo-600">GV phân công</p>
-                <p className="mt-1 text-lg font-bold text-indigo-700">{semester.assignedTeachers}</p>
+              <div className="rounded-lg bg-green-50 p-2 text-center">
+                <p className="text-xs font-medium text-green-700">GV phân công</p>
+                <p className="mt-1 text-lg font-bold text-green-700">{semester.assignedTeachers}</p>
               </div>
-              <div className="rounded-lg bg-purple-50 p-2 text-center">
-                <p className="text-xs font-medium text-purple-600">Tổng GV</p>
-                <p className="mt-1 text-lg font-bold text-purple-700">{semester.totalTeachers}</p>
+              <div className="rounded-lg bg-green-50 p-2 text-center">
+                <p className="text-xs font-medium text-green-700">Tổng GV</p>
+                <p className="mt-1 text-lg font-bold text-green-700">{semester.totalTeachers}</p>
               </div>
             </div>
 
@@ -143,7 +143,7 @@ export default function SemesterManagement() {
                 {selectedSemester.courseCount} môn học, {selectedSemester.assignedTeachers}/{selectedSemester.totalTeachers} giáo viên
               </p>
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white font-medium hover:bg-indigo-700">
+            <button className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800">
               + Phân công
             </button>
           </div>
@@ -151,7 +151,7 @@ export default function SemesterManagement() {
           {/* Course List */}
           <div className="mt-6 space-y-3">
             {courseAssignments.map((course) => (
-              <div key={course.courseId} className="rounded-xl border border-slate-200 p-4 hover:border-indigo-300 hover:bg-indigo-50/30 transition-colors">
+              <div key={course.courseId} className="rounded-xl border border-slate-200 p-4 hover:border-green-300 hover:bg-green-50/30 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <h5 className="font-bold text-slate-900">{course.courseName}</h5>
@@ -173,7 +173,7 @@ export default function SemesterManagement() {
                         course.status === 'assigned'
                           ? 'bg-green-100 text-green-700'
                           : course.status === 'in-progress'
-                          ? 'bg-blue-100 text-blue-700'
+                          ? 'bg-green-100 text-green-700'
                           : course.status === 'completed'
                           ? 'bg-slate-100 text-slate-700'
                           : 'bg-amber-100 text-amber-700'
@@ -187,7 +187,7 @@ export default function SemesterManagement() {
                         ? 'Hoàn tất'
                         : 'Chờ phân công'}
                     </span>
-                    <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-indigo-600">
+                    <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700">
                       <ChevronRight className="h-5 w-5" />
                     </button>
                   </div>
@@ -213,7 +213,7 @@ export default function SemesterManagement() {
               </p>
             </div>
             <div className="text-center">
-              <BookOpen className="mx-auto h-5 w-5 text-indigo-600" />
+              <BookOpen className="mx-auto h-5 w-5 text-green-700" />
               <p className="mt-2 text-sm font-medium text-slate-600">Tổng môn</p>
               <p className="mt-1 text-xl font-bold text-slate-900">{courseAssignments.length}</p>
             </div>
@@ -233,3 +233,4 @@ export default function SemesterManagement() {
     </div>
   );
 }
+

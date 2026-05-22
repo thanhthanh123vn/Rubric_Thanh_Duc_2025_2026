@@ -24,6 +24,8 @@ public class RubricCriteria {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rubric_id")
     private Rubric rubric;
+
+
     @Column(name = "clo_id", length = 50)
     private String cloId;
 
@@ -35,6 +37,6 @@ public class RubricCriteria {
     private Float weight;
 
 
-    @OneToMany(mappedBy = "criteria", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "criteria", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<RubricLevel> levels;
 }
