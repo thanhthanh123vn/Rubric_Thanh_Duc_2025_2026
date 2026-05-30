@@ -1,0 +1,42 @@
+@startuml
+skinparam style strictuml
+skinparam ActivityBackgroundColor #Edf6ff
+skinparam ActivityBorderColor #3b82f6
+
+|Người dùng (Admin/GV)|
+start
+:Chọn Lớp học phần (Offering);
+:Chọn thao tác;
+
+|Hệ thống|
+split
+  :Xem danh sách sinh viên;
+  :Gọi API [GET /courses/offering/{offeringId}/students];
+split again
+  :Đăng ký sinh viên vào lớp;
+  :Nhập StudentID;
+  :Gọi API [POST /courses/enroll];
+split again
+  :Xóa sinh viên khỏi lớp;
+  :Chọn sinh viên;
+  :Gọi API [DELETE /courses/enroll];
+split again
+  :Phân công giảng viên;
+  :Chọn giảng viên từ danh sách;
+  :Gọi API [POST /courses/{courseId}/assign-lecturer];
+end split
+
+|Hệ thống|
+if (Thực thi thành công?) then (Có)
+  :Trả về kết quả (200 OK);
+  |Người dùng (Admin/GV)|
+  :Hiển thị thông báo thành công;
+else (Lỗi Exception)
+  |Hệ thống|
+  :Trả về lỗi (400 Bad Request);
+  |Người dùng (Admin/GV)|
+  :Hiển thị thông báo lỗi;
+endif
+
+stop
+@enduml

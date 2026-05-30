@@ -1,5 +1,5 @@
 import { CalendarDays, X } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 import { teacherCourses } from './teacherCourseData';
 import { fetchSubmissionsPending, submitStudentGrade } from "@/api/GradingApi.ts";
 import { useEffect, useState } from "react";
@@ -27,7 +27,7 @@ export interface RubricDTO {
 export default function TeacherSubmissions() {
     const { id } = useParams<{ id: string }>();
     const { assessmentId } = useParams<{ assessmentId: string }>();
-
+    const navigate = useNavigate();
     const [submissions, setSubmissions] = useState<SubmissionDTO[]>([]);
     const [loading, setLoading] = useState(false);
     const [rubric, setRubric] = useState<RubricDTO | null>(null);
@@ -55,15 +55,34 @@ export default function TeacherSubmissions() {
         }
     };
 
-    const handleOpenRubric = async (rubricId: string, studentId: string) => {
+    const handleOpenRubric = async (
+        rubricId: string,
+        studentId: string,
+        assessmentId: string
+    ) => {
         try {
-            const fetchedRubricId = rubricId || "default-rubric-id";
-            const rubricData = await getRubricById(fetchedRubricId);
+            const fetchedRubricId =
+                rubricId || "default-rubric-id";
+
+            const rubricData =
+                await getRubricById(fetchedRubricId);
 
             setRubric(rubricData.data);
+
             setActiveStudent(studentId);
+
             setCriteriaScores({});
-            setIsModalOpen(true);
+
+            navigate(
+                `/teacher/course/${id}/assessment/${assessmentId}/grading`,
+                {
+                    state: {
+                        rubric: rubricData.data,
+                        studentId,
+                        rubricId: fetchedRubricId,
+                    },
+                }
+            );
         } catch (error) {
             console.error("Lỗi load rubric:", error);
         }
@@ -179,7 +198,7 @@ export default function TeacherSubmissions() {
                                         <div className="flex items-center gap-3">
                                             <span className="font-semibold text-slate-900">Điểm: Chưa chấm</span>
                                             <button
-                                                onClick={() => handleOpenRubric(item.rubricId, item.studentId)}
+                                                onClick={() => handleOpenRubric(item.rubricId, item.studentId,assessmentId)}
                                                 className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 transition-colors"
                                             >
                                                 Chấm Rubric

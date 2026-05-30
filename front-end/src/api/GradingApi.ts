@@ -13,7 +13,7 @@ export const getRubricById = async (id: string) => {
 };
 
 export const submitStudentGrade = async (gradeData: any) => {
-    // Gọi sang Grading Service để lưu điểm
-    const response = await gradeSerciveApi.post(`/grades`, gradeData);
+
+    const response = await gradeSerciveApi.post(`/grade/submit`, gradeData);
     return response.data;
 };

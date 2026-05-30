@@ -1,0 +1,38 @@
+@startuml
+|Người quản trị|
+start
+:Đăng nhập hệ thống;
+:Truy cập menu "Quản lý môn học";
+
+|Hệ thống|
+:Lấy danh sách môn học [GET /course];
+:Hiển thị danh sách;
+
+|Giảng Viên|
+if (Thao tác?) then (Thêm mới)
+  :Nhập thông tin môn học;
+  |Hệ thống|
+  :Validate thông tin;
+  :Lưu vào CSDL [POST /course/create];
+elseif (Chỉnh sửa)
+  |Giảng Viên|
+  :Chọn môn học;
+  :Cập nhật thông tin;
+  |Hệ thống|
+  :Lưu thay đổi [PUT /course/{id}];
+else (Xóa)
+  |Giảng Viên|
+  :Chọn môn học;
+  :Xác nhận xóa;
+  |Hệ thống|
+  :Xóa môn học [DELETE /course/{id}];
+endif
+
+|Hệ thống|
+if (Thành công?) then (Có)
+  :Thông báo thành công;
+else (Không)
+  :Thông báo lỗi;
+endif
+stop
+@enduml

@@ -147,8 +147,8 @@ const AssignmentDetailPost = () => {
             fetchData();
 
         } catch (error) {
-            toast.success("Nộp bài thành công!");
-            // toast.error("Nộp bài thất bại, vui lòng thử lại sau!");
+            console.error("Lỗi khi nộp bài:", error);
+            toast.error("Nộp bài thất bại, vui lòng thử lại sau!");
         } finally {
             setIsSubmitting(false);
         }
@@ -156,7 +156,7 @@ const AssignmentDetailPost = () => {
 
 
     const handleUnsubmit = async () => {
-        // Kiểm tra xem đã quá hạn chưa
+
         const isPastDeadline = new Date() > new Date(assignment.endTime);
         if (isPastDeadline) {
             toast.error("Đã quá hạn, bạn không thể hủy nộp bài!");

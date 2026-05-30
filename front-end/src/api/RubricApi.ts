@@ -12,3 +12,6 @@ export interface RubricDTO {
 export const getRubricById = async (id: string) => {
     return rubricServiceApi.get(`/rubrics/${id}`);
 };
+export const getRubricMatrixById = async (id: string) => {
+    return rubricServiceApi.get(`/rubrics/matrix/${id}`);
+};

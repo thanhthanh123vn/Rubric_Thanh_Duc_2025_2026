@@ -1,0 +1,34 @@
+@startuml
+actor "Admin/Giảng viên" as User
+participant "Frontend" as UI
+participant "CourseController" as CC
+participant "CourseService" as CS
+database "Database" as DB
+
+User -> UI: Nhập thông tin môn học
+UI -> CC: POST /api/v1/course-service/course/create
+activate CC
+
+CC -> CS: createCourse(CourseRequest)
+activate CS
+
+CS -> DB: Kiểm tra mã môn học
+activate DB
+DB --> CS: Kết quả
+deactivate DB
+
+alt Môn học chưa tồn tại
+    CS -> DB: save(Course)
+    activate DB
+    DB --> CS: Trả về thực thể môn học
+    deactivate DB
+    CS --> CC: Trả về CourseResponse
+    CC --> UI: 200 OK (Thành công)
+else Môn học đã tồn tại
+    CS --> CC: Throw Exception
+    CC --> UI: 400 Bad Request (Lỗi trùng mã)
+end
+
+deactivate CS
+deactivate CC
+@enduml

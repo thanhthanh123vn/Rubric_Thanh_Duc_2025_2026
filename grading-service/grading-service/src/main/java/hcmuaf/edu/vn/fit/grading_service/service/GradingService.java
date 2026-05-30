@@ -42,7 +42,7 @@ public class GradingService {
     }
     @Transactional
     public void processGrading(GradeRequest request) {
-        // 1. Lưu điểm vào Database của Grading Service
+
         Grade grade = repository.findByStudentIdAndAssessmentId(request.getStudentId(), request.getAssessmentId())
                 .orElse(new Grade());
         grade.setSubmissionId(request.getSubmissionId());
