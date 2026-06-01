@@ -18,34 +18,42 @@ public class QuestionController {
 
     private final QuestionService questionService;
 
-    @GetMapping("/course/{courseId}")
-    public ResponseEntity<List<Question>> getQuestionsByCourse(@PathVariable String courseId) {
-        return ResponseEntity.ok(questionService.getQuestionsByCourseId(courseId));
+    @GetMapping("/course/{offeringId}")
+    public ResponseEntity<List<Question>> getQuestionsByCourse(@PathVariable String offeringId) {
+        return ResponseEntity.ok(questionService.getQuestionsByOfferingId(offeringId));
     }
 
-    @PostMapping("/course/{courseId}")
+    @PostMapping("/course/{offeringId}")
     public ResponseEntity<Question> createQuestion(
-            @PathVariable String courseId,
+            @PathVariable String offeringId,
             @RequestBody QuestionRequest request) {
-        return ResponseEntity.ok(questionService.createQuestion(courseId, request));
+        return ResponseEntity.ok(questionService.createQuestion(offeringId, request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/course/{id}")
     public ResponseEntity<Void> deleteQuestion(@PathVariable String id) {
         questionService.deleteQuestion(id);
         return ResponseEntity.noContent().build();
     }
-    @PostMapping(value = "/course/{courseId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/course/{offeringId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> importQuestions(
-            @PathVariable String courseId,
+            @PathVariable String offeringId,
             @RequestParam("file") MultipartFile file) {
         try {
-            // Có thể check định dạng file trước (file.getContentType() hoặc đuôi file .xlsx)
 
-            List<Question> importedQuestions = questionService.importQuestionsFromExcel(courseId, file);
+
+            List<Question> importedQuestions = questionService.importQuestionsFromExcel(offeringId, file);
             return ResponseEntity.ok("Import thành công " + importedQuestions.size() + " câu hỏi.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+    @PutMapping("/course/{id}")
+    public ResponseEntity<Question> updateQuestion(
+            @PathVariable String id,
+            @RequestBody QuestionRequest request) {
+
+        Question updatedQuestion = questionService.updateQuestion(id, request);
+        return ResponseEntity.ok(updatedQuestion);
     }
 }

@@ -15,28 +15,33 @@ export interface Question {
 }
 export const questionApi = {
     getQuestionsByCourse: async (
-        courseId: string
+        offeringId: string
     ): Promise<Question[]> => {
         const response = await courseApi.get<Question[]>(
-            `/questions/course/${courseId}`
+            `/questions/course/${offeringId}`
         );
         return response.data;
     },
 
-    createQuestion: (courseId: string, data: any) =>
+    createQuestion: (offeringId: string, data: any) =>
         courseApi.post<Question>(
-            `/questions/course/${courseId}`,
+            `/questions/course/${offeringId}`,
+            data
+        ),
+    updateQuestion: (id: string, data: any) =>
+        courseApi.put<Question>(
+            `/questions/course/${id}`,
             data
         ),
 
     deleteQuestion: (questionId: string) =>
-        courseApi.delete(`/questions/${questionId}`),
-    importQuestions: (courseId: string, file: File) => {
+        courseApi.delete(`/questions/course/${questionId}`),
+    importQuestions: (offeringId: string, file: File) => {
         const formData = new FormData();
         formData.append("file", file);
 
         return courseApi.post(
-            `/questions/course/${courseId}/import`,
+            `/questions/course/${offeringId}/import`,
             formData,
             {
                 headers: {

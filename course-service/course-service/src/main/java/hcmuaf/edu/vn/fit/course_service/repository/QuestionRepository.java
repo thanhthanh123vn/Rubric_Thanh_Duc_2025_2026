@@ -10,5 +10,8 @@ import java.util.List;
 public interface QuestionRepository extends JpaRepository<Question, String> {
 
 
-    List<Question> findByCourseId(String courseId);
+    List<Question> findByOfferingId(String offeringId);
+    boolean existsByContentAndOfferingId(String content, String offeringId);
+
+
 }

@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.QuestionType;
 import jakarta.persistence.*;
@@ -15,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Question extends AbstractEntity {
 
     @Column(columnDefinition = "TEXT", nullable = false)
@@ -22,22 +24,23 @@ public class Question extends AbstractEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private QuestionType type; // Định nghĩa Enum: MULTIPLE_CHOICE, ESSAY
+    private QuestionType type;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Difficulty difficulty; // Định nghĩa Enum: EASY, MEDIUM, HARD
+    private Difficulty difficulty;
 
-    @Column(name = "course_id", nullable = false)
-    private String courseId;
+
+    @Column(name = "offering_id")
+    private String offeringId;
 
     // Liên kết với các đáp án (dành cho câu trắc nghiệm)
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<AnswerOption> options = new ArrayList<>();
 
-    // Liên kết với chuẩn đầu ra (CLO) để chấm điểm theo Rubric
-    @ManyToMany
+
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "question_clo",
             joinColumns = @JoinColumn(name = "question_id"),

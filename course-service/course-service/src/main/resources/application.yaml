@@ -11,6 +11,7 @@ spring:
     logging:
       level:
         org.hibernate.SQL: OFF
+        org.hibernate.orm.jdbc.bind: OFF
         org.hibernate.type.descriptor.sql: OFF
 
   datasource:
