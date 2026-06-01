@@ -1,0 +1,30 @@
+@startuml
+actor "Admin/Lecturer" as User
+participant "Frontend" as UI
+participant "CourseController" as CC
+participant "CourseService" as CS
+database "Database" as DB
+
+User -> UI: Chọn sinh viên và Lớp học phần
+UI -> CC: POST /courses/enroll?studentId=...&offeringId=...
+activate CC
+
+CC -> CS: enroll(studentId, offeringId)
+activate CS
+
+CS -> DB: Kiểm tra điều kiện & Insert Enrollment
+activate DB
+DB --> CS: Kết quả
+deactivate DB
+
+alt Đăng ký thành công
+    CS --> CC: Trả về kết quả (Success)
+    CC --> UI: 200 OK: "Thêm sinh viên thành công!"
+else Đăng ký thất bại
+    CS --> CC: Throw Exception
+    CC --> UI: 400 Bad Request: Lỗi nghiệp vụ
+end
+
+deactivate CS
+deactivate CC
+@enduml

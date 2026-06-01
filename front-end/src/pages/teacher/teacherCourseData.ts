@@ -62,6 +62,7 @@ export const teacherCourseMenu = [
   { key: 'students', icon: Users, label: 'Sinh viên', path: 'students' },
   { key: 'assignments', icon: ClipboardList, label: 'Bài tập', path: 'assignments' },
   { key: 'rubric', icon: FileText, label: 'Rubric', path: 'rubric' },
+  { key: 'questions',  icon: ClipboardList , label: 'Câu Hỏi', path: 'questions' },
   { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
   { key: 'groups', icon: Workflow, label: 'Nhóm & Dự án', path: 'groups' },
   { key: 'grading', icon: FileText, label: 'Chấm bài', path: 'grading' },

@@ -136,6 +136,7 @@ export const router = createBrowserRouter([
                     { path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions },
 
                     { path: "rubric", Component: TeacherCourseRubric },
+                    { path: "questions", Component: TeacherQuestionBank },
                     { path: "obe", Component: TeacherCourseOBE },
                     { path: "obe/analytics", Component: TeacherOBEAnalytics },
                     {path : "obe/:cloId",Component : TeacherOBEDetail},
@@ -151,7 +152,7 @@ export const router = createBrowserRouter([
             { path: "course", Component: TeacherCourses },
             { path: "rubric", Component: TeacherRubric },
             { path:"rubric/:id" ,Component:TeacherRubricDetail },
-            { path: "questions", Component: TeacherQuestionBank },
+
         ],
     },
     {
