@@ -50,4 +50,8 @@ export const questionApi = {
             }
         );
     },
+    countQuestion: async (offeringIds: string[]) => {
+        const response = await courseApi.post("/questions/course/counts", offeringIds);
+        return response.data;
+    }
 };

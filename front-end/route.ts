@@ -55,6 +55,7 @@ import CourseAssignment from "@/pages/mainlecturer/CourseAssignment.tsx";
 import TeacherRubricDetail from "@/pages/teacher/TeacherRubricDetail.tsx";
 import TeacherSubmissions from "@/pages/teacher/TeacherSubmissions.tsx";
 import TeacherGrading from "@/pages/teacher/TeacherGrading.tsx";
+import CourseList from "@/pages/teacher/BankQuestions.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -150,6 +151,7 @@ export const router = createBrowserRouter([
             },
 
             { path: "course", Component: TeacherCourses },
+            { path: "questions", Component: CourseList },
             { path: "rubric", Component: TeacherRubric },
             { path:"rubric/:id" ,Component:TeacherRubricDetail },
 

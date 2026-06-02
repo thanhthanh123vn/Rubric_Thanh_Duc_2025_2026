@@ -191,24 +191,25 @@ public class QuestionService {
 
                     List<String> cloCodes = Arrays.stream(cloCodesStr.split(","))
                             .map(String::trim)
+                            .map(String::toLowerCase)
                             .filter(s -> !s.isEmpty())
                             .collect(Collectors.toList());
 
                     if (!cloCodes.isEmpty()) {
 
 
-                        if (offering != null && offering.getCourse() != null) {
 
 
 
 
 
-                            List<CourseCLO> mappedCLOs = courseCLORepository.findByCourseIdAndCloCodes(actualCourseId, cloCodes);
+
+                            List<CourseCLO> mappedCLOs = courseCLORepository.findByCourseIdAndCloCodesIgnoreCase(actualCourseId, cloCodes);
                             System.out.println("CLO Codes từ Excel: " + cloCodes);
                             System.out.println("Mapped CLOs size: " + mappedCLOs.size());
                             mappedCLOs.forEach(c -> System.out.println(c.getCloId()));
                             question.setClos(mappedCLOs);
-                        }
+
                     }
                 }
 
@@ -285,10 +286,10 @@ public class QuestionService {
         question.setDifficulty(Difficulty.valueOf(request.getDifficulty().toUpperCase()));
 
         // 3. Cập nhật danh sách đáp án
-        // Xóa sạch đáp án cũ (Hibernate sẽ tự động DELETE dưới DB nhờ orphanRemoval = true)
+
         question.getOptions().clear();
 
-        // Nếu là câu hỏi trắc nghiệm thì mới thêm đáp án mới vào
+
         if (question.getType() == QuestionType.MULTIPLE_CHOICE
                 && request.getOptions() != null && !request.getOptions().isEmpty()) {
 
@@ -302,14 +303,13 @@ public class QuestionService {
         }
 
         // 4. Cập nhật danh sách Chuẩn đầu ra (CLOs)
-        question.getClos().clear(); // Xóa liên kết CLO cũ trong bảng trung gian question_clo
+
 
         if (request.getCloIds() != null && !request.getCloIds().isEmpty()) {
-            // LƯU Ý: Ở Frontend bạn đang truyền lên 'cloCode',
-            // nên nếu mảng getCloIds() chứa Code thì bạn dùng hàm findByCloCodeIn nhé.
+
 //            List<CourseCLO> clos = courseCLORepository.findByCloCodeIn(request.getCloIds());
 
-            // Nếu getCloIds() chứa ID thật (UUID) thì giữ nguyên dòng này:
+
             List<CourseCLO> clos = courseCLORepository.findAllById(request.getCloIds());
             System.out.println("CLO Codes từ Cập Nhập: " + clos);
             System.out.println("Mapped CLOs size: " + clos.size());
@@ -317,7 +317,36 @@ public class QuestionService {
             question.setClos(clos);
         }
 
-        // 5. Lưu lại thay đổi
+
         return questionRepository.save(question);
+    }
+    public long getQuestionCountByOfferingId(String offeringId) {
+        return questionRepository.countByOfferingId(offeringId);
+    }
+
+    /**
+     * Lấy số lượng câu hỏi của nhiều học phần cùng lúc (Trả về Map<offeringId, count>)
+     */
+    public Map<String, Long> getQuestionCountsForOfferings(List<String> offeringIds) {
+        if (offeringIds == null || offeringIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        List<Object[]> results = questionRepository.countQuestionsByOfferingIds(offeringIds);
+        Map<String, Long> countMap = new HashMap<>();
+
+
+        for (String id : offeringIds) {
+            countMap.put(id, 0L);
+        }
+
+        // Cập nhật số lượng thực tế
+        for (Object[] result : results) {
+            String offeringId = (String) result[0];
+            Long count = (Long) result[1];
+            countMap.put(offeringId, count);
+        }
+
+        return countMap;
     }
 }

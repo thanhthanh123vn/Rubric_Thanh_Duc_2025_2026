@@ -46,7 +46,7 @@ export default function TeacherCourses() {
     fetchCourses();
   }, []);
 
-
+console.log(courses);
   const handleSaveCourse = async (courseData: any) => {
     try {
       if (editingCourse) {

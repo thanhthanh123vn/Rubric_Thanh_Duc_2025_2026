@@ -40,7 +40,7 @@ public class Question extends AbstractEntity {
     private List<AnswerOption> options = new ArrayList<>();
 
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "question_clo",
             joinColumns = @JoinColumn(name = "question_id"),
@@ -49,7 +49,7 @@ public class Question extends AbstractEntity {
     @Builder.Default
     private List<CourseCLO> clos = new ArrayList<>();
 
-    // Helper method để thêm đáp án đồng bộ
+
     public void addOption(AnswerOption option) {
         options.add(option);
         option.setQuestion(this);
