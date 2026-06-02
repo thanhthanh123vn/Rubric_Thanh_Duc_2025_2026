@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/course-service/questions")
@@ -55,5 +56,15 @@ public class QuestionController {
 
         Question updatedQuestion = questionService.updateQuestion(id, request);
         return ResponseEntity.ok(updatedQuestion);
+    }
+    @GetMapping("/course/{offeringId}/count")
+    public ResponseEntity<Long> countQuestionsByCourse(@PathVariable String offeringId) {
+        return ResponseEntity.ok(questionService.getQuestionCountByOfferingId(offeringId));
+    }
+
+
+    @PostMapping("/course/counts")
+    public ResponseEntity<Map<String, Long>> getQuestionCountsByCourses(@RequestBody List<String> offeringIds) {
+        return ResponseEntity.ok(questionService.getQuestionCountsForOfferings(offeringIds));
     }
 }
