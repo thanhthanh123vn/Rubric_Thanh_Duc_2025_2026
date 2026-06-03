@@ -1,59 +1,36 @@
 package hcmuaf.edu.vn.fit.course_service.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.QuestionType;
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "questions")
+@Document(collection = "questions")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class Question extends AbstractEntity {
+public class Question {
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Id
+    private String id;
+
     private String content;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private QuestionType type;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Difficulty difficulty;
 
-
-    @Column(name = "offering_id")
     private String offeringId;
 
-    // Liên kết với các đáp án (dành cho câu trắc nghiệm)
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<AnswerOption> options = new ArrayList<>();
 
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "question_clo",
-            joinColumns = @JoinColumn(name = "question_id"),
-            inverseJoinColumns = @JoinColumn(name = "clo_id")
-    )
     @Builder.Default
-    private List<CourseCLO> clos = new ArrayList<>();
-
-
-    public void addOption(AnswerOption option) {
-        options.add(option);
-        option.setQuestion(this);
-    }
+    private List<String> cloIds = new ArrayList<>();
 }
-
-

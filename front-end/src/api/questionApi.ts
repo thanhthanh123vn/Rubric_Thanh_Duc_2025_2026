@@ -11,7 +11,7 @@ export interface Question {
     type: "MULTIPLE_CHOICE" | "ESSAY";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     options: AnswerOption[];
-    clos: any[];
+    cloIds: any[];
 }
 export const questionApi = {
     getQuestionsByCourse: async (
@@ -19,6 +19,15 @@ export const questionApi = {
     ): Promise<Question[]> => {
         const response = await courseApi.get<Question[]>(
             `/questions/course/${offeringId}`
+        );
+        return response.data;
+    },
+    getQuestionsByCourseIdAndBankID: async (
+        offeringId: string,
+        bankId:string
+    ): Promise<Question[]> => {
+        const response = await courseApi.get<Question[]>(
+            `/questions/course/${offeringId}/bank/${bankId}`
         );
         return response.data;
     },
@@ -50,8 +59,40 @@ export const questionApi = {
             }
         );
     },
+    importQuestionsToBank: async (
+        offeringId: string,
+
+        file: File,
+        bankId: string,
+    ) => {
+
+        const formData = new FormData();
+
+        formData.append("file", file);
+
+        return await courseApi.post(
+            `/questions/course/${offeringId}/bank/${bankId}/import`,
+            formData,
+            {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            }
+        );
+    },
     countQuestion: async (offeringIds: string[]) => {
         const response = await courseApi.post("/questions/course/counts", offeringIds);
         return response.data;
-    }
+    },
+    countQuestionsByBank: async (
+        offeringId: string,
+        bankId: string
+    ) => {
+
+        const response = await courseApi.get(
+            `/questions/course/${offeringId}/bank/${bankId}/count`
+        );
+
+        return response.data;
+    },
 };

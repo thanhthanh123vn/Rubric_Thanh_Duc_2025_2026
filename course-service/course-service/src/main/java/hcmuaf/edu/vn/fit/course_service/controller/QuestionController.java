@@ -61,10 +61,63 @@ public class QuestionController {
     public ResponseEntity<Long> countQuestionsByCourse(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionService.getQuestionCountByOfferingId(offeringId));
     }
+    @GetMapping("/course/{offeringId}/bank/{bankId}/count")
+    public ResponseEntity<Long> countQuestionsByBank(
+            @PathVariable String offeringId,
+            @PathVariable String bankId
+    ) {
+        return ResponseEntity.ok(
+                questionService.countQuestionsInBank(
+                        offeringId,
+                        bankId
+                )
+        );
+    }
+    @PostMapping(
+            value = "/course/{offeringId}/bank/{bankId}/import",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<?> importQuestionsToBank(
+            @PathVariable String offeringId,
+            @PathVariable String bankId,
+            @RequestParam("file") MultipartFile file
+    ) {
 
+        try {
 
+            List<Question> importedQuestions =
+                    questionService.importQuestionsToBank(
+                            offeringId,
+                            bankId,
+                            file
+                    );
+
+            return ResponseEntity.ok(
+                    "Import thành công "
+                            + importedQuestions.size()
+                            + " câu hỏi."
+            );
+
+        } catch (Exception e) {
+
+            return ResponseEntity.badRequest()
+                    .body(e.getMessage());
+        }
+    }
     @PostMapping("/course/counts")
     public ResponseEntity<Map<String, Long>> getQuestionCountsByCourses(@RequestBody List<String> offeringIds) {
         return ResponseEntity.ok(questionService.getQuestionCountsForOfferings(offeringIds));
+    }
+    @GetMapping("/course/{offeringId}/bank/{bankId}")
+    public ResponseEntity<List<Question>> getQuestionsByBank(
+            @PathVariable String offeringId,
+            @PathVariable String bankId
+    ) {
+        return ResponseEntity.ok(
+                questionService.getQuestionsByBankId(
+                        offeringId,
+                        bankId
+                )
+        );
     }
 }

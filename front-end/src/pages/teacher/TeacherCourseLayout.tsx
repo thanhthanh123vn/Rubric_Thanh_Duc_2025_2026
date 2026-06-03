@@ -70,23 +70,36 @@ console.log(course)
           <div className="flex-1 overflow-y-auto p-4">
             <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Điều hướng học phần</p>
             <nav className="space-y-1">
-              {teacherCourseMenu.map((item) => (
-                <NavLink
-                  key={item.key}
-                  to={item.path ? `/teacher/course/${id}/${item.path}` : `/teacher/course/${id}`}
-                  end={item.path === ''}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-emerald-700'
-                    }`
-                  }
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
+              {teacherCourseMenu.map((item) => {
+                const to =
+                    item.key === "questions"
+                        ? `/teacher/questions`
+                        : item.path
+                            ? `/teacher/course/${id}/${item.path}`
+                            : `/teacher/course/${id}`;
+
+                const isQuestionActive =
+                    item.key === "questions" &&
+                    location.pathname.includes("/questions");
+
+                return (
+                    <NavLink
+                        key={item.key}
+                        to={to}
+                        end={item.path === ""}
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                                isActive || isQuestionActive
+                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                                    : "text-slate-600 hover:bg-slate-50 hover:text-emerald-700"
+                            }`
+                        }
+                    >
+                      <item.icon className="w-5 h-5" />
+                      {item.label}
+                    </NavLink>
+                );
+              })}
             </nav>
 
             <div className="mt-6 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
