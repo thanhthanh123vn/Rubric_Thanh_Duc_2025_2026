@@ -10,6 +10,7 @@ import { useParams } from 'react-router-dom';
 import { questionApi } from "@/api/questionApi.ts";
 import { toast } from 'sonner';
 import { getAllClo } from "@/features/rubric/rubricApi.ts";
+import {questionBankApi} from "@/api/QuestionBankApi.ts";
 
 interface AnswerOption {
   content: string;
@@ -31,11 +32,13 @@ interface Question {
   type: 'MULTIPLE_CHOICE' | 'ESSAY';
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   options: AnswerOption[];
-  clos: any[];
+  cloIds: any[];
 }
 
 export default function TeacherQuestionBank() {
-  const { id } = useParams();
+  const { id, bankId } = useParams();
+
+  const [bank, setBank] = useState<any>(null);
 
   // States cho Dữ liệu
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -66,17 +69,35 @@ export default function TeacherQuestionBank() {
     { content: '', isCorrect: false },
     { content: '', isCorrect: false },
   ]);
+  useEffect(() => {
+    const fetchBank = async () => {
+      try {
+        const data = await questionBankApi.getQuestionBanksByCourse(id);
 
+        const currentBank = data.find(
+            (b: any) => b.id === bankId
+        );
+        setBank(currentBank);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (bankId) {
+      fetchBank();
+    }
+  }, [bankId]);
   // Lấy danh sách câu hỏi
   const fetchQuestions = async () => {
     try {
-      const data = await questionApi.getQuestionsByCourse(id);
+      const data = await questionApi.getQuestionsByCourseIdAndBankID(id,bankId);
       setQuestions(data || []);
 
     } catch (error) {
       console.error("Lỗi lấy danh sách câu hỏi:", error);
     }
   };
+  console.log(bank);
 
   // Lấy danh sách Chuẩn đầu ra (CLO)
   const fetchClos = async () => {
@@ -114,7 +135,7 @@ export default function TeacherQuestionBank() {
     setEditingQuestionId(question.id);
     console.log(question);
     setFormData({
-      cloId: question.clos?.[0]?.cloCode || '',
+      cloId: question.cloIds?.[0]?.cloCode || '',
       topicId: 'T1', // Tuỳ chỉnh theo logic project của bạn
       difficulty: question.difficulty,
       type: question.type,
@@ -165,7 +186,7 @@ export default function TeacherQuestionBank() {
     try {
       setIsUploading(true);
       toast.info("Đang xử lý dữ liệu...");
-      const response = await questionApi.importQuestions(id, file);
+      const response = await questionApi.importQuestionsToBank(id, file,bankId);
       toast.success(response.data || "Import thành công!");
       fetchQuestions();
     } catch (error) {
@@ -215,7 +236,7 @@ export default function TeacherQuestionBank() {
   const filteredQuestions = questions.filter(q => {
     const matchSearch = q.content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchDifficulty = filterDifficulty ? q.difficulty === filterDifficulty : true;
-    const matchClo = filterClo ? q.clos?.some((c: any) => c.cloCode === filterClo || c.cloName === filterClo) : true;
+    const matchClo = filterClo ? q.cloIds?.some((c: any) => c.cloCode === filterClo || c.cloName === filterClo) : true;
     return matchSearch && matchDifficulty && matchClo;
   });
 
@@ -226,21 +247,23 @@ export default function TeacherQuestionBank() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight text-slate-900">
-              Ngân hàng câu hỏi
+              {bank?.name || "Đang tải..."}
             </h1>
+
             <p className="text-sm text-slate-500 font-medium">
-              Quản lý và cập nhật danh sách câu hỏi cho môn học
+              Quản lý và cập nhật danh sách câu hỏi trong kho
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3">
-            <Button variant="outline" className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-600 border-slate-200 shadow-sm">
-              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
+            <Button variant="outline"
+                    className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-600 border-slate-200 shadow-sm">
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600"/>
               <span className="hidden sm:inline">Mẫu Excel</span>
               <span className="sm:hidden">Template</span>
             </Button>
 
-            <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+            <input type="file" accept=".xlsx, .xls" className="hidden" ref={fileInputRef} onChange={handleFileChange}/>
 
             <Button
                 variant="outline"
@@ -248,20 +271,22 @@ export default function TeacherQuestionBank() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
             >
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-4 h-4 mr-2"/>
               {isUploading ? "Đang xử lý..." : "Import"}
             </Button>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
               <DialogTrigger asChild>
-                <Button className="col-span-2 sm:col-span-1 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                  <Plus className="w-4 h-4 mr-2" />
+                <Button
+                    className="col-span-2 sm:col-span-1 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                  <Plus className="w-4 h-4 mr-2"/>
                   Thêm câu hỏi
                 </Button>
               </DialogTrigger>
 
               {/* MODAL TẠO / SỬA CÂU HỎI */}
-              <DialogContent className="w-[95vw] sm:max-w-[750px] md:max-w-[850px] rounded-xl p-0 overflow-hidden bg-white border-slate-200">
+              <DialogContent
+                  className="w-[95vw] sm:max-w-[750px] md:max-w-[850px] rounded-xl p-0 overflow-hidden bg-white border-slate-200">
                 <DialogHeader className="p-5 sm:px-6 border-b border-slate-100 bg-slate-50/50">
                   <DialogTitle className="text-lg font-bold text-slate-800">
                     {editingQuestionId ? 'Sửa câu hỏi' : 'Tạo câu hỏi mới'}
@@ -376,14 +401,15 @@ export default function TeacherQuestionBank() {
                         className="w-full min-h-[120px] rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all placeholder:text-slate-400 resize-y"
                         placeholder="Nhập nội dung câu hỏi tại đây..."
                         value={formData.content}
-                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        onChange={(e) => setFormData({...formData, content: e.target.value})}
                     ></textarea>
                   </div>
 
                   {formData.type === 'MULTIPLE_CHOICE' && (
                       <div className="space-y-3 pt-2 animate-in fade-in zoom-in-95 duration-200">
                         <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                          Các đáp án <span className="text-xs text-slate-400 font-normal">(Click vào ô tròn để chọn đáp án đúng)</span> <span className="text-red-500">*</span>
+                          Các đáp án <span className="text-xs text-slate-400 font-normal">(Click vào ô tròn để chọn đáp án đúng)</span>
+                          <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {['A', 'B', 'C', 'D'].map((label, index) => (
@@ -394,14 +420,14 @@ export default function TeacherQuestionBank() {
                                 <div
                                     className="mt-0.5 cursor-pointer text-slate-400 hover:text-blue-500 transition-colors"
                                     onClick={() => {
-                                      const newOpts = options.map((opt, i) => ({ ...opt, isCorrect: i === index }));
+                                      const newOpts = options.map((opt, i) => ({...opt, isCorrect: i === index}));
                                       setOptions(newOpts);
                                     }}
                                 >
                                   {options[index].isCorrect ? (
-                                      <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                                      <CheckCircle2 className="w-5 h-5 text-blue-600"/>
                                   ) : (
-                                      <Circle className="w-5 h-5" />
+                                      <Circle className="w-5 h-5"/>
                                   )}
                                 </div>
                                 <div className="flex-1 space-y-1">
@@ -424,7 +450,8 @@ export default function TeacherQuestionBank() {
                   )}
                 </div>
 
-                <div className="p-4 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
+                <div
+                    className="p-4 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
                   <Button variant="outline" onClick={() => setIsModalOpen(false)} className="bg-white">
                     Hủy
                   </Button>
@@ -439,8 +466,9 @@ export default function TeacherQuestionBank() {
 
         {/* FILTER & TABLE */}
         <Card className="rounded-xl border-slate-200 shadow-sm bg-white overflow-hidden flex flex-col flex-1">
-          <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row gap-4 lg:items-center bg-white">
-            <div className="relative flex-1">
+          <div
+              className="p-4 sm:p-5 border-b border-slate-100 flex flex-col lg:flex-row gap-4 lg:items-center bg-white">
+          <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                   placeholder="Tìm kiếm nội dung câu hỏi..."
@@ -530,7 +558,7 @@ export default function TeacherQuestionBank() {
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1.5">
-                                {q.clos && q.clos.length > 0 ? q.clos.map((clo: any) => (
+                                {q.cloIds && q.cloIds.length > 0 ? q.cloIds.map((clo: any) => (
                                     <Badge key={clo.id} variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 font-medium">
                                       {clo.cloCode}
                                     </Badge>

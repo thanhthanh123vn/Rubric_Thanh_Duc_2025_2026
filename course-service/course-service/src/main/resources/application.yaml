@@ -19,6 +19,10 @@ spring:
     url: jdbc:mysql://localhost:3306/db_rubric?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     username: ${DB_NAME}
     password: ${DB_PW}
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/db_rubric
+
 
   jpa:
     hibernate:

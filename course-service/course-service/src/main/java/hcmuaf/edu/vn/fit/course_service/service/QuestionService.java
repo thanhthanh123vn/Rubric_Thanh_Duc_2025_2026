@@ -1,14 +1,13 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionRequest;
-import hcmuaf.edu.vn.fit.course_service.entity.AnswerOption;
-import hcmuaf.edu.vn.fit.course_service.entity.CourseCLO;
-import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
-import hcmuaf.edu.vn.fit.course_service.entity.Question;
+import hcmuaf.edu.vn.fit.course_service.dto.response.OfferingQuestionCount;
+import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.QuestionType;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseCLORepository;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.QuestionBankRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.QuestionRepository;
 // import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository; // Import thêm cái này nếu cần lấy Course
 import lombok.RequiredArgsConstructor;
@@ -28,6 +27,7 @@ public class QuestionService {
 
     private final QuestionRepository questionRepository;
     private final CourseCLORepository courseCLORepository;
+    private final QuestionBankRepository questionBankRepository;
 
 
     private final CourseOfferingRepository courseOfferingRepository;
@@ -52,22 +52,21 @@ public class QuestionService {
                 .offeringId(offeringId)
                 .build();
 
-        // Thêm các đáp án trắc nghiệm
         if (request.getOptions() != null && !request.getOptions().isEmpty()) {
-            request.getOptions().forEach(optReq -> {
-                AnswerOption option = AnswerOption.builder()
-                        .content(optReq.getContent())
-                        .isCorrect(optReq.isCorrect())
-                        .build();
-                question.addOption(option);
-            });
+
+            List<AnswerOption> options = request.getOptions()
+                    .stream()
+                    .map(optReq -> AnswerOption.builder()
+                            .content(optReq.getContent())
+                            .correct(optReq.isCorrect())
+                            .build())
+                    .toList();
+
+            question.setOptions(options);
         }
 
-        // Map các Chuẩn đầu ra (CLOs)
-        if (request.getCloIds() != null ) {
-            List<CourseCLO> clos = courseCLORepository.findAllById(request.getCloIds());
-            System.out.println(clos+"Create CLo");
-            question.setClos(clos);
+        if (request.getCloIds() != null) {
+            question.setCloIds(request.getCloIds());
         }
 
         return questionRepository.save(question);
@@ -208,7 +207,11 @@ public class QuestionService {
                             System.out.println("CLO Codes từ Excel: " + cloCodes);
                             System.out.println("Mapped CLOs size: " + mappedCLOs.size());
                             mappedCLOs.forEach(c -> System.out.println(c.getCloId()));
-                            question.setClos(mappedCLOs);
+                        List<String> cloIds = mappedCLOs.stream()
+                                .map(CourseCLO::getCloId)
+                                .toList();
+
+                        question.setCloIds(cloIds);
 
                     }
                 }
@@ -238,13 +241,12 @@ public class QuestionService {
                                 boolean isCorrect = optionLabels[i].equalsIgnoreCase(correctAnswer);
 
 
-                                question.addOption(AnswerOption.builder()
-
-                                        .content(optContent)
-
-                                        .isCorrect(isCorrect)
-
-                                        .build());
+                                question.getOptions().add(
+                                        AnswerOption.builder()
+                                                .content(optContent)
+                                                .correct(isCorrect)
+                                                .build()
+                                );
 
                             }
 
@@ -257,6 +259,7 @@ public class QuestionService {
                 question.setOfferingId(offeringId);
 
                 questions.add(question);
+
 
                 rowNumber++;
 
@@ -282,41 +285,30 @@ public class QuestionService {
 
         // 2. Cập nhật các thông tin cơ bản
         question.setContent(request.getContent());
-        question.setType(QuestionType.valueOf(request.getType().toUpperCase()));
-        question.setDifficulty(Difficulty.valueOf(request.getDifficulty().toUpperCase()));
+        question.setType(
+                QuestionType.valueOf(request.getType().toUpperCase())
+        );
+        question.setDifficulty(
+                Difficulty.valueOf(request.getDifficulty().toUpperCase())
+        );
 
-        // 3. Cập nhật danh sách đáp án
+        List<AnswerOption> options = new ArrayList<>();
 
-        question.getOptions().clear();
-
-
-        if (question.getType() == QuestionType.MULTIPLE_CHOICE
-                && request.getOptions() != null && !request.getOptions().isEmpty()) {
-
-            request.getOptions().forEach(optReq -> {
-                AnswerOption option = AnswerOption.builder()
-                        .content(optReq.getContent())
-                        .isCorrect(optReq.isCorrect())
-                        .build();
-                question.addOption(option);
-            });
+        if (request.getOptions() != null) {
+            options = request.getOptions()
+                    .stream()
+                    .map(optReq -> AnswerOption.builder()
+                            .content(optReq.getContent())
+                            .correct(optReq.isCorrect())
+                            .build())
+                    .toList();
         }
 
-        // 4. Cập nhật danh sách Chuẩn đầu ra (CLOs)
+        question.setOptions(options);
 
-
-        if (request.getCloIds() != null && !request.getCloIds().isEmpty()) {
-
-//            List<CourseCLO> clos = courseCLORepository.findByCloCodeIn(request.getCloIds());
-
-
-            List<CourseCLO> clos = courseCLORepository.findAllById(request.getCloIds());
-            System.out.println("CLO Codes từ Cập Nhập: " + clos);
-            System.out.println("Mapped CLOs size: " + clos.size());
-
-            question.setClos(clos);
+        if (request.getCloIds() != null) {
+            question.setCloIds(request.getCloIds());
         }
-
 
         return questionRepository.save(question);
     }
@@ -328,11 +320,14 @@ public class QuestionService {
      * Lấy số lượng câu hỏi của nhiều học phần cùng lúc (Trả về Map<offeringId, count>)
      */
     public Map<String, Long> getQuestionCountsForOfferings(List<String> offeringIds) {
+
         if (offeringIds == null || offeringIds.isEmpty()) {
             return new HashMap<>();
         }
 
-        List<Object[]> results = questionRepository.countQuestionsByOfferingIds(offeringIds);
+        List<OfferingQuestionCount> results =
+                questionRepository.countQuestionsByOfferingIds(offeringIds);
+
         Map<String, Long> countMap = new HashMap<>();
 
 
@@ -340,13 +335,91 @@ public class QuestionService {
             countMap.put(id, 0L);
         }
 
-        // Cập nhật số lượng thực tế
-        for (Object[] result : results) {
-            String offeringId = (String) result[0];
-            Long count = (Long) result[1];
+
+        for (OfferingQuestionCount result : results) {
+
+            String offeringId = result.getId();
+
+            Long count = result.getCount();
+
             countMap.put(offeringId, count);
         }
 
         return countMap;
+    }
+    public List<Question> getQuestionsByBankId(
+            String offeringId,
+            String bankId
+    ) {
+
+        QuestionBank bank = questionBankRepository
+                .findById(bankId)
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy ngân hàng câu hỏi"));
+
+        // Kiểm tra kho thuộc đúng học phần
+        if (!offeringId.equals(bank.getOfferingId())) {
+            throw new RuntimeException(
+                    "Question bank không thuộc học phần này"
+            );
+        }
+
+        if (bank.getQuestionIds() == null
+                || bank.getQuestionIds().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return questionRepository.findAllById(
+                bank.getQuestionIds()
+        );
+    }
+    @Transactional
+    public List<Question> importQuestionsToBank(
+            String offeringId,
+            String bankId,
+            MultipartFile file
+    ) {
+
+       QuestionBank bank = questionBankRepository
+                .findByIdAndOfferingId(bankId, offeringId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Không tìm thấy Question Bank"
+                        ));
+
+        List<Question> questions =
+                importQuestionsFromExcel(
+                        offeringId,
+                        file
+                );
+
+        List<String> questionIds =
+                questions.stream()
+                        .map(Question::getId)
+                        .toList();
+
+        if (bank.getQuestionIds() == null) {
+            bank.setQuestionIds(new ArrayList<>());
+        }
+
+        bank.getQuestionIds().addAll(questionIds);
+
+        questionBankRepository.save(bank);
+
+        return questions;
+    }
+    public long countQuestionsInBank(
+            String offeringId,
+            String bankId
+    ) {
+
+        QuestionBank bank = questionBankRepository
+                .findById(bankId)
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy Question Bank"));
+
+        return Optional.ofNullable(bank.getQuestionIds())
+                .map(List::size)
+                .orElse(0);
     }
 }
