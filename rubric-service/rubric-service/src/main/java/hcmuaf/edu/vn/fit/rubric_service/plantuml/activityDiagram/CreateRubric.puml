@@ -1,0 +1,50 @@
+@startuml
+skinparam style strictuml
+title Activity Diagram - Tao Rubric
+
+|Main Lecturer|
+start
+:Mo man hinh Rubric Studio;
+:Bam "Rubric moi";
+:Nhap ten rubric va mo ta;
+:Them / xoa tieu chi;
+:Gan CLO cho tung tieu chi;
+:Nhap trong so cho tung tieu chi;
+
+|Frontend (React)|
+:Tinh tong trong so tu danh sach criteria;
+:Sinh payload rubric\n(name, description, criteria);
+
+if (Tong trong so = 100%?) then (No)
+  :Hien canh bao "Tong phai bang 100%";
+  |Main Lecturer|
+  :Dieu chinh criteria / weight;
+  stop
+else (Yes)
+endif
+
+note right
+Frontend hien tai da tao duoc payload
+trong CreateRubricModal, nhung chua goi
+API POST /rubrics.
+Backend da co endpoint tao rubric.
+end note
+
+|Frontend (React)|
+:POST /api/v1/rubric-service/rubrics;
+
+|Backend (Rubric Service)|
+:RubricController nhan request;
+:RubricService.create(rubric);
+:Luu Rubric va criteria vao database;
+:Tra ve rubric da tao;
+
+|Frontend (React)|
+:Dong modal;
+:Tai lai danh sach rubric;
+:Hien rubric moi trong card grid;
+
+|Main Lecturer|
+:Xem rubric vua tao;
+stop
+@enduml

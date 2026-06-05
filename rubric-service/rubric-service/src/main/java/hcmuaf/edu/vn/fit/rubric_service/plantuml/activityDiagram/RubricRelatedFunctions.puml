@@ -1,0 +1,51 @@
+@startuml
+skinparam style strictuml
+title Activity Diagram - Cac chuc nang lien quan den Rubric
+
+start
+
+if (Nguoi dung muon xem danh sach rubric?) then (Yes)
+  |Main Lecturer / Teacher|
+  :Truy cap man hinh rubric;
+  |Frontend (React)|
+  :GET /api/v1/rubric-service/rubrics;
+  |Backend (Rubric Service)|
+  :Lay danh sach rubric + criteria;
+  :Tra ve danh sach;
+  |Frontend (React)|
+  :Render card grid rubric;
+endif
+
+if (Nguoi dung muon xem chi tiet rubric?) then (Yes)
+  |Main Lecturer / Teacher|
+  :Bam "Chi tiet";
+  |Frontend (React)|
+  :GET /api/v1/rubric-service/rubrics/{id};
+  |Backend (Rubric Service)|
+  :Lay rubric theo id;
+  :Tra ve chi tiet rubric;
+  |Frontend (React)|
+  :Hien chi tiet rubric;
+endif
+
+if (Nguoi dung muon preview matrix / rubric sample?) then (Yes)
+  |Main Lecturer|
+  :Bam "Xem truoc" hoac icon Eye;
+  |Frontend (React)|
+  :Chuyen rows thanh bang preview;
+  :Hien popup RubricSamplePreview;
+endif
+
+if (Nguoi dung muon xoa rubric?) then (Yes)
+  |Main Lecturer|
+  :Bam icon xoa;
+  |Frontend (React)|
+  :DELETE /api/v1/rubric-service/rubrics/{id};
+  |Backend (Rubric Service)|
+  :Xoa rubric theo id;
+  |Frontend (React)|
+  :Cap nhat lai danh sach rubric;
+endif
+
+stop
+@enduml
