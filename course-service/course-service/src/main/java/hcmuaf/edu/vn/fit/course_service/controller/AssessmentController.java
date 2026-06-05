@@ -24,13 +24,13 @@ import java.util.Map;
 @RequestMapping("/api/v1/course-service")
 public class AssessmentController {
 
-    @Autowired
-    private AssessmentService assessmentService;
+
+    private final AssessmentService assessmentService;
     private final EnrollmentRepository enrollmentRepository;
     private final NotificationClient notificationClient;
     private final UserClient userClient  ;
-    @Autowired
-    private AssessmentRepository assessmentRepository;
+
+    private final AssessmentRepository assessmentRepository;
 
     @GetMapping("/offerings/{offeringId}/assessments")
     public List<AssessmentReponse> getAssignments(

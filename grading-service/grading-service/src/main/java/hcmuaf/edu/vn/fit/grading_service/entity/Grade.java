@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
+@Table(name = "Grades")
 @Data
 public class Grade {
 

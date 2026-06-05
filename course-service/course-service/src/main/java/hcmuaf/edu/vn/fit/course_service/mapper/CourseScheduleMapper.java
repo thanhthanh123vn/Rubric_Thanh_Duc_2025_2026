@@ -15,7 +15,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface CourseScheduleMapper {
 
-    // --- Các hàm map ra ResponseDTO (Đã làm ở bước trước) ---
+
     @Mapping(target = "id", source = "scheduleId")
     @Mapping(target = "title", source = "courseOffering.course.courseCode")
     @Mapping(target = "day", source = "dayOfWeek")
@@ -28,19 +28,15 @@ public interface CourseScheduleMapper {
     List<ScheduleResponse> toDtoList(List<CourseSchedule> entities);
 
 
-    // =========================================================================
-    // THÊM MỚI: Các hàm map từ Request DTO sang Entity cho CREATE và UPDATE
-    // =========================================================================
-
     // Map cho trường hợp Create
-    @Mapping(target = "scheduleId", ignore = true) // ID tự generate
-    @Mapping(target = "courseOffering", ignore = true) // Bỏ qua, sẽ set bằng tay ở Service vì cần query từ DB
+    @Mapping(target = "scheduleId", ignore = true)
+    @Mapping(target = "courseOffering", ignore = true)
     @Mapping(target = "classType", source = "type")
     @Mapping(target = "dayOfWeek", source = "day")
     @Mapping(target = "colorTheme", source = "color")
     CourseSchedule toEntity(ScheduleRequest request);
 
-    // Map cho trường hợp Update (Ghi đè dữ liệu lên Entity có sẵn)
+    // Map cho trường hợp Update
     @Mapping(target = "scheduleId", ignore = true)
     @Mapping(target = "courseOffering", ignore = true)
     @Mapping(target = "classType", source = "type")

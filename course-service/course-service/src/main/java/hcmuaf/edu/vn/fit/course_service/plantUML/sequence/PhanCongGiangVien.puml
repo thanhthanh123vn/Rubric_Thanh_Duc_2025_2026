@@ -1,0 +1,37 @@
+@startuml
+actor "Admin" as Admin
+participant "AssignLecturerModal" as UI
+participant "LecturerService" as LS
+participant "CourseService" as CS
+participant "CourseController" as Controller
+database "Database" as DB
+
+== Lấy danh sách giảng viên ==
+Admin -> UI: Mở modal phân công
+UI -> LS: getAllLecturers()
+activate LS
+LS -> Controller: GET /user-service/lecturer/lecturers
+activate Controller
+Controller -> DB: Lấy dữ liệu giảng viên
+DB --> Controller: List<Lecturer>
+Controller --> LS: Response
+deactivate Controller
+LS --> UI: Trả về danh sách giảng viên
+deactivate LS
+UI -> UI: Lọc theo khoa (Department)
+
+== Thực hiện phân công ==
+Admin -> UI: Chọn giảng viên & Lưu
+UI -> CS: assignLecturer(courseId, lecturerId)
+activate CS
+CS -> Controller: POST /courses/{courseId}/assign-lecturer
+activate Controller
+Controller -> CS: assignLecturer(id, lecturerId)
+CS -> DB: Cập nhật giảng viên cho môn học
+DB --> CS: OK
+CS --> Controller: CourseOfferingResponse
+Controller --> UI: 200 OK
+deactivate Controller
+deactivate CS
+UI --> Admin: Thông báo phân công thành công
+@enduml

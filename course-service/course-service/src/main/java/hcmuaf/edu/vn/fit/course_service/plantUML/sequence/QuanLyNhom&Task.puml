@@ -1,0 +1,132 @@
+@startuml
+skinparam style strictuml
+skinparam DefaultFontName Arial
+skinparam ParticipantPadding 15
+skinparam BoxPadding 10
+
+actor "Người dùng" as User
+participant "Frontend" as UI
+participant "GroupController" as GC
+participant "GroupTaskController" as GTC
+participant "GroupService" as GS
+participant "GroupTaskService" as GTS
+database "Database" as DB
+
+== Khởi tạo: Xem danh sách Nhóm ==
+User -> UI: Truy cập giao diện Quản lý Nhóm
+UI -> GC: GET /api/v1/course-service/group/offering/{offeringId}/user/me
+activate GC
+GC -> GS: getMyGroups(offeringId, userId)
+activate GS
+GS -> DB: Lấy dữ liệu nhóm của user
+activate DB
+DB --> GS: Return list of groups
+deactivate DB
+GS --> GC: List<GroupResponse>
+deactivate GS
+GC --> UI: 200 OK (myGroups)
+deactivate GC
+UI --> User: Hiển thị danh sách Nhóm
+
+== Thao tác với Nhóm ==
+alt Tạo Nhóm mới
+    User -> UI: Nhập thông tin & Gửi yêu cầu Tạo nhóm
+    UI -> GC: POST /api/v1/course-service/group/create
+    activate GC
+    GC -> GS: createGroup(GroupRequest)
+    activate GS
+    GS -> DB: Insert Group & Leader mapping
+    activate DB
+    DB --> GS: Group entity
+    deactivate DB
+    GS --> GC: GroupResponse
+    deactivate GS
+    GC --> UI: 200 OK {status: "success", data: createdGroup}
+    deactivate GC
+    UI --> User: Hiển thị nhóm mới tạo
+
+else Chọn một Nhóm hiện tại
+    User -> UI: Bấm chọn 1 Nhóm
+    UI -> GTC: GET /api/v1/course-service/group/tasks/{groupId}
+    activate GTC
+    GTC -> GTS: getTasksByGroup(groupId)
+    activate GTS
+    GTS -> DB: Query Tasks by groupId
+    activate DB
+    DB --> GTS: List of tasks
+    deactivate DB
+    GTS --> GTC: List of tasks
+    deactivate GTS
+    GTC --> UI: 200 OK {status: "success", data: tasks}
+    deactivate GTC
+    UI --> User: Hiển thị chi tiết Nhóm & danh sách Task
+
+    group Quản lý Thành viên (GroupController)
+        alt Thêm thành viên
+            User -> UI: Yêu cầu thêm thành viên
+            UI -> GC: POST /group/{groupId}/members (memberId)
+            activate GC
+            GC -> GS: addMember(groupId, memberId, requesterId)
+            GS -> DB: Thêm mapping thành viên
+            GS --> GC: updatedGroup (GroupResponse)
+            GC --> UI: 200 OK {status: "success", data: updatedGroup}
+            deactivate GC
+
+        else Xóa thành viên
+            User -> UI: Yêu cầu xóa thành viên
+            UI -> GC: DELETE /group/{groupId}/members/{memberId}
+            activate GC
+            GC -> GS: removeMember(groupId, memberId, requesterId)
+            GS -> DB: Xóa mapping thành viên
+            GS --> GC: updatedGroup (GroupResponse)
+            GC --> UI: 200 OK {status: "success", data: updatedGroup}
+            deactivate GC
+
+        else Đổi quyền (Role)
+            User -> UI: Thay đổi quyền (Leader/Member)
+            UI -> GC: PUT /group/{groupId}/members/{memberId}/role?role=...
+            activate GC
+            GC -> GS: changeMemberRole(groupId, memberId, role, requesterId)
+            GS -> DB: Update role trong mapping
+            GS --> GC: updatedGroup (GroupResponse)
+            GC --> UI: 200 OK {status: "success", data: updatedGroup}
+            deactivate GC
+        end
+    end
+
+    group Quản lý Task (GroupTaskController)
+        alt Tạo Task
+            User -> UI: Kéo thả / Tạo Task mới
+            UI -> GTC: POST /group/tasks
+            activate GTC
+            GTC -> GTS: createTask(GroupTaskRequest, userId)
+            GTS -> DB: Insert Task entity
+            GTS --> GTC: TaskResponse
+            GTC --> UI: 200 OK {status: "success", data}
+            deactivate GTC
+
+        else Cập nhật trạng thái
+            User -> UI: Đổi trạng thái (TODO, DOING, DONE)
+            UI -> GTC: PUT /group/tasks/{taskId}/status?status=...
+            activate GTC
+            GTC -> GTS: updateTaskStatus(taskId, status, userId)
+            GTS -> DB: Update Task status
+            GTS --> GTC: TaskResponse (updated)
+            GTC --> UI: 200 OK {status: "success", data}
+            deactivate GTC
+
+        else Xóa Task
+            User -> UI: Yêu cầu xóa Task
+            UI -> GTC: DELETE /group/tasks/{taskId}
+            activate GTC
+            GTC -> GTS: deleteTask(taskId, userId)
+            GTS -> DB: Delete Task entity
+            GTS --> GTC: void
+            GTC --> UI: 200 OK {status: "success", message: "Đã xóa task"}
+            deactivate GTC
+        end
+    end
+
+    UI --> User: Cập nhật lại giao diện (Bảng Task / Danh sách thành viên)
+end
+@enduml

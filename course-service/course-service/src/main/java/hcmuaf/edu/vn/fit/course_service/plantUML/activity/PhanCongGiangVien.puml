@@ -1,0 +1,26 @@
+@startuml
+|Quản trị viên|
+start
+:Truy cập danh sách môn học;
+:Chọn môn học cần phân công;
+:Mở Modal "Phân công giảng viên";
+
+|Hệ thống|
+:Lấy danh sách giảng viên \n[GET /user-service/lecturer/lecturers];
+:Lọc danh sách theo Khoa của môn học;
+:Hiển thị danh sách giảng viên;
+
+|Quản trị viên|
+:Chọn một giảng viên từ danh sách;
+:Bấm "Lưu phân công";
+
+|Hệ thống|
+if (Dữ liệu hợp lệ?) then (Có)
+  :Gửi yêu cầu POST \n[/courses/{courseId}/assign-lecturer];
+  :Cập nhật giảng viên vào DB;
+  :Thông báo "Phân công thành công";
+else (Không)
+  :Thông báo lỗi;
+endif
+stop
+@enduml

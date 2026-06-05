@@ -31,7 +31,7 @@ export const rubricServiceApi = axios.create({
     },
 });
 export const gradeSerciveApi = axios.create({
-    baseURL: `${BASE}/grade-service`,
+    baseURL: `${BASE}/grading-service`,
 
     headers: {
         'Content-Type': 'application/json',

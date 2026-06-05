@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/grade-service")
+@RequestMapping("/api/v1/grading-service")
 @RequiredArgsConstructor
 public class GradingController {
 
@@ -28,7 +28,8 @@ public class GradingController {
 
         return service.gradeStudent(studentId, rubricId);
     }
-    @PostMapping
+    @PostMapping("/grade/submit")
+
     public ResponseEntity<ApiResponse<String>> submitGrade(@RequestBody GradeRequest request) {
         service.processGrading(request);
         try {

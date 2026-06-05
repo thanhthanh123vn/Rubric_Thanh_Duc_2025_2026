@@ -38,11 +38,18 @@ spring:
             - Path=/api/v1/rubric-service/**
           filters:
             - name: JwtAuthenticationFilter
-
+        # 3. NOTIFICATION SERVICE
         - id: notification-service
           uri: lb://NOTIFICATION-SERVICE
           predicates:
             - Path=/api/v1/notification-service/**
+          filters:
+            - name: JwtAuthenticationFilter
+        # 3. GRADING SERVICE
+        - id: grading-service
+          uri: lb://GRADING-SERVICE
+          predicates:
+            - Path=/api/v1/grading-service/**
           filters:
             - name: JwtAuthenticationFilter
 

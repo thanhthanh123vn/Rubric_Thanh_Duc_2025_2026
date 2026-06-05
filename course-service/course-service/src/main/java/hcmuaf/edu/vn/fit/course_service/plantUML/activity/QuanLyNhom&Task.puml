@@ -1,0 +1,78 @@
+@startuml
+skinparam style strictuml
+skinparam DefaultFontName Arial
+skinparam ActivityBackgroundColor #Edf6ff
+skinparam ActivityBorderColor #3b82f6
+
+|Người dùng|
+start
+:Truy cập giao diện Quản lý Nhóm;
+
+|Hệ thống|
+:Lấy danh sách nhóm của user\n[GET /group/offering/.../user/me];
+:Hiển thị danh sách Nhóm;
+
+|Người dùng|
+if (Chọn thao tác?) then (Tạo nhóm mới)
+  :Nhập thông tin tạo nhóm;
+  :Gửi yêu cầu tạo nhóm;
+  |Hệ thống|
+  :Xử lý tạo nhóm mới\n[POST /group/create];
+else (Vào nhóm hiện tại)
+  |Người dùng|
+  :Bấm chọn một nhóm;
+  |Hệ thống|
+  :Lấy danh sách Task của nhóm\n[GET /group/tasks/{groupId}];
+
+  |Người dùng|
+  if (Quản lý gì?) then (Thành viên)
+    if (Thao tác?) then (Thêm)
+      :Nhập thông tin member;
+      |Hệ thống|
+      :Thêm thành viên\n[POST /group/{groupId}/members];
+    elseif (Thao tác?) then (Xóa)
+      |Người dùng|
+      :Chọn thành viên;
+      |Hệ thống|
+      :Xóa thành viên\n[DELETE /group/.../members/{memberId}];
+    else (Đổi quyền)
+      |Người dùng|
+      :Chọn role (Leader/Member);
+      |Hệ thống|
+      :Cập nhật quyền\n[PUT /group/.../members/{memberId}/role];
+    endif
+  else (Task)
+    |Người dùng|
+    if (Thao tác?) then (Tạo Task)
+      :Nhập thông tin Task;
+      |Hệ thống|
+      :Lưu Task\n[POST /group/tasks];
+    elseif (Thao tác?) then (Đổi trạng thái)
+      |Người dùng|
+      :Kéo thả (TODO/DOING/DONE);
+      |Hệ thống|
+      :Cập nhật trạng thái\n[PUT /tasks/{taskId}/status];
+    else (Xóa Task)
+      |Người dùng|
+      :Xác nhận xóa;
+      |Hệ thống|
+      :Xóa khỏi DB\n[DELETE /tasks/{taskId}];
+    endif
+  endif
+endif
+
+|Hệ thống|
+if (Kết quả trả về từ Controller?) then (Thành công)
+   :Trả về JSON {status: "success"};
+   |Người dùng|
+   :Hiển thị thông báo thành công;
+   :Cập nhật lại giao diện;
+else (Có lỗi / Exception)
+   |Hệ thống|
+   :Trả về JSON {status: "error"};
+   |Người dùng|
+   :Hiển thị thông báo lỗi;
+endif
+
+stop
+@enduml
