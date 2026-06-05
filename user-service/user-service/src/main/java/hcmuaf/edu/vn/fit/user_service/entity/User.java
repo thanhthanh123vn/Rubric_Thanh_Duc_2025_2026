@@ -29,6 +29,8 @@ public class User {
     private String googleId;
     @Column(name = "avatar_url")
     private String avatarUrl;
+    @Column(name = "full_name")
+    private String fullName;
 
     private String resetOtp;
     private LocalDateTime resetOtpExpiry;

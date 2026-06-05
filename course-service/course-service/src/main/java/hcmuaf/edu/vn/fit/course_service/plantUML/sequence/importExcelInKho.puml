@@ -1,0 +1,47 @@
+@startuml
+skinparam maxMessageSize 150
+autonumber
+
+actor "Giảng viên" as GV
+participant "React UI" as UI
+participant "Question\nController" as Ctrl
+participant "Question\nService" as Svc
+database "MySQL\n(Course DB)" as MySQL
+database "MongoDB\n(Question DB)" as Mongo
+
+GV -> UI : Bấm "Import File" & Chọn file Excel
+activate UI
+UI -> Ctrl : POST /api/v1/questions/import\n(FormData: File + bankId)
+activate Ctrl
+Ctrl -> Svc : processImportExcel(file, bankId)
+activate Svc
+
+note right of Svc: Validate DB Quan hệ (MySQL)
+Svc -> MySQL : Kiểm tra QuestionBank(bankId) tồn tại?
+activate MySQL
+MySQL --> Svc : Hợp lệ (QuestionBank Entity)
+deactivate MySQL
+
+Svc -> Svc : Đọc thư viện Apache POI (Parse Excel)
+Svc -> Svc : Chuyển đổi Data thành List<Question>
+
+note right of Svc: Lưu nội dung vào NoSQL (MongoDB)
+Svc -> Mongo : insertMany(List<Question>)
+activate Mongo
+Mongo --> Svc : Trả về List Question Document\n(Kèm các _id của Mongo)
+deactivate Mongo
+
+note right of Svc: Lưu liên kết Many-To-Many (MySQL)
+Svc -> MySQL : Lưu các Mongo _id vào bảng \ntrung gian (bank_questions)
+activate MySQL
+MySQL --> Svc : OK0
+deactivate MySQL
+
+Svc --> Ctrl : Số lượng import thành công
+deactivate Svc
+Ctrl --> UI : 200 OK (Kèm Message)
+deactivate Ctrl
+UI --> GV : Hiển thị Toast "Đã import thành công X câu hỏi"
+UI -> UI : Reload lại danh sách câu hỏi
+deactivate UI
+@enduml

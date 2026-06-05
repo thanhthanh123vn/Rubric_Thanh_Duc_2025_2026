@@ -1,0 +1,38 @@
+@startuml
+skinparam style strictuml
+skinparam activity {
+  BackgroundColor White
+  BorderColor #2c3e50
+}
+
+start
+:Truy cập trang Chi tiết Kho (BankQuestions.tsx);
+:Hiển thị thống kê & danh sách câu hỏi;
+
+switch (Chọn thao tác?)
+case ( **Thêm câu hỏi thủ công** )
+  :Mở Form nhập câu hỏi;
+  :Chọn loại: Trắc nghiệm/Tự luận/Đúng Sai;
+  repeat :Nhập Nội dung, Đáp án, Độ khó;
+  backward: Hiển thị lỗi Validation;
+  repeat while (Dữ liệu hợp lệ?) is (Không)
+  :Gọi API POST /questions;
+
+case ( **Import File** )
+  :Mở Modal Import;
+  :Chọn file Excel/Word;
+  :Gọi API POST /questions/import;
+  :Server đọc và parse data từ file;
+
+case ( **Xóa câu hỏi** )
+  :Mở Modal Cảnh báo;
+  if (Xác nhận?) then (Có)
+    :Gọi API DELETE /questions/{id};
+  else (Không)
+    stop
+  endif
+endswitch
+
+:Cập nhật lại danh sách câu hỏi;
+stop
+@enduml

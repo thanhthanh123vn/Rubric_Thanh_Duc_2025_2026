@@ -56,6 +56,8 @@ import TeacherRubricDetail from "@/pages/teacher/TeacherRubricDetail.tsx";
 import TeacherSubmissions from "@/pages/teacher/TeacherSubmissions.tsx";
 import TeacherGrading from "@/pages/teacher/TeacherGrading.tsx";
 import CourseList from "@/pages/teacher/BankQuestions.tsx";
+import StudentCourseMaterials from "@/features/course/student/components/StudentCourseMaterials.tsx";
+import MaterialDetail from "@/features/course/student/components/MaterialDetail.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -86,6 +88,14 @@ export const router = createBrowserRouter([
     {
         path: "/course/:id/assignments",
         Component: CourseAssignments,
+    },
+    {
+        path: "/course/:id/document",
+        Component: StudentCourseMaterials,
+    },
+    {
+        path: "/course/:id/document/materials/:postId",
+        Component: MaterialDetail,
     },
     {
         path: "/course/:id/evaluations",
@@ -137,6 +147,7 @@ export const router = createBrowserRouter([
                     { path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions },
 
                     { path: "rubric", Component: TeacherCourseRubric },
+                    { path:"rubric/:id" ,Component:TeacherRubricDetail },
                     { path: "questions/bank/:bankId", Component: TeacherQuestionBank },
                     { path: "obe", Component: TeacherCourseOBE },
                     { path: "obe/analytics", Component: TeacherOBEAnalytics },
