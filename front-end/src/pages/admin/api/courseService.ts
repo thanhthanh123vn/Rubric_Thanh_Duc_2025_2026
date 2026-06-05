@@ -1,5 +1,6 @@
 import { courseApi } from "@/services/axiosConfig.ts";
 import type {Course} from "./type";
+import type {SyllabusFile} from "@/api/type.ts";
 
 const courseService = {
     getAllCourses: async (page: number, size: number, keyword: string) => {
@@ -39,20 +40,30 @@ const courseService = {
         const response = await courseApi.get(`/courses/lecturer/me/dashboard`);
         return response.data;
     },
-    uploadSyllabus: async (courseId: string, file: File) => {
+    uploadSyllabus: async (courseId: string, files: FileList | File[]) => {
         const formData = new FormData();
-        formData.append("file", file);
+
+
+        Array.from(files).forEach((file) => {
+
+            formData.append("files", file);
+        });
 
         const response = await courseApi.post(
             `/courses/${courseId}/upload-syllabus`,
             formData,
             {
                 headers: {
-
                     "Content-Type": "multipart/form-data",
                 }
             }
         );
+        return response.data;
+    },
+    getSyllabusFiles: async (offeringId: string): Promise<SyllabusFile[]> => {
+
+
+        const response = await courseApi.get(`/courses/${offeringId}/syllabusFiles`);
         return response.data;
     }
 
