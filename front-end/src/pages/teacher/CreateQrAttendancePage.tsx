@@ -70,6 +70,12 @@ function formatMeters(value: number | null | undefined) {
   return `${value.toFixed(1)} m`;
 }
 
+function getSessionStatusBadgeClass(status: string) {
+  return status === "CLOSED"
+    ? "bg-rose-100 text-rose-700"
+    : "bg-emerald-100 text-emerald-700";
+}
+
 export default function CreateQrAttendancePage() {
     const { id } = useParams<{ id: string }>();
     const [form, setForm] = useState<FormState>({
@@ -438,7 +444,7 @@ export default function CreateQrAttendancePage() {
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <InfoCard label="Trạng thái" value={displayedSession.status} />
+                                <StatusInfoCard label="Trạng thái" value={displayedSession.status} />
                                 <InfoCard label="Hết hạn còn lại" value={remainingLabel || "Đã hết hạn"} />
                                 <InfoCard label="Bắt đầu" value={formatDateTime(displayedSession.startTime)} />
                                 <InfoCard label="Kết thúc" value={formatDateTime(displayedSession.endTime)} />
@@ -505,7 +511,7 @@ export default function CreateQrAttendancePage() {
                                                 {formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}
                                             </p>
                                         </div>
-                                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+                                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getSessionStatusBadgeClass(session.status)}`}>
                       {session.status}
                     </span>
                                     </div>
@@ -618,6 +624,19 @@ function InfoCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
       <p className="mt-2 break-all text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function StatusInfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
+      <div className="mt-2">
+        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getSessionStatusBadgeClass(value)}`}>
+          {value}
+        </span>
+      </div>
     </div>
   );
 }

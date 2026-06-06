@@ -7,6 +7,7 @@ import {
   getAttendanceErrorMessage,
   type AttendanceCheckInResponse,
   type AttendanceHistoryResponse,
+  type AttendanceSessionSummaryResponse,
 } from "@/api/attendanceApi.ts";
 
 type StudentAttendanceCheckInProps = {
@@ -30,6 +31,15 @@ function formatDateTime(value: string | null) {
   });
 }
 
+function formatDateOnly(value: string) {
+  return new Date(value).toLocaleDateString("vi-VN");
+}
+
+type AttendanceSummaryRow = {
+  date: string;
+  status: "present" | "absent";
+};
+
 export default function StudentAttendanceCheckIn({
   offeringId,
 }: StudentAttendanceCheckInProps) {
@@ -40,13 +50,18 @@ export default function StudentAttendanceCheckIn({
   const [errorMessage, setErrorMessage] = useState("");
   const [checkInResult, setCheckInResult] = useState<AttendanceCheckInResponse | null>(null);
   const [history, setHistory] = useState<AttendanceHistoryResponse[]>([]);
+  const [sessions, setSessions] = useState<AttendanceSessionSummaryResponse[]>([]);
   const [geoState, setGeoState] = useState<GeoState | null>(null);
 
-  const loadHistory = async () => {
+  const loadAttendanceData = async () => {
     try {
       setIsLoadingHistory(true);
-      const response = await attendanceApi.getMyAttendanceHistory(offeringId);
-      setHistory(response);
+      const [historyResponse, sessionResponse] = await Promise.all([
+        attendanceApi.getMyAttendanceHistory(offeringId),
+        attendanceApi.getAttendanceSessionsByOffering(offeringId),
+      ]);
+      setHistory(historyResponse);
+      setSessions(sessionResponse);
     } catch (error) {
       setErrorMessage(getAttendanceErrorMessage(error));
     } finally {
@@ -59,7 +74,7 @@ export default function StudentAttendanceCheckIn({
       return;
     }
 
-    loadHistory();
+    loadAttendanceData();
   }, [offeringId]);
 
   const getCurrentLocation = async () => {
@@ -125,7 +140,7 @@ export default function StudentAttendanceCheckIn({
       setCheckInResult(response);
       setQrContent("");
       toast.success(response.message || "Diem danh thanh cong.");
-      await loadHistory();
+      await loadAttendanceData();
     } catch (error) {
       const message = getAttendanceErrorMessage(error);
       setErrorMessage(message);
@@ -135,8 +150,25 @@ export default function StudentAttendanceCheckIn({
     }
   };
 
+  const attendedDates = Array.from(
+    new Set(history.map((item) => item.studyDate).filter(Boolean)),
+  ).sort((first, second) => new Date(second).getTime() - new Date(first).getTime());
+
+  const attendedDateSet = new Set(attendedDates);
+  const absentDates = sessions
+    .map((item) => item.attendanceDate)
+    .filter((date) => new Date(date).getTime() <= Date.now())
+    .filter((date, index, array) => array.indexOf(date) === index)
+    .filter((date) => !attendedDateSet.has(date))
+    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime());
+
+  const attendanceSummaryRows: AttendanceSummaryRow[] = [
+    ...attendedDates.map((date) => ({ date, status: "present" as const })),
+    ...absentDates.map((date) => ({ date, status: "absent" as const })),
+  ].sort((first, second) => new Date(second.date).getTime() - new Date(first.date).getTime());
+
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.95fr)]">
       <div className="space-y-4">
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
@@ -224,46 +256,102 @@ export default function StudentAttendanceCheckIn({
         ) : null}
       </div>
 
-      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
-            <History className="h-5 w-5" />
+      <div className="space-y-4">
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+              <History className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-slate-900">Thống kê chuyên cần</h4>
+              <p className="text-sm text-slate-500">Xem nhanh những buổi đã đi học và đã vắng.</p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-base font-bold text-slate-900">Lich su diem danh cua toi</h4>
-            <p className="text-sm text-slate-500">Cac lan check-in gan nhat trong hoc phan.</p>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <SimpleSummaryCard title="Đã đi học" value={attendedDates.length.toString()} tone="present" />
+            <SimpleSummaryCard title="Đã vắng" value={absentDates.length.toString()} tone="absent" />
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+            {attendanceSummaryRows.length === 0 ? (
+              <div className="px-4 py-6 text-sm text-slate-500">
+                Chưa có buổi điểm danh nào trong học phần này.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      <th className="px-4 py-3">Ngày</th>
+                      <th className="px-4 py-3">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {attendanceSummaryRows.map((row) => (
+                      <tr key={`${row.status}-${row.date}`}>
+                        <td className="px-4 py-3 font-medium text-slate-900">{formatDateOnly(row.date)}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              row.status === "present"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-rose-100 text-rose-700"
+                            }`}
+                          >
+                            {row.status === "present" ? "Đi học" : "Vắng"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="mt-4 space-y-3">
-          {isLoadingHistory ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-              Dang tai lich su diem danh...
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+              <History className="h-5 w-5" />
             </div>
-          ) : history.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-              Ban chua co ban ghi diem danh nao trong hoc phan nay.
+            <div>
+              <h4 className="text-base font-bold text-slate-900">Lich su diem danh cua toi</h4>
+              <p className="text-sm text-slate-500">Cac lan check-in gan nhat trong hoc phan.</p>
             </div>
-          ) : (
-            history.map((item) => (
-              <div key={item.attendanceId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{item.studyDate}</p>
-                    <p className="mt-1 text-xs text-slate-500">Session: {item.sessionId}</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    {item.status}
-                  </span>
-                </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <InfoItem label="Check-in luc" value={formatDateTime(item.checkinTime)} />
-                  <InfoItem label="Phuong thuc" value={item.method || "--"} />
-                </div>
-                <p className="mt-3 text-sm text-slate-600">{item.note || "Khong co ghi chu."}</p>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {isLoadingHistory ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                Dang tai lich su diem danh...
               </div>
-            ))
-          )}
+            ) : history.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+                Ban chua co ban ghi diem danh nao trong hoc phan nay.
+              </div>
+            ) : (
+              history.map((item) => (
+                <div key={item.attendanceId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{item.studyDate}</p>
+                      <p className="mt-1 text-xs text-slate-500">Session: {item.sessionId}</p>
+                    </div>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      {item.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <InfoItem label="Check-in luc" value={formatDateTime(item.checkinTime)} />
+                    <InfoItem label="Phuong thuc" value={item.method || "--"} />
+                  </div>
+                  <p className="mt-3 text-sm text-slate-600">{item.note || "Khong co ghi chu."}</p>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -275,6 +363,28 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl bg-white px-3 py-2">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
       <p className="mt-1 break-all text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function SimpleSummaryCard({
+  title,
+  value,
+  tone,
+}: {
+  title: string;
+  value: string;
+  tone: "present" | "absent";
+}) {
+  const toneClass =
+    tone === "present"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-rose-200 bg-rose-50 text-rose-700";
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
     </div>
   );
 }
