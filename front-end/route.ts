@@ -27,7 +27,7 @@ import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
 import TeacherCourses from "@/pages/teacher/TeacherCourses";
 import TeacherAssessmentList from "@/pages/teacher/TeacherAssessmentList.tsx";
 import TeacherProjects from "@/pages/teacher/TeacherProjects";
-import TeacherAttendance from "@/pages/teacher/TeacherAttendance";
+import CreateQrAttendancePage from "@/pages/teacher/CreateQrAttendancePage";
 import TeacherReport from "@/pages/teacher/TeacherReport";
 import TeacherRubric from "@/pages/teacher/TeacherRubric";
 import TeacherQuestionBank from "@/pages/teacher/TeacherQuestionBank";
@@ -145,7 +145,7 @@ export const router = createBrowserRouter([
                     { path: "grading", Component: TeacherAssessmentList },
                     { path: "assessment/:assessmentId/grading", Component: TeacherGrading },
                     { path: "projects", Component: TeacherProjects },
-                    { path: "attendance", Component: TeacherAttendance },
+                    { path: "attendance", Component: CreateQrAttendancePage },
                     { path: "report", Component: TeacherReport },
                 ],
             },
