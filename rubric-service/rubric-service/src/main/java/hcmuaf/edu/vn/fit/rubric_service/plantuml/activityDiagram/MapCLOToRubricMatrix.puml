@@ -1,0 +1,61 @@
+@startuml
+skinparam style strictuml
+title Activity Diagram - Gan CLO voi Rubric qua Rubric Matrix
+
+|Main Lecturer|
+start
+:Mo man hinh Rubric Matrix;
+:Bam "Ma tran moi" hoac sua ma tran;
+
+|Frontend (React)|
+:Tai danh sach CLO va rubric;
+:Mo RubricMatrixEditor;
+
+|Main Lecturer|
+:Chon rubric nen;
+:Them / xoa tieu chi;
+:Gan CLO cho tung tieu chi;
+:Them cac muc danh gia (level);
+:Nhap diem so, thu tu, mo ta cho tung level;
+:Bam "Xem truoc" neu can;
+
+|Frontend (React)|
+:Tinh tong trong so;
+:Dem so criteria da gan CLO;
+:Dem so criteria co level;
+:Hien validation cards;
+
+if (Tong trong so = 100%\nva tat ca criteria da gan CLO\nva deu co level?) then (No)
+  |Main Lecturer|
+  :Dieu chinh lai thong tin ma tran;
+  stop
+else (Yes)
+endif
+
+|Main Lecturer|
+:Bam "Luu ma tran";
+
+|Frontend (React)|
+:Dong goi payload RubricMatrixRequest;
+:POST /api/v1/rubric-service/rubric-matrices;
+
+|Backend (Rubric Service)|
+:RubricMatrixController nhan request;
+:RubricMatrixService.updateMatrix(...);
+:Tim rubric theo id,\nneu chua co thi khoi tao moi;
+:Cap nhat ten, mo ta rubric;
+:Lap qua tung criterion;
+:Cap nhat ten, trong so, cloId;
+:Tao / cap nhat cac level cua criterion;
+:Xoa lien ket cu va gan tap criteria moi;
+:Luu rubric vao database;
+:Tra ve true;
+
+|Frontend (React)|
+:Dong editor;
+:Co the tai lai danh sach matrix;
+
+|Main Lecturer|
+:Xem matrix da cap nhat;
+stop
+@enduml

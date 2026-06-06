@@ -16,6 +16,7 @@ import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import { courseService } from "@/features/course/courseApi";
 import type { Assessment } from "@/features/course/student/assignmentSlice";
+import StudentAttendanceCheckIn from "@/features/course/student/components/StudentAttendanceCheckIn.tsx";
 
 type EvaluationItem = {
     title: string;
@@ -383,6 +384,8 @@ export default function CourseEvaluations() {
             ),
         },
     ];
+
+    sections[0].body = <StudentAttendanceCheckIn offeringId={offeringId || ""} />;
 
     return (
         <div className="min-h-screen bg-slate-50">

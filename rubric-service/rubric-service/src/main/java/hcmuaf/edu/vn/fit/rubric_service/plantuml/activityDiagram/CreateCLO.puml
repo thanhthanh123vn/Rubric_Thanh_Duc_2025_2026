@@ -1,0 +1,46 @@
+@startuml
+skinparam style strictuml
+title Activity Diagram - Tao CLO
+
+|Main Lecturer|
+start
+:Mo man hinh Quan ly CLO;
+:Bam "Tao CLO moi";
+:Nhap ma CLO, ten CLO,\nmo ta, Bloom level;
+:Bam "Tao CLO";
+
+|Frontend (React)|
+:Chan submit mac dinh;
+:Dong goi payload tu form;
+:POST /api/v1/rubric-service/course-clo;
+
+|Backend (Rubric Service)|
+:CourseCloController nhan request;
+:CourseCloService kiem tra cloCode trung;
+
+if (Ma CLO da ton tai?) then (Yes)
+  :Tra loi loi RuntimeException;
+  |Frontend (React)|
+  :Hien thi loi tao CLO;
+  |Main Lecturer|
+  :Sua thong tin va gui lai;
+  stop
+else (No)
+  :Tao CourseCloEntity;
+  if (Co courseId?) then (Yes)
+    :Tao them CourseCloMapEntity;
+  else (No)
+  endif
+  :Luu CLO vao database;
+  :Tra ve CLO vua tao;
+endif
+
+|Frontend (React)|
+:Goi lai GET /course-clo;
+:Cap nhat danh sach CLO;
+:Dong modal va reset form;
+
+|Main Lecturer|
+:Xem CLO moi trong danh sach;
+stop
+@enduml

@@ -37,7 +37,9 @@ public class AssessmentController {
             @RequestHeader("X-User-Id") String studentId,
             @PathVariable String offeringId
     ) {
-        return assessmentService.getAssByCourseOffering(offeringId, studentId);
+        List<AssessmentReponse> res = assessmentService.getAssByCourseOffering(offeringId, studentId);
+        System.out.println(res);
+        return res;
     }
 
     @GetMapping("/assessments/{assessmentId}")
