@@ -3,6 +3,9 @@ package hcmuaf.edu.vn.fit.course_service.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "courses")
 @Data
@@ -29,6 +32,10 @@ public class Course {
 
     @Column(name = "department", length = 100)
     private String department;
-    @Column(name = "syllabus_url")
-    private String syllabusUrl;
+    @OneToMany(
+            mappedBy = "course",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<SyllabusFile> syllabusFiles;
 }

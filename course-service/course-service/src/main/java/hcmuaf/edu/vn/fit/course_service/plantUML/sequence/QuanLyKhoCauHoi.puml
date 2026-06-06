@@ -1,0 +1,41 @@
+@startuml
+skinparam maxMessageSize 150
+autonumber
+
+actor "Giảng viên" as GV
+participant "React UI" as UI
+participant "QuestionBank\nController" as Ctrl
+participant "QuestionBank\nService" as Svc
+database "MySQL\n(Course DB)" as DB
+
+GV -> UI : Bấm "Tạo kho câu hỏi"
+activate UI
+UI --> GV : Hiển thị Modal Tạo
+GV -> UI : Chọn môn học, nhập tên kho & Bấm Lưu
+UI -> Ctrl : POST /api/v1/question-banks \n{name, offeringId}
+activate Ctrl
+Ctrl -> Svc : createQuestionBank(request, lecturerId)
+activate Svc
+
+Svc -> DB : findById(offeringId)
+activate DB
+alt Không tìm thấy Môn học
+    DB --> Svc : Null
+    Svc --> Ctrl : Throw Exception
+    Ctrl --> UI : 400 Bad Request
+    UI --> GV : Hiển thị thông báo lỗi
+else Tồn tại Môn học
+    DB --> Svc : CourseOffering Entity
+    Svc -> DB : save(QuestionBank)
+    DB --> Svc : QuestionBank Entity (kèm ID)
+    deactivate DB
+    Svc -> Svc : mapToResponse() \n(Entity sang DTO)
+    Svc --> Ctrl : QuestionBankResponse
+    deactivate Svc
+    Ctrl --> UI : 201 Created (JSON)
+    deactivate Ctrl
+    UI --> GV : Đóng Modal & Hiện Toast Thành công
+    UI -> UI : Tự động fetch lại danh sách kho
+end
+deactivate UI
+@enduml

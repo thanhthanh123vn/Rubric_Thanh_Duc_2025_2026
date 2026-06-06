@@ -6,20 +6,27 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
+import hcmuaf.edu.vn.fit.course_service.entity.SyllabusFile;
 import hcmuaf.edu.vn.fit.course_service.mapper.CourseMapper;
+import hcmuaf.edu.vn.fit.course_service.mapper.SyllabusFileMapper;
+import hcmuaf.edu.vn.fit.course_service.mapper.SyllarbusMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.SyllabusFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,7 +40,9 @@ public class CourseService {
     private final EnrollmentRepository enrollmentRepo;
     private final CourseOfferingRepository courseOfferingRepo;
     private final CourseMapper courseMapper;
-
+    private final SyllarbusMapper syllarbusMapper;
+    private final SyllabusFileMapper syllabusFileMapper;
+    private final SyllabusFileRepository syllabusFileRepository;
     public Page<CourseResponse> getAllCourses(String keyword, Pageable pageable) {
         Page<Course> courses;
 
@@ -78,6 +87,19 @@ public class CourseService {
 
         return response;
     }
+    public List<SyllabusFileDTO> getSyllabusForCourse(String offeringId) {
+        CourseOffering offering = courseOfferingRepo.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Course Offering not found"));
+        Course course = offering.getCourse();
+
+        List<SyllabusFileDTO> syllabusFiles = syllarbusMapper.toResponseList(course.getSyllabusFiles());
+
+
+
+
+        return syllabusFiles;
+    }
+
 
     public CourseResponse createCourse(CourseRequest request) {
         if (courseRepo.existsByCourseCode(request.getCourseCode())) {
@@ -194,24 +216,54 @@ public class CourseService {
             return response;
         }).collect(Collectors.toList());
     }
-    public CourseResponse uploadSyllabus(String courseId, MultipartFile file)  {
-        Course course = courseRepo.findById(courseId)
+    @Transactional
+    public List<SyllabusFileDTO> uploadSyllabus(String courseId, List<MultipartFile> files) {
+
+        // 1. Tìm Course
+        CourseOffering offering = courseOfferingRepo.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Học phần"));
+        Course course = courseRepo.findById(offering.getCourse().getCourseId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học!"));
 
-
-        String fileUrl = null;
-        try {
-            fileUrl = s3Service.uploadFile(file);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (course.getSyllabusFiles() == null) {
+            course.setSyllabusFiles(new ArrayList<>());
         }
 
-        course.setSyllabusUrl(fileUrl);
+
+        List<CompletableFuture<SyllabusFile>> futures = files.stream()
+                .map(file -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        String fileUrl = s3Service.uploadFile(file);
+
+                        SyllabusFile syllabusFile = new SyllabusFile();
+                        syllabusFile.setFileUrl(fileUrl);
+                        syllabusFile.setFileName(file.getOriginalFilename());
+                        syllabusFile.setCourse(course);
+
+                        return syllabusFile;
+                    } catch (IOException e) {
+                        throw new RuntimeException("Upload file thất bại: " + file.getOriginalFilename(), e);
+                    }
+                }))
+                .collect(Collectors.toList());
+
+
+        List<SyllabusFile> uploadedFiles = futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList());
+
+
+
+
+        uploadedFiles = syllabusFileRepository.saveAll(uploadedFiles);
+
+
+        course.getSyllabusFiles().addAll(uploadedFiles);
         courseRepo.save(course);
 
-        return courseMapper.toCourseResponse(course);
-    }
 
+        return syllabusFileMapper.toResponseList(uploadedFiles);
+    }
     private void validateUser(String userId) {
         try {
             SinhVienResponse user = userClient.getSinhVien(userId);
@@ -225,11 +277,11 @@ public class CourseService {
         }
     }
     public CourseOfferingResponse assignLecturer(String courseId, String lecturerId) {
-        // 1. Tìm Course gốc
+
         Course course = courseRepo.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học với ID: " + courseId));
 
-        // 2. Kiểm tra Giảng viên
+
         LecturerResponse lecturer = null;
         try {
             lecturer = userClient.getLecturer(lecturerId);

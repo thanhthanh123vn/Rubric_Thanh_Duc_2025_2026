@@ -24,6 +24,7 @@ const ClassSidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     const menuItems = [
         { key: "posts", icon: FileText, label: "Bài đăng", path: "" },
         { key: "assignments", icon: ClipboardList, label: "Bài tập", path: "assignments" },
+        { key: "document", icon: ClipboardList, label: "Tài Liệu", path: "document" },
         { key: "evaluations", icon: CheckCircle2, label: "Đánh giá", path: "evaluations" },
         { key: "obe", icon: BarChart3, label: "Tiến độ OBE", path: "obe" },
         { key: "groups", icon: Users2, label: "Nhóm của tôi", path: "groups" },
