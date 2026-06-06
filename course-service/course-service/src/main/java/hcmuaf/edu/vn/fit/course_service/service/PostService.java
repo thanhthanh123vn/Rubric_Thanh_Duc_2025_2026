@@ -26,6 +26,7 @@ public class PostService {
     private final SyllabusFileRepository syllabusFileRepository;
     private final SyllabusFileMapper syllabusFileMapper;
     private final UserClient  userClient;
+    private final S3Service s3Service;
 
     public PostResponse createPost(PostRequest request, String authorId) {
         Post post = Post.builder()
@@ -89,14 +90,21 @@ public class PostService {
         }
 
 
-        postRepository.delete(post);
-        for(String fileId : post.getFileIds()) {
-           syllabusFileRepository.deleteById(fileId);
+        if (post.getFileIds() != null && !post.getFileIds().isEmpty()) {
+
+            List<SyllabusFile> filesToDelete = syllabusFileRepository.findAllById(post.getFileIds());
+
+
+            for (SyllabusFile file : filesToDelete) {
+                s3Service.deleteFile(file.getFileUrl());
+            }
+
+
+            syllabusFileRepository.deleteAll(filesToDelete);
         }
 
 
-        // (Tùy chọn nâng cao) Bạn có thể gọi thêm syllabusFileRepository
-        // để xóa luôn các file vật lý trong MySQL và S3 nếu muốn dọn sạch ổ cứng.
+        postRepository.delete(post);
     }
     private PostResponse mapToResponse(Post post) {
         List<SyllabusFileDTO> fileDTOs = new ArrayList<>();
