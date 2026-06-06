@@ -15,11 +15,11 @@ import java.util.List;
 public class AssessmentReponse {
     private String assessmentId;
     private String assessmentName;
-    private double weight;
+    private Number weight;
     private Timestamp endTime;
     private String submissionId;
     private Timestamp submissionAt;
-    private double calculatedScore;
+    private Number calculatedScore;
     private String lecturerComment;
     private List<String> cloCode;
 

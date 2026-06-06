@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -54,21 +55,23 @@ public class AssessmentService {
 
         List<Object[]> res = assessmentRepository
                 .getAssignmentByCourseOffering(courseOffering, studentId);
-        System.out.println(res.toString());
+
+
+
         return res.stream().map(item -> {
             try {
                 AssessmentReponse dto = new AssessmentReponse();
 
                 dto.setAssessmentId(item[0] != null ? item[0].toString() : null);
                 dto.setAssessmentName(item[1] != null ? item[1].toString() : null);
-                dto.setWeight(item[2] != null ? ((Double) item[2]) : null);
+                dto.setWeight(item[2] != null ? ((Number) item[2]).floatValue() : null);
 
                 dto.setEndTime((Timestamp) item[3]);
                 if(item[4] != null){
                     dto.setSubmissionId(item[4].toString());
                     dto.setSubmissionAt((Timestamp) item[5]);
 
-                    dto.setCalculatedScore(item[6] != null ? ((Double) item[6]) / 10 : null);
+                    dto.setCalculatedScore(item[6] != null ? ((Float) item[6]) / 10 : null);
 
                     dto.setLecturerComment(item[7] != null ? item[7].toString() : null);
 
