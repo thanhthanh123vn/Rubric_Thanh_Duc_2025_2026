@@ -34,10 +34,13 @@ public class StudentAttendanceService {
     @Transactional
     public AttendanceCheckInResponse checkIn(String currentStudentId, StudentAttendanceCheckInRequest request) {
         if (currentStudentId == null || currentStudentId.trim().isEmpty()) {
-            throw new BadRequestException("Không xác định được sinh viên đang đăng nhập");
+            throw new BadRequestException("Khong xac dinh duoc sinh vien dang dang nhap");
         }
         if (request == null || request.getQrContent() == null || request.getQrContent().trim().isEmpty()) {
-            throw new BadRequestException("qrContent không được để trống");
+            throw new BadRequestException("qrContent khong duoc de trong");
+        }
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new BadRequestException("Can cap quyen GPS de diem danh");
         }
 
         Map<String, String> qrPayload = parseQrContent(request.getQrContent());
@@ -45,27 +48,37 @@ public class StudentAttendanceService {
         String qrToken = requiredPayloadValue(qrPayload, "qrToken");
 
         AttendanceSession session = attendanceSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new BadRequestException("Không tìm thấy phiên điểm danh"));
+                .orElseThrow(() -> new BadRequestException("Khong tim thay phien diem danh"));
 
         if (session.getStatus() != AttendanceSessionStatus.OPEN) {
-            throw new BadRequestException("Phiên điểm danh đã đóng");
+            throw new BadRequestException("Phien diem danh da dong");
         }
         if (!session.getQrToken().equals(qrToken)) {
-            throw new BadRequestException("QR token không hợp lệ");
+            throw new BadRequestException("QR token khong hop le");
         }
         if (!enrollmentRepository.findByStudentIdAndCourseOffering_OfferingId(currentStudentId, session.getOfferingId()).isPresent()) {
-            throw new BadRequestException("Sinh viên không thuộc lớp học phần này");
+            throw new BadRequestException("Sinh vien khong thuoc lop hoc phan nay");
         }
         if (attendanceRepository.existsBySessionIdAndStudentId(sessionId, currentStudentId)) {
-            throw new BadRequestException("Sinh viên đã điểm danh cho phiên này");
+            throw new BadRequestException("Sinh vien da diem danh cho phien nay");
         }
 
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(session.getStartTime())) {
-            throw new BadRequestException("Phiên điểm danh chưa bắt đầu");
+            throw new BadRequestException("Phien diem danh chua bat dau");
         }
         if (now.isAfter(session.getEndTime())) {
-            throw new BadRequestException("Phiên điểm danh đã hết hạn");
+            throw new BadRequestException("Phien diem danh da het han");
+        }
+
+        double distance = calculateDistanceMeters(
+                session.getLatitude(),
+                session.getLongitude(),
+                request.getLatitude(),
+                request.getLongitude()
+        );
+        if (session.getRadius() != null && distance > session.getRadius()) {
+            throw new BadRequestException("Ban dang ngoai pham vi GPS cho phep");
         }
 
         Attendance attendance = Attendance.builder()
@@ -75,8 +88,11 @@ public class StudentAttendanceService {
                 .studyDate(session.getAttendanceDate())
                 .status(AttendanceStatus.PRESENT)
                 .checkinTime(now)
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .distance(distance)
                 .method(AttendanceMethod.QR)
-                .note("Điểm danh thành công bằng QR")
+                .note("Diem danh thanh cong bang QR + GPS")
                 .build();
 
         Attendance savedAttendance = attendanceRepository.save(attendance);
@@ -91,17 +107,17 @@ public class StudentAttendanceService {
                 .studyDate(savedAttendance.getStudyDate())
                 .checkinTime(savedAttendance.getCheckinTime())
                 .note(savedAttendance.getNote())
-                .message("Điểm danh thành công")
+                .message("Diem danh thanh cong")
                 .build();
     }
 
     @Transactional(readOnly = true)
     public List<AttendanceHistoryResponse> getMyAttendanceHistory(String currentStudentId, String offeringId) {
         if (currentStudentId == null || currentStudentId.trim().isEmpty()) {
-            throw new BadRequestException("Không xác định được sinh viên đang đăng nhập");
+            throw new BadRequestException("Khong xac dinh duoc sinh vien dang dang nhap");
         }
         if (offeringId == null || offeringId.trim().isEmpty()) {
-            throw new BadRequestException("offeringId không được để trống");
+            throw new BadRequestException("offeringId khong duoc de trong");
         }
 
         return attendanceRepository.findByStudentIdAndOfferingIdOrderByCheckinTimeDesc(currentStudentId, offeringId)
@@ -122,15 +138,35 @@ public class StudentAttendanceService {
         try {
             return objectMapper.readValue(qrContent, new TypeReference<>() {});
         } catch (Exception exception) {
-            throw new BadRequestException("QR content không đúng định dạng JSON hợp lệ");
+            throw new BadRequestException("QR content khong dung dinh dang JSON hop le");
         }
     }
 
     private String requiredPayloadValue(Map<String, String> qrPayload, String key) {
         String value = qrPayload.get(key);
         if (value == null || value.trim().isEmpty()) {
-            throw new BadRequestException("QR content thiếu trường " + key);
+            throw new BadRequestException("QR content thieu truong " + key);
         }
         return value.trim();
+    }
+
+    private double calculateDistanceMeters(
+            Double lat1,
+            Double lon1,
+            Double lat2,
+            Double lon2
+    ) {
+        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) {
+            throw new BadRequestException("Thieu du lieu GPS de xac thuc diem danh");
+        }
+
+        double earthRadius = 6371000D;
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadius * c;
     }
 }

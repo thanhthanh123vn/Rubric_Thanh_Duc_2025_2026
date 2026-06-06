@@ -17,4 +17,7 @@ public class CreateAttendanceSessionRequest {
     private LocalDate attendanceDate;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private Double latitude;
+    private Double longitude;
+    private Double radius;
 }

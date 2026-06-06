@@ -20,5 +20,11 @@ public class AttendanceStudentResponse {
     private String status;
     private String method;
     private LocalDateTime checkinTime;
+    private Double latitude;
+    private Double longitude;
+    private Double distance;
+    private Double sessionRadius;
+    private Boolean suspicious;
+    private String suspiciousReason;
     private String note;
 }

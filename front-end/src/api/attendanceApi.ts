@@ -5,6 +5,9 @@ export type CreateAttendanceSessionPayload = {
   attendanceDate: string;
   startTime: string;
   endTime: string;
+  latitude: number;
+  longitude: number;
+  radius: number;
 };
 
 export type AttendanceSessionResponse = {
@@ -19,6 +22,8 @@ export type AttendanceSessionResponse = {
 
 export type StudentAttendanceCheckInPayload = {
   qrContent: string;
+  latitude: number;
+  longitude: number;
 };
 
 export type AttendanceCheckInResponse = {
@@ -63,6 +68,12 @@ export type AttendanceStudentResponse = {
   status: string;
   method: string | null;
   checkinTime: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distance: number | null;
+  sessionRadius: number | null;
+  suspicious: boolean | null;
+  suspiciousReason: string | null;
   note: string;
 };
 
@@ -112,7 +123,7 @@ export const attendanceApi = {
 };
 
 export function getAttendanceErrorMessage(error: unknown) {
-  const fallbackMessage = "Không thể tạo phiên điểm danh QR. Vui lòng thử lại.";
+  const fallbackMessage = "Khong the tao phien diem danh QR. Vui long thu lai.";
 
   if (
     typeof error === "object" &&

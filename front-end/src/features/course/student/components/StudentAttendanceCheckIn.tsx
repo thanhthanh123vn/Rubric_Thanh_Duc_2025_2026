@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, History, QrCode, ScanLine } from "lucide-react";
+import { CheckCircle2, History, LocateFixed, QrCode, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +11,12 @@ import {
 
 type StudentAttendanceCheckInProps = {
   offeringId: string;
+};
+
+type GeoState = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
 };
 
 function formatDateTime(value: string | null) {
@@ -30,9 +36,11 @@ export default function StudentAttendanceCheckIn({
   const [qrContent, setQrContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLocating, setIsLocating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [checkInResult, setCheckInResult] = useState<AttendanceCheckInResponse | null>(null);
   const [history, setHistory] = useState<AttendanceHistoryResponse[]>([]);
+  const [geoState, setGeoState] = useState<GeoState | null>(null);
 
   const loadHistory = async () => {
     try {
@@ -54,12 +62,51 @@ export default function StudentAttendanceCheckIn({
     loadHistory();
   }, [offeringId]);
 
+  const getCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      throw new Error("Trinh duyet khong ho tro GPS.");
+    }
+
+    return new Promise<GeoState>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
+        },
+        () => reject(new Error("Khong the lay vi tri hien tai.")),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        },
+      );
+    });
+  };
+
+  const handleGetLocation = async () => {
+    try {
+      setIsLocating(true);
+      const location = await getCurrentLocation();
+      setGeoState(location);
+      toast.success("Da cap nhat vi tri GPS.");
+    } catch (error) {
+      const message = getAttendanceErrorMessage(error);
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
 
     if (!qrContent.trim()) {
-      const message = "Vui lòng dán nội dung QR để điểm danh.";
+      const message = "Vui long dan noi dung QR de diem danh.";
       setErrorMessage(message);
       toast.error(message);
       return;
@@ -67,10 +114,17 @@ export default function StudentAttendanceCheckIn({
 
     try {
       setIsSubmitting(true);
-      const response = await attendanceApi.checkInByQr({ qrContent: qrContent.trim() });
+      const location = geoState ?? await getCurrentLocation();
+      setGeoState(location);
+
+      const response = await attendanceApi.checkInByQr({
+        qrContent: qrContent.trim(),
+        latitude: location.latitude,
+        longitude: location.longitude,
+      });
       setCheckInResult(response);
       setQrContent("");
-      toast.success(response.message || "Điểm danh thành công.");
+      toast.success(response.message || "Diem danh thanh cong.");
       await loadHistory();
     } catch (error) {
       const message = getAttendanceErrorMessage(error);
@@ -90,9 +144,9 @@ export default function StudentAttendanceCheckIn({
               <ScanLine className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-base font-bold text-slate-900">Điểm danh bằng QR</h4>
+              <h4 className="text-base font-bold text-slate-900">Diem danh bang QR + GPS</h4>
               <p className="text-sm text-slate-500">
-                Dán nội dung QR mà giảng viên hiển thị để gửi check-in.
+                Dan noi dung QR va cap quyen vi tri de gui check-in.
               </p>
             </div>
           </div>
@@ -108,6 +162,28 @@ export default function StudentAttendanceCheckIn({
               />
             </label>
 
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Vi tri hien tai</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {geoState
+                      ? `${geoState.latitude.toFixed(6)}, ${geoState.longitude.toFixed(6)} - sai so ${Math.round(geoState.accuracy)}m`
+                      : "Chua lay GPS"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={isLocating}
+                  className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <LocateFixed className="h-4 w-4" />
+                  {isLocating ? "Dang lay GPS..." : "Lay GPS"}
+                </button>
+              </div>
+            </div>
+
             {errorMessage ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                 {errorMessage}
@@ -120,7 +196,7 @@ export default function StudentAttendanceCheckIn({
               className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
               <QrCode className="h-4 w-4" />
-              {isSubmitting ? "Đang gửi điểm danh..." : "Xác nhận điểm danh"}
+              {isSubmitting ? "Dang gui diem danh..." : "Xac nhan diem danh"}
             </button>
           </form>
         </div>
@@ -133,14 +209,14 @@ export default function StudentAttendanceCheckIn({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                  Check-in thành công
+                  Check-in thanh cong
                 </p>
                 <p className="mt-2 text-base font-bold text-slate-900">{checkInResult.message}</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <InfoItem label="Ngày học" value={checkInResult.studyDate} />
-                  <InfoItem label="Thời gian" value={formatDateTime(checkInResult.checkinTime)} />
+                  <InfoItem label="Ngay hoc" value={checkInResult.studyDate} />
+                  <InfoItem label="Thoi gian" value={formatDateTime(checkInResult.checkinTime)} />
                   <InfoItem label="Session ID" value={checkInResult.sessionId} />
-                  <InfoItem label="Phương thức" value={checkInResult.method} />
+                  <InfoItem label="Phuong thuc" value={checkInResult.method} />
                 </div>
               </div>
             </div>
@@ -154,19 +230,19 @@ export default function StudentAttendanceCheckIn({
             <History className="h-5 w-5" />
           </div>
           <div>
-            <h4 className="text-base font-bold text-slate-900">Lịch sử điểm danh của tôi</h4>
-            <p className="text-sm text-slate-500">Các lần check-in gần nhất trong học phần.</p>
+            <h4 className="text-base font-bold text-slate-900">Lich su diem danh cua toi</h4>
+            <p className="text-sm text-slate-500">Cac lan check-in gan nhat trong hoc phan.</p>
           </div>
         </div>
 
         <div className="mt-4 space-y-3">
           {isLoadingHistory ? (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-              Đang tải lịch sử điểm danh...
+              Dang tai lich su diem danh...
             </div>
           ) : history.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-              Bạn chưa có bản ghi điểm danh nào trong học phần này.
+              Ban chua co ban ghi diem danh nao trong hoc phan nay.
             </div>
           ) : (
             history.map((item) => (
@@ -181,10 +257,10 @@ export default function StudentAttendanceCheckIn({
                   </span>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <InfoItem label="Check-in lúc" value={formatDateTime(item.checkinTime)} />
-                  <InfoItem label="Phương thức" value={item.method || "--"} />
+                  <InfoItem label="Check-in luc" value={formatDateTime(item.checkinTime)} />
+                  <InfoItem label="Phuong thuc" value={item.method || "--"} />
                 </div>
-                <p className="mt-3 text-sm text-slate-600">{item.note || "Không có ghi chú."}</p>
+                <p className="mt-3 text-sm text-slate-600">{item.note || "Khong co ghi chu."}</p>
               </div>
             ))
           )}
