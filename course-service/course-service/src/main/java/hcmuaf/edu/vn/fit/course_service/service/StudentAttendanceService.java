@@ -50,6 +50,8 @@ public class StudentAttendanceService {
         AttendanceSession session = attendanceSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new BadRequestException("Khong tim thay phien diem danh"));
 
+        closeSessionIfExpired(session);
+
         if (session.getStatus() != AttendanceSessionStatus.OPEN) {
             throw new BadRequestException("Phien diem danh da dong");
         }
@@ -168,5 +170,14 @@ public class StudentAttendanceService {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return earthRadius * c;
+    }
+
+    private void closeSessionIfExpired(AttendanceSession session) {
+        if (session.getStatus() == AttendanceSessionStatus.OPEN
+                && session.getEndTime() != null
+                && !session.getEndTime().isAfter(LocalDateTime.now())) {
+            session.setStatus(AttendanceSessionStatus.CLOSED);
+            attendanceSessionRepository.save(session);
+        }
     }
 }

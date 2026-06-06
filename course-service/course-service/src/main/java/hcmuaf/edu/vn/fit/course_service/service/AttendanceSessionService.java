@@ -42,6 +42,7 @@ public class AttendanceSessionService {
             String currentUserId
     ) {
         validateRequest(request, currentUserId);
+        closeExpiredSessionsByOffering(request.getOfferingId());
         findActiveSessionEntity(request.getOfferingId())
                 .ifPresent(session -> {
                     throw new BadRequestException("Lop hoc phan dang co QR chua het han, khong the tao phien moi");
@@ -72,11 +73,13 @@ public class AttendanceSessionService {
         return toAttendanceSessionResponse(savedSession);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AttendanceSessionSummaryResponse> getSessionsByOffering(String offeringId) {
         if (offeringId == null || offeringId.trim().isEmpty()) {
             throw new BadRequestException("offeringId khong duoc de trong");
         }
+
+        closeExpiredSessionsByOffering(offeringId);
 
         return attendanceSessionRepository.findByOfferingIdOrderByCreatedAtDesc(offeringId.trim())
                 .stream()
@@ -92,11 +95,13 @@ public class AttendanceSessionService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AttendanceSessionResponse getActiveSession(String offeringId) {
         if (offeringId == null || offeringId.trim().isEmpty()) {
             throw new BadRequestException("offeringId khong duoc de trong");
         }
+
+        closeExpiredSessionsByOffering(offeringId);
 
         AttendanceSession session = findActiveSessionEntity(offeringId)
                 .orElseThrow(() -> new BadRequestException("Khong co QR nao dang con hieu luc"));
@@ -187,6 +192,21 @@ public class AttendanceSessionService {
         return attendanceSessionRepository
                 .findFirstByOfferingIdAndStatusOrderByEndTimeDesc(offeringId.trim(), AttendanceSessionStatus.OPEN)
                 .filter(session -> session.getEndTime() != null && session.getEndTime().isAfter(LocalDateTime.now()));
+    }
+
+    private void closeExpiredSessionsByOffering(String offeringId) {
+        List<AttendanceSession> expiredSessions = attendanceSessionRepository.findByOfferingIdAndStatusAndEndTimeBefore(
+                offeringId.trim(),
+                AttendanceSessionStatus.OPEN,
+                LocalDateTime.now()
+        );
+
+        if (expiredSessions.isEmpty()) {
+            return;
+        }
+
+        expiredSessions.forEach(session -> session.setStatus(AttendanceSessionStatus.CLOSED));
+        attendanceSessionRepository.saveAll(expiredSessions);
     }
 
     private AttendanceStudentResponse toAttendanceStudentResponse(Attendance attendance, AttendanceSession session) {

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface AttendanceSessionRepository extends JpaRepository<AttendanceSession, String> {
@@ -14,5 +15,10 @@ public interface AttendanceSessionRepository extends JpaRepository<AttendanceSes
     Optional<AttendanceSession> findFirstByOfferingIdAndStatusOrderByEndTimeDesc(
             String offeringId,
             AttendanceSessionStatus status
+    );
+    List<AttendanceSession> findByOfferingIdAndStatusAndEndTimeBefore(
+            String offeringId,
+            AttendanceSessionStatus status,
+            LocalDateTime endTime
     );
 }
