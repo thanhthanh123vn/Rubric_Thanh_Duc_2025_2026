@@ -20,6 +20,16 @@ const postService = {
     getPostById: async (postId: string): Promise<PostResponse> => {
         const response = await courseApi.get(`/posts/${postId}`);
         return response.data;
+    },
+    deletePostSyllabusFile: async (postId: string) => {
+
+        await courseApi.delete(`/posts/${postId}`);
+    },
+
+
+    updatePostSyllabusFile: async (postId: string, data: PostRequest) => {
+
+        await courseApi.put(`/posts/${postId}`,  data );
     }
 };
 

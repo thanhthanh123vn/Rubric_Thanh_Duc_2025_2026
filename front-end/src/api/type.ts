@@ -34,6 +34,8 @@ export interface PostResponse {
     offeringId: string;
     authorId: string;
     content: string;
+    title:string;
     createdAt: string;
     authorName?: string;
+    files:SyllabusFile[];
 }
