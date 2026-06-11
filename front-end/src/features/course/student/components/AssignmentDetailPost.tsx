@@ -225,7 +225,7 @@ const AssignmentDetailPost = () => {
                                 </p>
                             </div>
 
-                            {rubric.name && (
+                            {rubric != null && rubric.name && (
                                 <div className="mt-8 border-t pt-6 border-gray-100">
                                     <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
                                         <ClipboardList className="w-4 h-4 text-purple-600"/> Rubric đánh giá

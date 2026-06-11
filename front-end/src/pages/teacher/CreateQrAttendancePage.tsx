@@ -25,6 +25,21 @@ type GeoState = {
   accuracy: number;
 };
 
+type ReverseGeocodeResponse = {
+  display_name?: string;
+};
+
+function formatReverseGeocodeAddress(rawAddress: string) {
+  return rawAddress
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !/^\d{4,}$/.test(part))
+    .filter((part) => part.toLowerCase() !== "vietnam")
+    .slice(0, 6)
+    .join(", ");
+}
+
 const defaultDate = new Date().toISOString().slice(0, 10);
 
 function toDateTimeValue(date: string, time: string) {
@@ -89,9 +104,11 @@ export default function CreateQrAttendancePage() {
     const [selectedSessionId, setSelectedSessionId] = useState("");
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceStudentResponse[]>([]);
     const [geoState, setGeoState] = useState<GeoState | null>(null);
+    const [geoAddress, setGeoAddress] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
+    const [isResolvingAddress, setIsResolvingAddress] = useState(false);
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
     const [isLoadingRecords, setIsLoadingRecords] = useState(false);
     const [remainingLabel, setRemainingLabel] = useState("");
@@ -138,11 +155,42 @@ export default function CreateQrAttendancePage() {
         });
     };
 
+    const getLocationAddress = async (latitude: number, longitude: number) => {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+            {
+                headers: {
+                    Accept: "application/json",
+                },
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error("Khong the lay dia chi tu toa do hien tai.");
+        }
+
+        const data = (await response.json()) as ReverseGeocodeResponse;
+        return formatReverseGeocodeAddress(data.display_name || "");
+    };
+
+    const updateLocationAddress = async (latitude: number, longitude: number) => {
+        try {
+            setIsResolvingAddress(true);
+            const address = await getLocationAddress(latitude, longitude);
+            setGeoAddress(address);
+        } catch {
+            setGeoAddress("");
+        } finally {
+            setIsResolvingAddress(false);
+        }
+    };
+
     const handleGetLocation = async () => {
         try {
             setIsLocating(true);
             const location = await getCurrentLocation();
             setGeoState(location);
+            await updateLocationAddress(location.latitude, location.longitude);
             toast.success("Đã cập nhật vị trí GPS thành công.");
         } catch (error) {
             const message = getAttendanceErrorMessage(error);
@@ -258,6 +306,9 @@ export default function CreateQrAttendancePage() {
             setIsSubmitting(true);
             const location = geoState ?? await getCurrentLocation();
             setGeoState(location);
+            if (!geoAddress) {
+                void updateLocationAddress(location.latitude, location.longitude);
+            }
 
             const startDateTime = toDateTimeValue(form.attendanceDate, form.startTime);
             const endDateTime = toDateTimeValue(form.attendanceDate, form.endTime);
@@ -381,6 +432,13 @@ export default function CreateQrAttendancePage() {
                                                 ? `${geoState.latitude.toFixed(6)}, ${geoState.longitude.toFixed(6)} - sai số ${Math.round(geoState.accuracy)}m`
                                                 : "Chưa lấy GPS"}
                                         </p>
+                                        {geoState ? (
+                                            <p className="mt-2 text-xs leading-5 text-slate-600">
+                                                {isResolvingAddress
+                                                    ? "Dang lay dia chi chi tiet..."
+                                                    : geoAddress || "Chua lay duoc dia chi chi tiet."}
+                                            </p>
+                                        ) : null}
                                     </div>
                                     <button
                                         type="button"
