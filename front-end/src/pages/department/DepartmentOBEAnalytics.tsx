@@ -128,10 +128,10 @@ export default function DepartmentOBEAnalytics() {
                 </div>
             </div>
 
-            {/* --- MAIN DASHBOARD AREA --- */}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* CỘT TRÁI: Bảng chi tiết từng môn học (Chiếm 2/3) */}
+
                 <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                         <h3 className="text-lg font-bold text-slate-800">Chất lượng theo Môn học</h3>
