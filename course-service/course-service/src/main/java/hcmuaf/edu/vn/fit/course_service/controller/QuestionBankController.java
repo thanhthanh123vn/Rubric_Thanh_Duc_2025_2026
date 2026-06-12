@@ -3,11 +3,14 @@ package hcmuaf.edu.vn.fit.course_service.controller;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionBankRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionBankResponse;
 import hcmuaf.edu.vn.fit.course_service.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/course-service/question-banks")
@@ -59,4 +62,19 @@ public class QuestionBankController {
     public ResponseEntity<?> getBanksByCourse(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionBankService.getBanksByOfferingId(offeringId));
     }
+    @GetMapping("/course/dep/{offeringId}")
+    public ResponseEntity<?> getBanksByCourseForDep(@PathVariable String offeringId) {
+        return ResponseEntity.ok(questionBankService.getBanksByOfferingIdForDep(offeringId));
+    }
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllQuestionBanks( @RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(questionBankService.getAllQuestionBanks(userId));
+    }
+    @GetMapping("/lecturer")
+    public ResponseEntity<List<QuestionBankResponse>> getQuestionsByLecturerUserId(@RequestHeader("X-User-Id") String userId) {
+
+        List<QuestionBankResponse> questions = questionBankService.getQuestionsByLecturerUserId(userId);
+        return ResponseEntity.ok(questions);
+    }
+
 }

@@ -10,7 +10,6 @@ import hcmuaf.edu.vn.fit.course_service.repository.AssessmentRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,12 +23,10 @@ import java.util.Map;
 @RequestMapping("/api/v1/course-service")
 public class AssessmentController {
 
-
     private final AssessmentService assessmentService;
     private final EnrollmentRepository enrollmentRepository;
     private final NotificationClient notificationClient;
-    private final UserClient userClient  ;
-
+    private final UserClient userClient;
     private final AssessmentRepository assessmentRepository;
 
     @GetMapping("/offerings/{offeringId}/assessments")
@@ -37,9 +34,7 @@ public class AssessmentController {
             @RequestHeader("X-User-Id") String studentId,
             @PathVariable String offeringId
     ) {
-        List<AssessmentReponse> res = assessmentService.getAssByCourseOffering(offeringId, studentId);
-        System.out.println(res);
-        return res;
+        return assessmentService.getAssByCourseOffering(offeringId, studentId);
     }
 
     @GetMapping("/assessments/{assessmentId}")
@@ -49,52 +44,54 @@ public class AssessmentController {
     ) {
         return assessmentService.getAssById(assessmentId, studentId);
     }
+
     @GetMapping("/assessments/{assessmentId}/submissions")
     public ResponseEntity<List<SubmissionEntity>> getSubmissionsByAssessment(
             @PathVariable String assessmentId
     ) {
-
         List<SubmissionEntity> submissions = assessmentService.getSubmissions(assessmentId);
         return ResponseEntity.ok(submissions);
     }
+
     @PostMapping("/assessments/{assessmentId}/submit")
     public ResponseEntity<?> submitAssignment(
             @RequestHeader("X-User-Id") String studentId,
             @PathVariable String assessmentId,
             @RequestParam(required = false) MultipartFile file,
             @RequestParam(required = false) String link,
-              @RequestParam(required = false) String rubricId
+            @RequestParam(required = false) String rubricId
     ){
         try {
-
-            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link,rubricId);
-
-
+            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link, rubricId);
             Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
 
             if (assessment != null && assessment.getCourseOffering() != null) {
-
                 String courseId = assessment.getCourseOffering().getOfferingId();
-
-
-                String lecturerId = assessment.getCourseOffering().getLecturerId();
-
-                LecturerResponse lecturerResponse = userClient.getLecturerByUserId(lecturerId);
                 String assignmentTitle = assessment.getAssessmentName();
-
-
                 String studentName = "Sinh viên " + studentId;
-
-
                 String submissionId = submission.getId();
 
+                // CẬP NHẬT: Gửi thông báo cho TẤT CẢ giảng viên phụ trách lớp học phần này
+                List<String> lecturerIds = assessment.getCourseOffering().getLecturerIds();
 
-                try {
-                    notificationClient.notifyHomeworkSubmitted(
-                            studentId, lecturerResponse.getUserId(), courseId, submissionId, studentName, assignmentTitle
-                    );
-                } catch (Exception e) {
-                    System.err.println("Lỗi khi gửi thông báo nộp bài: " + e.getMessage());
+                if (lecturerIds != null && !lecturerIds.isEmpty()) {
+                    for (String lId : lecturerIds) {
+                        try {
+                            LecturerResponse lecturerResponse = userClient.getLecturerByUserId(lId);
+                            if (lecturerResponse != null && lecturerResponse.getUserId() != null) {
+                                notificationClient.notifyHomeworkSubmitted(
+                                        studentId,
+                                        lecturerResponse.getUserId(),
+                                        courseId,
+                                        submissionId,
+                                        studentName,
+                                        assignmentTitle
+                                );
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Lỗi khi gửi thông báo nộp bài cho GV ID " + lId + ": " + e.getMessage());
+                        }
+                    }
                 }
             }
 
@@ -114,7 +111,6 @@ public class AssessmentController {
             @RequestParam("assessmentType") String assessmentType,
             @RequestParam("endTime") String endTimeStr,
             @RequestParam(value = "rubricId", required = false) String rubricId,
-
             @RequestParam(value = "cloIds", required = false) List<String> cloIds,
             @RequestParam(value = "file", required = false) MultipartFile file
     ) {
@@ -128,7 +124,6 @@ public class AssessmentController {
 
             try {
                 if (studentIds != null && !studentIds.isEmpty()) {
-
                     notificationClient.notifyHomeworkAssignedToMultipleStudents(
                             studentIds,
                             lecturerId,
@@ -175,15 +170,11 @@ public class AssessmentController {
 
             Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
             if (assessment != null && assessment.getCourseOffering() != null) {
-
                 String offeringId = assessment.getCourseOffering().getOfferingId();
-
-
                 List<String> studentIds = enrollmentRepository.findStudentIdsByOfferingId(offeringId);
 
                 try {
                     if (studentIds != null && !studentIds.isEmpty()) {
-
                         notificationClient.notifyHomeworkUpdatedToMultipleStudents(
                                 studentIds,
                                 lecturerId,
@@ -210,9 +201,7 @@ public class AssessmentController {
     @DeleteMapping(value = "/assessments/{assessmentId}", produces = "application/json")
     public ResponseEntity<?> deleteAssessment(@PathVariable String assessmentId) {
         try {
-
             assessmentService.deleteAssessment(assessmentId);
-
 
             try {
                 notificationClient.deleteNotificationsByLinkedResource(assessmentId);

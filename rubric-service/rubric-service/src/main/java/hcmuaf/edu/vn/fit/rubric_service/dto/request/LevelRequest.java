@@ -11,7 +11,7 @@ public class LevelRequest {
 
     private Integer orderIndex;
 
-    private Double score;
+    private Float score;
 
     private String description;
 }

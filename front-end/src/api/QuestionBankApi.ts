@@ -8,7 +8,22 @@ export interface QuestionBankRequest {
 
 export const questionBankApi = {
     getQuestionBanksByCourse:async (offeringId: string) => {
+
         const response = await courseApi.get(`/question-banks/course/${offeringId}`);
+        return response.data;
+    },
+    getQuestionBanksByCourseForDep:async (offeringId: string) => {
+
+        const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);
+        return response.data;
+    },
+    getQuestionsByLecturerUserId:async ()=>{
+        const response = await courseApi.get(`/question-banks/lecturer`);
+        return response.data;
+    },
+    getQuestionsByLecturer: async (lecturerId: string) => {
+
+        const response = await courseApi.get(`/api/v1/course-service/questions/lecturer/${lecturerId}`);
         return response.data;
     },
     createQuestionBank: async (data: QuestionBankRequest) => {
@@ -28,4 +43,11 @@ export const questionBankApi = {
         return response.data;
     }
 
+};
+export const DepquestionBankApi = {
+    getQuestionBanksByCourse:async (offeringId: string) => {
+
+        const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);
+        return response.data;
+    },
 };

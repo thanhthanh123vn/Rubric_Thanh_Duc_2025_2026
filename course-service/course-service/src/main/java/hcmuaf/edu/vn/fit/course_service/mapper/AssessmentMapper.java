@@ -6,6 +6,7 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentLecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Assessment;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
 
 @Mapper(componentModel = "spring")
 public interface AssessmentMapper {
@@ -14,6 +15,7 @@ public interface AssessmentMapper {
     @Mapping(source = "courseOffering.offeringId", target = "offeringId")
 
     AssessmentLecturerResponse toResponse(Assessment assessment);
+
 
     AssessmentDetailResponse toDetailResponse(Assessment assessment);
 
