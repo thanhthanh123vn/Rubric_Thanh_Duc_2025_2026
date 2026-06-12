@@ -82,6 +82,7 @@ const AssignmentDetailPost = () => {
 
 
             const data = await assessmentCommentApi.getAssessmentDetail(assignmentId);
+            console.log(data);
 
             setAssignment(data);
             setIsSubmitted(!!data.submittedLink);
@@ -123,7 +124,7 @@ const AssignmentDetailPost = () => {
     const handleRemoveFile = () => {
         setFile(null);
     };
-
+console.log(rubric);
     const handleSubmit = async () => {
         if (!file && !link.trim()) {
             toast.error("Vui lòng đính kèm file hoặc nhập link trước khi nộp!");
@@ -225,13 +226,13 @@ const AssignmentDetailPost = () => {
                                 </p>
                             </div>
 
-                            {rubric != null && rubric.name && (
+                            {rubric?.rubricName && (
                                 <div className="mt-8 border-t pt-6 border-gray-100">
                                     <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
-                                        <ClipboardList className="w-4 h-4 text-purple-600"/> Rubric đánh giá
+                                        <ClipboardList className="w-4 h-4 text-purple-600"/>   Mẫu Rubric
                                     </h3>
                                     <div className="inline-flex items-center px-4 py-2 bg-purple-50 text-purple-700 border border-purple-100 rounded-xl text-xs font-semibold shadow-sm">
-                                        {rubric.name}
+                                        {rubric.rubricName}
                                     </div>
                                 </div>
                             )}

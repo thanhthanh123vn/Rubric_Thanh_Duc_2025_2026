@@ -17,6 +17,8 @@ public class Course {
     @Id
     @Column(name = "course_id", length = 50)
     private String courseId;
+    @Column(name = "department_id", length = 100)
+    private String departmentId;
 
     @Column(name = "course_code", length = 20, nullable = false, unique = true)
     private String courseCode;

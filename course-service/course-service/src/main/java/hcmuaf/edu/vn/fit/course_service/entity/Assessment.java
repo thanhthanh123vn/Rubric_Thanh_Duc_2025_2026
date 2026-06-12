@@ -21,8 +21,10 @@ public class Assessment {
     private String assessmentId;
 
     @JsonIgnore
+    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "offering_id")
+
     private CourseOffering courseOffering;
 
 

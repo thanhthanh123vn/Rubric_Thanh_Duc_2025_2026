@@ -18,20 +18,23 @@ export interface QuestionBankResponse {
 }
 
 export const questionBankApi = {
-    getQuestionBanksByCourse: async (offeringId: string): Promise<QuestionBankResponse[]> => {
+    getQuestionBanksByCourse:async (offeringId: string) => {
+
         const response = await courseApi.get(`/question-banks/course/${offeringId}`);
         return response.data;
     },
-    getMyQuestionBanks: async (): Promise<QuestionBankResponse[]> => {
-        const response = await courseApi.get(`/question-banks/lecturer/me`);
+    getQuestionBanksByCourseForDep:async (offeringId: string) => {
+
+        const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);
         return response.data;
     },
-    getPublicQuestionBanks: async (): Promise<QuestionBankResponse[]> => {
-        const response = await courseApi.get(`/question-banks/public`);
+    getQuestionsByLecturerUserId:async ()=>{
+        const response = await courseApi.get(`/question-banks/lecturer`);
         return response.data;
     },
-    getQuestionBankById: async (id: string): Promise<QuestionBankResponse> => {
-        const response = await courseApi.get(`/question-banks/${id}`);
+    getQuestionsByLecturer: async (lecturerId: string) => {
+
+        const response = await courseApi.get(`/api/v1/course-service/questions/lecturer/${lecturerId}`);
         return response.data;
     },
     createQuestionBank: async (data: QuestionBankRequest) => {
@@ -46,4 +49,12 @@ export const questionBankApi = {
         const response = await courseApi.delete(`/question-banks/${id}`);
         return response.data;
     }
+
+};
+export const DepquestionBankApi = {
+    getQuestionBanksByCourse:async (offeringId: string) => {
+
+        const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);
+        return response.data;
+    },
 };

@@ -77,3 +77,39 @@ export interface AssessmentSubmission {
 
 
 }
+export interface SyllabusFile {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+}
+
+export interface Course {
+    courseId: string;
+    courseCode: string;
+    courseName: string;
+    credits: number;
+    description: string;
+    department: string;
+    syllabusFiles: SyllabusFile[];
+}
+
+export interface CourseOfferingResponse {
+    offeringId: string;
+    offeringName: string;
+    course: Course;
+    lecturerId: string;
+    lecturerName: string;
+    semester: string;
+    year: string;
+    capacity: number | null;
+    maxStudents: number;
+    startDate: string;
+    endDate: string;
+    status: string;
+}
+export interface LecturerOption {
+    lecturerId: string;
+    fullName: string;
+    role: 'TEACHER' | 'MAIN_LECTURER';
+    department: string;
+}

@@ -1,5 +1,5 @@
 import { courseApi } from "@/services/axiosConfig.ts";
-import type {Course} from "./type";
+import type {Course, CourseOfferingResponse} from "./type";
 import type {SyllabusFile} from "@/api/type.ts";
 
 const courseService = {
@@ -22,12 +22,10 @@ const courseService = {
         return response.data;
     },
 
-    assignLecturer: async (courseId: string, lecturerId: string) => {
-
-        const response = await courseApi.post(`/courses/${courseId}/assign-lecturer`, {
-            lecturerId: lecturerId
+    assignLecturers: (courseId: string, lecturerIds: string[]): Promise<CourseOfferingResponse> => {
+        return courseApi.post(`/api/v1/course-service/courses/${courseId}/assign-lecturers`, {
+            lecturerIds: lecturerIds
         });
-        return response.data;
     },
 
         getTeacherCourses: async () => {
@@ -65,6 +63,12 @@ const courseService = {
 
         const response = await courseApi.get(`/courses/${offeringId}/syllabusFiles`);
         return response.data;
+    },
+    getOfferingsByCourse: (courseId: string) => {
+        return courseApi.get(`/courses-offering/${courseId}/offerings`);
+    },
+    createOffering: (courseId: string, data: any) => {
+        return courseApi.post(`/courses-offering/${courseId}/offerings`, data);
     }
 
 };

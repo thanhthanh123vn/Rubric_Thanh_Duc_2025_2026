@@ -81,15 +81,34 @@ export default function LoginPage() {
             alert(`Đăng nhập thành công! Chào ${displayName}`);
 
 
-            let targetPath = '/dashboard';
+            let targetPath = "/dashboard";
 
-            if (data.role === 'TEACHER') {
-                targetPath = '/teacher';
-            } else if(data.role === 'MAIN_LECTURER'){
-                targetPath = '/mainlecturer'
-            }
-            else if (data.role === 'ADMIN') {
-                targetPath = '/admin';
+            switch (data.role) {
+                case "ADMIN":
+                    targetPath = "/admin";
+                    break;
+
+                case "HEAD_OF_DEPARTMENT":
+                    targetPath = "/department";
+                    break;
+                case "DEAN":
+                    targetPath = "/dean";
+                    break;
+
+                case "MAIN_LECTURER":
+                    targetPath = "/mainlecturer";
+                    break;
+
+                case "TEACHER":
+                    targetPath = "/teacher";
+                    break;
+
+                case "STUDENT":
+                    targetPath = "/dashboard";
+                    break;
+
+                default:
+                    targetPath = "/login";
             }
 
             navigate(targetPath);

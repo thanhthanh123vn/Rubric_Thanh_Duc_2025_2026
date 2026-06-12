@@ -163,9 +163,16 @@ export default function UserManagement() {
 
     const getRoleBadge = (role: string) => {
         switch (role) {
-            case 'TEACHER': return <span className="px-2 py-1 bg-purple-100 text-purple-700 text-[11px] font-semibold rounded-md uppercase">Giảng viên</span>;
-            case 'ADMIN': return <span className="px-2 py-1 bg-red-100 text-red-700 text-[11px] font-semibold rounded-md uppercase">Admin</span>;
-            default: return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] font-semibold rounded-md uppercase">Sinh viên</span>;
+            case 'TEACHER':
+                return <span className="px-2 py-1 bg-purple-100 text-purple-700 text-[11px] font-semibold rounded-md uppercase">Giảng viên</span>;
+            case 'MAIN_LECTURER':
+                return <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-[11px] font-semibold rounded-md uppercase">Giảng viên chính</span>;
+            case 'DEAN':
+                return <span className="px-2 py-1 bg-amber-100 text-amber-700 text-[11px] font-semibold rounded-md uppercase">Trưởng khoa</span>;
+            case 'ADMIN':
+                return <span className="px-2 py-1 bg-red-100 text-red-700 text-[11px] font-semibold rounded-md uppercase">Admin</span>;
+            default:
+                return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-[11px] font-semibold rounded-md uppercase">Sinh viên</span>;
         }
     };
 
@@ -336,7 +343,8 @@ export default function UserManagement() {
 
                         <form onSubmit={handleSaveUser} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Mã số (ID) <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Mã số (ID) <span
+                                    className="text-red-500">*</span></label>
                                 <Input
                                     required
                                     name="Id"
@@ -349,7 +357,8 @@ export default function UserManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Tên đăng nhập <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Tên đăng nhập <span
+                                    className="text-red-500">*</span></label>
                                 <Input
                                     required
                                     name="username"
@@ -361,7 +370,8 @@ export default function UserManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Email <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Email <span
+                                    className="text-red-500">*</span></label>
                                 <Input
                                     required type="email"
                                     name="email"
@@ -373,7 +383,9 @@ export default function UserManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Mật khẩu {editingUser ? '(Bỏ trống nếu không đổi)' : <span className="text-red-500">*</span>}</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Mật
+                                    khẩu {editingUser ? '(Bỏ trống nếu không đổi)' :
+                                        <span className="text-red-500">*</span>}</label>
                                 <Input
                                     type="password"
                                     name="password"
@@ -386,7 +398,8 @@ export default function UserManagement() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Vai trò hệ thống <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Vai trò hệ thống <span
+                                    className="text-red-500">*</span></label>
                                 <select
                                     name="role"
                                     value={formData.role}
@@ -395,16 +408,22 @@ export default function UserManagement() {
                                 >
                                     <option value="STUDENT">Sinh viên (STUDENT)</option>
                                     <option value="TEACHER">Giảng viên (TEACHER)</option>
+                                    <option value="MAIN_LECTURER">Giảng viên chính (MAIN_LECTURER)</option>
+                                    <option value="MAIN_LECTURER">Trưởng Bộ Môn  (HEAD_OF_DEPARTMENT)</option>
+                                    <option value="DEAN">Trưởng khoa (DEAN)</option>
                                     <option value="ADMIN">Quản trị viên (ADMIN)</option>
                                 </select>
                             </div>
 
                             <div className="flex gap-3 pt-4 pb-safe">
-                                <Button type="button" variant="outline" onClick={closeAllModals} className="flex-1 h-12 rounded-xl text-slate-600">
+                                <Button type="button" variant="outline" onClick={closeAllModals}
+                                        className="flex-1 h-12 rounded-xl text-slate-600">
                                     Hủy bỏ
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-                                    {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Đang lưu...</> : <><Save className="w-5 h-5 mr-2" /> Lưu lại</>}
+                                <Button type="submit" disabled={isSubmitting}
+                                        className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                                    {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin"/> Đang
+                                        lưu...</> : <><Save className="w-5 h-5 mr-2"/> Lưu lại</>}
                                 </Button>
                             </div>
                         </form>
@@ -413,16 +432,18 @@ export default function UserManagement() {
             )}
 
 
-
             {deletingUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40  animate-in fade-in p-4">
-                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-in zoom-in-95">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <AlertCircle className="w-8 h-8 text-red-600" />
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40  animate-in fade-in p-4">
+                    <div
+                        className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+                        <div
+                            className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertCircle className="w-8 h-8 text-red-600"/>
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 mb-2">Xác nhận xóa?</h3>
                         <p className="text-slate-500 text-sm mb-6">
-                            Bạn có chắc chắn muốn xóa người dùng <strong className="text-slate-800">{deletingUser.userId}</strong> không? Hành động này không thể hoàn tác.
+                        Bạn có chắc chắn muốn xóa người dùng <strong className="text-slate-800">{deletingUser.userId}</strong> không? Hành động này không thể hoàn tác.
                         </p>
 
                         <div className="flex gap-3">

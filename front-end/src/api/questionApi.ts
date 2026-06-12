@@ -40,6 +40,7 @@ export const questionApi = {
         return response.data;
     },
 
+
     createQuestion: (offeringId: string, data: any) =>
         courseApi.post<Question>(
             `/questions/course/${offeringId}`,
