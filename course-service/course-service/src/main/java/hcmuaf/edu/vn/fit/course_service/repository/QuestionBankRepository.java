@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface QuestionBankRepository extends MongoRepository<QuestionBank, String> {
 
     List<QuestionBank> findByOfferingId(String offeringId);
+    List<QuestionBank> findByLecturerId(String lecturerId);
+    List<QuestionBank> findByIsPublicTrueAndLecturerIdNot(String lecturerId);
     Optional<QuestionBank> findByIdAndOfferingId(
             String id,
             String offeringId

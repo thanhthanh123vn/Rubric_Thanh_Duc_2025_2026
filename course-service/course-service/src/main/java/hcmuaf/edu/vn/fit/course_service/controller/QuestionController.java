@@ -31,9 +31,25 @@ public class QuestionController {
         return ResponseEntity.ok(questionService.createQuestion(offeringId, request));
     }
 
+    @PostMapping("/course/{offeringId}/bank/{bankId}")
+    public ResponseEntity<Question> createQuestionToBank(
+            @PathVariable String offeringId,
+            @PathVariable String bankId,
+            @RequestBody QuestionRequest request) {
+        return ResponseEntity.ok(questionService.createQuestionToBank(offeringId, bankId, request));
+    }
+
     @DeleteMapping("/course/{id}")
     public ResponseEntity<Void> deleteQuestion(@PathVariable String id) {
         questionService.deleteQuestion(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/bank/{bankId}/question/{questionId}")
+    public ResponseEntity<Void> deleteQuestionFromBank(
+            @PathVariable String bankId,
+            @PathVariable String questionId) {
+        questionService.deleteQuestionFromBank(bankId, questionId);
         return ResponseEntity.noContent().build();
     }
     @PostMapping(value = "/course/{offeringId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -119,5 +135,12 @@ public class QuestionController {
                         bankId
                 )
         );
+    }
+
+    @GetMapping("/bank/{bankId}")
+    public ResponseEntity<List<Question>> getQuestionsByBankId(
+            @PathVariable String bankId
+    ) {
+        return ResponseEntity.ok(questionService.getQuestionsByBankId(bankId));
     }
 }
