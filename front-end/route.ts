@@ -70,6 +70,7 @@ import DepartmentDashboard from "@/pages/department/DepartmentDashboard.tsx";
 import DepartmentOBEAnalytics from "@/pages/department/DepartmentOBEAnalytics.tsx";
 import QuestionBankManagement from "@/pages/department/QuestionBankManagement.tsx";
 import QuestionFormPage from "@/pages/department/QuestionFormPage.tsx";
+import ListQuestionBank from "@/pages/department/ListQuestionBank.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -190,6 +191,7 @@ export const router = createBrowserRouter([
             { path: "clo/:cloId", Component: CLODetail },
             { path: "rubric", Component: RubricBuilder },
             { path: "rubric/:rubricId", Component: RubricDetail },
+
             { path: "rubric-matrix", Component: RubricMatrix },
             { path: "semester", Component: SemesterManagement },
             { path: "assign", Component: CourseAssignment },
@@ -246,6 +248,7 @@ export const router = createBrowserRouter([
             { path: "analytics", Component: DepartmentOBEAnalytics },
             { path: "question-banks", Component: QuestionBankManagement },
             { path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage },
+            { path: "questions/public/:bankId", Component: ListQuestionBank },
             { path: "assessments", Component: AssessmentManagement },
             { path: "offerings", Component: CourseOfferingManagement },
         ],

@@ -35,12 +35,14 @@ interface Question {
     cloIds: any[];
 }
 
-export default function TeacherQuestionBank() {
-    const { id, bankId } = useParams();
+export default function QuestionFormBank() {
+    const { offeringId, bankId } = useParams();
+    console.log(offeringId);
+    console.log(bankId);
 
     const [bank, setBank] = useState<any>(null);
 
-    // States cho Dữ liệu
+
     const [questions, setQuestions] = useState<Question[]>([]);
     const [cloItems, setCloItems] = useState<Clo[]>([]);
 
@@ -49,12 +51,12 @@ export default function TeacherQuestionBank() {
     const [filterDifficulty, setFilterDifficulty] = useState('');
     const [filterClo, setFilterClo] = useState('');
     const [deleteId, setDeleteId] = useState<string | null>(null);
-    // States cho Modal & Upload
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // States cho Form Thêm/Sửa
+
     const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         cloId: [] as string[],
@@ -72,7 +74,7 @@ export default function TeacherQuestionBank() {
     useEffect(() => {
         const fetchBank = async () => {
             try {
-                const data = await questionBankApi.getQuestionBanksByCourse(id);
+                const data = await questionBankApi.getQuestionBanksByCourse(offeringId);
 
                 const currentBank = data.find(
                     (b: any) => b.id === bankId
@@ -90,14 +92,15 @@ export default function TeacherQuestionBank() {
 
     const fetchQuestions = async () => {
         try {
-            const data = await questionApi.getQuestionsByCourseIdAndBankID(id,bankId);
+            const data = await questionApi.getQuestionsByCourseIdAndBankID(offeringId,bankId);
             setQuestions(data || []);
+            console.log(data);
 
         } catch (error) {
             console.error("Lỗi lấy danh sách câu hỏi:", error);
         }
     };
-    console.log(bank);
+    console.log(questions);
 
 
     const fetchClos = async () => {
@@ -116,7 +119,7 @@ export default function TeacherQuestionBank() {
         fetchQuestions();
 
         fetchClos();
-    }, [id]);
+    }, [offeringId]);
 
     // Reset form khi đóng modal
     useEffect(() => {
@@ -186,7 +189,7 @@ export default function TeacherQuestionBank() {
         try {
             setIsUploading(true);
             toast.info("Đang xử lý dữ liệu...");
-            const response = await questionApi.importQuestionsToBank(id, file,bankId);
+            const response = await questionApi.importQuestionsToBank(offeringId, file,bankId);
             toast.success(response.data || "Import thành công!");
             fetchQuestions();
         } catch (error) {
@@ -217,7 +220,7 @@ export default function TeacherQuestionBank() {
                 toast.success("Đã cập nhật câu hỏi thành công!");
             } else {
                 // Create
-                await questionApi.createQuestion(id, payload);
+                await questionApi.createQuestion(offeringId, payload);
 
                 toast.success("Đã tạo câu hỏi mới thành công!");
             }
@@ -300,7 +303,7 @@ export default function TeacherQuestionBank() {
                                     <div className="space-y-2">
                                         <label className="text-sm font-semibold text-slate-700">Môn học <span
                                             className="text-red-500">*</span></label>
-                                        <Input disabled value={`Học phần (Mã: ${id})`}
+                                        <Input disabled value={`Học phần (Mã: ${offeringId})`}
                                                className="bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed"/>
                                     </div>
 

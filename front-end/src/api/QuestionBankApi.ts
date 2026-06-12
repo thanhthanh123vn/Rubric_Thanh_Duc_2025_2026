@@ -23,6 +23,19 @@ export const questionBankApi = {
         const response = await courseApi.get(`/question-banks/course/${offeringId}`);
         return response.data;
     },
+    getMyQuestionBanks: async (): Promise<QuestionBankResponse[]> => {
+        const response = await courseApi.get(`/question-banks/lecturer/me`);
+        return response.data;
+    },
+    getPublicQuestionBanks: async (): Promise<QuestionBankResponse[]> => {
+        const response = await courseApi.get(`/question-banks/public`);
+        return response.data;
+    },
+    getQuestionBankById: async (id: string): Promise<QuestionBankResponse> => {
+        const response = await courseApi.get(`/question-banks/${id}`);
+        return response.data;
+    },
+    
     getQuestionBanksByCourseForDep:async (offeringId: string) => {
 
         const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);

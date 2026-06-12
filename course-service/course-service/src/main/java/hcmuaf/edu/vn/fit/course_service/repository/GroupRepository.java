@@ -16,4 +16,19 @@ public interface GroupRepository extends JpaRepository<Group,String> {
 
     @Query("SELECT g FROM Group g WHERE g.courseOffering.offeringId = :offeringId")
     List<Group> findByOfferingId(@Param("offeringId") String offeringId);
+
+
+
+    @Query("""
+    SELECT COUNT(p) > 0
+    FROM Participant p
+    JOIN p.conversation c
+    JOIN Group g ON g.conversation = c
+    WHERE p.userId = :userId
+      AND g.courseOffering.offeringId = :offeringId
+""")
+    boolean existsStudentInOffering(
+            @Param("userId") String userId,
+            @Param("offeringId") String offeringId
+    );
 }

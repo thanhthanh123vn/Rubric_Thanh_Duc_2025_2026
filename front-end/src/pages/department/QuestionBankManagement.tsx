@@ -5,9 +5,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useNavigate } from "react-router-dom";
 
-import { questionBankApi } from "@/api/QuestionBankApi.ts";
-import {useNavigate} from "react-router-dom";
+import { questionBankApi, type QuestionBankResponse } from "@/api/QuestionBankApi.ts";
+import { questionApi } from "@/api/questionApi.ts";
+import { lecturerApi } from "@/api/lecturerApi.ts";
+import { offeringApi } from "@/api/offeringApi.ts";
+
+const colorClasses = [
+    "from-emerald-500 to-teal-400",
+    "from-cyan-500 to-blue-500",
+    "from-violet-500 to-fuchsia-500",
+    "from-orange-500 to-red-500",
+    "from-indigo-500 to-purple-500",
+];
 
 interface QuestionBank {
     id: string;
@@ -15,9 +26,11 @@ interface QuestionBank {
     offeringId: string;
     courseId?: string;
     lecturerId: string;
-    courseCode: string;
+    courseName: string; // Sửa thành courseName để khớp với dữ liệu enrich
     creatorName: string;
     questionCount: number;
+    statusLabel?: string;
+    isPublic?: boolean;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
@@ -31,44 +44,91 @@ interface Question {
 }
 
 export default function QuestionBankManagement() {
-    const [selectedBank, setSelectedBank] = useState<QuestionBank | null>(null);
     const navigate = useNavigate();
-    // State cho Modal Kho câu hỏi tổng hợp
+
+    // States
+    const [selectedBank, setSelectedBank] = useState<QuestionBank | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [courseQuestions, setCourseQuestions] = useState<Question[]>([]);
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [banks, setBanks] = useState<QuestionBank[]>([]);
     const [questions, setQuestions] = useState<Question[]>([]);
+    const [courseQuestions, setCourseQuestions] = useState<Question[]>([]);
+
+
+    const enrichBanks = async (rawBanks: any[], owned: boolean) => {
+        const enrichedList = await Promise.all(
+            rawBanks.map(async (bank, index) => {
+                try {
+
+                    const [questionCount, lecturerData, offeringData] = await Promise.all([
+                        questionApi.countQuestionsByBank(bank.offeringId, bank.id).catch(() => 0),
+                        lecturerApi.getLecturerById(bank.lecturerId).catch(() => null),
+                        offeringApi.getOfferingById(bank.offeringId).catch(() => null)
+                    ]);
+
+                    return {
+                        ...bank,
+                        questionCount: questionCount || 0,
+                        creatorName: lecturerData?.fullName || "Chưa rõ người tạo",
+                        courseName: offeringData?.courseName || bank.courseName || "Môn học chưa xác định",
+                        owned,
+                        statusLabel: bank.isPublic ? "Công khai" : "Nội bộ",
+                        colorClass: colorClasses[index % colorClasses.length],
+                    };
+                } catch (error) {
+                    console.error(`Lỗi khi nạp dữ liệu cho bank ID ${bank.id}:`, error);
+                    return {
+                        ...bank,
+                        questionCount: 0,
+                        creatorName: "Lỗi tải thông tin",
+                        courseName: bank.courseName || "Lỗi thông tin môn",
+                        owned,
+                        colorClass: colorClasses[index % colorClasses.length],
+                    };
+                }
+            })
+        );
+        return enrichedList;
+    };
 
 
     useEffect(() => {
         const fetchQuestionBank = async () => {
             try {
+                setLoading(true);
+                // Gọi API lấy raw list
                 const data = await questionBankApi.getQuestionsByLecturerUserId();
-                setBanks(data.data || data || []);
+                const rawBanks = data.data || data || [];
+
+                // Gọi hàm gộp dữ liệu
+                const enrichedBanks = await enrichBanks(rawBanks, true);
+
+                // Set state mảng đã được làm giàu
+                setBanks(enrichedBanks);
             } catch (e) {
                 toast.error('Lỗi khi tải danh sách ngân hàng câu hỏi');
+            } finally {
+                setLoading(false);
             }
         }
         fetchQuestionBank();
     }, []);
 
-    // 2. Fetch giả lập câu hỏi khi bấm vào "Xem chi tiết" 1 Ngân hàng
+
     useEffect(() => {
         if (!selectedBank) return;
-        setLoading(true);
+        setIsLoading(true);
         setTimeout(() => {
             setQuestions([
                 { id: 'Q1', bankId: 'B01', content: 'Thế nào là DBMS?', type: 'ESSAY', difficulty: 'EASY', clo: 'CLO1' },
                 { id: 'Q2', bankId: 'B01', content: 'Viết câu lệnh SQL cơ bản', type: 'PRACTICAL', difficulty: 'MEDIUM', clo: 'CLO2' },
             ]);
-            setLoading(false);
+            setIsLoading(false);
         }, 500);
     }, [selectedBank]);
 
-    // 3. Logic duyệt / từ chối
     const approveBank = (id: string) => {
         setBanks(prev => prev.map(b => b.id === id ? { ...b, status: 'APPROVED' } : b));
         toast.success("Đã duyệt ngân hàng câu hỏi!");
@@ -84,38 +144,18 @@ export default function QuestionBankManagement() {
             case 'APPROVED': return <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-md">Đã duyệt</span>;
             case 'REJECTED': return <span className="px-2.5 py-1 bg-rose-100 text-rose-700 text-[11px] font-bold rounded-md">Từ chối</span>;
             case 'PENDING': return <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-[11px] font-bold rounded-md">Chờ duyệt</span>;
-            default: return null;
+            default: return <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-md">Chờ duyệt</span>;
         }
     };
 
-    // 4. Mở Modal & Lấy TẤT CẢ câu hỏi của môn học
-    const handleOpenQuestionBank = async () => {
+    const handleOpenQuestionBank = () => {
         if (banks.length === 0) {
             toast.error("Chưa có dữ liệu môn học để lấy kho câu hỏi.");
             return;
         }
-
-        setIsModalOpen(true);
-        setIsLoading(true);
-        try {
-            const targetId = banks[0].courseId || banks[0].offeringId;
-
-
-            const data = await questionBankApi.getQuestionBanksByCourseForDep(targetId);
-
-
-
-            const questionsData = data.data || data || [];
-
-
-            setCourseQuestions(questionsData);
-        } catch (error) {
-            toast.error("Không thể tải Kho câu hỏi!");
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        const bankId = banks[0].id;
+        navigate(`/department/questions/public/${bankId}`);
+    }
 
     if (!selectedBank) {
         return (
@@ -153,22 +193,26 @@ export default function QuestionBankManagement() {
                         </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {banks.length === 0 ? (
+                        {loading ? (
+                            <tr><td colSpan={6} className="text-center py-10"><Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600"/></td></tr>
+                        ) : banks.length === 0 ? (
                             <tr><td colSpan={6} className="text-center py-10 text-slate-500">Chưa có ngân hàng câu hỏi nào.</td></tr>
                         ) : (
                             banks.map(bank => (
                                 <tr key={bank.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-5 py-4 font-bold text-slate-800">{bank.name}</td>
-                                    <td className="px-5 py-4 font-medium">{bank.courseCode}</td>
+                                    {/* Sửa courseCode thành courseName vì đã được enrich */}
+                                    <td className="px-5 py-4 font-medium">{bank.courseName}</td>
                                     <td className="px-5 py-4">{bank.creatorName}</td>
-                                    <td className="px-5 py-4 text-center font-semibold text-slate-600">{bank.questionCount || 0}</td>
+                                    <td className="px-5 py-4 text-center font-semibold text-slate-600">{bank.questionCount}</td>
                                     <td className="px-5 py-4 text-center">{renderStatus(bank.status)}</td>
                                     <td className="px-5 py-4">
                                         <div className="flex gap-2 justify-end">
+                                            {/* Sửa lỗi truyền biến vào URL */}
                                             <Button
                                                 variant="outline"
                                                 className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 h-8 text-xs"
-                                                onClick={() => navigate(`question-banks/${banks[0].offeringId}/form-question/${bank[0].id}`)}
+                                                onClick={() => navigate(`/department/question-banks/${bank.offeringId}/form-question/${bank.id}`)}
                                             >
                                                 <Eye className="w-4 h-4 mr-1.5"/> Xem
                                             </Button>
@@ -192,14 +236,14 @@ export default function QuestionBankManagement() {
                     </table>
                 </div>
 
-                {/* MODAL KHO CÂU HỎI (HIỂN THỊ DẠNG BẢNG CÂU HỎI) */}
+                {/* MODAL KHO CÂU HỎI */}
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
                         <div className="bg-white w-full max-w-5xl rounded-3xl p-6 shadow-xl animate-in zoom-in-95">
                             <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-800">Kho Câu Hỏi Tổng Hợp Môn Học</h2>
-                                    <p className="text-sm text-slate-500">Môn học: {banks[0]?.courseCode || 'N/A'}</p>
+                                    <p className="text-sm text-slate-500">Môn học: {banks[0]?.courseName || 'N/A'}</p>
                                 </div>
                                 <button
                                     onClick={() => setIsModalOpen(false)}
@@ -280,7 +324,7 @@ export default function QuestionBankManagement() {
                         Chi tiết: {selectedBank.name}
                     </h2>
                     <div className="flex gap-4 text-sm text-slate-500 mt-2">
-                        <span>Môn học: <strong className="text-slate-700">{selectedBank.courseCode}</strong></span>
+                        <span>Môn học: <strong className="text-slate-700">{selectedBank.courseName}</strong></span>
                         <span>•</span>
                         <span>Giảng viên: <strong className="text-slate-700">{selectedBank.creatorName}</strong></span>
                         <span>•</span>
@@ -306,7 +350,7 @@ export default function QuestionBankManagement() {
                     </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {loading ? (
+                    {isLoading ? (
                         <tr><td colSpan={5} className="text-center py-10"><Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-600"/></td></tr>
                     ) : questions.length === 0 ? (
                         <tr><td colSpan={5} className="text-center py-10 text-slate-500">Chưa có câu hỏi nào.</td></tr>
