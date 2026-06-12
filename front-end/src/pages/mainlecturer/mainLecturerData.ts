@@ -12,7 +12,6 @@ export const mainLecturerModuleLinks = [
   { label: 'Tạo Rubric', path: '/mainlecturer/rubric', icon: BookOpen },
   { label: 'Ma trận Rubric', path: '/mainlecturer/rubric-matrix', icon: Grid3X3 },
   { label: 'Phân công Học kì', path: '/mainlecturer/semester', icon: Calendar },
-  { label: 'Phân công GV', path: '/mainlecturer/assign', icon: BookOpen },
 ];
 
 export const quickStats = [

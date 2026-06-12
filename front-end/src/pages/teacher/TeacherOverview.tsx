@@ -69,61 +69,6 @@ export default function TeacherOverview() {
   return (
       <div className="space-y-6 animate-in fade-in duration-500">
 
-        {/* SECTION 1: HEADER & STATS */}
-        <section className="grid gap-6 lg:grid-cols-[1.5fr_0.9fr]">
-          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-500 p-6 text-white shadow-2xl shadow-emerald-900/10 md:p-8">
-            <div className="absolute right-0 top-0 h-40 w-40 -translate-y-16 translate-x-16 rounded-full bg-white/10 blur-3xl" />
-            <div className="relative flex flex-col gap-6">
-              <div className="flex flex-wrap items-center gap-3">
-                {teacherHighlights.map((item) => (
-                    <ToneBadge key={item.title} label={item.title} tone={item.tone} />
-                ))}
-              </div>
-
-              <div className="max-w-3xl">
-                <h3 className="text-3xl font-black tracking-tight md:text-5xl">
-                  Một nơi để thiết kế, chấm, phản hồi và chứng minh chuẩn đầu ra.
-                </h3>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-emerald-50 md:text-base">
-                  Tổng quan giúp giảng viên nắm nhanh bài nộp, rubric, quiz, điểm danh và báo cáo năng lực.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-emerald-700 shadow-lg shadow-black/10 transition-transform hover:-translate-y-0.5">
-                  Mở Rubric Builder
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <Link
-                    to="/teacher/courses"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
-                >
-                  Xem học phần
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            {quickStats.map((stat) => (
-                <div key={stat.label} className="rounded-[1.75rem] border border-white/70 bg-white p-5 shadow-lg shadow-slate-200/40">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm text-slate-500">{stat.label}</p>
-                      <p className="mt-2 text-3xl font-black text-slate-900">
-                        {/* Nếu label là "Lớp đang phụ trách", lấy linh động từ courses.length, ngược lại lấy stat.value giả lập */}
-                        {stat.label === "Lớp đang phụ trách" ? courses.length : stat.value}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                      <stat.icon className="h-5 w-5 text-slate-700" />
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm text-slate-500">{stat.note}</p>
-                </div>
-            ))}
-          </div>
-        </section>
 
         {/* SECTION 2: COURSE LIST */}
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm md:p-8">

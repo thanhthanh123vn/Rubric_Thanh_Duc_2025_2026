@@ -16,19 +16,7 @@ export default function MainLecturerSidebar() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">MÃ´ táº£ chá»©c nÄƒng</p>
-            </div>
-            <div className="rounded-2xl bg-white p-3 text-green-700 shadow-sm">
-              <Sparkles className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            Quáº£n lÃ½ chuáº©n Ä‘áº§u ra (CLO), xÃ¢y dá»±ng rubric, táº¡o ma tráº­n Ä‘Ã¡nh giÃ¡ cho cÃ¡c há»c pháº§n.
-          </p>
-        </div>
+
 
         <nav className="mt-6 space-y-1">
           {mainLecturerModuleLinks.map((item) => (

@@ -7,8 +7,13 @@ export interface TeacherCourseItem {
   courseTitle: string;
   studentCount: number;
   semester: string;
+  academicYear?: string;
   obeProgress: number;
   lecturerName: string;
+  academicTitle?: string;
+  status?: string;
+  startDate?: string | null;
+  endDate?: string | null;
 
 
   rubricCount?: number;
