@@ -24,6 +24,11 @@ public class QuestionBank {
 
     private String lecturerId;
 
+    @Builder.Default
+    private Boolean isPublic = false;
+
+    @Builder.Default
+    private List<String> sharePermissions = new ArrayList<>();
 
     @Builder.Default
     private List<String> questionIds = new ArrayList<>();

@@ -16,11 +16,11 @@ public class AssessmentDetailResponse {
     private String description;
     private String assessmentName;
     private String fileUrl;
-    private double weight;
+    private Number weight;
     private Timestamp endTime;
     private String submissionId;
     private Timestamp submissionAt;
-    private double calculatedScore;
+    private Number calculatedScore;
     private String lecturerComment;
     private String rubricId;
     private Map<String,String> clos;

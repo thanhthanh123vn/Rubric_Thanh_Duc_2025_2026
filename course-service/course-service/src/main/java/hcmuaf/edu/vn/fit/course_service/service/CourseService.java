@@ -375,10 +375,14 @@ public class CourseService {
                     .courseCode(offering.getCourse().getCourseCode())
                     .courseName(offering.getCourse().getCourseName())
                     .courseTitle(offering.getCourse().getCourseName())
-                    .semester("HK1 " + offering.getAcademicYear())
+                    .semester(offering.getSemester())
+                    .academicYear(offering.getAcademicYear())
                     .studentCount(studentCount)
                     .obeProgress(0)
                     .lecturerName(finalLecturerName)
+                    .status(offering.getStatus())
+                    .startDate(offering.getStartDate() != null ? offering.getStartDate().toString() : null)
+                    .endDate(offering.getEndDate() != null ? offering.getEndDate().toString() : null)
                     .build();
         }).collect(Collectors.toList());
     }

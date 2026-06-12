@@ -18,6 +18,10 @@ public class TeacherCourseResponse {
     private String courseTitle;
     private int studentCount;
     private String semester;
+    private String academicYear;
     private int obeProgress;
     private String lecturerName;
+    private String status;
+    private String startDate;
+    private String endDate;
 }

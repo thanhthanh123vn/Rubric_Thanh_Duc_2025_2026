@@ -19,9 +19,9 @@ export const teacherModuleLinks = [
   { label: 'Tổng quan', path: '/teacher', icon: LayoutDashboard },
   { label: 'LO & Rubric', path: '/teacher/rubric', icon: Target },
   { label: 'Ngân hàng câu hỏi', path: '/teacher/questions', icon: ClipboardList },
-  { label: 'Quản Lý Môn Học', path: '/teacher/course', icon: BookOpen },
+  { label: 'Môn học được phân công', path: '/teacher/course', icon: BookOpen },
 ];
-
+    
 export const quickStats = [
   { label: 'Học phần phụ trách', value: '4', note: '2 lớp lý thuyết, 2 lớp thực hành', icon: School, tone: 'emerald' },
   { label: 'Bài nộp chờ chấm', value: '18', note: '8 báo cáo, 10 project', icon: FileText, tone: 'amber' },
