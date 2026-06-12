@@ -365,6 +365,9 @@ public class CourseService {
                     .studentCount(studentCount)
                     .obeProgress(0)
                     .lecturerName(finalLecturerName)
+                    .status(offering.getStatus())
+                    .startDate(offering.getStartDate() != null ? offering.getStartDate().toString() : null)
+                    .endDate(offering.getEndDate() != null ? offering.getEndDate().toString() : null)
                     .build();
         }).collect(Collectors.toList());
     }

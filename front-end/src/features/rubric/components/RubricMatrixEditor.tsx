@@ -1,5 +1,6 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { updateRubricMatrix } from "@/features/rubric/rubricApi.ts";
 import RubricMatrixPreview, {
     type MatrixCriterionDraft,
@@ -62,6 +63,7 @@ type Props = {
     clos: CloOption[];
     rubrics: RubricOption[];
     onClose: () => void;
+    onSaved?: () => Promise<void> | void;
 };
 
 const PERCENT_RATIO_EPSILON = 0.0001;
@@ -133,13 +135,20 @@ export default function RubricMatrixEditor({
     clos,
     rubrics,
     onClose,
+    onSaved,
 }: Props) {
     const [draft, setDraft] = useState<MatrixEditorDraft>(createDraftFromMatrix(selectedMatrix));
     const [showRubricSample, setShowRubricSample] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState("");
+    const [saveState, setSaveState] = useState<"idle" | "saving" | "success" | "error">("idle");
 
     useEffect(() => {
         if (open) {
             setDraft(createDraftFromMatrix(selectedMatrix));
+            setIsSaving(false);
+            setSaveMessage("");
+            setSaveState("idle");
         }
     }, [open, selectedMatrix]);
 
@@ -284,7 +293,22 @@ export default function RubricMatrixEditor({
     }
 
     const handleSave = async () => {
+        const loadingMessage = selectedMatrix
+            ? "Dang chinh sua ma tran rubric..."
+            : "Dang tao ma tran rubric...";
+        const successMessage = selectedMatrix
+            ? "Chinh sua ma tran rubric thanh cong."
+            : "Tao ma tran rubric thanh cong.";
+        const errorMessage = selectedMatrix
+            ? "Chinh sua ma tran rubric that bai."
+            : "Tao ma tran rubric that bai.";
+        const loadingToastId = toast.loading(loadingMessage);
+
         try {
+            setIsSaving(true);
+            setSaveState("saving");
+            setSaveMessage(loadingMessage);
+
             const payload = {
                 id: draft.id,
                 name: draft.name,
@@ -308,9 +332,18 @@ export default function RubricMatrixEditor({
             const res = await updateRubricMatrix(payload);
 
             console.log("Luu thanh cong:", res.data);
+            await onSaved?.();
+            setSaveState("success");
+            setSaveMessage(successMessage);
+            toast.success(successMessage, { id: loadingToastId });
             onClose();
         } catch (error) {
             console.error("Loi luu rubric matrix:", error);
+            setSaveState("error");
+            setSaveMessage(errorMessage);
+            toast.error(errorMessage, { id: loadingToastId });
+        } finally {
+            setIsSaving(false);
         }
     };
     return (
@@ -471,10 +504,24 @@ export default function RubricMatrixEditor({
                 />
 
                 <div className="mt-6 flex items-center justify-end gap-3">
+                    {saveState !== "idle" ? (
+                        <div
+                            className={`mr-auto rounded-lg px-4 py-2 text-sm font-medium ${
+                                saveState === "saving"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : saveState === "success"
+                                        ? "bg-emerald-50 text-emerald-700"
+                                        : "bg-rose-50 text-rose-700"
+                            }`}
+                        >
+                            {saveMessage}
+                        </div>
+                    ) : null}
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                        disabled={isSaving}
+                        className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         Đóng
                     </button>
@@ -482,14 +529,16 @@ export default function RubricMatrixEditor({
                     <button
                         type="button"
                         onClick={() => setShowRubricSample(true)}
-                        className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-100"
+                        disabled={isSaving}
+                        className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         Xem trước
                     </button>
 
                     <button
                         type="button"
-                        className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+                        disabled={isSaving}
+                        className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
                         onClick={handleSave}
                     >
                         Lưu ma trận

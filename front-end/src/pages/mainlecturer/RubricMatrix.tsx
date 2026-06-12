@@ -72,9 +72,12 @@ export default function RubricMatrix() {
         try {
             setLoading(true);
             const res = await getRubricMatrix();
-            setMatrices(Array.isArray(res.data) ? res.data : []);
+            const nextMatrices = Array.isArray(res.data) ? res.data : [];
+            setMatrices(nextMatrices);
+            return nextMatrices;
         } catch (error) {
             console.error("Lỗi khi tải ma trận rubric:", error);
+            return [];
         } finally {
             setLoading(false);
         }
@@ -113,6 +116,20 @@ export default function RubricMatrix() {
 
     const closePreview = () => {
         setPreviewMatrix(null);
+    };
+
+    const handleMatrixSaved = async () => {
+        const nextMatrices = await fetchRubricMatrix();
+
+        if (selectedMatrix) {
+            const latestSelected = nextMatrices.find((item) => item.id === selectedMatrix.id) || null;
+            setSelectedMatrix(latestSelected);
+        }
+
+        if (previewMatrix) {
+            const latestPreview = nextMatrices.find((item) => item.id === previewMatrix.id) || null;
+            setPreviewMatrix(latestPreview);
+        }
     };
 
     if (loading) {
@@ -310,6 +327,7 @@ export default function RubricMatrix() {
                 clos={clos}
                 rubrics={rubrics}
                 onClose={closeEditor}
+                onSaved={handleMatrixSaved}
             />
 
             <RubricSamplePreview

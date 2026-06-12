@@ -72,6 +72,24 @@ public class QuestionService {
         return questionRepository.save(question);
     }
 
+    @Transactional
+    public Question createQuestionToBank(String offeringId, String bankId, QuestionRequest request) {
+        QuestionBank bank = questionBankRepository
+                .findByIdAndOfferingId(bankId, offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Question Bank"));
+
+        Question savedQuestion = createQuestion(offeringId, request);
+
+        if (bank.getQuestionIds() == null) {
+            bank.setQuestionIds(new ArrayList<>());
+        }
+
+        bank.getQuestionIds().add(savedQuestion.getId());
+        questionBankRepository.save(bank);
+
+        return savedQuestion;
+    }
+
     /**
      * Xóa câu hỏi (Sẽ cascade xóa luôn các AnswerOption liên quan)
      */
@@ -81,6 +99,26 @@ public class QuestionService {
             throw new RuntimeException("Question not found with id: " + id);
         }
         questionRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteQuestionFromBank(String bankId, String questionId) {
+        QuestionBank bank = questionBankRepository
+                .findById(bankId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Question Bank"));
+
+        if (bank.getQuestionIds() != null) {
+            bank.setQuestionIds(
+                    bank.getQuestionIds().stream()
+                            .filter(id -> !Objects.equals(id, questionId))
+                            .collect(Collectors.toList())
+            );
+            questionBankRepository.save(bank);
+        }
+
+        if (questionRepository.existsById(questionId)) {
+            questionRepository.deleteById(questionId);
+        }
     }
 
 
@@ -372,6 +410,19 @@ public class QuestionService {
         return questionRepository.findAllById(
                 bank.getQuestionIds()
         );
+    }
+
+    public List<Question> getQuestionsByBankId(String bankId) {
+        QuestionBank bank = questionBankRepository
+                .findById(bankId)
+                .orElseThrow(() ->
+                        new RuntimeException("Không tìm thấy ngân hàng câu hỏi"));
+
+        if (bank.getQuestionIds() == null || bank.getQuestionIds().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return questionRepository.findAllById(bank.getQuestionIds());
     }
     @Transactional
     public List<Question> importQuestionsToBank(

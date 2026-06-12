@@ -31,11 +31,24 @@ export const questionApi = {
         );
         return response.data;
     },
+    getQuestionsByBankId: async (
+        bankId: string
+    ): Promise<Question[]> => {
+        const response = await courseApi.get<Question[]>(
+            `/questions/bank/${bankId}`
+        );
+        return response.data;
+    },
 
 
     createQuestion: (offeringId: string, data: any) =>
         courseApi.post<Question>(
             `/questions/course/${offeringId}`,
+            data
+        ),
+    createQuestionToBank: (offeringId: string, bankId: string, data: any) =>
+        courseApi.post<Question>(
+            `/questions/course/${offeringId}/bank/${bankId}`,
             data
         ),
     updateQuestion: (id: string, data: any) =>
@@ -46,6 +59,8 @@ export const questionApi = {
 
     deleteQuestion: (questionId: string) =>
         courseApi.delete(`/questions/course/${questionId}`),
+    deleteQuestionFromBank: (bankId: string, questionId: string) =>
+        courseApi.delete(`/questions/bank/${bankId}/question/${questionId}`),
     importQuestions: (offeringId: string, file: File) => {
         const formData = new FormData();
         formData.append("file", file);

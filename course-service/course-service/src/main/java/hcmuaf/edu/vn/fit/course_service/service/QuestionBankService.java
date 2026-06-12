@@ -28,59 +28,77 @@ public class QuestionBankService {
     private final UserClient userClient;
 
 
+    private String resolveCourseName(String offeringId) {
+        return courseOfferingRepository.findById(offeringId)
+                .map(CourseOffering::getCourse)
+                .filter(Objects::nonNull)
+                .map(course -> course.getCourseName())
+                .orElse("");
+    }
+
     private QuestionBankResponse mapToResponse(QuestionBank bank) {
         return QuestionBankResponse.builder()
-                .id(bank.getId()) // Kế thừa từ AbstractEntity
+                .id(bank.getId())
                 .name(bank.getName())
-
                 .offeringId(bank.getOfferingId())
                 .lecturerId(bank.getLecturerId())
+                .isPublic(Boolean.TRUE.equals(bank.getIsPublic()))
+                .courseName(resolveCourseName(bank.getOfferingId()))
+                .sharePermissions(bank.getSharePermissions())
                 .build();
     }
 
-    // 1. Tạo kho câu hỏi mới
-    public QuestionBankResponse createQuestionBank(
-            QuestionBankRequest request,
-            String lecturerId
-    ) {
-
+    public QuestionBankResponse createQuestionBank(QuestionBankRequest request, String lecturerId) {
         QuestionBank bank = QuestionBank.builder()
                 .name(request.getName())
                 .offeringId(request.getOfferingId())
                 .lecturerId(lecturerId)
+                .isPublic(Boolean.TRUE.equals(request.getIsPublic()))
+                .sharePermissions(Boolean.TRUE.equals(request.getIsPublic()) ? request.getSharePermissions() : List.of())
                 .build();
 
-        QuestionBank savedBank =
-                questionBankRepository.save(bank);
-
-        return mapToResponse(savedBank);
+        return mapToResponse(questionBankRepository.save(bank));
     }
 
-    // 2. Cập nhật tên kho câu hỏi
-    public QuestionBankResponse updateQuestionBank(String id, QuestionBankRequest request) {
+    public QuestionBankResponse updateQuestionBank(String id, QuestionBankRequest request, String lecturerId) {
         QuestionBank bank = questionBankRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kho câu hỏi với ID: " + id));
 
+        if (!Objects.equals(bank.getLecturerId(), lecturerId)) {
+            throw new RuntimeException("Bạn không có quyền cập nhật kho câu hỏi này");
+        }
+
         bank.setName(request.getName());
-        QuestionBank updatedBank = questionBankRepository.save(bank);
-        return mapToResponse(updatedBank); // Trả về DTO
+        bank.setIsPublic(Boolean.TRUE.equals(request.getIsPublic()));
+        bank.setSharePermissions(Boolean.TRUE.equals(request.getIsPublic()) ? request.getSharePermissions() : List.of());
+        return mapToResponse(questionBankRepository.save(bank));
     }
 
-    // 3. Xóa kho câu hỏi (Giữ nguyên vì hàm này trả về void)
-    public void deleteQuestionBank(String id) {
-        if (!questionBankRepository.existsById(id)) {
-            throw new RuntimeException("Không tìm thấy kho câu hỏi để xóa");
+    public void deleteQuestionBank(String id, String lecturerId) {
+        QuestionBank bank = questionBankRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kho câu hỏi để xóa"));
+
+        if (!Objects.equals(bank.getLecturerId(), lecturerId)) {
+            throw new RuntimeException("Bạn không có quyền xóa kho câu hỏi này");
         }
-        // TODO: Cần kiểm tra xem kho này có đang chứa câu hỏi nào không trước khi xóa
+
         questionBankRepository.deleteById(id);
     }
 
-    // 4. Lấy danh sách kho theo môn học
     public List<QuestionBankResponse> getBanksByOfferingId(String offeringId) {
+        return questionBankRepository.findByOfferingId(offeringId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
-        List<QuestionBank> banks = questionBankRepository.findByOfferingId(offeringId);
+    public List<QuestionBankResponse> getBanksByLecturer(String lecturerId) {
+        return questionBankRepository.findByLecturerId(lecturerId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
 
-        return banks.stream()
+    public List<QuestionBankResponse> getPublicBanks(String lecturerId) {
+        return questionBankRepository.findByIsPublicTrueAndLecturerIdNot(lecturerId).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

@@ -417,15 +417,18 @@ public class AssessmentService {
     }
     public AssessmentDetailResponse getAssessmentDetail(String assessmentId, String studentId) {
 
-        Assessment assessment = assessmentRepository.findById(assessmentId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập!"));
-
+        Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
 
         AssessmentDetailResponse response = assessmentMapper.toDetailResponse(assessment);
-       List< AssessmentCLO> assessmentCLOS = assessmentCLORepository.getByAssessment_AssessmentId(assessment.getAssessmentId());
-        System.out.println("Chuẩn CLOS getAssessmentDetail "+assessmentCLOS);
+
+
+        List< AssessmentCLO> assessmentCLOS = assessmentCLORepository.getByAssessment_AssessmentId(assessmentId);
+
         // 3.  Nếu  có Rubric và CLO chi tiết, hãy gọi sang Rubric Service hoặc map tại đây
+        if(assessment.getRubricId() != null) {
          response.setRubricId((assessment.getRubricId()));
+        }
+
         Optional<SubmissionEntity> submissionOpt = submissionRepository.findByAssessmentIdAndStudentId(assessmentId, studentId);
         if (submissionOpt.isPresent()) {
             SubmissionEntity sub = submissionOpt.get();
@@ -451,6 +454,7 @@ public class AssessmentService {
 
             response.setClos(cloMap);
         }
+
 
         return response;
     }

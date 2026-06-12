@@ -31,6 +31,7 @@ import CreateQrAttendancePage from "@/pages/teacher/CreateQrAttendancePage";
 import TeacherReport from "@/pages/teacher/TeacherReport";
 import TeacherRubric from "@/pages/teacher/TeacherRubric";
 import TeacherQuestionBank from "@/pages/teacher/TeacherQuestionBank";
+import PublicQuestionBank from "@/pages/teacher/PublicQuestionBank";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserManagement from "@/pages/admin/managerUser/UserManagement";
 import AdminCreateUser from "@/pages/admin/managerUser/AdminCreateUser";
@@ -174,6 +175,7 @@ export const router = createBrowserRouter([
 
             { path: "course", Component: TeacherCourses },
             { path: "questions", Component: CourseList },
+            { path: "questions/public/:bankId", Component: PublicQuestionBank },
             { path: "rubric", Component: TeacherRubric },
             { path:"rubric/:id" ,Component:TeacherRubricDetail },
 

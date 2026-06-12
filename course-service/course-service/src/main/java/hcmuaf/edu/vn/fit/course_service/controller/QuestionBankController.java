@@ -20,43 +20,48 @@ public class QuestionBankController {
     private final QuestionBankService questionBankService;
     private final UserClient userClient;
 
+    private String resolveLecturerId(String userId) {
+        LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
+        return lecturer.getLecturerId();
+    }
 
     @PostMapping
     public ResponseEntity<?> createBank(
             @RequestHeader("X-User-Id") String userId,
             @RequestBody QuestionBankRequest request) {
         try {
-
-            LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
-
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(questionBankService.createQuestionBank(request, lecturer.getLecturerId()));
+                    .body(questionBankService.createQuestionBank(request, resolveLecturerId(userId)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateBank(@PathVariable String id, @RequestBody QuestionBankRequest request) {
+    public ResponseEntity<?> updateBank(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String id,
+            @RequestBody QuestionBankRequest request) {
         try {
-            return ResponseEntity.ok(questionBankService.updateQuestionBank(id, request));
+            return ResponseEntity.ok(
+                    questionBankService.updateQuestionBank(id, request, resolveLecturerId(userId))
+            );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteBank(@PathVariable String id) {
+    public ResponseEntity<?> deleteBank(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String id) {
         try {
-            questionBankService.deleteQuestionBank(id);
+            questionBankService.deleteQuestionBank(id, resolveLecturerId(userId));
             return ResponseEntity.ok("Xóa kho câu hỏi thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
 
     @GetMapping("/course/{offeringId}")
     public ResponseEntity<?> getBanksByCourse(@PathVariable String offeringId) {

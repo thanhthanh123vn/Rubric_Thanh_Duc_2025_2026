@@ -53,4 +53,20 @@ public class Assessment {
 
     @Column(name = "end_time")
     private Timestamp endTime;
+
+    @Override
+    public String toString() {
+        return "Assessment{" +
+                "assessmentId='" + assessmentId + '\'' +
+                ", courseOffering=" + courseOffering +
+                ", rubricId='" + rubricId + '\'' +
+                ", assessmentName='" + assessmentName + '\'' +
+                ", assessmentType='" + assessmentType + '\'' +
+                ", weight=" + weight +
+                ", description='" + description + '\'' +
+                ", fileUrl='" + fileUrl + '\'' +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
+                '}';
+    }
 }

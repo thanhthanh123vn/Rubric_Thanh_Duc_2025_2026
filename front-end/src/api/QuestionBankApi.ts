@@ -1,9 +1,20 @@
 import { courseApi } from "@/services/axiosConfig";
 
-
 export interface QuestionBankRequest {
     name: string;
     offeringId: string;
+    isPublic?: boolean;
+    sharePermissions?: string[];
+}
+
+export interface QuestionBankResponse {
+    id: string;
+    name: string;
+    offeringId: string;
+    lecturerId: string;
+    isPublic?: boolean;
+    courseName?: string;
+    sharePermissions?: string[];
 }
 
 export const questionBankApi = {
@@ -27,18 +38,14 @@ export const questionBankApi = {
         return response.data;
     },
     createQuestionBank: async (data: QuestionBankRequest) => {
-        const response = await courseApi.post(
-            "/question-banks",
-            data
-        );
+        const response = await courseApi.post("/question-banks", data);
         return response.data;
     },
-    updateQuestionBank : async (id:string ,data: QuestionBankRequest) => {
+    updateQuestionBank: async (id: string, data: QuestionBankRequest) => {
         const response = await courseApi.put(`/question-banks/${id}`, data);
         return response.data;
-
     },
-    deleteQuestionBank : async (id:string ) => {
+    deleteQuestionBank: async (id: string) => {
         const response = await courseApi.delete(`/question-banks/${id}`);
         return response.data;
     }

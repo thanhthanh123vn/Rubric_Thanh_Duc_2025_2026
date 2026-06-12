@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Search, Loader2, Edit2, Trash2 } from 'lucide-react';
+import { ArrowRight, BookOpen, Edit2, Loader2, Search, Trash2, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import courseService from '../admin/api/courseService';
 import { toast } from "sonner";
+
+import courseService from '../admin/api/courseService';
+import type { TeacherCourseItem } from './teacherCourseData';
 
 const colorClasses = [
   "from-emerald-600 to-teal-500",
@@ -11,23 +13,96 @@ const colorClasses = [
   "from-orange-500 to-red-500",
 ];
 
+type SemesterGroup = {
+  key: string;
+  label: string;
+  semesterCode: string;
+  statusLabel: string;
+  statusClassName: string;
+  sortYear: number;
+  sortSemester: number;
+  statusOrder: number;
+  courses: TeacherCourseItem[];
+  totalStudents: number;
+};
+
+function getAcademicYearSortValue(academicYear?: string) {
+  if (!academicYear) return 0;
+  const match = academicYear.match(/(\d{4})\D+(\d{4})/);
+  if (match) return Number(match[2]);
+  const singleYear = academicYear.match(/(\d{4})/);
+  return singleYear ? Number(singleYear[1]) : 0;
+}
+
+function getSemesterSortValue(semester?: string) {
+  if (!semester) return 0;
+  const match = semester.match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function getSemesterCode(semester?: string) {
+  return (semester || 'Học kỳ').trim();
+}
+
+function getSemesterLabel(course: TeacherCourseItem) {
+  const semester = getSemesterCode(course.semester);
+  const academicYear = (course.academicYear || '').trim();
+  return academicYear ? `${semester} ${academicYear}` : semester;
+}
+
+function getCourseStatus(course: TeacherCourseItem) {
+  const now = new Date();
+  const startDate = course.startDate ? new Date(course.startDate) : null;
+  const endDate = course.endDate ? new Date(course.endDate) : null;
+  const rawStatus = (course.status || '').toUpperCase();
+
+  if (endDate && endDate < now) {
+    return {
+      label: 'Đã đóng',
+      order: 2,
+      className: 'bg-slate-100 text-slate-700',
+    };
+  }
+
+  if (startDate && startDate > now) {
+    return {
+      label: 'Sắp tới',
+      order: 1,
+      className: 'bg-amber-100 text-amber-700',
+    };
+  }
+
+  if (rawStatus === 'CLOSED') {
+    return {
+      label: 'Đã đóng',
+      order: 2,
+      className: 'bg-slate-100 text-slate-700',
+    };
+  }
+
+  return {
+    label: 'Đang diễn ra',
+    order: 0,
+    className: 'bg-green-100 text-green-700',
+  };
+}
+
 export default function TeacherCourses() {
   const [search, setSearch] = useState('');
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<TeacherCourseItem[]>([]);
+  const [selectedSemesterKey, setSelectedSemesterKey] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // State quản lý Modal Thêm/Sửa
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<any>(null);
-
 
   const fetchCourses = async () => {
     try {
       setIsLoading(true);
-      const data = await courseService.getTeacherCourses();
+      const data = await courseService.getLecturerDashBoardCourses();
 
-      const coursesWithColor = (data || []).map((course: any, index: number) => ({
+      const coursesWithColor = (data || []).map((course: TeacherCourseItem, index: number) => ({
         ...course,
         colorClass: colorClasses[index % colorClasses.length]
       }));
@@ -41,20 +116,16 @@ export default function TeacherCourses() {
     }
   };
 
-
   useEffect(() => {
     fetchCourses();
   }, []);
 
-console.log(courses);
   const handleSaveCourse = async (courseData: any) => {
     try {
       if (editingCourse) {
-
         await courseService.updateCourse(editingCourse.courseId || editingCourse.id, courseData);
         toast.success("Cập nhật môn học thành công!");
       } else {
-
         await courseService.createCourse(courseData);
         toast.success("Thêm môn học thành công!");
       }
@@ -63,7 +134,6 @@ console.log(courses);
       toast.error("Có lỗi xảy ra, vui lòng thử lại!");
     }
   };
-
 
   const handleDelete = async (course: any) => {
     const courseId = course.courseId || course.id;
@@ -92,177 +162,241 @@ console.log(courses);
     const q = search.trim().toLowerCase();
     if (!q) return courses;
     return courses.filter((course) =>
-        [course.courseName, course.courseCode, course.semester, course.offeringId]
-            .filter(Boolean)
-            .some((value) => value.toString().toLowerCase().includes(q))
+      [course.courseName, course.courseCode, course.semester, course.academicYear, course.offeringId]
+        .filter(Boolean)
+        .some((value) => value.toString().toLowerCase().includes(q))
     );
   }, [search, courses]);
 
+  const semesterGroups = useMemo<SemesterGroup[]>(() => {
+    const grouped = new Map<string, TeacherCourseItem[]>();
+
+    filtered.forEach((course) => {
+      const key = getSemesterLabel(course);
+      const existing = grouped.get(key) || [];
+      existing.push(course);
+      grouped.set(key, existing);
+    });
+
+    return Array.from(grouped.entries())
+      .map(([key, groupCourses]) => {
+        const firstCourse = groupCourses[0];
+        const topStatus = groupCourses.map(getCourseStatus).sort((a, b) => a.order - b.order)[0];
+
+        return {
+          key,
+          label: key,
+          semesterCode: getSemesterCode(firstCourse.semester),
+          statusLabel: topStatus.label,
+          statusClassName: topStatus.className,
+          sortYear: getAcademicYearSortValue(firstCourse.academicYear),
+          sortSemester: getSemesterSortValue(firstCourse.semester),
+          statusOrder: topStatus.order,
+          totalStudents: groupCourses.reduce((sum, course) => sum + (course.studentCount || 0), 0),
+          courses: groupCourses.slice().sort((a, b) => a.courseName.localeCompare(b.courseName, 'vi')),
+        };
+      })
+      .sort((a, b) => {
+        if (b.sortYear !== a.sortYear) return b.sortYear - a.sortYear;
+        if (b.sortSemester !== a.sortSemester) return b.sortSemester - a.sortSemester;
+        if (a.statusOrder !== b.statusOrder) return a.statusOrder - b.statusOrder;
+        return a.label.localeCompare(b.label, 'vi');
+      });
+  }, [filtered]);
+
+  useEffect(() => {
+    if (semesterGroups.length === 0) {
+      if (selectedSemesterKey) setSelectedSemesterKey('');
+      return;
+    }
+
+    if (!semesterGroups.some((group) => group.key === selectedSemesterKey)) {
+      setSelectedSemesterKey(semesterGroups[0].key);
+    }
+  }, [semesterGroups, selectedSemesterKey]);
+
+  const selectedSemester =
+    semesterGroups.find((group) => group.key === selectedSemesterKey) || semesterGroups[0];
+
   return (
-      <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500 pb-20 md:pb-0 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-
-        {/* HEADER HERO SECTION */}
-        <section className="flex flex-col lg:grid lg:grid-cols-[1.3fr_0.7fr] gap-4 md:gap-6">
-          {/* Banner chính */}
-          <div className="rounded-[1.5rem] md:rounded-[2rem] bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-500 p-6 md:p-8 text-white shadow-xl shadow-emerald-900/10 flex flex-col justify-center">
-            <p className="text-[10px] md:text-xs font-semibold uppercase tracking-[0.28em] text-emerald-50/80">Học phần phụ trách</p>
-            <h3 className="mt-2 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black tracking-tight leading-tight">
-              Xem nhanh tất cả học phần đang giảng dạy.
-            </h3>
-            <p className="mt-3 md:mt-4 max-w-2xl text-sm leading-relaxed text-emerald-50 md:text-base">
-              Giao diện tập trung vào quyền quản trị của giảng viên: vào từng học phần để quản lý sinh viên, rubric, bài tập, OBE và dự án.
-            </p>
-
-            <div className="mt-6 flex flex-col sm:flex-row gap-3">
-              <button
-                  onClick={openAddModal}
-                  className="w-full sm:w-auto rounded-xl sm:rounded-full bg-white px-5 py-3 text-sm font-bold text-emerald-700 shadow-lg shadow-black/10 transition-transform active:scale-95"
-              >
-                Tạo học phần mới
-              </button>
-              <button className="w-full sm:w-auto rounded-xl sm:rounded-full border border-white/30 bg-white/10 px-5 py-3 text-sm font-bold text-white backdrop-blur transition-transform active:scale-95">
-                Import danh sách
-              </button>
-            </div>
-          </div>
-
-          {/* Cụm Thống kê */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-3 md:gap-4">
-            {[
-              { label: 'Lớp đang phụ trách', value: courses.length.toString() },
-              { label: 'Tổng sinh viên', value: '164' },
-              { label: 'Rubric sử dụng', value: '18' },
-            ].map((item, i) => (
-                <div key={item.label} className={`rounded-[1.25rem] md:rounded-[1.75rem] border border-slate-200/70 bg-white p-4 md:p-5 shadow-sm flex flex-col justify-center ${i === 0 ? 'col-span-2 sm:col-span-1 lg:col-span-1' : ''}`}>
-                  <p className="text-xs md:text-sm font-medium text-slate-500 line-clamp-1">{item.label}</p>
-                  <p className="mt-1 md:mt-2 text-2xl md:text-3xl font-black text-slate-900">{item.value}</p>
-                </div>
-            ))}
-          </div>
-        </section>
-
-        {/* SEARCH BAR */}
-        <div className="rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 bg-white p-3 md:p-4 lg:p-6 shadow-sm">
-          <div className="flex items-center gap-3 rounded-xl md:rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 md:px-4 md:py-3 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
-            <Search className="h-4 w-4 md:h-5 md:w-5 text-slate-400 shrink-0" />
-            <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm môn học, mã lớp..."
-                className="w-full bg-transparent text-sm md:text-base outline-none placeholder:text-slate-400"
-            />
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">Môn học được phân công</p>
+          <h3 className="mt-1 text-2xl font-bold text-slate-900">Phân công môn học theo học kỳ</h3>
+          <p className="mt-2 text-sm text-slate-600">
+            Chọn một học kỳ để xem toàn bộ môn học đang được phân công cho giảng viên.
+          </p>
         </div>
 
-        {/* COURSE GRID */}
-        {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-4">
-              <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-              <p className="text-sm md:text-base text-slate-500 font-medium">Đang tải lớp học...</p>
-            </div>
-        ) : filtered.length === 0 ? (
-            <div className="rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 bg-white p-10 md:p-12 text-center shadow-sm">
-              <p className="text-sm md:text-base text-slate-500 font-medium">Không tìm thấy lớp học phần nào phù hợp.</p>
-            </div>
-        ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
-              {filtered.map((course) => (
-                  <div key={course.offeringId || course.id} className="flex flex-col overflow-hidden rounded-[1.5rem] md:rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl group">
-                    {/* Banner Môn Học */}
-                    <div className={`h-20 md:h-24 bg-gradient-to-r ${course.colorClass} relative shrink-0`}>
-                      <div className="absolute right-3 top-3 md:right-4 md:top-4 rounded-lg bg-white/20 px-2 py-1 md:px-3 md:py-1 text-[10px] md:text-xs font-semibold text-white backdrop-blur">
-                        {course.semester || 'Học kỳ'}
-                      </div>
-                    </div>
+        <button
+          onClick={openAddModal}
+          className="rounded-lg bg-green-700 px-4 py-2 font-medium text-white transition-colors hover:bg-green-800"
+        >
+          + Tạo học phần
+        </button>
+      </div>
 
-                    {/* Nội dung Môn Học */}
-                    <div className="flex flex-col flex-1 p-4 md:p-5">
-                      <h4 className="text-base md:text-lg font-bold text-slate-900 line-clamp-1" title={course.courseName}>
-                        {course.courseName}
-                      </h4>
-                      <p className="mt-1 text-xs md:text-sm font-medium text-slate-500">
-                        {course.courseCode} • {course.offeringId}
-                      </p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+          <Search className="h-4 w-4 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm theo môn học, mã lớp, học kỳ..."
+            className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+          />
+        </div>
+      </div>
 
-                      {/* Grid 3 cột nhỏ gọn cho stats */}
-                      <div className="mt-4 grid grid-cols-3 gap-2 md:gap-3">
-                        <StatPill label="SV" value={course.studentCount || 0} />
-                        <StatPill label="Rubric" value={course.rubricCount || 0} />
-                        <StatPill label="Bài tập" value={course.assignmentCount || 0} />
-                      </div>
-
-                      <div className="mt-4 md:mt-5 space-y-2">
-                        <div className="flex items-center justify-between text-xs md:text-sm">
-                          <span className="text-slate-500 font-medium">Tiến độ OBE</span>
-                          <span className="font-bold text-slate-900">{course.obeProgress || 0}%</span>
-                        </div>
-                        <div className="h-1.5 md:h-2 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                              className={`h-full rounded-full bg-gradient-to-r ${course.colorClass}`}
-                              style={{ width: `${course.obeProgress || 0}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Footer card */}
-                      <div className="mt-auto pt-4 md:pt-5 flex items-center justify-between border-t border-slate-100">
-                  <span className="text-xs md:text-sm italic font-medium text-slate-500 line-clamp-1 pr-2">
-                    {course.lecturerName}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-green-700" />
+          <p className="font-medium text-slate-500">Đang tải môn học được phân công...</p>
+        </div>
+      ) : semesterGroups.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+          <p className="font-medium text-slate-500">Không tìm thấy môn học phù hợp.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {semesterGroups.map((group) => (
+              <button
+                key={group.key}
+                type="button"
+                onClick={() => setSelectedSemesterKey(group.key)}
+                className={`rounded-xl border-2 p-4 text-left transition-all ${
+                  selectedSemester?.key === group.key
+                    ? 'border-green-700 bg-green-50'
+                    : 'border-slate-200 bg-white hover:border-green-300'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-600">{group.label}</p>
+                    <h4 className="mt-1 text-lg font-bold text-slate-900">{group.semesterCode}</h4>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${group.statusClassName}`}>
+                    {group.statusLabel}
                   </span>
+                </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                              onClick={(e) => { e.stopPropagation(); openEditModal(course); }}
-                              className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                              title="Chỉnh sửa môn học"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(course); }}
-                              className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Xóa môn học"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                          <button
-                              onClick={() => navigate(`/teacher/course/${course.offeringId}`)}
-                              className="inline-flex items-center gap-1.5 md:gap-2 rounded-lg md:rounded-xl bg-emerald-50 px-3 md:px-4 py-2 md:py-2 text-xs md:text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-600 hover:text-white active:scale-95"
-                          >
-                            Vào lớp
-                            <ArrowRight className="h-3 w-3 md:h-4 md:w-4" />
-                          </button>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-slate-50 p-2 text-center">
+                    <p className="text-xs font-medium text-slate-600">Môn học</p>
+                    <p className="mt-1 text-lg font-bold text-slate-900">{group.courses.length}</p>
+                  </div>
+                  <div className="rounded-lg bg-green-50 p-2 text-center">
+                    <p className="text-xs font-medium text-green-700">Sinh viên</p>
+                    <p className="mt-1 text-lg font-bold text-green-700">{group.totalStudents}</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-2 text-center">
+                    <p className="text-xs font-medium text-slate-600">OBE TB</p>
+                    <p className="mt-1 text-lg font-bold text-slate-900">
+                      {Math.round(
+                        group.courses.reduce((sum, course) => sum + (course.obeProgress || 0), 0) / group.courses.length
+                      )}
+                      %
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {selectedSemester ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xl font-bold text-slate-900">
+                    Danh sách môn học - {selectedSemester.label}
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {selectedSemester.courses.length} môn học, {selectedSemester.totalStudents} sinh viên
+                  </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${selectedSemester.statusClassName}`}>
+                  {selectedSemester.statusLabel}
+                </span>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {selectedSemester.courses.map((course) => (
+                  <div
+                    key={course.offeringId}
+                    className="rounded-xl border border-slate-200 p-4 transition-colors hover:border-green-300 hover:bg-green-50/30"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h5 className="font-bold text-slate-900">{course.courseName}</h5>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            {course.courseCode}
+                          </span>
                         </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="h-4 w-4" />
+                            {course.offeringId}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {course.studentCount || 0} sinh viên
+                          </span>
+                          <span>OBE {course.obeProgress || 0}%</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(course);
+                          }}
+                          className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-green-700"
+                          title="Chỉnh sửa môn học"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(course);
+                          }}
+                          className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-600"
+                          title="Xóa môn học"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/teacher/course/${course.offeringId}`)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800"
+                        >
+                          Vào lớp
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
-              ))}
+                ))}
+              </div>
             </div>
-        )}
+          ) : null}
+        </>
+      )}
 
-        {/* Render Modal thêm sửa ở cuối trang */}
-        <CourseModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onSave={handleSaveCourse}
-            initialData={editingCourse}
-        />
-      </div>
+      <CourseModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveCourse}
+        initialData={editingCourse}
+      />
+    </div>
   );
 }
 
-function StatPill({ label, value }: { label: string; value: number }) {
-  return (
-      <div className="rounded-xl md:rounded-2xl bg-slate-50 p-2 md:p-3 text-center border border-slate-100 flex flex-col justify-center">
-        <p className="text-[9px] md:text-[10px] uppercase tracking-[0.1em] md:tracking-[0.2em] text-slate-400 font-bold">{label}</p>
-        <p className="mt-0.5 md:mt-1 text-sm md:text-lg font-black text-slate-900">{value}</p>
-      </div>
-  );
-}
-
-// ==========================================
-// COMPONENT: Course Modal Form
-// ==========================================
 interface CourseModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -303,63 +437,63 @@ function CourseModal({ isOpen, onClose, onSave, initialData }: CourseModalProps)
   };
 
   return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-          <h3 className="text-xl font-bold text-slate-900 mb-5">
-            {initialData ? 'Chỉnh sửa Học phần' : 'Tạo Học phần mới'}
-          </h3>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <h3 className="mb-5 text-xl font-bold text-slate-900">
+          {initialData ? 'Chỉnh sửa học phần' : 'Tạo học phần mới'}
+        </h3>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm font-semibold text-slate-700">Mã môn học</label>
-              <input
-                  required
-                  value={formData.courseCode}
-                  onChange={(e) => setFormData({...formData, courseCode: e.target.value})}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                  placeholder="VD: COMP101"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-700">Tên môn học</label>
-              <input
-                  required
-                  value={formData.courseName}
-                  onChange={(e) => setFormData({...formData, courseName: e.target.value})}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                  placeholder="VD: Nhập môn Lập trình"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-700">Học kỳ</label>
-              <input
-                  required
-                  value={formData.semester}
-                  onChange={(e) => setFormData({...formData, semester: e.target.value})}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                  placeholder="VD: HK1 2025-2026"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm font-semibold text-slate-700">Mã môn học</label>
+            <input
+              required
+              value={formData.courseCode}
+              onChange={(e) => setFormData({ ...formData, courseCode: e.target.value })}
+              className="mt-1.5 w-full rounded-xl border border-slate-300 p-3 outline-none transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              placeholder="VD: COMP101"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-700">Tên môn học</label>
+            <input
+              required
+              value={formData.courseName}
+              onChange={(e) => setFormData({ ...formData, courseName: e.target.value })}
+              className="mt-1.5 w-full rounded-xl border border-slate-300 p-3 outline-none transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              placeholder="VD: Nhập môn Lập trình"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-700">Học kỳ</label>
+            <input
+              required
+              value={formData.semester}
+              onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
+              className="mt-1.5 w-full rounded-xl border border-slate-300 p-3 outline-none transition-all focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              placeholder="VD: HK1 2025-2026"
+            />
+          </div>
 
-            <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-xl px-5 py-2.5 text-sm text-slate-600 hover:bg-slate-100 font-semibold transition-colors"
-              >
-                Hủy
-              </button>
-              <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm text-white font-semibold hover:bg-emerald-700 disabled:opacity-70 transition-colors shadow-sm"
-              >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {initialData ? 'Cập nhật' : 'Tạo mới'}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex items-center rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:opacity-70"
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {initialData ? 'Cập nhật' : 'Tạo mới'}
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
   );
 }
