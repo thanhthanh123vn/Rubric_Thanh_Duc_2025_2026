@@ -38,6 +38,10 @@ const courseService = {
         const response = await courseApi.get(`/courses/lecturer/me/dashboard`);
         return response.data;
     },
+    geOfferingForDTeacherDeap:async(courseId : string) =>{
+        const response = await courseApi.get(`/courses/${courseId}/offerings`);
+        return response.data;
+    },
     uploadSyllabus: async (courseId: string, files: FileList | File[]) => {
         const formData = new FormData();
 

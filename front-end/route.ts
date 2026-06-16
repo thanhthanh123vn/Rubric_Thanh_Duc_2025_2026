@@ -71,6 +71,7 @@ import DepartmentOBEAnalytics from "@/pages/department/DepartmentOBEAnalytics.ts
 import QuestionBankManagement from "@/pages/department/QuestionBankManagement.tsx";
 import QuestionFormPage from "@/pages/department/QuestionFormPage.tsx";
 import ListQuestionBank from "@/pages/department/ListQuestionBank.tsx";
+import AssessmentDetailAdmin from "@/pages/admin/managarCourse/AssessmentDetailAdmin.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -250,6 +251,7 @@ export const router = createBrowserRouter([
             { path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage },
             { path: "questions/public/:bankId", Component: ListQuestionBank },
             { path: "assessments", Component: AssessmentManagement },
+            { path: "assessments/:id", Component: AssessmentDetailAdmin },
             { path: "offerings", Component: CourseOfferingManagement },
         ],
     },

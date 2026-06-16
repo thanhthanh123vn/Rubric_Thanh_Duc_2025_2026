@@ -23,4 +23,5 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
     List<CourseOffering> findByLecturerIdsContaining(@Param("lecturerId") String lecturerId);
 
     List<CourseOffering> findByCourse_CourseIdIn(Set<String> courseIds);
+
 }
