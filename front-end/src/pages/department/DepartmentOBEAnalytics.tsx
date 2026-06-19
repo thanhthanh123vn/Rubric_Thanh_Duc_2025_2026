@@ -29,19 +29,10 @@ export default function DepartmentOBEAnalytics() {
     const [courseStats, setCourseStats] = useState<CourseStat[]>([]);
 
     useEffect(() => {
-        // Giả lập gọi API lấy dữ liệu thống kê của các môn thuộc Bộ môn
+
         const fetchStats = () => {
             setLoading(true);
-            setTimeout(() => {
-                setCourseStats([
-                    { id: 'C1', courseCode: 'IT202', courseName: 'Hệ quản trị CSDL', mainLecturer: 'Trần Lê Như Quỳnh', passRate: 94.5, obeAchievement: 89, status: 'EXCELLENT' },
-                    { id: 'C2', courseCode: 'IT301', courseName: 'Phát triển Web', mainLecturer: 'Lê Thị Cẩm Tú', passRate: 88.0, obeAchievement: 82, status: 'GOOD' },
-                    { id: 'C3', courseCode: 'IT402', courseName: 'Phân tích thiết kế HT', mainLecturer: 'Phan Văn Đức', passRate: 91.5, obeAchievement: 86, status: 'EXCELLENT' },
-                    { id: 'C4', courseCode: 'IT105', courseName: 'Tin học cơ sở', mainLecturer: 'Nguyễn Văn A', passRate: 72.0, obeAchievement: 68, status: 'NEEDS_IMPROVEMENT' },
-                    { id: 'C5', courseCode: 'IT305', courseName: 'Hệ chuyên gia', mainLecturer: 'Hoàng Minh Tâm', passRate: 85.0, obeAchievement: 78, status: 'GOOD' },
-                ]);
-                setLoading(false);
-            }, 800);
+
         };
         fetchStats();
     }, [semester]);

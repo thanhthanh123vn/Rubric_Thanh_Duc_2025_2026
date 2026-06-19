@@ -15,9 +15,15 @@ import { useNavigate } from 'react-router-dom';
 import { assessmentService } from '../api/assessmentService';
 import courseService from '../api/courseService';
 import type { Assessment } from "@/pages/admin/api/assessmentApi.ts";
+import {useAppSelector} from "@/hooks/useAppSelector.ts";
+import {getLecturerByUser} from "@/api/userApi.ts";
 
 export default function AssessmentManagement() {
     const navigate = useNavigate();
+
+    const { user: reduxUser } = useAppSelector((state) => state.auth);
+    const user = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
+    const[dep,setDep] = useState<string|null>(null);
 
 
     const [courses, setCourses] = useState<any[]>([]);
@@ -46,21 +52,60 @@ export default function AssessmentManagement() {
     });
     const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
 
-    // 1. Fetch danh sách môn học khi vào trang
-    useEffect(() => {
-        const fetchCourses = async () => {
-            try {
-                const res = await courseService.getAllCourses(0, 100, '');
 
-                const courseList = res.content || res.data?.content || res.data || res;
+    const fetchDep = async () => {
+        try {
+            const res = await getLecturerByUser(user?.userId);
+
+            setDep(res.department);
+
+        } catch (err) {
+            console.error("Lỗi khi lấy khoa:", err);
+        }
+    };
+
+
+// lấy department khi vào trang
+    useEffect(() => {
+
+        if(user?.userId){
+            fetchDep();
+        }
+
+    }, [user?.userId]);
+
+
+
+// lấy course khi đã có dep
+    useEffect(() => {
+
+        const fetchCourses = async () => {
+
+            if(!dep) return;
+
+            try {
+
+                const res = await courseService.getCoursesByDepartment(dep);
+
+                const courseList =
+                    res.content ||
+                    res.data?.content ||
+                    res.data ||
+                    res;
+
                 setCourses(courseList);
-            } catch (err) {
+
+            } catch(err){
+
                 console.error("Lỗi khi tải môn học:", err);
+
             }
         };
-        fetchCourses();
-    }, []);
 
+
+        fetchCourses();
+
+    }, [dep]);
 
     useEffect(() => {
         if (!selectedCourseId) {

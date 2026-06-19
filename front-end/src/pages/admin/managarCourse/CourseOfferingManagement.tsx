@@ -109,16 +109,17 @@ export default function CourseOfferingManagement() {
 
         try {
             setSubmitting(true);
+            console.log(selectedOffering.course.courseId);
+            console.log(selectedLecturerIds);
 
-            // Gọi API phân công (Sử dụng courseId của selectedOffering)
-            await courseService.assignLecturers(selectedOffering.course.courseId, selectedLecturerIds);
+            await courseService.assignLecturers(selectedOffering.offeringId, selectedLecturerIds);
 
-            // Map lại mảng lecturers cho UI (Optimistic Update)
+
             const updatedLecturers = lecturers
                 .filter(l => selectedLecturerIds.includes(l.lecturerId))
                 .map(l => ({ lecturerId: l.lecturerId, lecturerName: l.fullName }));
 
-            // Cập nhật state local để bảng phản hồi ngay
+
             setOfferings(prev => prev.map(o =>
                 o.offeringId === selectedOffering.offeringId
                     ? { ...o, lecturers: updatedLecturers }

@@ -23,7 +23,7 @@ const courseService = {
     },
 
     assignLecturers: (courseId: string, lecturerIds: string[]): Promise<CourseOfferingResponse> => {
-        return courseApi.post(`/api/v1/course-service/courses/${courseId}/assign-lecturers`, {
+        return courseApi.post(`/courses/${courseId}/assign-lecturers`, {
             lecturerIds: lecturerIds
         });
     },
@@ -73,7 +73,12 @@ const courseService = {
     },
     createOffering: (courseId: string, data: any) => {
         return courseApi.post(`/courses-offering/${courseId}/offerings`, data);
-    }
+    },
+    getCoursesByDepartment: async (department: string) => {
+
+        const response = await courseApi.get(`/courses/department/${department}`);
+        return response.data;
+    },
 
 };
 

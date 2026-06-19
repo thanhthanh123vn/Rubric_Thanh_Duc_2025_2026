@@ -246,7 +246,7 @@ export const router = createBrowserRouter([
             { index: true, Component: DepartmentDashboard },
             { path: "rubrics", Component: RubricApproval },
             { path: "clo", Component: CLOManagement },
-            { path: "analytics", Component: DepartmentOBEAnalytics },
+            { path: "analytics", Component: TeacherCourseOBE },
             { path: "question-banks", Component: QuestionBankManagement },
             { path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage },
             { path: "questions/public/:bankId", Component: ListQuestionBank },
