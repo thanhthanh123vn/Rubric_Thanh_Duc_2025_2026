@@ -9,6 +9,8 @@ import { courseOfferingService } from "@/features/course/student/api/courseOffer
 import courseService from "@/pages/admin/api/courseService.ts";
 import type { CourseOfferingResponse } from "@/pages/admin/api/type.ts";
 import type { LecturerOption } from "@/features/course/student/api/type.ts";
+import {type Department, getAllDepartments} from "@/api/lecturerApi.ts";
+import {getLecturerByUser} from "@/api/userApi.ts";
 
 const DEPARTMENTS = ["Hệ Thống Thông Tin", "Công Nghệ Phần Mềm", "Khoa Học Máy Tính", "An Toàn Thông Tin"];
 
@@ -17,7 +19,9 @@ export default function CourseOfferingManagement() {
     const user = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
     const userRole = user?.role || "HEAD_OF_DEPARTMENT";
-    const userDept = user?.department || "Hệ Thống Thông Tin";
+    const [departments, setDepartments] = useState<Department[]>([]);
+    const [userDept, setUserDept] = useState<string>("");
+
 
     const isDean = userRole === 'DEAN';
     const isHOD = userRole === 'HEAD_OF_DEPARTMENT';
@@ -28,16 +32,46 @@ export default function CourseOfferingManagement() {
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>('');
 
-    const [selectedDept, setSelectedDept] = useState<string>(isDean ? "ALL" : userDept);
+    const [selectedDept, setSelectedDept] = useState<string>("ALL");
 
-    // State cho Modal phân công giảng viên
+
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedOffering, setSelectedOffering] = useState<CourseOfferingResponse | null>(null);
     const [submitting, setSubmitting] = useState<boolean>(false);
 
-    // THÊM MỚI: State lưu danh sách ID giảng viên được chọn (Hỗ trợ chọn nhiều)
-    const [selectedLecturerIds, setSelectedLecturerIds] = useState<string[]>([]);
 
+    const [selectedLecturerIds, setSelectedLecturerIds] = useState<string[]>([]);
+    useEffect(() => {
+        if (!isDean && userDept) {
+            setSelectedDept(userDept);
+        }
+    }, [isDean, userDept]);
+    useEffect(() => {
+
+        const fetchUserDep = async () => {
+            if (!user?.userId) return;
+            try {
+                const res = await getLecturerByUser(user.userId);
+
+                setUserDept(res.department?.departmentName || res.department);
+            } catch (err) {
+                console.error("Lỗi khi lấy thông tin khoa của user:", err);
+            }
+        };
+
+
+        const fetchAllDepartments = async () => {
+            try {
+                const res = await getAllDepartments();
+                setDepartments(res);
+            } catch (err) {
+                console.error("Lỗi khi lấy danh sách khoa:", err);
+            }
+        };
+
+        fetchUserDep();
+        fetchAllDepartments();
+    }, [user?.userId]);
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
@@ -89,12 +123,12 @@ export default function CourseOfferingManagement() {
         setIsModalOpen(true);
     };
 
-    // TOGGLE CHỌN/BỎ CHỌN GIẢNG VIÊN
+
     const toggleLecturer = (lecturerId: string) => {
         setSelectedLecturerIds(prev =>
             prev.includes(lecturerId)
-                ? prev.filter(id => id !== lecturerId) // Nếu đã có thì bỏ ra
-                : [...prev, lecturerId]                // Nếu chưa có thì thêm vào
+                ? prev.filter(id => id !== lecturerId)
+                : [...prev, lecturerId]
         );
     };
 

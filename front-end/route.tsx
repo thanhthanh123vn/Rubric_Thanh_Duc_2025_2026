@@ -67,11 +67,16 @@ import RubricApproval from "@/pages/dean/RubricApproval.tsx";
 import FacultyReport from "@/pages/dean/FacultyReport.tsx";
 import DepartmentHeadLayout from "@/pages/department/DepartmentHeadLayout.tsx";
 import DepartmentDashboard from "@/pages/department/DepartmentDashboard.tsx";
-import DepartmentOBEAnalytics from "@/pages/department/DepartmentOBEAnalytics.tsx";
+import DepartmentOBEAnalytics from "@/pages/department/DepartmentOBE.tsx";
 import QuestionBankManagement from "@/pages/department/QuestionBankManagement.tsx";
 import QuestionFormPage from "@/pages/department/QuestionFormPage.tsx";
 import ListQuestionBank from "@/pages/department/ListQuestionBank.tsx";
 import AssessmentDetailAdmin from "@/pages/admin/managarCourse/AssessmentDetailAdmin.tsx";
+import DepartmentOBEAnalysis from "@/pages/department/DepartmentOBE.tsx";
+import DepartmentOBE from "@/pages/department/DepartmentOBE.tsx";
+
+import AdminLayout from "@/pages/admin/AdminLayout.tsx";
+
 export const router = createBrowserRouter([
 
     {
@@ -149,37 +154,37 @@ export const router = createBrowserRouter([
         path: "/teacher",
         Component: TeacherLayout,
         children: [
-            { index: true, Component: TeacherOverview },
-            { path: "courses", loader: () => redirect("/teacher") },
+            {index: true, Component: TeacherOverview},
+            {path: "courses", loader: () => redirect("/teacher")},
             {
                 path: "course/:id",
                 Component: TeacherCourseLayout,
                 children: [
-                    { index: true, Component: TeacherCourseOverview },
-                    { path: "students", Component: TeacherCourseStudents },
-                    { path: "assignments", Component: TeacherCourseAssignments },
-                    { path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions },
+                    {index: true, Component: TeacherCourseOverview},
+                    {path: "students", Component: TeacherCourseStudents},
+                    {path: "assignments", Component: TeacherCourseAssignments},
+                    {path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions},
 
-                    { path: "rubric", Component: TeacherCourseRubric },
-                    { path:"rubric/:id" ,Component:TeacherRubricDetail },
-                    { path: "questions/bank/:bankId", Component: TeacherQuestionBank },
-                    { path: "obe", Component: TeacherCourseOBE },
-                    { path: "obe/analytics", Component: TeacherOBEAnalytics },
-                    {path : "obe/:cloId",Component : TeacherOBEDetail},
-                    { path: "groups", Component: TeacherCourseGroups },
-                    { path: "grading", Component: TeacherAssessmentList },
-                    { path: "assessment/:assessmentId/grading", Component: TeacherGrading },
-                    { path: "projects", Component: TeacherProjects },
-                    { path: "attendance", Component: CreateQrAttendancePage },
-                    { path: "report", Component: TeacherReport },
+                    {path: "rubric", Component: TeacherCourseRubric},
+                    {path: "rubric/:id", Component: TeacherRubricDetail},
+                    {path: "questions/bank/:bankId", Component: TeacherQuestionBank},
+                    {path: "obe", Component: TeacherCourseOBE},
+                    {path: "obe/analytics", Component: TeacherOBEAnalytics},
+                    {path: "obe/:cloId", Component: TeacherOBEDetail},
+                    {path: "groups", Component: TeacherCourseGroups},
+                    {path: "grading", Component: TeacherAssessmentList},
+                    {path: "assessment/:assessmentId/grading", Component: TeacherGrading},
+                    {path: "projects", Component: TeacherProjects},
+                    {path: "attendance", Component: CreateQrAttendancePage},
+                    {path: "report", Component: TeacherReport},
                 ],
             },
 
-            { path: "course", Component: TeacherCourses },
-            { path: "questions", Component: CourseList },
-            { path: "questions/public/:bankId", Component: PublicQuestionBank },
-            { path: "rubric", Component: TeacherRubric },
-            { path:"rubric/:id" ,Component:TeacherRubricDetail },
+            {path: "course", Component: TeacherCourses},
+            {path: "questions", Component: CourseList},
+            {path: "questions/public/:bankId", Component: PublicQuestionBank},
+            {path: "rubric", Component: TeacherRubric},
+            {path: "rubric/:id", Component: TeacherRubricDetail},
 
         ],
     },
@@ -187,55 +192,51 @@ export const router = createBrowserRouter([
         path: "/mainlecturer",
         Component: MainLecturerLayout,
         children: [
-            { index: true, Component: MainLecturerOverview },
-            { path: "clo", Component: CLOManagement },
-            { path: "clo/:cloId", Component: CLODetail },
-            { path: "rubric", Component: RubricBuilder },
-            { path: "rubric/:rubricId", Component: RubricDetail },
+            {index: true, Component: MainLecturerOverview},
+            {path: "clo", Component: CLOManagement},
+            {path: "clo/:cloId", Component: CLODetail},
+            {path: "rubric", Component: RubricBuilder},
+            {path: "rubric/:rubricId", Component: RubricDetail},
 
-            { path: "rubric-matrix", Component: RubricMatrix },
-            { path: "semester", Component: SemesterManagement },
-            { path: "assign", Component: CourseAssignment },
+            {path: "rubric-matrix", Component: RubricMatrix},
+            {path: "semester", Component: SemesterManagement},
+            {path: "assign", Component: CourseAssignment},
         ],
     },
 
 
     {
         path: "/admin",
-        Component: RoleProtectedRoute,
+        Component: AdminLayout,
+        element: <RoleProtectedRoute allowedRoles={["ADMIN"]}/>,
         children: [
-
-            { index: true, Component: AdminDashboard },
+            {index: true, Component: AdminDashboard},
             {
                 path: "users/list-users",
                 Component: UserManagement,
             },
-
-            { path: "users/create-user", Component: AdminCreateUser },
-            { path: "users/list-students", Component: ListStudent },
-            { path: "users/list-lecturers", Component: LecturerManagement },
-            { path: "users/list-admins", Component: AdminManagement },
-            { path: "courses/list", Component: CourseManagement },
-            { path: "courses/assessments", Component: AssessmentManagement },
-
+            {path: "users/create-user", Component: AdminCreateUser},
+            {path: "users/list-students", Component: ListStudent},
+            {path: "users/list-lecturers", Component: LecturerManagement},
+            {path: "users/list-admins", Component: AdminManagement},
+            {path: "courses/list", Component: CourseManagement},
+            {path: "courses/assessments", Component: AssessmentManagement},
             {
                 path: "classes",
                 children: [
-                    { path: "list", Component: CourseOfferingManagement },
-
-            ]
+                    {path: "list", Component: CourseOfferingManagement},
+                ]
             }
         ],
-
     },
     {
         path: "/dean",
         Component: DeanLayout,
         children: [
-            { index: true, Component: DeanDashboard },
-            { path: "rubrics", Component: RubricApproval },
-            { path: "reports", Component: FacultyReport },
-            { path: "courses", Component: CourseManagement },
+            {index: true, Component: DeanDashboard},
+            {path: "rubrics", Component: RubricApproval},
+            {path: "reports", Component: FacultyReport},
+            {path: "courses", Component: CourseManagement},
         ],
     },
 
@@ -243,16 +244,17 @@ export const router = createBrowserRouter([
         path: "/department",
         Component: DepartmentHeadLayout,
         children: [
-            { index: true, Component: DepartmentDashboard },
-            { path: "rubrics", Component: RubricApproval },
-            { path: "clo", Component: CLOManagement },
-            { path: "analytics", Component: TeacherCourseOBE },
-            { path: "question-banks", Component: QuestionBankManagement },
-            { path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage },
-            { path: "questions/public/:bankId", Component: ListQuestionBank },
-            { path: "assessments", Component: AssessmentManagement },
-            { path: "assessments/:id", Component: AssessmentDetailAdmin },
-            { path: "offerings", Component: CourseOfferingManagement },
+            {index: true, Component: DepartmentDashboard},
+            {path: "rubrics", Component: RubricApproval},
+            {path: "clo", Component: CLOManagement},
+            {path: "obe", Component: DepartmentOBE},
+            {path: "obe/:id/analytics", Component: TeacherOBEAnalytics},
+            {path: "question-banks", Component: QuestionBankManagement},
+            {path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage},
+            {path: "questions/public/:bankId", Component: ListQuestionBank},
+            {path: "assessments", Component: AssessmentManagement},
+            {path: "assessments/:id", Component: AssessmentDetailAdmin},
+            {path: "offerings", Component: CourseOfferingManagement},
         ],
     },
 ]);
