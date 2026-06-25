@@ -14,6 +14,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     SELECT 
         a.assessment_id,
         a.assessment_name,
+        a.assessment_type,
         ac.clo_weight,
         a.end_time,
 
@@ -50,6 +51,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
         a.assessment_id,
         a.assessment_name,
         a.description,
+        a.assessment_type,
         ac.clo_weight,
         a.end_time,
 
@@ -87,12 +89,40 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     a.assessment_id,
     a.assessment_name,
     a.description,
+    a.assessment_type,
     a.weight,
     a.end_time,
     s.submission_id,
     s.submitted_at; 
     """, nativeQuery = true)
     List<Object[]> getAssignmentDetail(String assessmentId,String studentId);
+
+    @Query(value = """
+    SELECT
+        rr.criteria_id,
+        rc.criteria_name,
+        rr.level_id,
+        rl.level_name,
+        rr.calculated_score,
+        max_level.max_score
+    FROM submissions s
+    JOIN rubric_results rr
+        ON rr.submission_id = s.submission_id
+    LEFT JOIN rubric_criteria rc
+        ON rc.criteria_id = rr.criteria_id
+    LEFT JOIN rubric_levels rl
+        ON rl.level_id = rr.level_id
+    LEFT JOIN (
+        SELECT criteria_id, MAX(score) AS max_score
+        FROM rubric_levels
+        GROUP BY criteria_id
+    ) max_level
+        ON max_level.criteria_id = rr.criteria_id
+    WHERE s.assessment_id = :assessmentId
+      AND s.student_id = :studentId
+    ORDER BY rr.criteria_id
+    """, nativeQuery = true)
+    List<Object[]> getRubricCriterionDetails(@Param("assessmentId") String assessmentId, @Param("studentId") String studentId);
 
 
     List<Assessment> findByCourseOffering_OfferingIdOrderByStartTimeDesc(String offeringId);

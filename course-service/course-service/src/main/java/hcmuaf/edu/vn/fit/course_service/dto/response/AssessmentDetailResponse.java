@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 
 
@@ -15,6 +16,7 @@ public class AssessmentDetailResponse {
     private String assessmentId;
     private String description;
     private String assessmentName;
+    private String assessmentType;
     private String fileUrl;
     private Number weight;
     private Timestamp endTime;
@@ -26,4 +28,5 @@ public class AssessmentDetailResponse {
     private Map<String,String> clos;
     private String submittedFileUrl;
     private String submittedLink;
+    private List<RubricCriterionDetailResponse> rubricDetails;
 }

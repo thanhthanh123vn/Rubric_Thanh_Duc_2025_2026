@@ -4,6 +4,7 @@ import { courseService } from "../../course/courseApi.ts";
 export interface Assessment {
     assessmentId: string;
     assessmentName: string;
+    assessmentType?: string | null;
     weight: number;
     endTime: string;
 

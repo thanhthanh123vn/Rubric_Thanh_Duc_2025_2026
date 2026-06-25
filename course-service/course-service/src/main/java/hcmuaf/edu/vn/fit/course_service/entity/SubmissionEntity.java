@@ -27,10 +27,8 @@ public class SubmissionEntity {
     private String fileUrl;
 
     private String rubricId;
-//    private String link;
-//
-//    private Double score;
-//    private String lecturerComment;
+    @Column(name = "submission_text")
+    private String submittedLink;
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
     private String status;

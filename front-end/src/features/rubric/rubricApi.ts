@@ -1,11 +1,28 @@
-import { rubricServiceApi } from "@/services/axiosConfig.ts";
+import { courseApi, rubricServiceApi } from "@/services/axiosConfig.ts";
 
-interface Clo {
+export interface CloPayload {
     cloCode: string;
     cloName: string;
     description: string;
     bloomLevel: string;
     courseId?: string;
+    courseIds?: string[];
+}
+
+export interface CloResponse {
+    cloId: string;
+    cloCode: string;
+    cloName: string;
+    description: string;
+    bloomLevel: string;
+    courseMappings?: Array<{
+        courseId: string;
+    }>;
+}
+
+export interface CourseOption {
+    courseId: string;
+    courseName: string;
 }
 
 export interface RubricCriterion {
@@ -155,12 +172,28 @@ export const getRubricDetail = async (rubricId: string): Promise<RubricResponse>
 };
 
 export const getAllClo = () => {
-    return rubricServiceApi.get("/course-clo");
+    return rubricServiceApi.get<CloResponse[]>("/course-clo");
 };
 
-export const createClo = (data: Clo) => {
+export const createClo = (data: CloPayload) => {
     return rubricServiceApi.post("/course-clo", data);
 };
+
+export const updateClo = (cloId: string, data: CloPayload) => {
+    return rubricServiceApi.put(`/course-clo/${cloId}`, data);
+};
+
+export const getCourseOptions = async () => {
+    const response = await courseApi.get("/courses", {
+        params: {
+            page: 0,
+            size: 1000,
+        },
+    });
+
+    return (response.data?.content ?? []) as CourseOption[];
+};
+
 export const getRubricMatrix = () => {
     return rubricServiceApi.get('/rubrics/matrix');
 }

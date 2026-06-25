@@ -52,4 +52,16 @@ public class GradingController {
     public ResponseEntity<Long> countGraded(@PathVariable String assessmentId) {
         return ResponseEntity.ok(service.countGradedByAssessmentId(assessmentId));
     }
+
+    @GetMapping("/grade/assessment/{assessmentId}/student/{studentId}")
+    public ResponseEntity<Grade> getGradeByStudentAndAssessment(
+            @PathVariable String assessmentId,
+            @PathVariable String studentId
+    ) {
+        Grade grade = service.getGradeByStudentAndAssessmentId(studentId, assessmentId);
+        if (grade == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(grade);
+    }
 }
