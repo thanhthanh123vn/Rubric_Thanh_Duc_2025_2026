@@ -225,6 +225,38 @@ const AssignmentDetailPost = () => {
                                 </p>
                             </div>
 
+                            {false && ((assignment.calculatedScore !== null || assignment.lecturerComment) && (
+                                <div className="mt-8 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5">
+                                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                                        <div>
+                                            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                                                Káº¿t quáº£ Ä‘Ã¡nh giÃ¡
+                                            </p>
+                                            <h3 className="mt-2 text-xl font-bold text-slate-900">
+                                                {assignment.calculatedScore !== null
+                                                    ? `Äiá»ƒm: ${assignment.calculatedScore}/10`
+                                                    : "Giáº£ng viÃªn Ä‘Ã£ xem bÃ i"}
+                                            </h3>
+                                        </div>
+                                        <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                                Tráº¡ng thÃ¡i
+                                            </p>
+                                            <p className="mt-1 text-sm font-semibold text-emerald-700">
+                                                {assignment.calculatedScore !== null ? "ÄÃ£ cháº¥m" : "ÄÃ£ cÃ³ pháº£n há»“i"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4 rounded-xl border border-emerald-100 bg-white p-4">
+                                        <p className="text-sm font-semibold text-slate-900">Nháº­n xÃ©t cá»§a giáº£ng viÃªn</p>
+                                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                                            {assignment.lecturerComment || "ChÆ°a cÃ³ nháº­n xÃ©t chi tiáº¿t cho bÃ i táº­p nÃ y."}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+
                             {rubric != null && rubric.name && (
                                 <div className="mt-8 border-t pt-6 border-gray-100">
                                     <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">

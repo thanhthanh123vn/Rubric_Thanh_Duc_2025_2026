@@ -64,21 +64,22 @@ public class AssessmentService {
 
                 dto.setAssessmentId(item[0] != null ? item[0].toString() : null);
                 dto.setAssessmentName(item[1] != null ? item[1].toString() : null);
-                dto.setWeight(item[2] != null ? ((Number) item[2]).floatValue() : null);
+                dto.setAssessmentType(item[2] != null ? item[2].toString() : null);
+                dto.setWeight(item[3] != null ? ((Number) item[3]).floatValue() : null);
 
-                dto.setEndTime((Timestamp) item[3]);
-                if(item[4] != null){
-                    dto.setSubmissionId(item[4].toString());
-                    dto.setSubmissionAt((Timestamp) item[5]);
+                dto.setEndTime((Timestamp) item[4]);
+                if(item[5] != null){
+                    dto.setSubmissionId(item[5].toString());
+                    dto.setSubmissionAt((Timestamp) item[6]);
 
-                    dto.setCalculatedScore(item[6] != null ? ((Float) item[6]) / 10 : null);
+                    dto.setCalculatedScore(item[7] != null ? ((Number) item[7]).floatValue() : null);
 
-                    dto.setLecturerComment(item[7] != null ? item[7].toString() : null);
+                    dto.setLecturerComment(item[8] != null ? item[8].toString() : null);
 
                 }
 
-                if (item[8] != null) {
-                    String closJson = item[8].toString();
+                if (item[9] != null) {
+                    String closJson = item[9].toString();
                     List<String> clos = objectMapper.readValue(
                             closJson,
                             new TypeReference<List<String>>() {}
@@ -110,22 +111,22 @@ public class AssessmentService {
             dto.setAssessmentId((String) res[0]);
             dto.setAssessmentName((String) res[1]);
             dto.setDescription((String) res[2]);
-            dto.setWeight(res[3] != null ? ((Number) res[3]).doubleValue() : 0);
-            dto.setEndTime((Timestamp) res[4]);
+            dto.setAssessmentType((String) res[3]);
+            dto.setWeight(res[4] != null ? ((Number) res[4]).doubleValue() : null);
+            dto.setEndTime((Timestamp) res[5]);
 
-            dto.setSubmissionId((String) res[5]);
-            dto.setSubmissionAt((Timestamp) res[6]);
+            dto.setSubmissionId((String) res[6]);
+            dto.setSubmissionAt((Timestamp) res[7]);
 
-            dto.setCalculatedScore(res[7] != null ? ((Number) res[7]).doubleValue() / 10 : 0);
-            dto.setLecturerComment((String) res[8]);
+            dto.setCalculatedScore(res[8] != null ? ((Number) res[8]).doubleValue() : null);
+            dto.setLecturerComment((String) res[9]);
 
-            String closJson = (String) res[9];
+            String closJson = (String) res[10];
             if (closJson != null) {
                 ObjectMapper mapper = new ObjectMapper();
                 List<Map<String, String>> cloList =
                         mapper.readValue(closJson, new TypeReference<>() {});
 
-                // convert list -> map (code -> description)
                 Map<String, String> closMap = new HashMap<>();
                 for (Map<String, String> clo : cloList) {
                     closMap.put(clo.get("code"), clo.get("description"));
@@ -153,13 +154,17 @@ public class AssessmentService {
 
     ){
         try{
-            if ((file == null || file.isEmpty()) ) {
-                throw new RuntimeException("Phải có file");
+            boolean hasFile = file != null && !file.isEmpty();
+            boolean hasLink = link != null && !link.trim().isEmpty();
+
+            if (!hasFile && !hasLink) {
+                throw new RuntimeException("Phải có file hoặc link");
             }
 
-            String fileUrl = "";
+            String fileUrl = null;
+            String submittedLink = hasLink ? link.trim() : null;
 
-            if (file != null && !file.isEmpty()) {
+            if (hasFile) {
                 fileUrl = s3Service.uploadFile(file);
             }
             if (!assessmentRepository.existsById(assessmentId)) {
@@ -169,7 +174,9 @@ public class AssessmentService {
 
             if(existing != null){
                 existing.setFileUrl(fileUrl);
+                existing.setSubmittedLink(submittedLink);
                 existing.setSubmittedAt(java.time.LocalDateTime.now());
+                existing.setRubricId(rubricId);
 
                 submissionRepository.save(existing);
                 return existing;
@@ -179,9 +186,9 @@ public class AssessmentService {
             submission.setAssessmentId(assessmentId);
             submission.setStudentId(studentId);
             submission.setFileUrl(fileUrl);
+            submission.setSubmittedLink(submittedLink);
             submission.setSubmittedAt(java.time.LocalDateTime.now());
             submission.setRubricId(rubricId);
-//            submission.setStatus(String.valueOf(status));
 
             submissionRepository.save(submission);
 
@@ -418,44 +425,60 @@ public class AssessmentService {
     }
     public AssessmentDetailResponse getAssessmentDetail(String assessmentId, String studentId) {
 
-        Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập: " + assessmentId));
 
-        AssessmentDetailResponse response = assessmentMapper.toDetailResponse(assessment);
+        AssessmentDetailResponse response = Optional.ofNullable(getAssById(assessmentId, studentId))
+                .orElseGet(() -> assessmentMapper.toDetailResponse(assessment));
 
+        response.setAssessmentId(assessment.getAssessmentId());
+        response.setAssessmentName(assessment.getAssessmentName());
+        response.setDescription(assessment.getDescription());
+        response.setAssessmentType(assessment.getAssessmentType());
+        response.setWeight(assessment.getWeight());
+        response.setEndTime(assessment.getEndTime());
+        response.setFileUrl(assessment.getFileUrl());
+        response.setRubricId(assessment.getRubricId());
 
         List< AssessmentCLO> assessmentCLOS = assessmentCLORepository.getByAssessment_AssessmentId(assessmentId);
-
-        // 3.  Nếu  có Rubric và CLO chi tiết, hãy gọi sang Rubric Service hoặc map tại đây
-        if(assessment.getRubricId() != null) {
-         response.setRubricId((assessment.getRubricId()));
-        }
 
         Optional<SubmissionEntity> submissionOpt = submissionRepository.findByAssessmentIdAndStudentId(assessmentId, studentId);
         if (submissionOpt.isPresent()) {
             SubmissionEntity sub = submissionOpt.get();
             response.setSubmissionId(sub.getId());
-            response.setSubmissionAt(Timestamp.valueOf(sub.getSubmittedAt())); // Hoặc trường lưu thời gian nộp của bạn
-
-
+            response.setSubmissionAt(sub.getSubmittedAt() != null ? Timestamp.valueOf(sub.getSubmittedAt()) : null);
             response.setSubmittedFileUrl(sub.getFileUrl());
-            response.setSubmittedLink(sub.getFileUrl());
+            response.setSubmittedLink(sub.getSubmittedLink());
+            if (response.getRubricId() == null) {
+                response.setRubricId(sub.getRubricId());
+            }
         }
+
+        List<Object[]> rubricDetailRows = assessmentRepository.getRubricCriterionDetails(assessmentId, studentId);
+        if (rubricDetailRows != null && !rubricDetailRows.isEmpty()) {
+            List<RubricCriterionDetailResponse> rubricDetails = rubricDetailRows.stream()
+                    .map(row -> new RubricCriterionDetailResponse(
+                            row[0] != null ? row[0].toString() : null,
+                            row[1] != null ? row[1].toString() : null,
+                            row[2] != null ? row[2].toString() : null,
+                            row[3] != null ? row[3].toString() : null,
+                            row[4] != null ? ((Number) row[4]).doubleValue() : null,
+                            row[5] != null ? ((Number) row[5]).doubleValue() : null
+                    ))
+                    .toList();
+            response.setRubricDetails(rubricDetails);
+        }
+
         if (assessmentCLOS != null && !assessmentCLOS.isEmpty()) {
             Map<String, String> cloMap = assessmentCLOS.stream()
                     .collect(Collectors.toMap(
-
                             clo -> clo.getCourseCLO().getCloCode(),
-
-
                             clo -> clo.getCourseCLO().getDescription(),
-
-
                             (existing, replacement) -> existing
                     ));
 
             response.setClos(cloMap);
         }
-
 
         return response;
     }

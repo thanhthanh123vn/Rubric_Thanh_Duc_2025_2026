@@ -46,7 +46,9 @@ public class GradingService {
         Grade grade = repository.findByStudentIdAndAssessmentId(request.getStudentId(), request.getAssessmentId())
                 .orElse(new Grade());
         grade.setSubmissionId(request.getSubmissionId());
+        grade.setAssessmentId(request.getAssessmentId());
         grade.setStudentId(request.getStudentId());
+        grade.setRubricId(request.getRubricId());
         grade.setTotalScore(request.getTotalScore());
         grade.setComment(request.getGeneralComment());
         grade.setStatus("GRADED");
@@ -72,5 +74,9 @@ public class GradingService {
     public Long countGradedByAssessmentId(String assessmentId) {
         // Giả sử bạn có repository để query DB
         return repository.countByAssessmentId(assessmentId);
+    }
+
+    public Grade getGradeByStudentAndAssessmentId(String studentId, String assessmentId) {
+        return repository.findByStudentIdAndAssessmentId(studentId, assessmentId).orElse(null);
     }
 }

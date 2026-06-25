@@ -15,6 +15,7 @@ import java.util.List;
 public class AssessmentReponse {
     private String assessmentId;
     private String assessmentName;
+    private String assessmentType;
     private Number weight;
     private Timestamp endTime;
     private String submissionId;
