@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TeacherCourseResponse {
+    private String courseId;
     private String offeringId;
     private String courseCode;
     private String courseName;

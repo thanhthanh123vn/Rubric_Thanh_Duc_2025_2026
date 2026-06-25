@@ -18,7 +18,8 @@ export interface QuestionBankResponse {
 }
 
 export const questionBankApi = {
-    getQuestionBanksByCourse: async (offeringId: string): Promise<QuestionBankResponse[]> => {
+    getQuestionBanksByCourse:async (offeringId: string) => {
+
         const response = await courseApi.get(`/question-banks/course/${offeringId}`);
         return response.data;
     },
@@ -34,6 +35,21 @@ export const questionBankApi = {
         const response = await courseApi.get(`/question-banks/${id}`);
         return response.data;
     },
+    
+    getQuestionBanksByCourseForDep:async (offeringId: string) => {
+
+        const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);
+        return response.data;
+    },
+    getQuestionsByLecturerUserId:async ()=>{
+        const response = await courseApi.get(`/question-banks/lecturer`);
+        return response.data;
+    },
+    getQuestionsByLecturer: async (lecturerId: string) => {
+
+        const response = await courseApi.get(`/api/v1/course-service/questions/lecturer/${lecturerId}`);
+        return response.data;
+    },
     createQuestionBank: async (data: QuestionBankRequest) => {
         const response = await courseApi.post("/question-banks", data);
         return response.data;
@@ -46,4 +62,12 @@ export const questionBankApi = {
         const response = await courseApi.delete(`/question-banks/${id}`);
         return response.data;
     }
+
+};
+export const DepquestionBankApi = {
+    getQuestionBanksByCourse:async (offeringId: string) => {
+
+        const response = await courseApi.get(`/question-banks/course/dep/${offeringId}`);
+        return response.data;
+    },
 };

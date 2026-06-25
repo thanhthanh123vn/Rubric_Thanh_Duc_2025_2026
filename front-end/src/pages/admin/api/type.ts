@@ -65,3 +65,31 @@ export interface Course {
     status: string;
     department?:string;
 }
+
+export interface LecturerInfo {
+    lecturerId: string;
+    lecturerName: string;
+}
+
+export interface CourseOfferingResponse {
+    offeringId: string;
+    offeringName: string;
+    course: {
+        courseId: string;
+        courseName: string;
+        courseCode: string;
+        credits: number;
+        description: string;
+        department: string;
+    };
+
+
+    lecturers: LecturerInfo[];
+
+    semester: string;
+    year: string;
+    maxStudents: number;
+    startDate: string;
+    endDate: string;
+    status: string;
+}

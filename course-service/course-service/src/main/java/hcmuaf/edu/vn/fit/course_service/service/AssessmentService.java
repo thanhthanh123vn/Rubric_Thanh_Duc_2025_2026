@@ -233,7 +233,6 @@ public class AssessmentService {
                     .fileUrl(fileUrl)
                     .startTime(new Timestamp(System.currentTimeMillis()))
                     .endTime(endTime)
-                    .weight(0f)
                     .build();
 
             Assessment savedAssessment = assessmentRepository.save(assessment);

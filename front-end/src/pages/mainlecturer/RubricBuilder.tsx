@@ -33,18 +33,22 @@ const formatPercent = (value: number) => {
 export default function RubricBuilder() {
     const [rubrics, setRubrics] = useState<RubricType[]>([]);
     const [showModal, setShowModal] = useState(false);
-
+     const fetchAllRubrics = async () => {
+        try {
+            const res = await getAllRubric();
+            return Array.isArray(res.data) ? res.data : [];
+        } catch (error) {
+            console.error("Lỗi lấy danh sách rubric:", error);
+            return [];
+        }
+    };
     useEffect(() => {
-        const handleGetAllRubric = async () => {
-            try {
-                const res = await getAllRubric();
-                setRubrics(Array.isArray(res.data) ? res.data : []);
-            } catch (error) {
-                console.log(error);
-            }
+        const loadData = async () => {
+            const rubrics = await fetchAllRubrics();
+            setRubrics(rubrics);
         };
 
-        void handleGetAllRubric();
+        void loadData();
     }, []);
 
     return (
@@ -124,7 +128,11 @@ export default function RubricBuilder() {
                 ))}
             </div>
 
-            {showModal && <CreateRubricModal open={showModal} onClose={() => setShowModal(false)} />}
+            {showModal && <CreateRubricModal open={showModal} onClose={() => setShowModal(false)}
+                                             onSuccess={() => {
+
+                fetchAllRubrics();
+            }} />}
         </div>
     );
 }

@@ -24,6 +24,7 @@ public class QuestionController {
         return ResponseEntity.ok(questionService.getQuestionsByOfferingId(offeringId));
     }
 
+
     @PostMapping("/course/{offeringId}")
     public ResponseEntity<Question> createQuestion(
             @PathVariable String offeringId,

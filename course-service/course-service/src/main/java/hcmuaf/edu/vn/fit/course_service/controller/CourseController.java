@@ -22,11 +22,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CourseController {
 
-
     private final CourseService service;
-
     private final OBEService obeService;
-
 
     @GetMapping
     public ResponseEntity<Page<CourseResponse>> getAllCourses(
@@ -38,10 +35,12 @@ public class CourseController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         return ResponseEntity.ok(service.getAllCourses(keyword, pageable));
     }
+
     @GetMapping("/offering/{offeringId}/course")
     public CourseOfferingResponse getCourseByOfferingId(@PathVariable String offeringId) {
         return service.getCourseOffering(offeringId);
     }
+
     @PostMapping
     public ResponseEntity<CourseResponse> create(@RequestBody CourseRequest request) {
         return ResponseEntity.ok(service.createCourse(request));
@@ -57,21 +56,20 @@ public class CourseController {
         service.deleteCourse(id);
         return ResponseEntity.ok("Đã xóa khóa học thành công!");
     }
+
     @PostMapping("/enroll")
     public ResponseEntity<?> enroll(
             @RequestParam(required = false) String studentId,
-
             @RequestParam String offeringId) {
         try {
-
             String targetStudentId = (studentId != null && !studentId.trim().isEmpty()) ? studentId : "";
-
             service.enroll(targetStudentId, offeringId);
             return ResponseEntity.ok("Thêm sinh viên thành công!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     @DeleteMapping("/enroll")
     public ResponseEntity<?> unenroll(
             @RequestParam String studentId,
@@ -83,16 +81,14 @@ public class CourseController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     @PostMapping(value ="/{courseId}/upload-syllabus", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<SyllabusFileDTO>> uploadSyllabus(
             @PathVariable String courseId,
             @RequestParam("files") List<MultipartFile> files) {
         try {
             System.out.println("đã vào backend upload nhiều file");
-
-
             List<SyllabusFileDTO> uploadedFiles = service.uploadSyllabus(courseId, files);
-
             return ResponseEntity.ok(uploadedFiles);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
@@ -108,41 +104,48 @@ public class CourseController {
     public ResponseEntity<List<StudentCourseResponse>> getStudentsByOffering(@PathVariable String offeringId) {
         return ResponseEntity.ok(service.getStudentsByOfferingId(offeringId));
     }
+
     @GetMapping("/offering/{offeringId}/OBE")
     public ResponseEntity<List<OBEProgressResponse>> getOBEProgress(
-            @PathVariable String offeringId
-            ,@RequestHeader("X-User-Id") String studentId
-                                                                    ) {
-        return ResponseEntity.ok(obeService.getOBEProgressByStudentId(offeringId,studentId));
+            @PathVariable String offeringId,
+            @RequestHeader("X-User-Id") String studentId) {
+        return ResponseEntity.ok(obeService.getOBEProgressByStudentId(offeringId, studentId));
     }
 
-    @PostMapping("/{courseId}/assign-lecturer")
-    public ResponseEntity<CourseOfferingResponse> assignLecturer(
+
+    @PostMapping("/{courseId}/assign-lecturers")
+    public ResponseEntity<CourseOfferingResponse> assignLecturers(
             @PathVariable String courseId,
-            @RequestBody Map<String, String> requestBody) {
+            @RequestBody Map<String, List<String>> requestBody) {
 
-        String lecturerId = requestBody.get("lecturerId");
 
-        if (lecturerId == null || lecturerId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã giảng viên (lecturerId) không được để trống!");
+        List<String> lecturerIds = requestBody.get("lecturerIds");
+
+        if (lecturerIds == null || lecturerIds.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách giảng viên (lecturerIds) không được để trống!");
         }
 
-
-        return ResponseEntity.ok(service.assignLecturer(courseId, lecturerId));
+        return ResponseEntity.ok(service.assignLecturers(courseId, lecturerIds));
     }
+
     @GetMapping("/teacher/me/dashboard")
     public ResponseEntity<List<DashboardCourseResponse>> getTeacherDashboardCourses(@RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(service.getDashboardCoursesForTeacher(userId));
     }
+
     @GetMapping("/lecturer/me/dashboard")
     public ResponseEntity<List<TeacherCourseResponse>> getTeacherCourses(
             @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(service.getTeacherCourses(userId));
     }
+
     @GetMapping("/{offeringId}/syllabusFiles")
     public ResponseEntity<List<SyllabusFileDTO>> getSyllaBusFilesInCourse(
             @PathVariable String offeringId) {
         return ResponseEntity.ok(service.getSyllabusForCourse(offeringId));
     }
-
+    @GetMapping("/department/{department}")
+    public ResponseEntity<List<CourseResponse>> getCoursesByDepartment(@PathVariable String department) {
+        return ResponseEntity.ok(service.getCoursesByDepartment(department));
+    }
 }

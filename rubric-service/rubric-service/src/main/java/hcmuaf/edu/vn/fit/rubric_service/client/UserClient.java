@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.rubric_service.client;
 
+import hcmuaf.edu.vn.fit.rubric_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,13 @@ public interface UserClient {
 
     @GetMapping("/users/batch")
     Map<String, UserResponse> getUsers(@RequestParam("ids") List<String> ids);
+
+
+    @GetMapping("/lecturer/lecturers/{lecturerId}")
+    LecturerResponse getLecturer(@PathVariable("lecturerId") String lecturerId);
+
+    @GetMapping("/lecturer/lecturers/by-user/{userId}")
+    LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
 
 
 

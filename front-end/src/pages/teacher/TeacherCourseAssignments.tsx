@@ -105,7 +105,7 @@ export default function TeacherCourseAssignments() {
             // Chuyển đổi Set thành mảng object phục vụ render UI checkbox
             const extractedClos = Array.from(uniqueCloIds).map(cloId => ({
                 id: cloId,
-                code: cloId // Lấy luôn giá trị cloId làm nhãn hiển thị (Ví dụ: "CLO1", "CLO2")
+                code: cloId
             }));
 
             setRubricClos(extractedClos);
@@ -190,9 +190,11 @@ export default function TeacherCourseAssignments() {
         const dataToSubmit = new FormData();
         dataToSubmit.append('assessmentName', formData.assessmentName);
         dataToSubmit.append('description', formData.description);
-        dataToSubmit.append('weight', formData.weight);
+        dataToSubmit.append('weight', formData.weight ? formData.weight.toString() : '0');
         dataToSubmit.append('endTime', formData.endTime);
         dataToSubmit.append('assessmentType', formData.assessmentType);
+
+        console.log(dataToSubmit);
 
         if (selectedRubric && selectedRubric.trim() !== "") {
             dataToSubmit.append('rubricId', selectedRubric);
@@ -298,14 +300,28 @@ export default function TeacherCourseAssignments() {
                         </div>
 
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-slate-700">Trọng số (Điểm %) <span className="text-red-500">*</span></label>
-                            <input type="number" name="weight" value={formData.weight} onChange={handleInputChange} required className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1" />
+                            <label className="mb-1.5 block text-sm font-medium text-slate-700">Trọng số (Điểm %) <span
+                                className="text-red-500">*</span></label>
+                            <input
+                                type="number"
+                                name="weight"
+                                value={formData.weight}
+                                onChange={handleInputChange}
+                                required
+                                min="0"
+                                max="100"
+                                step="any"
+                                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1"
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-slate-700">Chọn Rubric chấm điểm</label>
-                                <select className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm bg-white outline-none focus:border-emerald-500" value={selectedRubric} onChange={handleRubricChange}>
+                                <label className="mb-1.5 block text-sm font-medium text-slate-700">Chọn Rubric chấm
+                                    điểm</label>
+                                <select
+                                    className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm bg-white outline-none focus:border-emerald-500"
+                                    value={selectedRubric} onChange={handleRubricChange}>
                                     <option value="">-- Không sử dụng Rubric --</option>
                                     {listRubrics.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>

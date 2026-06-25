@@ -23,5 +23,8 @@ public class Department {
     @JoinColumn(name = "faculty_id")
     private Faculty faculty;
 
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
+    private List<HeadOfDepartment> headOfDepartments;
+
 
 }

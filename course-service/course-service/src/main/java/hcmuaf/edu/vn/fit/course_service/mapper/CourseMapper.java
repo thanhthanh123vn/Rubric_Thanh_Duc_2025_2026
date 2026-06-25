@@ -20,7 +20,7 @@ public interface CourseMapper {
     void updateCourseFromRequest(CourseRequest request, @MappingTarget Course course);
 
 
-    @Mapping(target = "lecturerName", ignore = true)
+
     CourseOfferingResponse toOfferingResponse(CourseOffering offering);
 
 

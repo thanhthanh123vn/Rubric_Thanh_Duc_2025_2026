@@ -236,4 +236,6 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             String courseId,
             Pageable pageable
     );
+
+    List<Course> findByDepartment(String department);
 }

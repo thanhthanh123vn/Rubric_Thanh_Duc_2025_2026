@@ -10,6 +10,7 @@ export interface Question {
     content: string;
     type: "MULTIPLE_CHOICE" | "ESSAY";
     difficulty: "EASY" | "MEDIUM" | "HARD";
+    offeringId:string;
     options: AnswerOption[];
     cloIds: any[];
 }
@@ -39,6 +40,7 @@ export const questionApi = {
         );
         return response.data;
     },
+
 
     createQuestion: (offeringId: string, data: any) =>
         courseApi.post<Question>(

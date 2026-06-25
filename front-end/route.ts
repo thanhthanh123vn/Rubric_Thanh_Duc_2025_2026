@@ -59,6 +59,18 @@ import TeacherGrading from "@/pages/teacher/TeacherGrading.tsx";
 import CourseList from "@/pages/teacher/BankQuestions.tsx";
 import StudentCourseMaterials from "@/features/course/student/components/StudentCourseMaterials.tsx";
 import MaterialDetail from "@/features/course/student/components/MaterialDetail.tsx";
+import CourseOfferingManagement from "@/pages/admin/managarCourse/CourseOfferingManagement.tsx";
+import DeanLayout from "@/pages/dean/DeanLayout.tsx";
+import DeanDashboard from "@/pages/dean/DeanDashboard.tsx";
+import RoleProtectedRoute from "@/components/RoleProtectedRoute.tsx";
+import RubricApproval from "@/pages/dean/RubricApproval.tsx";
+import FacultyReport from "@/pages/dean/FacultyReport.tsx";
+import DepartmentHeadLayout from "@/pages/department/DepartmentHeadLayout.tsx";
+import DepartmentDashboard from "@/pages/department/DepartmentDashboard.tsx";
+import DepartmentOBEAnalytics from "@/pages/department/DepartmentOBEAnalytics.tsx";
+import QuestionBankManagement from "@/pages/department/QuestionBankManagement.tsx";
+import QuestionFormPage from "@/pages/department/QuestionFormPage.tsx";
+import ListQuestionBank from "@/pages/department/ListQuestionBank.tsx";
 export const router = createBrowserRouter([
 
     {
@@ -179,6 +191,7 @@ export const router = createBrowserRouter([
             { path: "clo/:cloId", Component: CLODetail },
             { path: "rubric", Component: RubricBuilder },
             { path: "rubric/:rubricId", Component: RubricDetail },
+
             { path: "rubric-matrix", Component: RubricMatrix },
             { path: "semester", Component: SemesterManagement },
             { path: "assign", Component: CourseAssignment },
@@ -188,7 +201,7 @@ export const router = createBrowserRouter([
 
     {
         path: "/admin",
-        Component: AdminProtectedRoute,
+        Component: RoleProtectedRoute,
         children: [
 
             { index: true, Component: AdminDashboard },
@@ -204,6 +217,40 @@ export const router = createBrowserRouter([
             { path: "courses/list", Component: CourseManagement },
             { path: "courses/assessments", Component: AssessmentManagement },
 
+            {
+                path: "classes",
+                children: [
+                    { path: "list", Component: CourseOfferingManagement },
+
+            ]
+            }
         ],
-    }
+
+    },
+    {
+        path: "/dean",
+        Component: DeanLayout,
+        children: [
+            { index: true, Component: DeanDashboard },
+            { path: "rubrics", Component: RubricApproval },
+            { path: "reports", Component: FacultyReport },
+            { path: "courses", Component: CourseManagement },
+        ],
+    },
+
+    {
+        path: "/department",
+        Component: DepartmentHeadLayout,
+        children: [
+            { index: true, Component: DepartmentDashboard },
+            { path: "rubrics", Component: RubricApproval },
+            { path: "clo", Component: CLOManagement },
+            { path: "analytics", Component: DepartmentOBEAnalytics },
+            { path: "question-banks", Component: QuestionBankManagement },
+            { path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage },
+            { path: "questions/public/:bankId", Component: ListQuestionBank },
+            { path: "assessments", Component: AssessmentManagement },
+            { path: "offerings", Component: CourseOfferingManagement },
+        ],
+    },
 ]);

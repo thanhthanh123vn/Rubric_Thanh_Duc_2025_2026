@@ -15,7 +15,6 @@ import hcmuaf.edu.vn.fit.course_service.repository.CourseRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.SyllabusFileRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,7 +32,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CourseService {
 
-
     private final CourseRepository courseRepo;
     private final S3Service s3Service;
     private final UserClient userClient;
@@ -43,9 +41,9 @@ public class CourseService {
     private final SyllarbusMapper syllarbusMapper;
     private final SyllabusFileMapper syllabusFileMapper;
     private final SyllabusFileRepository syllabusFileRepository;
+
     public Page<CourseResponse> getAllCourses(String keyword, Pageable pageable) {
         Page<Course> courses;
-
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             courses = courseRepo.findByCourseNameContainingIgnoreCaseOrCourseIdContainingIgnoreCase(keyword, keyword, pageable);
@@ -53,9 +51,7 @@ public class CourseService {
             courses = courseRepo.findAll(pageable);
         }
 
-
         return courses.map(courseMapper::toCourseResponse);
-
     }
 
     public CourseResponse getCourseByOfferingId(String offeringId) {
@@ -70,36 +66,32 @@ public class CourseService {
 
         CourseOfferingResponse response = courseMapper.toResponse(offering);
 
-        try {
-            if (response.getLecturerId() != null) {
-                System.out.println(response.getLecturerId());
-                LecturerResponse lecturer =  userClient.getLecturer(response.getLecturerId());
-                System.out.println(lecturer);
-                response.setLecturerName(lecturer.getFullName());
-                response.setYear(offering.getAcademicYear());
-
-
+        // Chuyển đổi lấy danh sách Lecturer
+        List<LecturerInfo> lecturerInfos = new ArrayList<>();
+        if (offering.getLecturerIds() != null && !offering.getLecturerIds().isEmpty()) {
+            for (String lId : offering.getLecturerIds()) {
+                try {
+                    LecturerResponse lecturer = userClient.getLecturer(lId);
+                    lecturerInfos.add(new LecturerInfo(lId, lecturer.getFullName()));
+                } catch (Exception e) {
+                    lecturerInfos.add(new LecturerInfo(lId, "Unknown Lecturer"));
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.setLecturerName("Unknown Lecturer");
         }
+
+        response.setLecturers(lecturerInfos);
+        response.setYear(offering.getAcademicYear());
 
         return response;
     }
+
     public List<SyllabusFileDTO> getSyllabusForCourse(String offeringId) {
         CourseOffering offering = courseOfferingRepo.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Course Offering not found"));
         Course course = offering.getCourse();
 
-        List<SyllabusFileDTO> syllabusFiles = syllarbusMapper.toResponseList(course.getSyllabusFiles());
-
-
-
-
-        return syllabusFiles;
+        return syllarbusMapper.toResponseList(course.getSyllabusFiles());
     }
-
 
     public CourseResponse createCourse(CourseRequest request) {
         if (courseRepo.existsByCourseCode(request.getCourseCode())) {
@@ -117,7 +109,6 @@ public class CourseService {
         Course course = courseRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
 
-
         courseMapper.updateCourseFromRequest(request, course);
 
         Course updatedCourse = courseRepo.save(course);
@@ -131,49 +122,57 @@ public class CourseService {
     }
 
     public List<Enrollment> getStudentCourses(String studentId) {
-
         return enrollmentRepo.findByStudentId(studentId);
     }
 
     public List<DashboardCourseResponse> getDashboardCoursesForStudent(String studentId) {
-        List<DashboardCourseProjection> projections = enrollmentRepo.findDashboardCoursesByUserId(studentId);
+        // Lấy enrollments trực tiếp để xử lý danh sách giảng viên linh hoạt hơn
+        List<Enrollment> enrollments = enrollmentRepo.findByStudentId(studentId);
 
-        return projections.stream().map(p -> {
+        return enrollments.stream().map(enrollment -> {
+            CourseOffering offering = enrollment.getCourseOffering();
+            Course course = offering.getCourse();
+
             DashboardCourseResponse res = new DashboardCourseResponse();
-            res.setOfferingId(p.getOfferingId());
-            res.setCourseCode(p.getCourseCode());
-            res.setCourseName(p.getCourseName());
-            res.setCredits(p.getCredits());
-            res.setSemester(p.getSemester());
-            res.setAcademicYear(p.getAcademicYear());
+            res.setOfferingId(offering.getOfferingId());
+            res.setCourseCode(course != null ? course.getCourseCode() : "");
+            res.setCourseName(course != null ? course.getCourseName() : "Môn học không xác định");
+            res.setCredits(course != null ? course.getCredits() : 0);
+            res.setSemester(offering.getSemester());
+            res.setAcademicYear(offering.getAcademicYear());
 
+            // Lấy tên giảng viên đầu tiên làm đại diện cho Dashboard Student
+            String primaryLecturerName = "Unknown Lecturer";
+            if (offering.getLecturerIds() != null && !offering.getLecturerIds().isEmpty()) {
+                try {
+                    String firstLecturerId = offering.getLecturerIds().get(0);
+                    LecturerResponse lecturer = userClient.getLecturer(firstLecturerId);
 
-            try {
-                if (p.getLecturerId() != null) {
-                    LecturerResponse lecturer = userClient.getLecturer(p.getLecturerId());
-                    res.setLecturerName(lecturer.getFullName());
+                    primaryLecturerName = lecturer.getFullName();
+                    // Nếu có nhiều GV, có thể thêm đuôi "... và những người khác"
+                    if (offering.getLecturerIds().size() > 1) {
+                        primaryLecturerName += " (+ " + (offering.getLecturerIds().size() - 1) + ")";
+                    }
+                } catch (Exception e) {
+                    primaryLecturerName = "Unknown Lecturer";
                 }
-            } catch (Exception e) {
-                res.setLecturerName("Unknown Lecturer");
             }
+            res.setLecturerName(primaryLecturerName);
 
             return res;
         }).collect(Collectors.toList());
     }
 
     public Enrollment enroll(String studentId, String offeringId) {
-
         Optional<Enrollment> existing = enrollmentRepo.findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId);
         if (existing.isPresent()) {
             throw new IllegalArgumentException("Sinh viên đã đăng ký lớp học phần này!");
         }
 
-
         validateUser(studentId);
 
         CourseOffering offering = courseOfferingRepo.findById(offeringId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lớp học phần với ID: " + offeringId));
-
 
         Enrollment newEnrollment = Enrollment.builder()
                 .studentId(studentId)
@@ -182,18 +181,16 @@ public class CourseService {
 
         return enrollmentRepo.save(newEnrollment);
     }
-    public void unenroll(String studentId, String offeringId) {
 
+    public void unenroll(String studentId, String offeringId) {
         Enrollment existing = enrollmentRepo.findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId)
                 .orElseThrow(() -> new IllegalArgumentException("Sinh viên chưa đăng ký hoặc không tồn tại trong lớp học phần này!"));
 
-
         enrollmentRepo.delete(existing);
     }
+
     public List<StudentCourseResponse> getStudentsByOfferingId(String offeringId) {
-
         List<Enrollment> enrollments = enrollmentRepo.findByCourseOffering_OfferingId(offeringId);
-
 
         return enrollments.stream().map(enroll -> {
             StudentCourseResponse response = new StudentCourseResponse();
@@ -201,25 +198,21 @@ public class CourseService {
             response.setEnrollmentDate(enroll.getEnrollmentDate());
 
             try {
-
                 SinhVienResponse sv = userClient.getSinhVien(enroll.getStudentId());
                 if (sv != null) {
                     response.setFullName(sv.getFullName());
                     response.setEmail(sv.getEmail());
                 }
             } catch (Exception e) {
-
                 response.setFullName("Unknown Student");
-
             }
 
             return response;
         }).collect(Collectors.toList());
     }
+
     @Transactional
     public List<SyllabusFileDTO> uploadSyllabus(String courseId, List<MultipartFile> files) {
-
-        // 1. Tìm Course
         CourseOffering offering = courseOfferingRepo.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Học phần"));
         Course course = courseRepo.findById(offering.getCourse().getCourseId())
@@ -228,7 +221,6 @@ public class CourseService {
         if (course.getSyllabusFiles() == null) {
             course.setSyllabusFiles(new ArrayList<>());
         }
-
 
         List<CompletableFuture<SyllabusFile>> futures = files.stream()
                 .map(file -> CompletableFuture.supplyAsync(() -> {
@@ -247,67 +239,62 @@ public class CourseService {
                 }))
                 .collect(Collectors.toList());
 
-
         List<SyllabusFile> uploadedFiles = futures.stream()
                 .map(CompletableFuture::join)
                 .collect(Collectors.toList());
 
-
-
-
         uploadedFiles = syllabusFileRepository.saveAll(uploadedFiles);
-
 
         course.getSyllabusFiles().addAll(uploadedFiles);
         courseRepo.save(course);
 
-
         return syllabusFileMapper.toResponseList(uploadedFiles);
     }
+
     private void validateUser(String userId) {
         try {
             SinhVienResponse user = userClient.getSinhVien(userId);
-
             if (user == null) {
                 throw new RuntimeException("User không tồn tại");
             }
-
         } catch (Exception e) {
             throw new RuntimeException("User không hợp lệ");
         }
     }
-    public CourseOfferingResponse assignLecturer(String courseId, String lecturerId) {
 
+    // Đổi thành nhận List<String>
+    public CourseOfferingResponse assignLecturers(String courseId, List<String> lecturerIds) {
         Course course = courseRepo.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học với ID: " + courseId));
 
-
-        LecturerResponse lecturer = null;
-        try {
-            lecturer = userClient.getLecturer(lecturerId);
-            if (lecturer == null) {
-                throw new RuntimeException("Giảng viên không tồn tại trong hệ thống!");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi kết nối tới User Service hoặc không tìm thấy GV!");
-        }
-
-
-
         String courseDept = course.getDepartment();
-        String lecturerDept = lecturer.getDepartment();
 
-        if (courseDept != null && !courseDept.equalsIgnoreCase(lecturerDept)) {
-            throw new IllegalArgumentException("Giảng viên " + lecturer.getFullName() +
-                    " thuộc bộ môn [" + lecturerDept + "], không được phép dạy môn của bộ môn [" + courseDept + "]!");
+        // Validate từng GV trong mảng
+        if (lecturerIds != null && !lecturerIds.isEmpty()) {
+            for (String lId : lecturerIds) {
+                try {
+                    LecturerResponse lecturer = userClient.getLecturer(lId);
+                    if (lecturer == null) {
+                        throw new RuntimeException("Giảng viên ID " + lId + " không tồn tại trong hệ thống!");
+                    }
+
+                    String lecturerDept = lecturer.getDepartment();
+                    if (courseDept != null && !courseDept.equalsIgnoreCase(lecturerDept)) {
+                        throw new IllegalArgumentException("Giảng viên " + lecturer.getFullName() +
+                                " thuộc bộ môn [" + lecturerDept + "], không được phép dạy môn của bộ môn [" + courseDept + "]!");
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw e; // Ném thẳng lỗi rule kinh doanh ra ngoài
+                } catch (Exception e) {
+                    throw new RuntimeException("Lỗi kết nối tới User Service hoặc không tìm thấy GV ID: " + lId);
+                }
+            }
         }
-
-
 
         CourseOffering offering = new CourseOffering();
         offering.setOfferingId("CO-" + System.currentTimeMillis());
         offering.setCourse(course);
-        offering.setLecturerId(lecturerId);
+        offering.setLecturerIds(lecturerIds); // Set list GV vào
 
         CourseOffering savedOffering = courseOfferingRepo.save(offering);
         return courseMapper.toResponse(savedOffering);
@@ -315,7 +302,6 @@ public class CourseService {
 
     public List<DashboardCourseResponse> getDashboardCoursesForTeacher(String userId) {
         LecturerResponse lecturer = null;
-
 
         try {
             lecturer = userClient.getLecturerByUserId(userId);
@@ -327,12 +313,12 @@ public class CourseService {
             return List.of();
         }
 
-
-        List<CourseOffering> offerings = courseOfferingRepo.findByLecturerId(lecturer.getLecturerId());
-
+        // TÌM CÁC LỚP MÀ GV NÀY NẰM TRONG DANH SÁCH LECTURER_IDS
+        List<CourseOffering> offerings = courseOfferingRepo.findByLecturerIdsContaining(lecturer.getLecturerId());
 
         final String lecturerName = lecturer.getFullName();
         final String academicTitle = lecturer.getAcademicTitle();
+
         return offerings.stream().map(offering -> {
             DashboardCourseResponse res = new DashboardCourseResponse();
             res.setOfferingId(offering.getOfferingId());
@@ -341,23 +327,23 @@ public class CourseService {
             res.setCredits(offering.getCourse() != null ? offering.getCourse().getCredits() : 0);
 
             res.setAcademicTitle(academicTitle);
-             res.setSemester(offering.getSemester());
-             res.setAcademicYear(offering.getAcademicYear());
+            res.setSemester(offering.getSemester());
+            res.setAcademicYear(offering.getAcademicYear());
 
-            res.setLecturerName(lecturerName);
+            res.setLecturerName(lecturerName); // Hiện tên user đang login cho dashboard của họ
             return res;
         }).collect(Collectors.toList());
     }
+
     public List<TeacherCourseResponse> getTeacherCourses(String userId) {
-
-        List<CourseOffering> offerings = courseOfferingRepo.findByLecturerId(userId);
-
-
+        List<CourseOffering> offerings = new ArrayList<>();
         String lecturerName = "Unknown Lecturer";
+
         try {
             LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
             if (lecturer != null) {
-                offerings = courseOfferingRepo.findByLecturerId(lecturer.getLecturerId());
+                // TÌM CÁC LỚP MÀ GV NÀY NẰM TRONG DANH SÁCH LECTURER_IDS
+                offerings = courseOfferingRepo.findByLecturerIdsContaining(lecturer.getLecturerId());
                 lecturerName = lecturer.getFullName();
             }
         } catch (Exception e) {
@@ -366,17 +352,16 @@ public class CourseService {
 
         final String finalLecturerName = lecturerName;
 
-
         return offerings.stream().map(offering -> {
             int studentCount = enrollmentRepo.countByCourseOffering_OfferingId(offering.getOfferingId());
 
             return TeacherCourseResponse.builder()
+                    .courseId(offering.getCourse().getCourseId())
                     .offeringId(offering.getOfferingId())
                     .courseCode(offering.getCourse().getCourseCode())
                     .courseName(offering.getCourse().getCourseName())
                     .courseTitle(offering.getCourse().getCourseName())
-                    .semester(offering.getSemester())
-                    .academicYear(offering.getAcademicYear())
+                    .semester(offering.getSemester() + " " + offering.getAcademicYear()) // Sửa lại cho linh hoạt
                     .studentCount(studentCount)
                     .obeProgress(0)
                     .lecturerName(finalLecturerName)
@@ -385,5 +370,11 @@ public class CourseService {
                     .endDate(offering.getEndDate() != null ? offering.getEndDate().toString() : null)
                     .build();
         }).collect(Collectors.toList());
+    }
+    public List<CourseResponse> getCoursesByDepartment(String department) {
+        List<Course> courses = courseRepo.findByDepartment(department);
+        return courses.stream()
+                .map(courseMapper::toCourseResponse)
+                .collect(Collectors.toList());
     }
 }

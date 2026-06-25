@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-// Bổ sung import UserPlus từ lucide-react
+
 import { Search, Plus, Edit, Trash2, BookOpen, X, AlertCircle, Loader2, AlignLeft, UserPlus } from 'lucide-react';
 import { Button } from '../../../components/ui/button.tsx';
 import { Input } from '../../../components/ui/input.tsx';
@@ -13,7 +13,7 @@ import {
 import type { Course } from "@/pages/admin/api/type.ts";
 import courseService from "@/pages/admin/api/courseService.ts";
 
-// Import Modal Phân công giảng viên vừa tạo
+
 import AssignLecturerModal from './AssignLecturerModal.tsx';
 
 export default function CourseManagement() {
@@ -36,6 +36,9 @@ export default function CourseManagement() {
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState<{id: string, name: string, dept: string} | null>(null);
 
+
+    const [isOfferingsModalOpen, setIsOfferingsModalOpen] = useState(false);
+    const [selectedCourseForOfferings, setSelectedCourseForOfferings] = useState<Course | null>(null);
     const [formData, setFormData] = useState<Partial<Course>>({
         courseId: '',
         courseName: '',
@@ -131,7 +134,10 @@ export default function CourseManagement() {
         setSelectedCourse({ id: courseId, name: courseName, dept: department });
         setIsAssignModalOpen(true);
     };
-
+    const handleOpenOfferings = (course: Course) => {
+        setSelectedCourseForOfferings(course);
+        setIsOfferingsModalOpen(true);
+    };
     const getStatusBadge = (status: string) => {
         if (status === 'ACTIVE') return <span className="px-2 py-1 bg-green-100 text-green-700 text-[11px] font-semibold rounded-md uppercase">Đang mở</span>;
         return <span className="px-2 py-1 bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-md uppercase">Đã đóng</span>;

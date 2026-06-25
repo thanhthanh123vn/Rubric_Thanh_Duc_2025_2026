@@ -7,6 +7,7 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.ConversationType;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.ParticipantRole;
+import hcmuaf.edu.vn.fit.course_service.exception.BadRequestException;
 import hcmuaf.edu.vn.fit.course_service.mapper.GroupMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,7 @@ public class GroupService {
     private final ConversationRepository conversationRepository;
     private final CourseOfferingRepository courseOfferingRepository;
      private final UserClient userClient;
-    // Nếu muốn check xem user có tồn tại thật không, bạn có thể inject UserClient vào đây
-    // private final UserClient userClient;
+
 
     @Transactional
     public GroupResponse createGroup(GroupRequest req) {
@@ -53,7 +53,15 @@ public class GroupService {
         List<Participant> participants = new ArrayList<>();
 
         for (String memberId : req.getMemberIds()) {
+            if (groupRepository.existsStudentInOffering(
+                    memberId,
+                    req.getOfferingId())) {
 
+                throw new BadRequestException(
+                        "Sinh viên " + memberId +
+                                " đã thuộc một nhóm của học phần này"
+                );
+            }
             validateUser(memberId);
             Participant participant = new Participant();
             participant.setConversation(savedConversation);
