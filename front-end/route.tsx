@@ -76,6 +76,11 @@ import DepartmentOBEAnalysis from "@/pages/department/DepartmentOBE.tsx";
 import DepartmentOBE from "@/pages/department/DepartmentOBE.tsx";
 
 import AdminLayout from "@/pages/admin/AdminLayout.tsx";
+import FacultyManagement from "@/pages/admin/departments/FacultyManagement.tsx";
+import SubjectManagement from "@/pages/admin/departments/SubjectManagement.tsx";
+import SyllabusManager from "@/pages/admin/managarCourse/SyllabusManager.tsx";
+import CourseContentManager from "@/pages/admin/managarCourse/CourseContentManager.tsx";
+import CourseAssignmentsManager from "@/pages/admin/managarCourse/CourseAssignmentsManager.tsx";
 
 export const router = createBrowserRouter([
 
@@ -218,15 +223,25 @@ export const router = createBrowserRouter([
             {path: "users/create-user", Component: AdminCreateUser},
             {path: "users/list-students", Component: ListStudent},
             {path: "users/list-lecturers", Component: LecturerManagement},
+
+
+            { path: "departments/list", Component: FacultyManagement },
+            { path: "departments/subjects", Component: SubjectManagement },
+
+            {path: "rubrics/list", Component: TeacherCourseRubric},
+            {path: "rubrics/list/:id", Component: TeacherRubricDetail},
+            {path: "rubrics-matrix", Component: RubricMatrix},
             {path: "users/list-admins", Component: AdminManagement},
+            {path: "syllabus", Component: SyllabusManager},
+
+            {path: "assignments/list", Component: CourseContentManager},
+            {path: "assignments/list/:id/courseOffering-assignment", Component: CourseAssignmentsManager},
             {path: "courses/list", Component: CourseManagement},
+
             {path: "courses/assessments", Component: AssessmentManagement},
-            {
-                path: "classes",
-                children: [
-                    {path: "list", Component: CourseOfferingManagement},
-                ]
-            }
+
+            {path: "courses/assessments/list", Component: CourseOfferingManagement},
+
         ],
     },
     {

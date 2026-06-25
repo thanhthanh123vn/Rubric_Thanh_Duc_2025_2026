@@ -61,7 +61,7 @@ const menuGroups = [
                 icon: BookOpen,
                 subItems: [
                     { title: 'Danh sách khóa học', url: '/admin/courses/list', icon: List },
-                    { title: 'Quản lý Syllabus', url: '/admin/courses/assessments', icon: FileText }
+                    { title: 'Quản lý Syllabus', url: '/admin/syllabus', icon: FileText }
                 ]
             },
             {
@@ -93,7 +93,7 @@ const menuGroups = [
                 icon: TableProperties,
                 subItems: [
                     { title: 'Danh sách Rubric', url: '/admin/rubrics/list', icon: List },
-                    { title: 'Tiêu chí & Mức điểm', url: '/admin/rubrics/criteria', icon: Settings2 }
+                    { title: 'Tiêu chí & Mức điểm', url: '/admin/rubrics-matrix', icon: Settings2 }
                 ]
             },
             {

@@ -14,7 +14,7 @@ import type { User } from "@/pages/admin/api/type.ts";
 import userService from "@/pages/admin/api/userService.ts";
 
 export default function AdminManagement() {
-    // === STATES QUẢN LÝ DANH SÁCH ===
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -23,7 +23,7 @@ export default function AdminManagement() {
     const [totalPages, setTotalPages] = useState<number>(0);
     const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
-    // === STATES QUẢN LÝ MODAL (DIALOG) ===
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);

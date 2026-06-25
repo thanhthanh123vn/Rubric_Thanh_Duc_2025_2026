@@ -1,10 +1,10 @@
 package hcmuaf.edu.vn.fit.user_service.entity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 
 @Entity
 @Table(name = "faculty")
@@ -20,4 +20,17 @@ public class Faculty {
 
     @Column(name = "faculty_name", nullable = false)
     private String facultyName;
+
+
+    @Column(name = "dean_name")
+    private String deanName;
+
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dean_user_id", referencedColumnName = "user_id")
+    private User deanUser;
+
+
+    @Column(name = "email")
+    private String email;
 }
