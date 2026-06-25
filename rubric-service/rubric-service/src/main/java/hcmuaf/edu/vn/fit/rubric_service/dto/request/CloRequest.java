@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,6 +17,6 @@ public class CloRequest {
     private String description;
     private String bloomLevel;
     private String courseId;
-
+    private List<String> courseIds;
 
 }

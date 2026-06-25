@@ -6,11 +6,13 @@ import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import AssessmentDetailModal from "./AssessmentDetailModal";
 import { courseService } from "@/features/course/courseApi";
+import { groupService } from "@/features/course/student/api/GroupService.ts";
 import type { Assessment } from "@/features/course/student/assignmentSlice";
 import StudentAttendanceCheckIn from "@/features/course/student/components/StudentAttendanceCheckIn.tsx";
 import { assessmentCommentApi } from "@/features/course/student/api/AssignmentDetailPost.ts";
 import { getRubricById, type RubricDTO } from "@/api/RubricApi.ts";
-import type { AssessmentSubmission } from "@/features/course/student/api/type.ts";
+import type { AssessmentSubmission, GroupResponse, GroupTaskResponse, Type } from "@/features/course/student/api/type.ts";
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
 
 type SectionKey = "attendance" | "assignments" | "project" | "final";
 
@@ -18,6 +20,7 @@ function normalizeSection(value: string | null): SectionKey {
   if (value === "attendance" || value === "assignments" || value === "project" || value === "final") {
     return value;
   }
+
   return "attendance";
 }
 
@@ -80,6 +83,30 @@ function getAssessmentType(item: Assessment) {
   return (item.assessmentType || "").trim().toLowerCase();
 }
 
+function getTaskStatusLabel(status?: string | null) {
+  if (status === "COMPLETED") {
+    return "Xong";
+  }
+
+  if (status === "IN_PROGRESS") {
+    return "Đang làm";
+  }
+
+  return "Chưa làm";
+}
+
+function getTaskStatusClass(status?: string | null) {
+  if (status === "COMPLETED") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (status === "IN_PROGRESS") {
+    return "bg-blue-100 text-blue-700";
+  }
+
+  return "bg-slate-100 text-slate-700";
+}
+
 function isProjectAssessment(item: Assessment) {
   return getAssessmentType(item) === "project";
 }
@@ -102,6 +129,21 @@ export default function CourseEvaluations() {
   const [selectedRubric, setSelectedRubric] = useState<RubricDTO | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [projectGroups, setProjectGroups] = useState<GroupResponse[]>([]);
+  const [projectStudents, setProjectStudents] = useState<Type[]>([]);
+  const [projectTasks, setProjectTasks] = useState<GroupTaskResponse[]>([]);
+  const [activeProjectGroupId, setActiveProjectGroupId] = useState<string | null>(null);
+  const [projectLoading, setProjectLoading] = useState(false);
+
+  const { user: reduxUser } = useAppSelector((state) => state.auth);
+  let currentUser = reduxUser;
+  if (!currentUser) {
+    const localUser = localStorage.getItem("user");
+    if (localUser) {
+      currentUser = JSON.parse(localUser);
+    }
+  }
+  const currentUserId = currentUser?.studentId || currentUser?.userId || null;
 
   const activeSection = normalizeSection(searchParams.get("section"));
 
@@ -214,6 +256,65 @@ export default function CourseEvaluations() {
     fetchAssessmentDetail();
   }, [isDetailOpen, selectedAssessmentId]);
 
+  useEffect(() => {
+    if (activeSection !== "project" || !offeringId || !currentUserId) {
+      return;
+    }
+
+    const fetchProjectData = async () => {
+      try {
+        setProjectLoading(true);
+        const [studentData, groupData] = await Promise.all([
+          courseService.getStudentsByOffering(offeringId),
+          groupService.getMyGroups(offeringId, currentUserId),
+        ]);
+
+        setProjectStudents(studentData || []);
+        setProjectGroups(groupData || []);
+
+        const nextGroupId = groupData?.[0]?.id || null;
+        setActiveProjectGroupId((prev) => prev || nextGroupId);
+
+        if (nextGroupId) {
+          const tasks = await groupService.getTasks(nextGroupId);
+          setProjectTasks(tasks || []);
+        } else {
+          setProjectTasks([]);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu project:", error);
+        setProjectGroups([]);
+        setProjectStudents([]);
+        setProjectTasks([]);
+      } finally {
+        setProjectLoading(false);
+      }
+    };
+
+    fetchProjectData();
+  }, [activeSection, offeringId, currentUserId]);
+
+  useEffect(() => {
+    if (activeSection !== "project" || !activeProjectGroupId) {
+      return;
+    }
+
+    const fetchTasks = async () => {
+      try {
+        setProjectLoading(true);
+        const tasks = await groupService.getTasks(activeProjectGroupId);
+        setProjectTasks(tasks || []);
+      } catch (error) {
+        console.error("Lỗi khi tải task project:", error);
+        setProjectTasks([]);
+      } finally {
+        setProjectLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [activeProjectGroupId, activeSection]);
+
   const openDetail = (assessmentId: string) => {
     setSelectedAssessmentId(assessmentId);
     setSelectedAssessmentDetail(null);
@@ -223,6 +324,40 @@ export default function CourseEvaluations() {
 
   const closeDetail = () => {
     setIsDetailOpen(false);
+  };
+
+  const activeProjectGroup = useMemo(
+    () => projectGroups.find((group) => group.id === activeProjectGroupId) || projectGroups[0] || null,
+    [activeProjectGroupId, projectGroups],
+  );
+
+  const assignedTasks = useMemo(
+    () => projectTasks.filter((task) => task.assigneeId === currentUserId),
+    [projectTasks, currentUserId],
+  );
+
+  const getStudentName = (userId: string) => {
+    const student = projectStudents.find((item) => item.id === userId || item.studentId === userId || item.userId === userId);
+    return student?.fullName || userId;
+  };
+
+  const formatTaskDate = (dateString?: string) => {
+    if (!dateString) {
+      return "Chưa có hạn";
+    }
+
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return "Chưa có hạn";
+    }
+
+    return date.toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const renderAssessmentTable = (items: Assessment[], emptyText: string) => {
@@ -281,9 +416,9 @@ export default function CourseEvaluations() {
   const renderAssignments = () => (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
-        <SimpleCard title="Tổng bài tập" value={assignmentSummary.total} note="Số bài tập đã nộp hoặc đã có điểm trong học phần." />
-        <SimpleCard title="Đã chấm" value={assignmentSummary.graded} note="Số bài tập đã có điểm và phản hồi." />
-        <SimpleCard title="Điểm trung bình" value={assignmentSummary.average} note="Tính trên các bài đã được chấm." />
+        <SimpleCard title="Tổng bài tập" value={assignmentSummary.total} note="Bài đã nộp hoặc có điểm." />
+        <SimpleCard title="Đã chấm" value={assignmentSummary.graded} note="Bài đã có phản hồi." />
+        <SimpleCard title="Điểm trung bình" value={assignmentSummary.average} note="Trên các bài đã chấm." />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -294,25 +429,116 @@ export default function CourseEvaluations() {
 
   const renderProject = () => (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        <SimpleCard title="Tổng đồ án" value={projectSummary.total} note="Số đầu mục đồ án đã có nộp bài hoặc đã được chấm." />
-        <SimpleCard title="Đã chấm" value={projectSummary.graded} note="Số đầu mục đồ án đã có điểm và nhận xét." />
-        <SimpleCard title="Điểm trung bình" value={projectSummary.average} note="Tính trên các đầu mục đồ án đã được chấm." />
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Nhóm</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{projectGroups.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Việc của bạn</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{assignedTasks.length}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Đánh giá</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900">{projectSummary.total}</p>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Đánh giá đồ án</p>
-            <p className="mt-1 text-sm text-slate-500">Xem các cột mốc đồ án, điểm số và phản hồi chi tiết từ giảng viên.</p>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900">Nhóm</h3>
+              {activeProjectGroup && (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  {activeProjectGroup.participants?.length || 0} thành viên
+                </span>
+              )}
+            </div>
+
+            {projectLoading ? (
+              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Đang tải...</div>
+            ) : !activeProjectGroup ? (
+              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Chưa có nhóm</div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                {projectGroups.length > 1 && (
+                  <div className="flex flex-wrap gap-2">
+                    {projectGroups.map((group) => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => setActiveProjectGroupId(group.id)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                          activeProjectGroup.id === group.id
+                            ? "bg-emerald-600 text-white"
+                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {group.groupName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                  <p className="text-lg font-semibold text-slate-900">{activeProjectGroup.groupName}</p>
+                  <p className="mt-1 text-sm text-slate-600">{activeProjectGroup.topic || "Chưa có đề tài"}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {activeProjectGroup.participants?.map((participant) => (
+                    <span
+                      key={participant.id || participant.userId}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700"
+                    >
+                      {getStudentName(participant.userId)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="rounded-full bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700">
-            {projectAssessments.length > 0 ? `${projectAssessments.length} đầu mục` : "Chưa có dữ liệu"}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-900">Việc của bạn</h3>
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">{assignedTasks.length}</span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {projectLoading ? (
+                <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Đang tải...</div>
+              ) : assignedTasks.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Chưa có việc</div>
+              ) : (
+                assignedTasks.map((task) => (
+                  <div key={task.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-medium text-slate-900">{task.title}</p>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getTaskStatusClass(task.status)}`}>
+                        {getTaskStatusLabel(task.status)}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">{formatTaskDate(task.deadline)}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          {renderAssessmentTable(projectAssessments, "Chưa có đầu mục đồ án nào được nộp hoặc chấm trong học phần này.")}
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-slate-900">Đánh giá project</h3>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+              {projectAssessments.length}
+            </span>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {renderAssessmentTable(projectAssessments, "Chưa có đánh giá project.")}
+          </div>
         </div>
       </div>
     </div>
@@ -374,9 +600,7 @@ export default function CourseEvaluations() {
                 <div>
                   <p className="text-sm font-medium text-slate-500">Đánh giá học phần</p>
                   <h2 className="mt-1 text-2xl font-semibold text-slate-900">{courseTitle}</h2>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Chọn mục ở sidebar bên trái để xem chi tiết từng phần đánh giá.
-                  </p>
+                  <p className="mt-2 text-sm text-slate-500">Chọn mục ở sidebar để xem từng phần.</p>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
                   <CheckCircle2 className="h-4 w-4" />

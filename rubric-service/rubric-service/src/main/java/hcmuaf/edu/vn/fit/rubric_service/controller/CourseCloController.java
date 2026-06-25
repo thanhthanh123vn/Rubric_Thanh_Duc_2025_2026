@@ -25,4 +25,9 @@ public class CourseCloController {
     public ResponseEntity<?> createCourseClo(@RequestBody CloRequest courseCloEntity){
         return ResponseEntity.ok(courseCloService.createClo(courseCloEntity));
     }
+
+    @PutMapping("/{cloId}")
+    public ResponseEntity<?> updateCourseClo(@PathVariable String cloId, @RequestBody CloRequest courseCloEntity){
+        return ResponseEntity.ok(courseCloService.updateClo(cloId, courseCloEntity));
+    }
 }

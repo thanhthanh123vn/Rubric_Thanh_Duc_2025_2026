@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface CourseCloRepository
         extends JpaRepository<CourseCloEntity, String> {
     Optional<CourseCloEntity> findByCloCode(String cloCode);
+
+    Optional<CourseCloEntity> findByCloCodeAndCloIdNot(String cloCode, String cloId);
 }
