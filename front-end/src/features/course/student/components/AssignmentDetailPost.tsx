@@ -82,7 +82,6 @@ const AssignmentDetailPost = () => {
 
 
             const data = await assessmentCommentApi.getAssessmentDetail(assignmentId);
-            console.log(data);
 
             setAssignment(data);
             setIsSubmitted(!!data.submittedLink);
@@ -124,7 +123,7 @@ const AssignmentDetailPost = () => {
     const handleRemoveFile = () => {
         setFile(null);
     };
-console.log(rubric);
+
     const handleSubmit = async () => {
         if (!file && !link.trim()) {
             toast.error("Vui lòng đính kèm file hoặc nhập link trước khi nộp!");

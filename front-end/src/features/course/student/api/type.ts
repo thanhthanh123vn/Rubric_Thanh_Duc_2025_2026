@@ -57,6 +57,7 @@ export interface AssessmentSubmission {
     assessmentId: string;
     description: string;
     assessmentName: string;
+    assessmentType?: string | null;
     fileUrl: string | null;
     weight: number;
     endTime: string;
@@ -64,7 +65,7 @@ export interface AssessmentSubmission {
     submissionId: string | null;
     submissionAt: string | null;
 
-    calculatedScore: number;
+    calculatedScore: number | null;
     lecturerComment: string | null;
 
     rubricId: string;
@@ -74,6 +75,14 @@ export interface AssessmentSubmission {
 
     submittedFileUrl: string | null;
     submittedLink: string | null;
+    rubricDetails?: {
+        criteriaId: string | null;
+        criteriaName: string | null;
+        levelId: string | null;
+        levelName: string | null;
+        score: number | null;
+        maxScore: number | null;
+    }[];
 
 
 }
