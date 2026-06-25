@@ -15,7 +15,6 @@ export default function TeacherProjects() {
           Quản lý nhóm và tiến độ {course ? `- ${course.courseTitle}` : ''}
         </h3>
       </div>
-
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">

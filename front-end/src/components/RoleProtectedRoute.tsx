@@ -6,7 +6,8 @@ interface RoleProtectedRouteProps {
     allowedRoles: string[];
 }
 
-const RoleProtectedRoute = ({ allowedRoles }: RoleProtectedRouteProps) => {
+
+const RoleProtectedRoute = ({ allowedRoles = [] }: RoleProtectedRouteProps) => {
     const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
 
@@ -27,7 +28,6 @@ const RoleProtectedRoute = ({ allowedRoles }: RoleProtectedRouteProps) => {
             default: return <Navigate to="/dashboard" replace />;
         }
     }
-
 
     return <Outlet />;
 };

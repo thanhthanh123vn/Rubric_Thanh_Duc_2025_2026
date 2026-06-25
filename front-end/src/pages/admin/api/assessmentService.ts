@@ -13,9 +13,13 @@ export interface Assessment {
 
 export const assessmentService = {
     getAllAssessments: async (page: number, size: number, keyword: string) => {
-        const response = await courseApi.get(`/assessments`, {
+        const response = await courseApi.get(`/offerings/{offeringId}/assessments`, {
             params: { page, size, keyword }
         });
+        return response.data;
+    },
+    getAssessmentById: async (assessmentId: string) => {
+        const response = await courseApi.get(`/assessments/${assessmentId}`);
         return response.data;
     },
     createAssessment: async (data: Partial<Assessment>) => {

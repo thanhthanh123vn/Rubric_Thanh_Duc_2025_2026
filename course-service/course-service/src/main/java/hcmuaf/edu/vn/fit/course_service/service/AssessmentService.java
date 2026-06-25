@@ -10,6 +10,7 @@ import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.GradeStatus;
 import hcmuaf.edu.vn.fit.course_service.mapper.AssessmentMapper;
 import hcmuaf.edu.vn.fit.course_service.mapper.CommentMapper;
+import hcmuaf.edu.vn.fit.course_service.mapper.CourseMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.*;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -34,7 +35,7 @@ public class AssessmentService {
     private final AssessmentRepository assessmentRepository;
     private final  EnrollmentRepository enrollmentRepository;
     private final GradingClient gradingClient;
-
+    private final CourseMapper courseMapper;
 
     private  final S3Service s3Service;
     @Enumerated(EnumType.STRING)
@@ -500,6 +501,26 @@ public class AssessmentService {
                 .orElseThrow(() -> new RuntimeException("Bạn chưa nộp bài này!"));
 
         submissionRepository.delete(submission);
+    }
+    public List<CourseOfferingResponse> getOfferingsByCourseId(String courseId) {
+        List<CourseOffering> offerings = courseOfferingRepository.findByCourse_CourseId(courseId);
+        CourseResponse courseResponse = courseMapper.toCourseResponse(offerings.getFirst().getCourse());
+
+
+
+        return offerings.stream().map(offering -> {
+            CourseOfferingResponse response = new CourseOfferingResponse();
+            response.setOfferingId(offering.getOfferingId());
+             response.setOfferingName(offering.getOfferingName());
+             response.setCourse(courseResponse);
+
+
+
+
+
+
+            return response;
+        }).collect(Collectors.toList());
     }
 
 }
