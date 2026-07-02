@@ -9,6 +9,11 @@ const courseService = {
         });
         return response.data;
     },
+    getAllCourseNoPage: async () => {
+        const response = await courseApi.get(`/courses/all`)
+        return response.data;
+
+    },
     createCourse: async (data: Partial<Course>) => {
         const response = await courseApi.post(`/courses`, data);
         return response.data;

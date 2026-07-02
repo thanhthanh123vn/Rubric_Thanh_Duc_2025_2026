@@ -130,8 +130,8 @@ export default function SubjectManagement() {
                         <TableRow>
                             <TableHead className="pl-6 w-[130px]">Mã BM</TableHead>
                             <TableHead>Tên Bộ môn</TableHead>
-                            <TableHead>Trực thuộc Khoa</TableHead>
-                            <TableHead>Trưởng Bộ môn</TableHead>
+                            <TableHead>Mã Khoa</TableHead>
+                            <TableHead>Khoa</TableHead>
                             <TableHead className="text-right pr-6">Thao tác</TableHead>
                         </TableRow>
                     </TableHeader>

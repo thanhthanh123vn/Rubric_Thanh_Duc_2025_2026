@@ -11,6 +11,8 @@ import { questionApi } from "@/api/questionApi.ts";
 import { toast } from 'sonner';
 import { getAllClo } from "@/features/rubric/rubricApi.ts";
 import {questionBankApi} from "@/api/QuestionBankApi.ts";
+import type {Course} from "@/pages/admin/api/type.ts";
+import courseService from "@/pages/admin/api/courseService.ts";
 
 interface AnswerOption {
   content: string;
@@ -32,7 +34,7 @@ interface Question {
   type: 'MULTIPLE_CHOICE' | 'ESSAY';
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   options: AnswerOption[];
-  cloIds: any[];
+  cloIds: string[];
 }
 
 export default function TeacherQuestionBank() {
@@ -52,12 +54,15 @@ export default function TeacherQuestionBank() {
   // States cho Modal & Upload
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [courses, setCourses] = useState<Course[]>([]);
 
   // States cho Form Thêm/Sửa
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    cloId: [] as string[],
+    cloIds: [] as string[],
     topicId: '',
     difficulty: 'MEDIUM',
     type: 'ESSAY',
@@ -72,12 +77,17 @@ export default function TeacherQuestionBank() {
   useEffect(() => {
     const fetchBank = async () => {
       try {
-        const data = await questionBankApi.getQuestionBanksByCourse(id);
+        const [questionsAll, courseAll] = await Promise.all([
+          questionBankApi.getQuestionBanksByCourse(id),
+          courseService.getAllCourseNoPage(),
+        ]);
 
-        const currentBank = data.find(
+        const currentBank = questionsAll.find(
             (b: any) => b.id === bankId
         );
+
         setBank(currentBank);
+        setCourses(courseAll);
       } catch (error) {
         console.error(error);
       }
@@ -87,7 +97,7 @@ export default function TeacherQuestionBank() {
       fetchBank();
     }
   }, [bankId]);
-  // Lấy danh sách câu hỏi
+
   const fetchQuestions = async () => {
     try {
       const data = await questionApi.getQuestionsByCourseIdAndBankID(id,bankId);
@@ -122,7 +132,7 @@ export default function TeacherQuestionBank() {
   useEffect(() => {
     if (!isModalOpen) {
       setEditingQuestionId(null);
-      setFormData({ cloId:[], topicId: '', difficulty: 'MEDIUM', type: 'ESSAY', content: '' });
+      setFormData({ cloIds:[], topicId: '', difficulty: 'MEDIUM', type: 'ESSAY', content: '' });
       setOptions([
         { content: '', isCorrect: true }, { content: '', isCorrect: false },
         { content: '', isCorrect: false }, { content: '', isCorrect: false },
@@ -135,7 +145,7 @@ export default function TeacherQuestionBank() {
     setEditingQuestionId(question.id);
     console.log(question);
     setFormData({
-      cloId: question.cloIds?.[0]?.cloCode || '',
+      cloIds: question.cloIds || '',
       topicId: 'T1', // Tuỳ chỉnh theo logic project của bạn
       difficulty: question.difficulty,
       type: question.type,
@@ -199,7 +209,7 @@ export default function TeacherQuestionBank() {
 
   // Lưu Câu Hỏi (Tạo mới & Cập nhật)
   const handleSaveQuestion = async () => {
-    if (!formData.content || !formData.cloId) {
+    if (!formData.content || !formData.cloIds) {
       toast.error("Vui lòng nhập nội dung câu hỏi và chọn Chuẩn đầu ra!");
       return;
     }
@@ -217,7 +227,7 @@ export default function TeacherQuestionBank() {
         toast.success("Đã cập nhật câu hỏi thành công!");
       } else {
         // Create
-        await questionApi.createQuestion(id, payload);
+        await questionApi.createQuestionToBank(id, bankId,payload);
 
         toast.success("Đã tạo câu hỏi mới thành công!");
       }
@@ -319,17 +329,17 @@ export default function TeacherQuestionBank() {
                               <input
                                   type="checkbox"
                                   className="h-4 w-4"
-                                  checked={formData.cloId.includes(clo.cloId)}
+                                  checked={formData.cloIds.includes(clo.cloId)}
                                   onChange={(e) => {
                                     if (e.target.checked) {
                                       setFormData({
                                         ...formData,
-                                        cloId: [...formData.cloId, clo.cloId],
+                                        cloIds: [...formData.cloIds, clo.cloId],
                                       });
                                     } else {
                                       setFormData({
                                         ...formData,
-                                        cloId: formData.cloId.filter(
+                                        cloIds: formData.cloIds.filter(
                                             (id) => id !== clo.cloId
                                         ),
                                       });
@@ -357,11 +367,22 @@ export default function TeacherQuestionBank() {
                       <select
                           className="w-full h-10 px-3 py-2 rounded-md border border-slate-300 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all bg-white cursor-pointer"
                           value={formData.topicId}
-                          onChange={(e) => setFormData({...formData, topicId: e.target.value})}
+                          onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                topicId: e.target.value,
+                              })
+                          }
                       >
-                        <option value="" disabled hidden>-- Chọn chủ đề --</option>
-                        <option value="T1">JSP, Servlet</option>
-                        <option value="T2">Spring Boot</option>
+                        <option value="" disabled hidden>
+                          -- Chọn khóa học --
+                        </option>
+
+                        {courses.map((course: any) => (
+                            <option key={course.courseId} value={course.courseId}>
+                              {course.courseName}
+                            </option>
+                        ))}
                       </select>
                     </div>
 
@@ -557,12 +578,20 @@ export default function TeacherQuestionBank() {
                         </span>
                             </TableCell>
                             <TableCell>
-                              <div className="flex flex-wrap gap-1.5">
-                                {q.cloIds && q.cloIds.length > 0 ? q.cloIds.map((clo: any) => (
-                                    <Badge key={clo.id} variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 font-medium">
-                                      {clo.cloCode}
-                                    </Badge>
-                                )) : (
+                              <div className="flex flex-wrap gap-1">
+                                {q.cloIds && q.cloIds.length > 0 ? (
+                                    q.cloIds.map((cloIdStr) => {
+                                      // Tìm CLO tương ứng trong danh sách tổng 'clos' dựa vào cloId hoặc cloCode
+                                      const matchedClo = cloItems.find(
+                                          (c) => c.cloId === cloIdStr || c.cloCode === cloIdStr
+                                      );
+                                      return (
+                                          <Badge key={cloIdStr} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                                            {matchedClo ? matchedClo.cloCode : cloIdStr}
+                                          </Badge>
+                                      );
+                                    })
+                                ) : (
                                     <span className="text-xs text-slate-400 italic">--</span>
                                 )}
                               </div>

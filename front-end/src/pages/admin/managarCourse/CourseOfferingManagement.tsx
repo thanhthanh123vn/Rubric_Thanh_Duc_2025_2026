@@ -26,6 +26,7 @@ export default function CourseOfferingManagement() {
     const isDean = userRole === 'DEAN';
     const isHOD = userRole === 'HEAD_OF_DEPARTMENT';
 
+
     const [offerings, setOfferings] = useState<CourseOfferingResponse[]>([]);
     const [filteredOfferings, setFilteredOfferings] = useState<CourseOfferingResponse[]>([]);
     const [lecturers, setLecturers] = useState<LecturerOption[]>([]);

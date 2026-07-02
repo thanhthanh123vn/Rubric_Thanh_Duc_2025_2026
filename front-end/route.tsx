@@ -240,7 +240,7 @@ export const router = createBrowserRouter([
 
             {path: "courses/assessments", Component: AssessmentManagement},
 
-            {path: "courses/assessments/list", Component: CourseOfferingManagement},
+            {path: "classes/list", Component: CourseOfferingManagement},
 
         ],
     },
@@ -265,8 +265,8 @@ export const router = createBrowserRouter([
             {path: "obe", Component: DepartmentOBE},
             {path: "obe/:id/analytics", Component: TeacherOBEAnalytics},
             {path: "question-banks", Component: QuestionBankManagement},
-            {path: "question-banks/:offeringId/form-question/:bankId", Component: QuestionFormPage},
-            {path: "questions/public/:bankId", Component: ListQuestionBank},
+            {path: "question-banks/:id/form-question/:bankId", Component: TeacherQuestionBank},
+            {path: "questions/public/:id", Component: ListQuestionBank},
             {path: "assessments", Component: AssessmentManagement},
             {path: "assessments/:id", Component: AssessmentDetailAdmin},
             {path: "offerings", Component: CourseOfferingManagement},

@@ -53,7 +53,13 @@ public class CourseService {
 
         return courses.map(courseMapper::toCourseResponse);
     }
+    public List<CourseResponse> getAllCoursesNoPage() {
+        List<Course> courses =  courseRepo.findAll();
 
+        return courses.stream()
+                .map(courseMapper::toCourseResponse)
+                .toList();
+    }
     public CourseResponse getCourseByOfferingId(String offeringId) {
         CourseOffering offering = courseOfferingRepo.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));

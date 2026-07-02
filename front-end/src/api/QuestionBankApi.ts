@@ -61,6 +61,10 @@ export const questionBankApi = {
     deleteQuestionBank: async (id: string) => {
         const response = await courseApi.delete(`/question-banks/${id}`);
         return response.data;
+    },
+    getPublicDepartmentBanks:async(offeringId: string) =>{
+        const response = await courseApi.get(`/question-banks/department/public/${offeringId}`);
+        return response.data;
     }
 
 };
