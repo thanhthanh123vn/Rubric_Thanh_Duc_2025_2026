@@ -21,7 +21,7 @@ public class QuestionBank {
 
 
     private String offeringId;
-
+    private String courseId;
     private String lecturerId;
 
     @Builder.Default

@@ -27,8 +27,8 @@ public class CourseOffering {
     private Course course;
 
 
-//    @Column(name = "lecturer_id")
-//    private String lecturerId;
+    @Column(name = "lecturer_id")
+    private String lecturerId;
     @Column(name = "semester", length = 50)
     private String semester;
 

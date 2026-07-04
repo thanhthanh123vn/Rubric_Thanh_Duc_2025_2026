@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionBankRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionBankResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionResponse;
 import hcmuaf.edu.vn.fit.course_service.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -67,19 +68,54 @@ public class QuestionBankController {
     public ResponseEntity<?> getBanksByCourse(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionBankService.getBanksByOfferingId(offeringId));
     }
+
     @GetMapping("/course/dep/{offeringId}")
     public ResponseEntity<?> getBanksByCourseForDep(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionBankService.getBanksByOfferingIdForDep(offeringId));
     }
+
     @GetMapping("/all")
-    public ResponseEntity<?> getAllQuestionBanks( @RequestHeader("X-User-Id") String userId) {
+    public ResponseEntity<?> getAllQuestionBanks(@RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(questionBankService.getAllQuestionBanks(userId));
     }
+
     @GetMapping("/lecturer")
     public ResponseEntity<List<QuestionBankResponse>> getQuestionsByLecturerUserId(@RequestHeader("X-User-Id") String userId) {
 
         List<QuestionBankResponse> questions = questionBankService.getQuestionsByLecturerUserId(userId);
         return ResponseEntity.ok(questions);
+    }
+
+    @GetMapping("/lecturer/me")
+    public ResponseEntity<?> getMyBanks(@RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(questionBankService.getBanksByLecturer(resolveLecturerId(userId)));
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<?> getPublicBanks(@RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(questionBankService.getPublicBanks(resolveLecturerId(userId)));
+    }
+
+    @GetMapping("/department/public/{offeringId}")
+    public ResponseEntity<?> getPublicDepartmentBanks(@RequestHeader("X-User-Id") String userId,
+                                                     @PathVariable String offeringId) {
+        if (userId == null) {
+            return ResponseEntity.status(403).body(null);
+        }
+        List<QuestionResponse> publicBanks = questionBankService.getPublicQuestionBanks(offeringId);
+        if (publicBanks.isEmpty()) {
+            return ResponseEntity.status(404).body(null);
+        }
+
+
+        return ResponseEntity.ok(publicBanks);
+    }
+
+    @PutMapping("/department/public")
+    public ResponseEntity<?> updatePublicDepartmentBanks(@RequestHeader("X-User-Id") String userId,
+                                                         String bankId, boolean isPublic) {
+        if (userId == null) return ResponseEntity.status(403).body(null);
+        return ResponseEntity.ok(questionBankService.updatePublicStatus(bankId, isPublic));
     }
 
 }

@@ -63,7 +63,9 @@ public class QuestionService {
                     .toList();
 
             question.setOptions(options);
+
         }
+
 
         if (request.getCloIds() != null) {
             question.setCloIds(request.getCloIds());
@@ -131,12 +133,12 @@ public class QuestionService {
 
     @Transactional
 
-    public List<Question> importQuestionsFromExcel(String offeringId, MultipartFile file) {
+
+    public List<Question> importQuestionsFromExcel(String offeringId, String bankId, MultipartFile file) {
 
         List<Question> questions = new ArrayList<>();
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Học phần"));
-
 
         String actualCourseId = offering.getCourse().getCourseId();
 
@@ -146,86 +148,53 @@ public class QuestionService {
                 .collect(Collectors.toSet());
 
         DataFormatter dataFormatter = new DataFormatter();
-
-
         int rowNumber = 0;
 
         try (InputStream is = file.getInputStream();
-
              Workbook workbook = new XSSFWorkbook(is)) {
 
-
             Sheet sheet = workbook.getSheetAt(0);
-
             Iterator<Row> rows = sheet.iterator();
-
-
             rowNumber = 0;
 
             while (rows.hasNext()) {
-
                 Row currentRow = rows.next();
 
                 // Bỏ qua dòng tiêu đề (header)
-
                 if (rowNumber == 0) {
-
                     rowNumber++;
-
                     continue;
-
                 }
-
 
                 // Kiểm tra dòng trống (nếu cột Nội dung trống thì bỏ qua)
-
                 Cell contentCell = currentRow.getCell(1);
-
                 if (contentCell == null || dataFormatter.formatCellValue(contentCell).trim().isEmpty()) {
-
                     continue;
-
                 }
 
-
-                    // Đọc dữ liệu cơ bản
-
+                // Đọc dữ liệu cơ bản
                 String content = dataFormatter.formatCellValue(contentCell).trim();
-
-
 
                 if (questionRepository.existsByContentAndOfferingId(content, offeringId)) {
                     rowNumber++;
                     continue;
                 }
-                String typeStr = dataFormatter.formatCellValue(currentRow.getCell(2));
 
+                String typeStr = dataFormatter.formatCellValue(currentRow.getCell(2));
                 String difficultyStr = dataFormatter.formatCellValue(currentRow.getCell(3));
 
-
                 Question question = Question.builder()
-
                         .content(content)
-
                         .type(QuestionType.valueOf(typeStr.toUpperCase()))
-
                         .difficulty(Difficulty.valueOf(difficultyStr.toUpperCase()))
-
                         .offeringId(offeringId)
-
                         .build();
 
-
-
-                // [MỚI Thêm] LOGIC ĐỌC VÀ MAP CLO (CỘT E - INDEX 4)
-
-
-
+                // LOGIC ĐỌC VÀ MAP CLO (CỘT E - INDEX 4)
                 Cell cloCell = currentRow.getCell(4);
                 String cloCodesStr = dataFormatter.formatCellValue(cloCell).trim();
 
                 if (cloCodesStr != null && !cloCodesStr.trim().isEmpty()) {
-
                     List<String> cloCodes = Arrays.stream(cloCodesStr.split(","))
                             .map(String::trim)
                             .map(String::toLowerCase)
@@ -233,86 +202,66 @@ public class QuestionService {
                             .collect(Collectors.toList());
 
                     if (!cloCodes.isEmpty()) {
-
-
-
-
-
-
-
-
-                            List<CourseCLO> mappedCLOs = courseCLORepository.findByCourseIdAndCloCodesIgnoreCase(actualCourseId, cloCodes);
-                            System.out.println("CLO Codes từ Excel: " + cloCodes);
-                            System.out.println("Mapped CLOs size: " + mappedCLOs.size());
-                            mappedCLOs.forEach(c -> System.out.println(c.getCloId()));
+                        List<CourseCLO> mappedCLOs = courseCLORepository.findByCourseIdAndCloCodesIgnoreCase(actualCourseId, cloCodes);
                         List<String> cloIds = mappedCLOs.stream()
                                 .map(CourseCLO::getCloId)
                                 .toList();
-
                         question.setCloIds(cloIds);
-
                     }
                 }
 
-
-
-
-                    // Đọc các đáp án A, B, C, D (Nếu là câu hỏi trắc nghiệm)
-
+                // Đọc các đáp án A, B, C, D (Nếu là câu hỏi trắc nghiệm)
                 if (question.getType() == QuestionType.MULTIPLE_CHOICE) {
-
                     String correctAnswer = dataFormatter.formatCellValue(currentRow.getCell(9)).trim();
-
-
                     String[] optionLabels = {"A", "B", "C", "D"};
 
                     for (int i = 0; i < 4; i++) {
-
                         Cell optionCell = currentRow.getCell(5 + i);
-
                         if (optionCell != null) {
-
                             String optContent = dataFormatter.formatCellValue(optionCell);
-
                             if (!optContent.trim().isEmpty()) {
-
                                 boolean isCorrect = optionLabels[i].equalsIgnoreCase(correctAnswer);
-
-
                                 question.getOptions().add(
                                         AnswerOption.builder()
                                                 .content(optContent)
                                                 .correct(isCorrect)
                                                 .build()
                                 );
-
                             }
-
                         }
-
                     }
-
                 }
 
                 question.setOfferingId(offeringId);
-
                 questions.add(question);
-
-
                 rowNumber++;
-
             }
 
+            // 1. Lưu toàn bộ câu hỏi vào Database
+            List<Question> savedQuestions = questionRepository.saveAll(questions);
 
-            return questionRepository.saveAll(questions);
+            // 2. Chèn thông tin ID các câu hỏi này xuống QuestionBank
+            if (bankId != null && !bankId.isEmpty()) {
+                QuestionBank bank = questionBankRepository.findByIdAndOfferingId(bankId, offeringId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy Question Bank"));
 
+                if (bank.getQuestionIds() == null) {
+                    bank.setQuestionIds(new ArrayList<>());
+                }
+
+                List<String> savedQuestionIds = savedQuestions.stream()
+                        .map(Question::getId)
+                        .collect(Collectors.toList());
+
+                bank.getQuestionIds().addAll(savedQuestionIds);
+                questionBankRepository.save(bank);
+            }
+
+            return savedQuestions;
 
         } catch (Exception e) {
-
             throw new RuntimeException("Lỗi khi đọc file Excel tại dòng " + rowNumber + ": " + e.getMessage());
-
         }
-
     }
     @Transactional
     public Question updateQuestion(String id, QuestionRequest request) {
@@ -441,6 +390,7 @@ public class QuestionService {
         List<Question> questions =
                 importQuestionsFromExcel(
                         offeringId,
+                        bankId,
                         file
                 );
 

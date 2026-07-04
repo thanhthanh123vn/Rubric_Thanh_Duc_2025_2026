@@ -32,7 +32,7 @@ export default function AdminManagement() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
-    // Đổi mặc định role thành ADMIN
+
     const [formData, setFormData] = useState({
         Id: '',
         username: '',

@@ -32,7 +32,7 @@ interface Question {
     type: 'MULTIPLE_CHOICE' | 'ESSAY';
     difficulty: 'EASY' | 'MEDIUM' | 'HARD';
     options: AnswerOption[];
-    cloIds: any[];
+    cloIds: string[];
 }
 
 export default function QuestionFormBank() {
@@ -138,7 +138,7 @@ export default function QuestionFormBank() {
         setEditingQuestionId(question.id);
         console.log(question);
         setFormData({
-            cloId: question.cloIds?.[0]?.cloCode || '',
+            cloId: question.cloIds || '',
             topicId: 'T1', // Tuỳ chỉnh theo logic project của bạn
             difficulty: question.difficulty,
             type: question.type,
@@ -220,7 +220,8 @@ export default function QuestionFormBank() {
                 toast.success("Đã cập nhật câu hỏi thành công!");
             } else {
                 // Create
-                await questionApi.createQuestion(offeringId, payload);
+                console.log(payload);
+                await questionApi.createQuestionToBank(offeringId,bankId, payload);
 
                 toast.success("Đã tạo câu hỏi mới thành công!");
             }
@@ -341,13 +342,13 @@ export default function QuestionFormBank() {
                                                     />
 
                                                     <span className="text-sm">
-          <span className="font-medium">{clo.cloCode}</span>
+                                              <span className="font-medium">{clo.cloCode}</span>
                                                         {clo.description && (
-                                                            <span className="text-slate-500 ml-1">
-              - {clo.description}
-            </span>
+                                              <span className="text-slate-500 ml-1">
+                                                  - {clo.description}
+                                                </span>
                                                         )}
-        </span>
+                                                </span>
                                                 </label>
                                             ))}
                                         </div>
@@ -560,12 +561,20 @@ export default function QuestionFormBank() {
                         </span>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {q.cloIds && q.cloIds.length > 0 ? q.cloIds.map((clo: any) => (
-                                                        <Badge key={clo.id} variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 font-medium">
-                                                            {clo.cloCode}
-                                                        </Badge>
-                                                    )) : (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {q.cloIds && q.cloIds.length > 0 ? (
+                                                        q.cloIds.map((cloIdStr) => {
+
+                                                            const matchedClo = cloItems.find(
+                                                                (c) => c.cloId === cloIdStr || c.cloCode === cloIdStr
+                                                            );
+                                                            return (
+                                                                <Badge key={cloIdStr} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                                                                    {matchedClo ? matchedClo.cloCode : cloIdStr}
+                                                                </Badge>
+                                                            );
+                                                        })
+                                                    ) : (
                                                         <span className="text-xs text-slate-400 italic">--</span>
                                                     )}
                                                 </div>

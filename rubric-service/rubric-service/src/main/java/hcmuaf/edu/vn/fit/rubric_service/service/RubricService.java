@@ -237,7 +237,7 @@ public class RubricService {
 
             return rubricRepository.findByStatus(status);
 
-        } else if ("HEAD_OF_DEPARTMENT".equals(user.getRole()) || "DEPARTMENT_HEAD".equals(user.getRole())) {
+        } else if ("HEAD_OF_DEPARTMENT".equals(user.getRole())) {
 
             LecturerResponse lecturerResponse = userClient.getLecturerByUserId(userId);
             String department = lecturerResponse.getDepartment();
@@ -245,7 +245,7 @@ public class RubricService {
 
             List<String> departmentCourseIds = courseClient.getCoursesByDepartment(department)
                     .stream()
-                    .map(course -> course.getCourseId())
+                    .map(CourseDto::getCourseId)
                     .collect(Collectors.toList());
 
             if (departmentCourseIds.isEmpty()) return List.of();

@@ -35,7 +35,11 @@ public class CourseController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         return ResponseEntity.ok(service.getAllCourses(keyword, pageable));
     }
+    @GetMapping("/all")
+    public ResponseEntity<List<CourseResponse>> getAllCourses() {
 
+        return ResponseEntity.ok(service.getAllCoursesNoPage());
+    }
     @GetMapping("/offering/{offeringId}/course")
     public CourseOfferingResponse getCourseByOfferingId(@PathVariable String offeringId) {
         return service.getCourseOffering(offeringId);
