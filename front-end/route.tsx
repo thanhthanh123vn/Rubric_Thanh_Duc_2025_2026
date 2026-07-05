@@ -213,38 +213,38 @@ export const router = createBrowserRouter([
 
     {
         path: "/admin",
-        Component: AdminLayout,
-        element: <RoleProtectedRoute allowedRoles={["ADMIN"]}/>,
+        element: <RoleProtectedRoute allowedRoles={["ADMIN"]} />,
         children: [
-            {index: true, Component: AdminDashboard},
             {
-                path: "users/list-users",
-                Component: UserManagement,
+                element: <AdminLayout />,
+                children: [
+                    {index: true, Component: AdminDashboard},
+                    {
+                        path: "users/list-users",
+                        Component: UserManagement,
+                    },
+                    {path: "users/create-user", Component: AdminCreateUser},
+                    {path: "users/list-students", Component: ListStudent},
+                    {path: "users/list-lecturers", Component: LecturerManagement},
+
+                    { path: "departments/list", Component: FacultyManagement },
+                    { path: "departments/subjects", Component: SubjectManagement },
+
+                    {path: "rubrics/list", Component: TeacherCourseRubric},
+                    {path: "rubrics/list/:id", Component: TeacherRubricDetail},
+                    {path: "rubrics-matrix", Component: RubricMatrix},
+                    {path: "users/list-admins", Component: AdminManagement},
+                    {path: "syllabus", Component: SyllabusManager},
+
+                    {path: "assignments/list", Component: CourseContentManager},
+                    {path: "assignments/list/:id/courseOffering-assignment", Component: CourseAssignmentsManager},
+                    {path: "courses/list", Component: CourseManagement},
+
+                    {path: "courses/assessments", Component: AssessmentManagement},
+
+                    {path: "classes/list", Component: CourseOfferingManagement},
+                ],
             },
-            {path: "users/create-user", Component: AdminCreateUser},
-            {path: "users/list-students", Component: ListStudent},
-            {path: "users/list-lecturers", Component: LecturerManagement},
-
-
-            { path: "departments/list", Component: FacultyManagement },
-            { path: "departments/subjects", Component: SubjectManagement },
-
-            {path: "rubrics/list", Component: TeacherCourseRubric},
-            {path: "rubrics/list/:id", Component: TeacherRubricDetail},
-            {path: "rubrics-matrix", Component: RubricMatrix},
-            {path: "users/list-admins", Component: AdminManagement},
-            {path: "syllabus", Component: SyllabusManager},
-
-            {path: "assignments/list", Component: CourseContentManager},
-            {path: "assignments/list/:id/courseOffering-assignment", Component: CourseAssignmentsManager},
-            {path: "courses/list", Component: CourseManagement},
-
-            {path: "courses/assessments", Component: AssessmentManagement},
-
-            {path: "classes/list", Component: CourseOfferingManagement},
-
-            ]
-            }
         ],
 
     },
