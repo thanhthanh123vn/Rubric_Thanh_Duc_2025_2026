@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -31,9 +32,10 @@ public class StudentAttendanceController {
     @PostMapping("/check-in")
     public ResponseEntity<AttendanceCheckInResponse> checkIn(
             @RequestBody StudentAttendanceCheckInRequest request,
-            @RequestHeader(value = "X-User-Id", required = false) String currentStudentId
+            @RequestHeader(value = "X-User-Id", required = false) String currentStudentId,
+            HttpServletRequest httpServletRequest
     ) {
-        AttendanceCheckInResponse response = studentAttendanceService.checkIn(currentStudentId, request);
+        AttendanceCheckInResponse response = studentAttendanceService.checkIn(currentStudentId, request, httpServletRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

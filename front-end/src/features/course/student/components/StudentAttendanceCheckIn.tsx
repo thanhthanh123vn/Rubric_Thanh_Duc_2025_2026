@@ -9,6 +9,7 @@ import {
   type AttendanceHistoryResponse,
   type AttendanceSessionSummaryResponse,
 } from "@/api/attendanceApi.ts";
+import { getBrowserId } from "@/utils/browserId.ts";
 
 type StudentAttendanceCheckInProps = {
   offeringId: string;
@@ -136,6 +137,7 @@ export default function StudentAttendanceCheckIn({
         qrContent: qrContent.trim(),
         latitude: location.latitude,
         longitude: location.longitude,
+        browserId: getBrowserId(),
       });
       setCheckInResult(response);
       setQrContent("");

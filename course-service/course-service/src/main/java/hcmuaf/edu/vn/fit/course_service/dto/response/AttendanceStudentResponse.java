@@ -24,6 +24,9 @@ public class AttendanceStudentResponse {
     private Double longitude;
     private Double distance;
     private Double sessionRadius;
+    private String browserId;
+    private String userAgent;
+    private String ipAddress;
     private Boolean suspicious;
     private String suspiciousReason;
     private String note;

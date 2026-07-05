@@ -20,6 +20,11 @@ export const groupService = {
         return response.data;
     },
 
+    getGroupsByOffering: async (offeringId: string): Promise<GroupResponse[]> => {
+        const response = await courseApi.get(`/group/offering/${offeringId}`);
+        return response.data;
+    },
+
 
     addMember: async (groupId: string, memberId: string): Promise<GroupResponse> => {
         const response = await courseApi.post(`/group/${groupId}/members?memberId=${memberId}`);

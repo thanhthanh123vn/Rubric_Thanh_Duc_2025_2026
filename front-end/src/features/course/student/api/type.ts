@@ -39,7 +39,8 @@ export interface GroupTaskResponse {
     id: string;
     title: string;
     description: string;
-    assigneeId: string;
+    assigneeId: string | null;
+    assignToGroup?: boolean;
     assignerId: string;
     status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
     deadline: string;
@@ -50,7 +51,8 @@ export interface CreateTaskRequest {
     groupId: string;
     title: string;
     description: string;
-    assigneeId: string;
+    assigneeId?: string;
+    assignToGroup?: boolean;
     deadline?: string;
 }
 export interface AssessmentSubmission {

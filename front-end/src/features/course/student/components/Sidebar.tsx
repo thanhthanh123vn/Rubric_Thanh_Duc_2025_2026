@@ -56,7 +56,6 @@ export default function ClassSidebar({ isOpen = false, onClose }: SidebarProps) 
           { key: "attendance", label: "Điểm danh", path: "evaluations", search: "?section=attendance", icon: TimerReset },
           { key: "assignment", label: "Bài tập", path: "evaluations", search: "?section=assignments", icon: ClipboardList },
           { key: "project", label: "Project", path: "evaluations", search: "?section=project", icon: FolderKanban },
-          { key: "final", label: "Bài cuối kì", path: "evaluations", search: "?section=final", icon: FileText },
         ],
       },
       { key: "obe", icon: BarChart3, label: "Tiến độ OBE", path: "obe" },

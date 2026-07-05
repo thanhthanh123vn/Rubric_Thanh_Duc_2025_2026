@@ -332,7 +332,7 @@ export default function CourseEvaluations() {
   );
 
   const assignedTasks = useMemo(
-    () => projectTasks.filter((task) => task.assigneeId === currentUserId),
+    () => projectTasks.filter((task) => task.assigneeId === currentUserId || task.assignToGroup),
     [projectTasks, currentUserId],
   );
 

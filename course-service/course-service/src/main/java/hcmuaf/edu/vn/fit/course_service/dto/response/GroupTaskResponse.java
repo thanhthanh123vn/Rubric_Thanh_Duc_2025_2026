@@ -12,6 +12,7 @@ public class GroupTaskResponse {
     private String title;
     private String description;
     private String assigneeId;
+    private Boolean assignToGroup;
     private String assignerId;
     private TaskStatus status;
     private LocalDateTime deadline;

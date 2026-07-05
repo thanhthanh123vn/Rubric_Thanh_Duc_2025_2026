@@ -450,6 +450,7 @@ const TaskBoard = ({ group, students, currentUserId, isAdmin }: { group: GroupRe
         title: "",
         description: "",
         assigneeId: "",
+        assignToGroup: false,
         deadline: ""
     });
 
@@ -485,12 +486,13 @@ const TaskBoard = ({ group, students, currentUserId, isAdmin }: { group: GroupRe
                 groupId: group.id,
                 title: newTask.title,
                 description: newTask.description,
-                assigneeId: newTask.assigneeId,
+                assigneeId: newTask.assignToGroup ? "__GROUP__" : newTask.assigneeId,
+                assignToGroup: newTask.assignToGroup,
                 deadline: newTask.deadline
             });
             setTasks([created, ...tasks]);
             setIsAdding(false);
-            setNewTask({ title: "", description: "", assigneeId: "" ,deadline: ""});
+            setNewTask({ title: "", description: "", assigneeId: "", assignToGroup: false ,deadline: ""});
         } catch (error) {
             alert("Lỗi khi tạo task");
         }
@@ -545,11 +547,12 @@ const TaskBoard = ({ group, students, currentUserId, isAdmin }: { group: GroupRe
                     />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <select
-                            value={newTask.assigneeId}
-                            onChange={e => setNewTask({...newTask, assigneeId: e.target.value})}
+                            value={newTask.assignToGroup ? "__GROUP__" : newTask.assigneeId}
+                            onChange={e => setNewTask({...newTask, assignToGroup: e.target.value === "__GROUP__", assigneeId: e.target.value === "__GROUP__" ? "__GROUP__" : e.target.value})}
                             className="p-2.5 border rounded-md text-sm outline-none bg-white"
                         >
                             <option value="">-- Giao cho ai? --</option>
+                            <option value="__GROUP__">Ca nhom</option>
                             {group.participants.map(p => (
                                 <option key={p.userId} value={p.userId}>{getAssigneeName(p.userId)}</option>
                             ))}
@@ -586,7 +589,7 @@ const TaskBoard = ({ group, students, currentUserId, isAdmin }: { group: GroupRe
                                     </h4>
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px]">
                                         <span className="text-emerald-700 text-base font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
-                                            👤 {getAssigneeName(task.assigneeId)}
+                                            👤 {task.assignToGroup ? "Ca nhom" : getAssigneeName(task.assigneeId || "")}
                                         </span>
                                         <span className="text-gray-600 text-base">
                                             📅 Giao: {formatDate(task.createdAt)}
@@ -616,7 +619,7 @@ const TaskBoard = ({ group, students, currentUserId, isAdmin }: { group: GroupRe
                                     {task.status}
                                 </span>
 
-                                {(task.assigneeId === currentUserId || isAdmin) && (
+                                {(Boolean(task.assignToGroup) || task.assigneeId === currentUserId || isAdmin) && (
                                     <select
                                         className="text-xs border border-gray-200 rounded-md p-1.5 outline-none cursor-pointer bg-gray-50 font-medium"
                                         value={task.status}
