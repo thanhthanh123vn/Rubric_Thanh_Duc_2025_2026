@@ -19,7 +19,8 @@ import java.time.LocalDateTime;
 @Getter
 public class User {
     @Id
-    private String userId; //  là MSSV
+    @Column(name = "user_id")
+    private String userId;
     private String username;
 
     private String passwordHash;

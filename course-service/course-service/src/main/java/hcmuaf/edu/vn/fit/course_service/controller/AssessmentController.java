@@ -298,4 +298,16 @@ public class AssessmentController {
         assessmentService.unsubmitAssignment(assessmentId, userId);
         return ResponseEntity.ok(Map.of("message", "Hủy nộp bài thành công"));
     }
+    @GetMapping("/courses/{courseId}/offerings")
+    public ResponseEntity<List<CourseOfferingResponse>> getCourseOfferingsByCourse(
+            @PathVariable String courseId
+    ) {
+        try {
+            List<CourseOfferingResponse> offerings = assessmentService.getOfferingsByCourseId(courseId);
+            return ResponseEntity.ok(offerings);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+
+        }
+    }
 }

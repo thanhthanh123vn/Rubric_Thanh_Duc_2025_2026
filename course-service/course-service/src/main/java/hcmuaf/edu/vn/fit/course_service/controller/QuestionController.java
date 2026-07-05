@@ -37,6 +37,7 @@ public class QuestionController {
             @PathVariable String offeringId,
             @PathVariable String bankId,
             @RequestBody QuestionRequest request) {
+        System.out.println("Các CLO đã tạo khi tạo câu hỏi"+request.getCloIds());
         return ResponseEntity.ok(questionService.createQuestionToBank(offeringId, bankId, request));
     }
 
@@ -56,11 +57,12 @@ public class QuestionController {
     @PostMapping(value = "/course/{offeringId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> importQuestions(
             @PathVariable String offeringId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @PathVariable String bankId) {
         try {
 
 
-            List<Question> importedQuestions = questionService.importQuestionsFromExcel(offeringId, file);
+            List<Question> importedQuestions = questionService.importQuestionsFromExcel(offeringId, bankId,file);
             return ResponseEntity.ok("Import thành công " + importedQuestions.size() + " câu hỏi.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

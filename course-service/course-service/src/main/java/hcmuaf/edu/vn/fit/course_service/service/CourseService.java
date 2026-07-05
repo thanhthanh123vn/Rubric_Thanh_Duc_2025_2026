@@ -53,7 +53,13 @@ public class CourseService {
 
         return courses.map(courseMapper::toCourseResponse);
     }
+    public List<CourseResponse> getAllCoursesNoPage() {
+        List<Course> courses =  courseRepo.findAll();
 
+        return courses.stream()
+                .map(courseMapper::toCourseResponse)
+                .toList();
+    }
     public CourseResponse getCourseByOfferingId(String offeringId) {
         CourseOffering offering = courseOfferingRepo.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
@@ -262,14 +268,19 @@ public class CourseService {
         }
     }
 
-    // Đổi thành nhận List<String>
-    public CourseOfferingResponse assignLecturers(String courseId, List<String> lecturerIds) {
-        Course course = courseRepo.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học với ID: " + courseId));
 
+
+    public CourseOfferingResponse assignLecturers(String offeringId, List<String> lecturerIds) {
+
+
+        CourseOffering offering = courseOfferingRepo.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Lớp học phần với ID: " + offeringId));
+
+
+        Course course = offering.getCourse();
         String courseDept = course.getDepartment();
 
-        // Validate từng GV trong mảng
+
         if (lecturerIds != null && !lecturerIds.isEmpty()) {
             for (String lId : lecturerIds) {
                 try {
@@ -284,19 +295,21 @@ public class CourseService {
                                 " thuộc bộ môn [" + lecturerDept + "], không được phép dạy môn của bộ môn [" + courseDept + "]!");
                     }
                 } catch (IllegalArgumentException e) {
-                    throw e; // Ném thẳng lỗi rule kinh doanh ra ngoài
+                    throw e;
                 } catch (Exception e) {
                     throw new RuntimeException("Lỗi kết nối tới User Service hoặc không tìm thấy GV ID: " + lId);
                 }
             }
         }
 
-        CourseOffering offering = new CourseOffering();
-        offering.setOfferingId("CO-" + System.currentTimeMillis());
-        offering.setCourse(course);
-        offering.setLecturerIds(lecturerIds); // Set list GV vào
+
+
+        offering.setLecturerIds(lecturerIds);
+
+
 
         CourseOffering savedOffering = courseOfferingRepo.save(offering);
+
         return courseMapper.toResponse(savedOffering);
     }
 

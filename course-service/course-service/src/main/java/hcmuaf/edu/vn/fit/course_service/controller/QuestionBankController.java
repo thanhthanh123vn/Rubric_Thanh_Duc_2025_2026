@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionBankRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionBankResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionResponse;
 import hcmuaf.edu.vn.fit.course_service.service.QuestionBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -91,4 +92,27 @@ public class QuestionBankController {
     public ResponseEntity<?> getPublicBanks(@RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(questionBankService.getPublicBanks(resolveLecturerId(userId)));
     }
+
+    @GetMapping("/department/public/{offeringId}")
+    public ResponseEntity<?> getPublicDepartmentBanks(@RequestHeader("X-User-Id") String userId,
+                                                     @PathVariable String offeringId) {
+        if (userId == null) {
+            return ResponseEntity.status(403).body(null);
+        }
+        List<QuestionResponse> publicBanks = questionBankService.getPublicQuestionBanks(offeringId);
+        if (publicBanks.isEmpty()) {
+            return ResponseEntity.status(404).body(null);
+        }
+
+
+        return ResponseEntity.ok(publicBanks);
+    }
+
+    @PutMapping("/department/public")
+    public ResponseEntity<?> updatePublicDepartmentBanks(@RequestHeader("X-User-Id") String userId,
+                                                         String bankId, boolean isPublic) {
+        if (userId == null) return ResponseEntity.status(403).body(null);
+        return ResponseEntity.ok(questionBankService.updatePublicStatus(bankId, isPublic));
+    }
+
 }

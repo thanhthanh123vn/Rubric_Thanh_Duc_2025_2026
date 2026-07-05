@@ -153,8 +153,8 @@ export default function QuestionBankManagement() {
             toast.error("Chưa có dữ liệu môn học để lấy kho câu hỏi.");
             return;
         }
-        const bankId = banks[0].id;
-        navigate(`/department/questions/public/${bankId}`);
+        const offeringId = banks[0].offeringId;
+        navigate(`/department/questions/public/${offeringId}`);
     }
 
     if (!selectedBank) {
@@ -188,7 +188,7 @@ export default function QuestionBankManagement() {
                             <th className="px-5 py-4">Môn học</th>
                             <th className="px-5 py-4">Người tạo</th>
                             <th className="px-5 py-4 text-center">Số câu hỏi</th>
-                            <th className="px-5 py-4 text-center">Trạng thái</th>
+                            {/*<th className="px-5 py-4 text-center">Trạng thái</th>*/}
                             <th className="px-5 py-4 text-right">Thao tác</th>
                         </tr>
                         </thead>
@@ -205,7 +205,7 @@ export default function QuestionBankManagement() {
                                     <td className="px-5 py-4 font-medium">{bank.courseName}</td>
                                     <td className="px-5 py-4">{bank.creatorName}</td>
                                     <td className="px-5 py-4 text-center font-semibold text-slate-600">{bank.questionCount}</td>
-                                    <td className="px-5 py-4 text-center">{renderStatus(bank.status)}</td>
+                                    {/*<td className="px-5 py-4 text-center">{renderStatus(bank.status)}</td>*/}
                                     <td className="px-5 py-4">
                                         <div className="flex gap-2 justify-end">
                                             {/* Sửa lỗi truyền biến vào URL */}

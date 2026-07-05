@@ -31,7 +31,7 @@ const SHARE_PERMISSION_OPTIONS = [
     { key: 'IMPORT', label: 'Import', note: 'Được import thêm câu hỏi vào kho.' },
 ];
 
-export default function BankQuestions() {
+export default function     BankQuestions() {
     const navigate = useNavigate();
 
     const [courses, setCourses] = useState<any[]>([]);
@@ -202,7 +202,7 @@ export default function BankQuestions() {
             toast.error("Có lỗi xảy ra khi xóa kho câu hỏi.");
         }
     };
-
+console.log(courses);
     return (
         <div className="min-h-screen bg-gray-50/30 p-4 sm:p-6 lg:p-8">
             <div className="mx-auto max-w-7xl">

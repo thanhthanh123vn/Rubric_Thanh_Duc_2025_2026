@@ -75,6 +75,7 @@ public class RubricController {
     public void delete(@PathVariable String id) {
         rubricService.delete(id);
     }
+
     @GetMapping("/approvals")
     public ResponseEntity<List<Rubric>> getRubricsForApproval(
             @RequestHeader("X-User-Id") String userId,

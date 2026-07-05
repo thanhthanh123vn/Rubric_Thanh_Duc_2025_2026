@@ -1,6 +1,6 @@
 import './App.css'
 import { RouterProvider } from "react-router-dom"
-import { router } from "../route"
+import { router } from "../route.tsx"
 import { Toaster } from "@/components/ui/sonner"
 
 function App() {

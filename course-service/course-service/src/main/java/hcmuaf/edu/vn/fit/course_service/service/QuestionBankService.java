@@ -4,11 +4,15 @@ import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionBankRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionBankResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
+import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
+import hcmuaf.edu.vn.fit.course_service.entity.Question;
 import hcmuaf.edu.vn.fit.course_service.entity.QuestionBank;
 import hcmuaf.edu.vn.fit.course_service.exception.BadRequestException;
 import hcmuaf.edu.vn.fit.course_service.exception.ResourceNotFoundException;
+import hcmuaf.edu.vn.fit.course_service.mapper.QuestionMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.QuestionBankRepository;
 import jakarta.ws.rs.ForbiddenException;
@@ -26,6 +30,9 @@ public class QuestionBankService {
     private final QuestionBankRepository questionBankRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final UserClient userClient;
+    private final QuestionService questionService;
+    private final QuestionMapper questionMapper;
+
 
 
     private String resolveCourseName(String offeringId) {
@@ -49,9 +56,11 @@ public class QuestionBankService {
     }
 
     public QuestionBankResponse createQuestionBank(QuestionBankRequest request, String lecturerId) {
+       CourseOffering courseOffering = courseOfferingRepository.findById(request.getOfferingId()).orElseThrow();
         QuestionBank bank = QuestionBank.builder()
                 .name(request.getName())
                 .offeringId(request.getOfferingId())
+                .courseId(courseOffering.getCourse().getCourseId())
                 .lecturerId(lecturerId)
                 .isPublic(Boolean.TRUE.equals(request.getIsPublic()))
                 .sharePermissions(Boolean.TRUE.equals(request.getIsPublic()) ? request.getSharePermissions() : List.of())
@@ -186,5 +195,54 @@ public class QuestionBankService {
                 .collect(Collectors.toList());
 
 
+    }
+    public List<QuestionResponse> getPublicQuestionBanks(String offeringId) {
+        CourseOffering courseOffering = courseOfferingRepository.findById(offeringId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Học Phần"));
+        Course course = courseOffering.getCourse();
+        System.out.println(course);
+
+
+        List<QuestionBank> banks = questionBankRepository.findByIsPublicTrueAndCourseId(course.getCourseId());
+        List<Question> allQuestion = new ArrayList<>();
+        for(QuestionBank bank : banks) {
+            List<Question> questions = questionService.getQuestionsByBankId(bank.getId());
+            allQuestion.addAll(questions);
+        }
+
+
+        return allQuestion.stream()
+                .map(questionMapper::mapToResponse)
+                .collect(Collectors.toList());
+    }
+    public List<QuestionBankResponse> getBanksPublicByOfferingIdForDep(String offeringId) {
+
+        Optional<CourseOffering> courseOfferings = courseOfferingRepository.findById(offeringId);
+
+
+        Set<String> courseIds = courseOfferings.stream()
+                .filter(o -> o.getCourse() != null)
+                .map(o -> o.getCourse().getCourseId())
+                .collect(Collectors.toSet());
+
+        List<CourseOffering> allOfferingsOfCourses = courseOfferingRepository.findByCourse_CourseIdIn(courseIds);
+
+        Set<String> allOfferingIds = allOfferingsOfCourses.stream()
+                .map(CourseOffering::getOfferingId)
+                .collect(Collectors.toSet());
+
+        List<QuestionBank> banks = questionBankRepository.findByIsPublicTrueAndOfferingId(offeringId);
+
+        return banks.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+
+    }
+    public QuestionBank updatePublicStatus(String bankId, boolean isPublic) {
+        QuestionBank bank = questionBankRepository.findById(bankId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Bank"));
+        bank.setIsPublic(isPublic);
+        return questionBankRepository.save(bank);
     }
 }

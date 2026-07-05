@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricMatrixRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.CriterionRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.DescriptorRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.LevelRequest;
+import hcmuaf.edu.vn.fit.rubric_service.entity.CourseCloEntity;
 import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricCriteria;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricLevel;
@@ -31,6 +32,7 @@ public class RubricMatrixService {
 
     @Autowired
     private RubricLevelRepository rubricLevelRepository;
+
 
     @Transactional
     public boolean updateMatrix(RubricMatrixRequest req) {
@@ -69,6 +71,8 @@ public class RubricMatrixService {
 
             rubricCriteria.setCriteriaName(criterionRequest.getName());
             rubricCriteria.setWeight(criterionRequest.getWeight());
+
+
             rubricCriteria.setCloId(criterionRequest.getCloId());
             rubricCriteria.setRubric(rubric);
 

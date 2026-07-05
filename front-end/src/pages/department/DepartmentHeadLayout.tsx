@@ -14,7 +14,7 @@ const deptHeadLinks = [
     { path: '/department/assessments', label: 'Quản lý Đánh giá', icon: FileSignature },
     { path: '/department/offerings', label: 'Phân công Học phần', icon: Layers },
     { path: '/department/clo', label: 'Chuẩn CLO', icon: Target },
-    { path: '/department/analytics', label: 'Phân tích chuẩn đầu ra OBE', icon: BarChart3 },
+    { path: '/department/obe', label: 'Phân tích chuẩn đầu ra OBE', icon: BarChart3 },
     { path: '/department/question-banks', label: 'Ngân Hàng Câu Hỏi', icon: Database },
 ];
 

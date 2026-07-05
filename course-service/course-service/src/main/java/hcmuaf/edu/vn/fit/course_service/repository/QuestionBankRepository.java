@@ -4,7 +4,9 @@ package hcmuaf.edu.vn.fit.course_service.repository;
 import hcmuaf.edu.vn.fit.course_service.entity.QuestionBank;
 
 
+import org.springframework.data.jpa.repository.Query;
 
+import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -25,5 +27,13 @@ public interface QuestionBankRepository extends MongoRepository<QuestionBank, St
     );
 
     List<QuestionBank> findAllByOfferingIdIn(Collection<String> courseIds);
+
+    List<QuestionBank> findByIsPublicTrue();
+
+    List<QuestionBank> findByIsPublicTrueAndOfferingId(String offeringId);
+
+    List<QuestionBank> findByIsPublicTrueAndCourseId(String courseId);
+
+
 
 }
