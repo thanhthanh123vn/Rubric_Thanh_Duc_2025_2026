@@ -82,4 +82,13 @@ public class QuestionBankController {
         return ResponseEntity.ok(questions);
     }
 
+    @GetMapping("/lecturer/me")
+    public ResponseEntity<?> getMyBanks(@RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(questionBankService.getBanksByLecturer(resolveLecturerId(userId)));
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<?> getPublicBanks(@RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(questionBankService.getPublicBanks(resolveLecturerId(userId)));
+    }
 }

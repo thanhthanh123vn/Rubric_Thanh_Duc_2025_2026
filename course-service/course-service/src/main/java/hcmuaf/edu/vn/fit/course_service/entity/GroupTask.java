@@ -25,6 +25,7 @@ public class GroupTask {
     private String description;
 
     private String assigneeId;
+    private Boolean assignToGroup;
     private String assignerId;
 
     @Enumerated(EnumType.STRING)
@@ -37,5 +38,6 @@ public class GroupTask {
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         if (this.status == null) this.status = TaskStatus.TODO;
+        if (this.assignToGroup == null) this.assignToGroup = false;
     }
 }

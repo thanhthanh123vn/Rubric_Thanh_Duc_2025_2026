@@ -21,14 +21,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AttendanceSessionService {
+
+    private static final long SUSPICIOUS_CHECK_IN_WINDOW_SECONDS = 15
+            ;
 
     private final AttendanceSessionRepository attendanceSessionRepository;
     private final AttendanceRepository attendanceRepository;
@@ -118,9 +124,11 @@ public class AttendanceSessionService {
         AttendanceSession session = attendanceSessionRepository.findById(sessionId.trim())
                 .orElseThrow(() -> new BadRequestException("Khong tim thay phien diem danh"));
 
-        return attendanceRepository.findBySessionIdOrderByCheckinTimeAsc(sessionId.trim())
-                .stream()
-                .map(attendance -> toAttendanceStudentResponse(attendance, session))
+        List<Attendance> attendances = attendanceRepository.findBySessionIdOrderByCheckinTimeAsc(sessionId.trim());
+        Map<String, SuspiciousClusterInfo> suspiciousClusters = detectSuspiciousClusters(attendances);
+
+        return attendances.stream()
+                .map(attendance -> toAttendanceStudentResponse(attendance, session, suspiciousClusters.get(attendance.getAttendanceId())))
                 .toList();
     }
 
@@ -209,19 +217,27 @@ public class AttendanceSessionService {
         attendanceSessionRepository.saveAll(expiredSessions);
     }
 
-    private AttendanceStudentResponse toAttendanceStudentResponse(Attendance attendance, AttendanceSession session) {
+    private AttendanceStudentResponse toAttendanceStudentResponse(
+            Attendance attendance,
+            AttendanceSession session,
+            SuspiciousClusterInfo suspiciousClusterInfo
+    ) {
         String studentName = attendance.getStudentId();
         String email = null;
         Double sessionRadius = session.getRadius();
         boolean missingGps = attendance.getLatitude() == null || attendance.getLongitude() == null || attendance.getDistance() == null;
         boolean outOfRadius = sessionRadius != null && attendance.getDistance() != null && attendance.getDistance() > sessionRadius;
-        boolean suspicious = missingGps || outOfRadius;
-        String suspiciousReason = null;
+        boolean suspicious = missingGps || outOfRadius || suspiciousClusterInfo != null;
+        List<String> suspiciousReasons = new ArrayList<>();
 
         if (missingGps) {
-            suspiciousReason = "Khong co du lieu GPS check-in";
-        } else if (outOfRadius) {
-            suspiciousReason = "Vi tri check-in vuot qua ban kinh cho phep";
+            suspiciousReasons.add("Khong co du lieu GPS check-in");
+        }
+        if (outOfRadius) {
+            suspiciousReasons.add("Vi tri check-in vuot qua ban kinh cho phep");
+        }
+        if (suspiciousClusterInfo != null) {
+            suspiciousReasons.add(suspiciousClusterInfo.reason());
         }
 
         try {
@@ -248,9 +264,128 @@ public class AttendanceSessionService {
                 .longitude(attendance.getLongitude())
                 .distance(attendance.getDistance())
                 .sessionRadius(sessionRadius)
+                .browserId(attendance.getBrowserId())
+                .userAgent(attendance.getUserAgent())
+                .ipAddress(attendance.getIpAddress())
                 .suspicious(suspicious)
-                .suspiciousReason(suspiciousReason)
+                .suspiciousReason(suspiciousReasons.isEmpty() ? null : String.join("; ", suspiciousReasons))
                 .note(attendance.getNote())
                 .build();
+    }
+
+    private Map<String, SuspiciousClusterInfo> detectSuspiciousClusters(List<Attendance> attendances) {
+        Map<String, List<Attendance>> groupedAttendances = new HashMap<>();
+
+        for (Attendance attendance : attendances) {
+            String fingerprintKey = buildSuspiciousFingerprint(attendance);
+            if (fingerprintKey == null) {
+                continue;
+            }
+            groupedAttendances.computeIfAbsent(fingerprintKey, ignored -> new ArrayList<>()).add(attendance);
+        }
+
+        Map<String, SuspiciousClusterInfo> suspiciousClusters = new HashMap<>();
+        for (List<Attendance> sameFingerprintAttendances : groupedAttendances.values()) {
+            markSuspiciousAttendances(sameFingerprintAttendances, suspiciousClusters);
+        }
+
+        return suspiciousClusters;
+    }
+
+    private void markSuspiciousAttendances(
+            List<Attendance> sameFingerprintAttendances,
+            Map<String, SuspiciousClusterInfo> suspiciousClusters
+    ) {
+        if (sameFingerprintAttendances.size() < 2) {
+            return;
+        }
+
+        List<String> distinctStudentIds = sameFingerprintAttendances.stream()
+                .map(Attendance::getStudentId)
+                .filter(studentId -> studentId != null && !studentId.isBlank())
+                .distinct()
+                .toList();
+
+        if (distinctStudentIds.size() < 2) {
+            return;
+        }
+
+        saveSuspiciousCluster(sameFingerprintAttendances, distinctStudentIds, suspiciousClusters);
+    }
+
+    private void saveSuspiciousCluster(
+            List<Attendance> clusterAttendances,
+            List<String> distinctStudentIds,
+            Map<String, SuspiciousClusterInfo> suspiciousClusters
+    ) {
+        if (clusterAttendances.size() < 2) {
+            return;
+        }
+
+        long minGapSeconds = calculateMinGapSeconds(clusterAttendances);
+        boolean rapidCheckIn = minGapSeconds <= SUSPICIOUS_CHECK_IN_WINDOW_SECONDS;
+        String timeMessage = rapidCheckIn
+                ? "Cac tai khoan check-in lien tiep rat nhanh"
+                : "Nhieu tai khoan dung chung thiet bi/mang trong cung phien";
+
+        String reason = String.format(
+                "Trung Browser ID, User-Agent va IP %s; %s; do lech nho nhat %d giay; tai khoan: %s; Browser ID: %s",
+                safeValue(clusterAttendances.get(0).getIpAddress()),
+                timeMessage,
+                minGapSeconds,
+                distinctStudentIds.stream().collect(Collectors.joining(", ")),
+                safeValue(clusterAttendances.get(0).getBrowserId())
+        );
+
+        for (Attendance attendance : clusterAttendances) {
+            suspiciousClusters.put(attendance.getAttendanceId(), new SuspiciousClusterInfo(reason));
+        }
+    }
+
+    private String buildSuspiciousFingerprint(Attendance attendance) {
+        if (attendance.getBrowserId() == null || attendance.getBrowserId().isBlank()) {
+            return null;
+        }
+        if (attendance.getUserAgent() == null || attendance.getUserAgent().isBlank()) {
+            return null;
+        }
+        if (attendance.getIpAddress() == null || attendance.getIpAddress().isBlank()) {
+            return null;
+        }
+
+        return String.join("|", attendance.getBrowserId(), attendance.getUserAgent(), attendance.getIpAddress());
+    }
+
+    private long calculateMinGapSeconds(List<Attendance> attendances) {
+        long minGapSeconds = Long.MAX_VALUE;
+
+        for (int index = 1; index < attendances.size(); index++) {
+            LocalDateTime previousTime = attendances.get(index - 1).getCheckinTime();
+            LocalDateTime currentTime = attendances.get(index).getCheckinTime();
+            long gapSeconds = secondsBetween(previousTime, currentTime);
+            if (gapSeconds < minGapSeconds) {
+                minGapSeconds = gapSeconds;
+            }
+        }
+
+        return minGapSeconds == Long.MAX_VALUE ? Long.MAX_VALUE : minGapSeconds;
+    }
+
+    private long secondsBetween(LocalDateTime firstTime, LocalDateTime secondTime) {
+        if (firstTime == null || secondTime == null) {
+            return Long.MAX_VALUE;
+        }
+
+        return Math.abs(java.time.temporal.ChronoUnit.SECONDS.between(firstTime, secondTime));
+    }
+
+    private String safeValue(String value) {
+        if (value == null || value.isBlank()) {
+            return "--";
+        }
+        return value;
+    }
+
+    private record SuspiciousClusterInfo(String reason) {
     }
 }

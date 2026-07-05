@@ -24,6 +24,7 @@ export type StudentAttendanceCheckInPayload = {
   qrContent: string;
   latitude: number;
   longitude: number;
+  browserId: string;
 };
 
 export type AttendanceCheckInResponse = {
@@ -72,6 +73,9 @@ export type AttendanceStudentResponse = {
   longitude: number | null;
   distance: number | null;
   sessionRadius: number | null;
+  browserId: string | null;
+  userAgent: string | null;
+  ipAddress: string | null;
   suspicious: boolean | null;
   suspiciousReason: string | null;
   note: string;

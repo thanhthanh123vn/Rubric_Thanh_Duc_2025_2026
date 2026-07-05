@@ -5,9 +5,10 @@ import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Assessment;
+import hcmuaf.edu.vn.fit.course_service.entity.Group;
 import hcmuaf.edu.vn.fit.course_service.entity.SubmissionEntity;
-import hcmuaf.edu.vn.fit.course_service.repository.AssessmentRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.ParticipantRole;
+import hcmuaf.edu.vn.fit.course_service.repository.*;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -28,6 +29,8 @@ public class AssessmentController {
     private final NotificationClient notificationClient;
     private final UserClient userClient;
     private final AssessmentRepository assessmentRepository;
+    private final GroupRepository groupRepository;
+    private final ParticipantRepository participantRepository;
 
     @GetMapping("/offerings/{offeringId}/assessments")
     public List<AssessmentReponse> getAssignments(
@@ -53,6 +56,13 @@ public class AssessmentController {
         return ResponseEntity.ok(submissions);
     }
 
+    @GetMapping("/assessments/{assessmentId}/submission-statuses")
+    public ResponseEntity<List<AssessmentSubmissionStatusResponse>> getSubmissionStatusesByAssessment(
+            @PathVariable String assessmentId
+    ) {
+        return ResponseEntity.ok(assessmentService.getSubmissionStatuses(assessmentId));
+    }
+
     @PostMapping("/assessments/{assessmentId}/submit")
     public ResponseEntity<?> submitAssignment(
             @RequestHeader("X-User-Id") String studentId,
@@ -62,8 +72,10 @@ public class AssessmentController {
             @RequestParam(required = false) String rubricId
     ){
         try {
-            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link, rubricId);
             Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
+            validateProjectLeaderSubmission(assessment, studentId);
+
+            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link, rubricId);
 
             if (assessment != null && assessment.getCourseOffering() != null) {
                 String courseId = assessment.getCourseOffering().getOfferingId();
@@ -98,6 +110,33 @@ public class AssessmentController {
             return ResponseEntity.ok(submission);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Lỗi nộp bài: " + e.getMessage()));
+        }
+    }
+
+    private void validateProjectLeaderSubmission(Assessment assessment, String studentId) {
+        if (assessment == null || assessment.getAssessmentType() == null) {
+            return;
+        }
+
+        if (!assessment.getAssessmentType().trim().equalsIgnoreCase("project")) {
+            return;
+        }
+
+        if (assessment.getCourseOffering() == null || assessment.getCourseOffering().getOfferingId() == null) {
+            throw new RuntimeException("Bai project chua duoc gan vao hoc phan hop le");
+        }
+
+        List<Group> myGroups = groupRepository.findMyGroups(assessment.getCourseOffering().getOfferingId(), studentId);
+        boolean isLeader = myGroups.stream().anyMatch(group ->
+                participantRepository.existsByConversation_IdAndUserIdAndParticipantRole(
+                        group.getConversation().getId(),
+                        studentId,
+                        ParticipantRole.ADMIN
+                )
+        );
+
+        if (!isLeader) {
+            throw new RuntimeException("Chi nhom truong moi duoc nop bai project");
         }
     }
 

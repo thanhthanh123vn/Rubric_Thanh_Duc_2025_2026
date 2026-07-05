@@ -26,7 +26,6 @@ import TeacherCourseOBE from "@/pages/teacher/TeacherCourseOBE";
 import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
 import TeacherCourses from "@/pages/teacher/TeacherCourses";
 import TeacherAssessmentList from "@/pages/teacher/TeacherAssessmentList.tsx";
-import TeacherProjects from "@/pages/teacher/TeacherProjects";
 import CreateQrAttendancePage from "@/pages/teacher/CreateQrAttendancePage";
 import TeacherReport from "@/pages/teacher/TeacherReport";
 import TeacherRubric from "@/pages/teacher/TeacherRubric";
@@ -54,7 +53,6 @@ import RubricMatrix from "@/pages/mainlecturer/RubricMatrix.tsx";
 import SemesterManagement from "@/pages/mainlecturer/SemesterManagement.tsx";
 import CourseAssignment from "@/pages/mainlecturer/CourseAssignment.tsx";
 import TeacherRubricDetail from "@/pages/teacher/TeacherRubricDetail.tsx";
-import TeacherSubmissions from "@/pages/teacher/TeacherSubmissions.tsx";
 import TeacherGrading from "@/pages/teacher/TeacherGrading.tsx";
 import CourseList from "@/pages/teacher/BankQuestions.tsx";
 import StudentCourseMaterials from "@/features/course/student/components/StudentCourseMaterials.tsx";
@@ -157,7 +155,11 @@ export const router = createBrowserRouter([
                     { index: true, Component: TeacherCourseOverview },
                     { path: "students", Component: TeacherCourseStudents },
                     { path: "assignments", Component: TeacherCourseAssignments },
-                    { path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions },
+                    {
+                        path: "assessment/:assessmentId/submissions",
+                        loader: async ({ params }) =>
+                            redirect(`/teacher/course/${params.id}/assessment/${params.assessmentId}/grading`),
+                    },
 
                     { path: "rubric", Component: TeacherCourseRubric },
                     { path:"rubric/:id" ,Component:TeacherRubricDetail },
@@ -168,7 +170,10 @@ export const router = createBrowserRouter([
                     { path: "groups", Component: TeacherCourseGroups },
                     { path: "grading", Component: TeacherAssessmentList },
                     { path: "assessment/:assessmentId/grading", Component: TeacherGrading },
-                    { path: "projects", Component: TeacherProjects },
+                    {
+                        path: "projects",
+                        loader: async ({ params }) => redirect(`/teacher/course/${params.id}/groups`),
+                    },
                     { path: "attendance", Component: CreateQrAttendancePage },
                     { path: "report", Component: TeacherReport },
                 ],

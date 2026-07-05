@@ -9,5 +9,6 @@ public class GroupTaskRequest {
     private String title;
     private String description;
     private String assigneeId;
+    private Boolean assignToGroup;
     private LocalDateTime deadline;
 }

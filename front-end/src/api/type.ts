@@ -3,9 +3,22 @@ export interface SubmissionDTO {
     assessmentId: string;
     studentId: string;
     rubricId:string;
-    fileUrl: string;
+    fileUrl: string | null;
+    submittedLink?: string | null;
     submittedAt: string;
     status: string;
+}
+
+export interface SubmissionStatusDTO {
+    id: string;
+    assessmentId: string;
+    studentId: string;
+    rubricId?: string | null;
+    fileUrl: string | null;
+    submittedLink?: string | null;
+    submittedAt?: string | null;
+    status: string;
+    submitted: boolean;
 }
 
 export interface SyllabusFile {
