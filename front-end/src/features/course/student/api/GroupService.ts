@@ -1,10 +1,12 @@
 
+import axios from "axios";
 import {courseApi} from "@/services/axiosConfig.ts";
 import type {
     CreateGroupRequest,
     CreateTaskRequest,
     GroupResponse,
-    GroupTaskResponse
+    GroupTaskResponse,
+    UpdateTaskStatusRequest
 } from "@/features/course/student/api/type.ts";
 
 
@@ -46,12 +48,46 @@ export const groupService = {
         return response.data.data;
     },
     createTask: async (data: CreateTaskRequest): Promise<GroupTaskResponse> => {
-        const response = await courseApi.post(`/group/tasks`, data);
-        return response.data.data;
+        try {
+            const response = await courseApi.post(`/group/tasks`, data);
+            return response.data.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || "Không thể tạo công việc.");
+            }
+
+            throw error;
+        }
     },
-    updateTaskStatus: async (taskId: string, status: string): Promise<GroupTaskResponse> => {
-        const response = await courseApi.put(`/group/tasks/${taskId}/status?status=${status}`);
-        return response.data.data;
+    updateTaskStatus: async (taskId: string, data: UpdateTaskStatusRequest): Promise<GroupTaskResponse> => {
+        try {
+            const formData = new FormData();
+
+            if (data.resultNote?.trim()) {
+                formData.append("resultNote", data.resultNote.trim());
+            }
+
+            if (data.resultLink?.trim()) {
+                formData.append("resultLink", data.resultLink.trim());
+            }
+
+            if (data.file) {
+                formData.append("file", data.file);
+            }
+
+            const hasBodyData = Array.from(formData.keys()).length > 0;
+            const response = await courseApi.put(
+                `/group/tasks/${taskId}/status?status=${encodeURIComponent(data.status)}`,
+                hasBodyData ? formData : null,
+            );
+            return response.data.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(error.response?.data?.message || "Không thể cập nhật công việc.");
+            }
+
+            throw error;
+        }
     },
     deleteTask: async (taskId: string) => {
         const response = await courseApi.delete(`/group/tasks/${taskId}`);
