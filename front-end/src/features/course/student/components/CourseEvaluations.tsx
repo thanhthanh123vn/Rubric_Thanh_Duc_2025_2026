@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ClipboardList, FolderKanban, Users } from "lucide-react";
 
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
@@ -11,7 +11,12 @@ import type { Assessment } from "@/features/course/student/assignmentSlice";
 import StudentAttendanceCheckIn from "@/features/course/student/components/StudentAttendanceCheckIn.tsx";
 import { assessmentCommentApi } from "@/features/course/student/api/AssignmentDetailPost.ts";
 import { getRubricById, type RubricDTO } from "@/api/RubricApi.ts";
-import type { AssessmentSubmission, GroupResponse, GroupTaskResponse, Type } from "@/features/course/student/api/type.ts";
+import type {
+  AssessmentSubmission,
+  GroupResponse,
+  GroupTaskResponse,
+  Type,
+} from "@/features/course/student/api/type.ts";
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
 
 type SectionKey = "attendance" | "assignments" | "project" | "final";
@@ -28,13 +33,22 @@ function SimpleCard({
   title,
   value,
   note,
+  tone = "default",
 }: {
   title: string;
   value: string;
   note: string;
+  tone?: "default" | "emerald" | "amber";
 }) {
+  const toneClass =
+    tone === "emerald"
+      ? "border-emerald-200 bg-emerald-50"
+      : tone === "amber"
+        ? "border-amber-200 bg-amber-50"
+        : "border-slate-200 bg-white";
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className={`rounded-2xl border p-4 ${toneClass}`}>
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{title}</p>
       <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
       <p className="mt-2 text-sm text-slate-500">{note}</p>
@@ -43,39 +57,23 @@ function SimpleCard({
 }
 
 function formatDateTime(value?: string | null) {
-  if (!value) {
-    return "--";
-  }
+  if (!value) return "--";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "--";
-  }
+  if (Number.isNaN(date.getTime())) return "--";
 
   return date.toLocaleString("vi-VN");
 }
 
 function getAssessmentStatus(item: { calculatedScore: number | null; submissionId: string | null }) {
-  if (item.calculatedScore !== null) {
-    return "Đã chấm";
-  }
-
-  if (item.submissionId) {
-    return "Đã nộp";
-  }
-
+  if (item.calculatedScore !== null) return "Đã chấm";
+  if (item.submissionId) return "Đã nộp";
   return "Chưa nộp";
 }
 
 function getAssessmentStatusClass(status: string) {
-  if (status === "Đã chấm") {
-    return "border border-emerald-200 bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "Đã nộp") {
-    return "border border-amber-200 bg-amber-100 text-amber-700";
-  }
-
+  if (status === "Đã chấm") return "border border-emerald-200 bg-emerald-100 text-emerald-700";
+  if (status === "Đã nộp") return "border border-amber-200 bg-amber-100 text-amber-700";
   return "border border-slate-200 bg-slate-100 text-slate-700";
 }
 
@@ -84,26 +82,14 @@ function getAssessmentType(item: Assessment) {
 }
 
 function getTaskStatusLabel(status?: string | null) {
-  if (status === "COMPLETED") {
-    return "Xong";
-  }
-
-  if (status === "IN_PROGRESS") {
-    return "Đang làm";
-  }
-
-  return "Chưa làm";
+  if (status === "COMPLETED") return "Hoàn thành";
+  if (status === "IN_PROGRESS") return "Đang làm";
+  return "Cần làm";
 }
 
 function getTaskStatusClass(status?: string | null) {
-  if (status === "COMPLETED") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-
-  if (status === "IN_PROGRESS") {
-    return "bg-blue-100 text-blue-700";
-  }
-
+  if (status === "COMPLETED") return "bg-emerald-100 text-emerald-700";
+  if (status === "IN_PROGRESS") return "bg-blue-100 text-blue-700";
   return "bg-slate-100 text-slate-700";
 }
 
@@ -114,6 +100,10 @@ function isProjectAssessment(item: Assessment) {
 function isAssignmentOrQuizAssessment(item: Assessment) {
   const assessmentType = getAssessmentType(item);
   return assessmentType === "assignment" || assessmentType === "quiz";
+}
+
+function getProjectGroupStorageKey(offeringId?: string) {
+  return offeringId ? `student-project-group:${offeringId}` : null;
 }
 
 export default function CourseEvaluations() {
@@ -144,6 +134,13 @@ export default function CourseEvaluations() {
     }
   }
   const currentUserId = currentUser?.studentId || currentUser?.userId || null;
+  const currentUserObject = currentUser as unknown as Record<string, unknown> | null;
+  const currentUserKeys = useMemo(
+    () =>
+      [currentUser?.studentId, currentUser?.userId, currentUserObject?.id]
+        .filter((value): value is string => Boolean(value && String(value).trim())),
+    [currentUser, currentUserObject],
+  );
 
   const activeSection = normalizeSection(searchParams.get("section"));
 
@@ -155,9 +152,7 @@ export default function CourseEvaluations() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!offeringId) {
-        return;
-      }
+      if (!offeringId) return;
 
       try {
         setLoading(true);
@@ -174,7 +169,7 @@ export default function CourseEvaluations() {
       }
     };
 
-    fetchData();
+    void fetchData();
   }, [offeringId]);
 
   const scoredAssessments = useMemo(
@@ -188,13 +183,18 @@ export default function CourseEvaluations() {
   );
 
   const projectAssessments = useMemo(
-    () => scoredAssessments.filter((item) => isProjectAssessment(item)),
-    [scoredAssessments],
+    () => assessments.filter((item) => isProjectAssessment(item)),
+    [assessments],
+  );
+
+  const submittedProjectAssessments = useMemo(
+    () => projectAssessments.filter((item) => Boolean(item.submissionId)),
+    [projectAssessments],
   );
 
   const selectedSummary = useMemo(
-    () => scoredAssessments.find((item) => item.assessmentId === selectedAssessmentId) || null,
-    [scoredAssessments, selectedAssessmentId],
+    () => assessments.find((item) => item.assessmentId === selectedAssessmentId) || null,
+    [assessments, selectedAssessmentId],
   );
 
   const courseTitle = course?.course?.courseName || course?.courseName || "Học phần";
@@ -222,15 +222,14 @@ export default function CourseEvaluations() {
 
     return {
       total: projectAssessments.length.toString(),
+      submitted: submittedProjectAssessments.length.toString(),
       graded: graded.length.toString(),
       average: average === "--" ? "--" : `${average}/10`,
     };
-  }, [projectAssessments]);
+  }, [projectAssessments, submittedProjectAssessments]);
 
   useEffect(() => {
-    if (!isDetailOpen || !selectedAssessmentId) {
-      return;
-    }
+    if (!isDetailOpen || !selectedAssessmentId) return;
 
     const fetchAssessmentDetail = async () => {
       try {
@@ -253,13 +252,11 @@ export default function CourseEvaluations() {
       }
     };
 
-    fetchAssessmentDetail();
+    void fetchAssessmentDetail();
   }, [isDetailOpen, selectedAssessmentId]);
 
   useEffect(() => {
-    if (activeSection !== "project" || !offeringId || !currentUserId) {
-      return;
-    }
+    if (activeSection !== "project" || !offeringId || !currentUserId) return;
 
     const fetchProjectData = async () => {
       try {
@@ -272,11 +269,28 @@ export default function CourseEvaluations() {
         setProjectStudents(studentData || []);
         setProjectGroups(groupData || []);
 
+        const storageKey = getProjectGroupStorageKey(offeringId);
+        const savedGroupId = storageKey ? localStorage.getItem(storageKey) : null;
         const nextGroupId = groupData?.[0]?.id || null;
-        setActiveProjectGroupId((prev) => prev || nextGroupId);
+
+        setActiveProjectGroupId((prev) => {
+          if (prev && groupData?.some((group: GroupResponse) => group.id === prev)) {
+            return prev;
+          }
+
+          if (savedGroupId && groupData?.some((group: GroupResponse) => group.id === savedGroupId)) {
+            return savedGroupId;
+          }
+
+          return nextGroupId;
+        });
 
         if (nextGroupId) {
-          const tasks = await groupService.getTasks(nextGroupId);
+          const targetGroupId =
+            savedGroupId && groupData?.some((group: GroupResponse) => group.id === savedGroupId)
+              ? savedGroupId
+              : nextGroupId;
+          const tasks = await groupService.getTasks(targetGroupId);
           setProjectTasks(tasks || []);
         } else {
           setProjectTasks([]);
@@ -291,29 +305,35 @@ export default function CourseEvaluations() {
       }
     };
 
-    fetchProjectData();
+    void fetchProjectData();
   }, [activeSection, offeringId, currentUserId]);
 
   useEffect(() => {
-    if (activeSection !== "project" || !activeProjectGroupId) {
-      return;
-    }
+    if (activeSection !== "project" || !activeProjectGroupId) return;
 
     const fetchTasks = async () => {
       try {
-        setProjectLoading(true);
         const tasks = await groupService.getTasks(activeProjectGroupId);
         setProjectTasks(tasks || []);
       } catch (error) {
         console.error("Lỗi khi tải task project:", error);
         setProjectTasks([]);
-      } finally {
-        setProjectLoading(false);
       }
     };
 
-    fetchTasks();
+    void fetchTasks();
   }, [activeProjectGroupId, activeSection]);
+
+  useEffect(() => {
+    const storageKey = getProjectGroupStorageKey(offeringId);
+    if (!storageKey) return;
+
+    if (activeProjectGroupId) {
+      localStorage.setItem(storageKey, activeProjectGroupId);
+    } else {
+      localStorage.removeItem(storageKey);
+    }
+  }, [activeProjectGroupId, offeringId]);
 
   const openDetail = (assessmentId: string) => {
     setSelectedAssessmentId(assessmentId);
@@ -331,25 +351,49 @@ export default function CourseEvaluations() {
     [activeProjectGroupId, projectGroups],
   );
 
+  const isProjectAdmin = useMemo(
+    () =>
+      Boolean(
+        activeProjectGroup?.participants.some(
+          (participant) => participant.role === "ADMIN" && currentUserKeys.includes(participant.userId),
+        ),
+      ),
+    [activeProjectGroup, currentUserKeys],
+  );
+
   const assignedTasks = useMemo(
-    () => projectTasks.filter((task) => task.assigneeId === currentUserId || task.assignToGroup),
-    [projectTasks, currentUserId],
+    () =>
+      projectTasks.filter(
+        (task) =>
+          Boolean(task.assignToGroup) ||
+          (task.assigneeId ? currentUserKeys.includes(task.assigneeId) : false),
+      ),
+    [currentUserKeys, projectTasks],
+  );
+
+  const visibleProjectTasks = useMemo(
+    () => {
+      if (isProjectAdmin) {
+        return projectTasks;
+      }
+
+      return assignedTasks.length > 0 ? assignedTasks : projectTasks;
+    },
+    [assignedTasks, isProjectAdmin, projectTasks],
   );
 
   const getStudentName = (userId: string) => {
-    const student = projectStudents.find((item) => item.id === userId || item.studentId === userId || item.userId === userId);
+    const student = projectStudents.find(
+      (item) => item.id === userId || item.studentId === userId || item.userId === userId,
+    );
     return student?.fullName || userId;
   };
 
   const formatTaskDate = (dateString?: string) => {
-    if (!dateString) {
-      return "Chưa có hạn";
-    }
+    if (!dateString) return "Chưa có hạn";
 
     const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) {
-      return "Chưa có hạn";
-    }
+    if (Number.isNaN(date.getTime())) return "Chưa có hạn";
 
     return date.toLocaleString("vi-VN", {
       day: "2-digit",
@@ -422,47 +466,55 @@ export default function CourseEvaluations() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        {renderAssessmentTable(assignmentAssessments, "Chưa có bài tập nào được nộp hoặc chấm trong học phần này.")}
+        {renderAssessmentTable(
+          assignmentAssessments,
+          "Chưa có bài tập nào được nộp hoặc chấm trong học phần này.",
+        )}
       </div>
     </div>
   );
 
   const renderProject = () => (
-    <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Nhóm</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{projectGroups.length}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Việc của bạn</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{assignedTasks.length}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Đánh giá</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{projectSummary.total}</p>
-        </div>
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-4">
+        <SimpleCard title="Project" value={projectSummary.total} note="Tổng số bài project trong học phần." />
+        <SimpleCard
+          title="Đã nộp"
+          value={projectSummary.submitted}
+          note="Các bài project đã có bài nộp."
+          tone="amber"
+        />
+        <SimpleCard
+          title="Đã chấm"
+          value={projectSummary.graded}
+          note="Các bài project đã có điểm."
+          tone="emerald"
+        />
+        <SimpleCard title="Điểm TB" value={projectSummary.average} note="Trên các bài project đã chấm." />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900">Nhóm</h3>
-              {activeProjectGroup && (
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-emerald-600" />
+                <h3 className="text-base font-semibold text-slate-900">Nhóm project</h3>
+              </div>
+              {activeProjectGroup ? (
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
                   {activeProjectGroup.participants?.length || 0} thành viên
                 </span>
-              )}
+              ) : null}
             </div>
 
             {projectLoading ? (
-              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Đang tải...</div>
+              <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Đang tải...</div>
             ) : !activeProjectGroup ? (
-              <div className="mt-3 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Chưa có nhóm</div>
+              <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Chưa có nhóm</div>
             ) : (
               <div className="mt-4 space-y-4">
-                {projectGroups.length > 1 && (
+                {projectGroups.length > 1 ? (
                   <div className="flex flex-wrap gap-2">
                     {projectGroups.map((group) => (
                       <button
@@ -479,11 +531,13 @@ export default function CourseEvaluations() {
                       </button>
                     ))}
                   </div>
-                )}
+                ) : null}
 
-                <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                <div className="rounded-2xl bg-slate-50 p-4">
                   <p className="text-lg font-semibold text-slate-900">{activeProjectGroup.groupName}</p>
-                  <p className="mt-1 text-sm text-slate-600">{activeProjectGroup.topic || "Chưa có đề tài"}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {activeProjectGroup.topic || "Chưa có đề tài project"}
+                  </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -500,27 +554,48 @@ export default function CourseEvaluations() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900">Việc của bạn</h3>
-              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">{assignedTasks.length}</span>
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-emerald-600" />
+                <h3 className="text-base font-semibold text-slate-900">Việc trong nhóm</h3>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                {visibleProjectTasks.length}
+              </span>
             </div>
 
             <div className="mt-4 space-y-3">
               {projectLoading ? (
                 <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Đang tải...</div>
-              ) : assignedTasks.length === 0 ? (
-                <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">Chưa có việc</div>
+              ) : visibleProjectTasks.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                  Chưa có công việc nhóm nào.
+                </div>
               ) : (
-                assignedTasks.map((task) => (
+                visibleProjectTasks.map((task) => (
                   <div key={task.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium text-slate-900">{task.title}</p>
-                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getTaskStatusClass(task.status)}`}>
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900">{task.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{formatTaskDate(task.deadline)}</p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getTaskStatusClass(task.status)}`}
+                      >
                         {getTaskStatusLabel(task.status)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">{formatTaskDate(task.deadline)}</p>
+                    {task.description ? (
+                      <p className="mt-2 line-clamp-2 text-sm text-slate-600">{task.description}</p>
+                    ) : null}
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                      <span>
+                        {task.assignToGroup
+                          ? "Giao cho: Cả nhóm"
+                          : `Giao cho: ${getStudentName(task.assigneeId || "")}`}
+                      </span>
+                    </div>
                   </div>
                 ))
               )}
@@ -528,16 +603,92 @@ export default function CourseEvaluations() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-900">Đánh giá project</h3>
+            <div className="flex items-center gap-2">
+              <FolderKanban className="h-4 w-4 text-emerald-600" />
+              <h3 className="text-base font-semibold text-slate-900">Đánh giá project</h3>
+            </div>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
               {projectAssessments.length}
             </span>
           </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Xem nhanh trạng thái, điểm và mở chi tiết từng bài project.
+          </p>
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {renderAssessmentTable(projectAssessments, "Chưa có đánh giá project.")}
+          <div className="mt-4 space-y-4">
+            {projectAssessments.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+                Chưa có đánh giá project nào.
+              </div>
+            ) : (
+              projectAssessments.map((project) => {
+                const status = getAssessmentStatus(project);
+                return (
+                  <div
+                    key={project.assessmentId}
+                    className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-emerald-200 hover:bg-white"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-base font-semibold text-slate-900">{project.assessmentName}</p>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getAssessmentStatusClass(status)}`}>
+                            {status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-2 xl:grid-cols-3">
+                          <p>Hạn nộp: {formatDateTime(project.endTime)}</p>
+                          <p>Nộp lúc: {formatDateTime(project.submissionAt)}</p>
+                          <p>Tỷ trọng: {project.weight}%</p>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {project.cloCode?.length ? (
+                            project.cloCode.map((clo) => (
+                              <span
+                                key={`${project.assessmentId}-${clo}`}
+                                className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600 border border-slate-200"
+                              >
+                                {clo}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-500 border border-slate-200">
+                              Chưa gắn CLO
+                            </span>
+                          )}
+                        </div>
+
+                        {project.lecturerComment ? (
+                          <div className="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-slate-600 border border-slate-200">
+                            <span className="font-medium text-slate-700">Nhận xét:</span> {project.lecturerComment}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="flex shrink-0 flex-col gap-2 lg:w-[170px]">
+                        <div className="rounded-2xl bg-white px-4 py-3 text-center border border-slate-200">
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Điểm</p>
+                          <p className="mt-2 text-2xl font-semibold text-slate-900">
+                            {project.calculatedScore !== null ? project.calculatedScore : "--"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openDetail(project.assessmentId)}
+                          className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                        >
+                          Xem chi tiết
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
@@ -565,15 +716,12 @@ export default function CourseEvaluations() {
     if (activeSection === "attendance") {
       return <StudentAttendanceCheckIn offeringId={offeringId || ""} />;
     }
-
     if (activeSection === "assignments") {
       return renderAssignments();
     }
-
     if (activeSection === "project") {
       return renderProject();
     }
-
     return renderFinal();
   };
 

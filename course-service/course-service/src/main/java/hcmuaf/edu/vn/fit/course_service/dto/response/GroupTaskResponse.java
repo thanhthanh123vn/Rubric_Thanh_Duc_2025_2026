@@ -17,4 +17,9 @@ public class GroupTaskResponse {
     private TaskStatus status;
     private LocalDateTime deadline;
     private LocalDateTime createdAt;
+    private String resultNote;
+    private String resultLink;
+    private String resultFileUrl;
+    private String completedById;
+    private LocalDateTime completedAt;
 }

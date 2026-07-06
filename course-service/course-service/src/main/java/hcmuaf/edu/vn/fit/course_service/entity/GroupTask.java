@@ -33,6 +33,11 @@ public class GroupTask {
 
     private LocalDateTime deadline;
     private LocalDateTime createdAt;
+    private String resultNote;
+    private String resultLink;
+    private String resultFileUrl;
+    private String completedById;
+    private LocalDateTime completedAt;
 
     @PrePersist
     public void onCreate() {
