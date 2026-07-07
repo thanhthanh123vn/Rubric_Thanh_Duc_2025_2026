@@ -95,7 +95,7 @@ export default function SubjectManagement() {
             setIsSubmitting(false);
         }
     };
-    console.log(subjects);
+
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500 relative pb-20 md:pb-0">
             {/* HEADER */}

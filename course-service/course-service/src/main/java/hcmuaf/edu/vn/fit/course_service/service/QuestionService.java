@@ -2,9 +2,11 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.OfferingQuestionCount;
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.QuestionType;
+import hcmuaf.edu.vn.fit.course_service.mapper.QuestionMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseCLORepository;
 import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.QuestionBankRepository;
@@ -28,6 +30,7 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final CourseCLORepository courseCLORepository;
     private final QuestionBankRepository questionBankRepository;
+    private final QuestionMapper questionMapper;
 
 
     private final CourseOfferingRepository courseOfferingRepository;
@@ -422,5 +425,23 @@ public class QuestionService {
         return Optional.ofNullable(bank.getQuestionIds())
                 .map(List::size)
                 .orElse(0);
+    }
+    public List<QuestionResponse> getAllQuestionsOfCourse(String offeringId) {
+        Optional<CourseOffering> courseOfferingOpt = courseOfferingRepository.findById(offeringId);
+        if (courseOfferingOpt.isEmpty() || courseOfferingOpt.get().getCourse() == null) {
+            return Collections.emptyList();
+        }
+
+        String courseId = courseOfferingOpt.get().getCourse().getCourseId();
+        List<CourseOffering> allOfferings = courseOfferingRepository.findByCourse_CourseIdIn(Set.of(courseId));
+        Set<String> allOfferingIds = allOfferings.stream()
+                .map(CourseOffering::getOfferingId)
+                .collect(Collectors.toSet());
+
+        List<Question> questions = questionRepository.findAllByOfferingIdIn(allOfferingIds);
+
+        return questions.stream()
+                .map(questionMapper::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

@@ -196,23 +196,28 @@ public class QuestionBankService {
 
 
     }
-    public List<QuestionResponse> getPublicQuestionBanks(String offeringId) {
-        CourseOffering courseOffering = courseOfferingRepository.findById(offeringId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Học Phần"));
-        Course course = courseOffering.getCourse();
-        System.out.println(course);
+    public List<QuestionBankResponse> getPublicQuestionBanks(String offeringId) {
 
-
-        List<QuestionBank> banks = questionBankRepository.findByIsPublicTrueAndCourseId(course.getCourseId());
-        List<Question> allQuestion = new ArrayList<>();
-        for(QuestionBank bank : banks) {
-            List<Question> questions = questionService.getQuestionsByBankId(bank.getId());
-            allQuestion.addAll(questions);
+        Optional<CourseOffering> courseOfferingOpt = courseOfferingRepository.findById(offeringId);
+        if (courseOfferingOpt.isEmpty() || courseOfferingOpt.get().getCourse() == null) {
+            return Collections.emptyList();
         }
 
 
-        return allQuestion.stream()
-                .map(questionMapper::mapToResponse)
+        String courseId = courseOfferingOpt.get().getCourse().getCourseId();
+
+
+        List<CourseOffering> allOfferingsOfCourse = courseOfferingRepository.findByCourse_CourseIdIn(Set.of(courseId));
+        Set<String> allOfferingIds = allOfferingsOfCourse.stream()
+                .map(CourseOffering::getOfferingId)
+                .collect(Collectors.toSet());
+
+
+        List<QuestionBank> publicBanks = questionBankRepository.findByIsPublicTrueAndOfferingIdIn(allOfferingIds);
+
+        // 5. Map sang Response
+        return publicBanks.stream()
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
     public List<QuestionBankResponse> getBanksPublicByOfferingIdForDep(String offeringId) {

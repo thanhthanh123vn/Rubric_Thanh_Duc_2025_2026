@@ -26,6 +26,7 @@ public class Question {
     private Difficulty difficulty;
 
     private String offeringId;
+    private String chapterId;
 
     @Builder.Default
     private List<AnswerOption> options = new ArrayList<>();

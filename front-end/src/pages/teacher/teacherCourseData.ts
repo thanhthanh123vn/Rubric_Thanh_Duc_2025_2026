@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ClipboardList, FileText, TimerReset, Users, Workflow } from 'lucide-react';
+import {BarChart3, BookOpen, ClipboardList, FileEdit, FileText, TimerReset, Users, Workflow} from 'lucide-react';
 
 export interface TeacherCourseItem {
   offeringId: string;
@@ -68,7 +68,9 @@ export const teacherCourseMenu = [
   { key: 'assignments', icon: ClipboardList, label: 'Bài tập', path: 'assignments' },
   { key: 'rubric', icon: FileText, label: 'Rubric', path: 'rubric' },
   { key: 'questions',  icon: ClipboardList , label: 'Câu Hỏi', path: 'questions' },
+  { key: 'create-exam', icon: FileEdit, label: 'Ra đề thi', path: 'create-exam' },
   { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
+
   { key: 'groups', icon: Workflow, label: 'Nhóm & Dự án', path: 'groups' },
   { key: 'grading', icon: FileText, label: 'Chấm bài', path: 'grading' },
   { key: 'projects', icon: Workflow, label: 'Dự án', path: 'projects' },
