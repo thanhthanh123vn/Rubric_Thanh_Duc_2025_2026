@@ -12,8 +12,14 @@ public class GroupTaskResponse {
     private String title;
     private String description;
     private String assigneeId;
+    private Boolean assignToGroup;
     private String assignerId;
     private TaskStatus status;
     private LocalDateTime deadline;
     private LocalDateTime createdAt;
+    private String resultNote;
+    private String resultLink;
+    private String resultFileUrl;
+    private String completedById;
+    private LocalDateTime completedAt;
 }

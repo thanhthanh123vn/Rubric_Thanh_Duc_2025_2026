@@ -8,6 +8,7 @@ import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.GradeStatus;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.ParticipantRole;
 import hcmuaf.edu.vn.fit.course_service.mapper.AssessmentMapper;
 import hcmuaf.edu.vn.fit.course_service.mapper.CommentMapper;
 import hcmuaf.edu.vn.fit.course_service.mapper.CourseMapper;
@@ -43,6 +44,8 @@ public class AssessmentService {
     private final AssessmentMapper assessmentMapper;
     private final SubmissionRepository submissionRepository;
     private final CourseOfferingRepository courseOfferingRepository;
+    private final GroupRepository groupRepository;
+    private final ParticipantRepository participantRepository;
     @Autowired
     private AssessmentCLORepository assessmentCLORepository;
 
@@ -145,6 +148,62 @@ public class AssessmentService {
     public List<SubmissionEntity> getSubmissions(String assessmentId) {
 
         return submissionRepository.findByAssessmentId(assessmentId);
+    }
+
+    public List<AssessmentSubmissionStatusResponse> getSubmissionStatuses(String assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập: " + assessmentId));
+
+        if (assessment.getCourseOffering() == null) {
+            return Collections.emptyList();
+        }
+
+        String offeringId = assessment.getCourseOffering().getOfferingId();
+        List<String> studentIds = enrollmentRepository.findStudentIdsByOfferingId(offeringId);
+        if (studentIds == null || studentIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, SubmissionEntity> submissionMap = submissionRepository.findByAssessmentId(assessmentId)
+                .stream()
+                .collect(Collectors.toMap(
+                        SubmissionEntity::getStudentId,
+                        submission -> submission,
+                        (current, ignored) -> current
+                ));
+
+        return studentIds.stream()
+                .map(studentId -> {
+                    SubmissionEntity submission = submissionMap.get(studentId);
+
+                    if (submission == null) {
+                        return AssessmentSubmissionStatusResponse.builder()
+                                .id(assessmentId + "-" + studentId)
+                                .assessmentId(assessmentId)
+                                .studentId(studentId)
+                                .status("NOT_SUBMITTED")
+                                .submitted(false)
+                                .build();
+                    }
+
+                    return AssessmentSubmissionStatusResponse.builder()
+                            .id(submission.getId())
+                            .assessmentId(submission.getAssessmentId())
+                            .studentId(submission.getStudentId())
+                            .rubricId(submission.getRubricId())
+                            .fileUrl(submission.getFileUrl())
+                            .submittedLink(submission.getSubmittedLink())
+                            .submittedAt(submission.getSubmittedAt())
+                            .status(
+                                    submission.getStatus() != null && !submission.getStatus().isBlank()
+                                            ? submission.getStatus()
+                                            : "SUBMITTED"
+                            )
+                            .submitted(true)
+                            .build();
+                })
+                .sorted(Comparator.comparing(AssessmentSubmissionStatusResponse::getStudentId))
+                .toList();
     }
     public SubmissionEntity submitAssignment(
             String assessmentId,

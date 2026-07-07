@@ -62,6 +62,15 @@ public class Attendance {
     @Column(name = "distance")
     private Double distance;
 
+    @Column(name = "browser_id", length = 120)
+    private String browserId;
+
+    @Column(name = "user_agent", length = 500)
+    private String userAgent;
+
+    @Column(name = "ip_address", length = 100)
+    private String ipAddress;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "method", length = 20)
     private AttendanceMethod method;

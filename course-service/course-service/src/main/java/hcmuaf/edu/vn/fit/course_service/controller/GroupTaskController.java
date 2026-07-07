@@ -5,6 +5,7 @@ import hcmuaf.edu.vn.fit.course_service.entity.enums.TaskStatus;
 import hcmuaf.edu.vn.fit.course_service.service.GroupTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,9 +27,9 @@ public class GroupTaskController {
     }
 
     @GetMapping("/{groupId}")
-    public ResponseEntity<?> getTasks(@PathVariable String groupId) {
+    public ResponseEntity<?> getTasks(@PathVariable String groupId, @RequestHeader("X-User-Id") String userId) {
         try {
-            return ResponseEntity.ok(Map.of("status", "success", "data", taskService.getTasksByGroup(groupId)));
+            return ResponseEntity.ok(Map.of("status", "success", "data", taskService.getTasksByGroup(groupId, userId)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }
@@ -38,9 +39,12 @@ public class GroupTaskController {
     public ResponseEntity<?> updateStatus(
             @PathVariable String taskId,
             @RequestParam TaskStatus status,
+            @RequestParam(value = "resultNote", required = false) String resultNote,
+            @RequestParam(value = "resultLink", required = false) String resultLink,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestHeader("X-User-Id") String userId) {
         try {
-            return ResponseEntity.ok(Map.of("status", "success", "data", taskService.updateTaskStatus(taskId, status, userId)));
+            return ResponseEntity.ok(Map.of("status", "success", "data", taskService.updateTaskStatus(taskId, status, userId, resultNote, resultLink, file)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }

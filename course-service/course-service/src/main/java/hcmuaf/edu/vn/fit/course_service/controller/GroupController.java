@@ -53,6 +53,16 @@ public class GroupController {
             return ResponseEntity.badRequest().body("Lỗi khi tải danh sách nhóm của sinh viên: " + e.getMessage());
         }
     }
+    @GetMapping("/group/offering/{offeringId}")
+    public ResponseEntity<?> getGroupsByOffering(@PathVariable String offeringId) {
+        try {
+            List<GroupResponse> groups = groupService.getGroupsByOfferingId(offeringId);
+            return ResponseEntity.ok(groups);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Loi khi tai danh sach nhom cua hoc phan: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/group/{groupId}/members")
     public ResponseEntity<?> addMember(
             @PathVariable String groupId,

@@ -68,17 +68,14 @@ public class QuestionBankController {
     public ResponseEntity<?> getBanksByCourse(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionBankService.getBanksByOfferingId(offeringId));
     }
-
     @GetMapping("/course/dep/{offeringId}")
     public ResponseEntity<?> getBanksByCourseForDep(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionBankService.getBanksByOfferingIdForDep(offeringId));
     }
-
     @GetMapping("/all")
-    public ResponseEntity<?> getAllQuestionBanks(@RequestHeader("X-User-Id") String userId) {
+    public ResponseEntity<?> getAllQuestionBanks( @RequestHeader("X-User-Id") String userId) {
         return ResponseEntity.ok(questionBankService.getAllQuestionBanks(userId));
     }
-
     @GetMapping("/lecturer")
     public ResponseEntity<List<QuestionBankResponse>> getQuestionsByLecturerUserId(@RequestHeader("X-User-Id") String userId) {
 

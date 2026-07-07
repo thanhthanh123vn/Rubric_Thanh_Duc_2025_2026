@@ -39,19 +39,33 @@ export interface GroupTaskResponse {
     id: string;
     title: string;
     description: string;
-    assigneeId: string;
+    assigneeId: string | null;
+    assignToGroup?: boolean;
     assignerId: string;
     status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
     deadline: string;
     createdAt: string;
+    resultNote?: string | null;
+    resultLink?: string | null;
+    resultFileUrl?: string | null;
+    completedById?: string | null;
+    completedAt?: string | null;
 }
 
 export interface CreateTaskRequest {
     groupId: string;
     title: string;
     description: string;
-    assigneeId: string;
+    assigneeId?: string;
+    assignToGroup?: boolean;
     deadline?: string;
+}
+
+export interface UpdateTaskStatusRequest {
+    status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+    resultNote?: string;
+    resultLink?: string;
+    file?: File | null;
 }
 export interface AssessmentSubmission {
     assessmentId: string;

@@ -14,6 +14,7 @@ import hcmuaf.edu.vn.fit.course_service.exception.BadRequestException;
 import hcmuaf.edu.vn.fit.course_service.repository.AttendanceRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.AttendanceSessionRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +33,11 @@ public class StudentAttendanceService {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public AttendanceCheckInResponse checkIn(String currentStudentId, StudentAttendanceCheckInRequest request) {
+    public AttendanceCheckInResponse checkIn(
+            String currentStudentId,
+            StudentAttendanceCheckInRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
         if (currentStudentId == null || currentStudentId.trim().isEmpty()) {
             throw new BadRequestException("Khong xac dinh duoc sinh vien dang dang nhap");
         }
@@ -66,6 +71,10 @@ public class StudentAttendanceService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        String browserId = normalizeBrowserId(request.getBrowserId());
+        String userAgent = normalizeHeaderValue(httpServletRequest != null ? httpServletRequest.getHeader("User-Agent") : null, 500);
+        String ipAddress = extractClientIp(httpServletRequest);
+
         if (now.isBefore(session.getStartTime())) {
             throw new BadRequestException("Phien diem danh chua bat dau");
         }
@@ -93,6 +102,9 @@ public class StudentAttendanceService {
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .distance(distance)
+                .browserId(browserId)
+                .userAgent(userAgent)
+                .ipAddress(ipAddress)
                 .method(AttendanceMethod.QR)
                 .note("Diem danh thanh cong bang QR + GPS")
                 .build();
@@ -179,5 +191,40 @@ public class StudentAttendanceService {
             session.setStatus(AttendanceSessionStatus.CLOSED);
             attendanceSessionRepository.save(session);
         }
+    }
+
+    private String normalizeBrowserId(String browserId) {
+        return normalizeHeaderValue(browserId, 120);
+    }
+
+    private String normalizeHeaderValue(String value, int maxLength) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalizedValue = value.trim();
+        if (normalizedValue.isEmpty()) {
+            return null;
+        }
+
+        return normalizedValue.length() <= maxLength
+                ? normalizedValue
+                : normalizedValue.substring(0, maxLength);
+    }
+
+    private String extractClientIp(HttpServletRequest httpServletRequest) {
+        if (httpServletRequest == null) {
+            return null;
+        }
+
+        String forwardedFor = httpServletRequest.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            String firstIp = forwardedFor.split(",")[0].trim();
+            if (!firstIp.isEmpty()) {
+                return normalizeHeaderValue(firstIp, 100);
+            }
+        }
+
+        return normalizeHeaderValue(httpServletRequest.getRemoteAddr(), 100);
     }
 }

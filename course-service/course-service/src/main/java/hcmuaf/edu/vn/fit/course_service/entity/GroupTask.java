@@ -25,6 +25,7 @@ public class GroupTask {
     private String description;
 
     private String assigneeId;
+    private Boolean assignToGroup;
     private String assignerId;
 
     @Enumerated(EnumType.STRING)
@@ -32,10 +33,16 @@ public class GroupTask {
 
     private LocalDateTime deadline;
     private LocalDateTime createdAt;
+    private String resultNote;
+    private String resultLink;
+    private String resultFileUrl;
+    private String completedById;
+    private LocalDateTime completedAt;
 
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
         if (this.status == null) this.status = TaskStatus.TODO;
+        if (this.assignToGroup == null) this.assignToGroup = false;
     }
 }

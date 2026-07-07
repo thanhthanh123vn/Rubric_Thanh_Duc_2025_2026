@@ -8,6 +8,13 @@ export const fetchSubmissionsPending = async (assessmentId: string) => {
     return response.data;
 };
 
+export const fetchSubmissionStatuses = async (assessmentId: string) => {
+    const response = await courseApi.get(
+        `/assessments/${assessmentId}/submission-statuses`
+    );
+    return response.data;
+};
+
 export const getRubricById = async (id: string) => {
     return rubricServiceApi.get(`/rubrics/${id}`);
 };
