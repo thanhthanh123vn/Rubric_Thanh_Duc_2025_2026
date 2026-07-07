@@ -76,6 +76,7 @@ import SubjectManagement from "@/pages/admin/departments/SubjectManagement.tsx";
 import SyllabusManager from "@/pages/admin/managarCourse/SyllabusManager.tsx";
 import CourseContentManager from "@/pages/admin/managarCourse/CourseContentManager.tsx";
 import CourseAssignmentsManager from "@/pages/admin/managarCourse/CourseAssignmentsManager.tsx";
+import CreateExamPage from "@/pages/teacher/CreateExamPage.tsx";
 
 export const router = createBrowserRouter([
 
@@ -160,6 +161,26 @@ export const router = createBrowserRouter([
                 path: "course/:id",
                 Component: TeacherCourseLayout,
                 children: [
+
+                    {index: true, Component: TeacherCourseOverview},
+                    {path: "students", Component: TeacherCourseStudents},
+                    {path: "assignments", Component: TeacherCourseAssignments},
+                    {path: "assessment/:assessmentId/submissions", Component: TeacherSubmissions},
+                    {path:"create-exam" , Component:CreateExamPage},
+
+                    {path: "rubric", Component: TeacherCourseRubric},
+                    {path: "rubric/:id", Component: TeacherRubricDetail},
+                    {path: "questions/bank/:bankId", Component: TeacherQuestionBank},
+                    {path: "obe", Component: TeacherCourseOBE},
+                    {path: "obe/analytics", Component: TeacherOBEAnalytics},
+                    {path: "obe/:cloId", Component: TeacherOBEDetail},
+                    {path: "groups", Component: TeacherCourseGroups},
+                    {path: "grading", Component: TeacherAssessmentList},
+                    {path: "assessment/:assessmentId/grading", Component: TeacherGrading},
+                    {path: "projects", Component: TeacherProjects},
+                    {path: "attendance", Component: CreateQrAttendancePage},
+                    {path: "report", Component: TeacherReport},
+
                     { index: true, Component: TeacherCourseOverview },
                     { path: "students", Component: TeacherCourseStudents },
                     { path: "assignments", Component: TeacherCourseAssignments },
@@ -183,6 +204,7 @@ export const router = createBrowserRouter([
                     },
                     { path: "attendance", Component: CreateQrAttendancePage },
                     { path: "report", Component: TeacherReport },
+
                 ],
             },
 

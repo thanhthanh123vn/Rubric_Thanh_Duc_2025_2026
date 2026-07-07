@@ -112,4 +112,8 @@ export const questionApi = {
 
         return response.data;
     },
+    getPublicDepartmentQuestions:async(offeringId: string) =>{
+        const response = await courseApi.get(`/questions/department/public/${offeringId}`);
+        return response.data;
+    }
 };

@@ -34,6 +34,7 @@ public interface QuestionBankRepository extends MongoRepository<QuestionBank, St
 
     List<QuestionBank> findByIsPublicTrueAndCourseId(String courseId);
 
-
+    List<QuestionBank> findAllByOfferingIdIn(Set<String> offeringIds);
+    List<QuestionBank> findByIsPublicTrueAndOfferingIdIn(Set<String> offeringIds);
 
 }

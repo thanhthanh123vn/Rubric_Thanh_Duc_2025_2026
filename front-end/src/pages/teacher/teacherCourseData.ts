@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ClipboardList, FileText, TimerReset, Users, Workflow } from "lucide-react";
+import {BarChart3, BookOpen, ClipboardList, FileEdit, FileText, TimerReset, Users, Workflow} from 'lucide-react';
 
 export interface TeacherCourseItem {
   offeringId: string;
@@ -62,14 +62,17 @@ export const teacherCourses: TeacherCourseItem[] = [
 ];
 
 export const teacherCourseMenu = [
-  { key: "overview", icon: BookOpen, label: "Tong quan", path: "" },
-  { key: "students", icon: Users, label: "Sinh vien", path: "students" },
-  { key: "assignments", icon: ClipboardList, label: "Bai tap", path: "assignments" },
-  { key: "rubric", icon: FileText, label: "Rubric", path: "rubric" },
-  { key: "questions", icon: ClipboardList, label: "Cau hoi", path: "questions" },
-  { key: "obe", icon: BarChart3, label: "OBE", path: "obe" },
-  { key: "groups", icon: Workflow, label: "Nhom & Du an", path: "groups" },
-  { key: "grading", icon: FileText, label: "Cham bai", path: "grading" },
-  { key: "attendance", icon: TimerReset, label: "Diem danh", path: "attendance" },
-  { key: "report", icon: BarChart3, label: "Bao cao", path: "report" },
+  { key: 'overview', icon: BookOpen, label: 'Tổng quan', path: '' },
+  { key: 'students', icon: Users, label: 'Sinh viên', path: 'students' },
+  { key: 'assignments', icon: ClipboardList, label: 'Bài tập', path: 'assignments' },
+  { key: 'rubric', icon: FileText, label: 'Rubric', path: 'rubric' },
+  { key: 'questions',  icon: ClipboardList , label: 'Câu Hỏi', path: 'questions' },
+  { key: 'create-exam', icon: FileEdit, label: 'Ra đề thi', path: 'create-exam' },
+  { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
+
+  { key: 'groups', icon: Workflow, label: 'Nhóm & Dự án', path: 'groups' },
+  { key: 'grading', icon: FileText, label: 'Chấm bài', path: 'grading' },
+  { key: 'projects', icon: Workflow, label: 'Dự án', path: 'projects' },
+  { key: 'attendance', icon: TimerReset, label: 'Điểm danh', path: 'attendance' },
+  { key: 'report', icon: BarChart3, label: 'Báo cáo', path: 'report' },
 ];

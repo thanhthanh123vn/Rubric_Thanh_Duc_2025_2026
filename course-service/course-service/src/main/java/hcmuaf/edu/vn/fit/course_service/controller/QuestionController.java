@@ -1,6 +1,7 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionRequest; // Bạn cần tạo DTO này
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Question;
 import hcmuaf.edu.vn.fit.course_service.service.QuestionService;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class QuestionController {
             @PathVariable String offeringId,
             @PathVariable String bankId,
             @RequestBody QuestionRequest request) {
-        System.out.println("Các CLO đã tạo khi tạo câu hỏi"+request.getCloIds());
+        System.out.println("Các CLO đã tạo khi tạo câu hỏi" + request.getCloIds());
         return ResponseEntity.ok(questionService.createQuestionToBank(offeringId, bankId, request));
     }
 
@@ -54,6 +55,7 @@ public class QuestionController {
         questionService.deleteQuestionFromBank(bankId, questionId);
         return ResponseEntity.noContent().build();
     }
+
     @PostMapping(value = "/course/{offeringId}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> importQuestions(
             @PathVariable String offeringId,
@@ -62,12 +64,13 @@ public class QuestionController {
         try {
 
 
-            List<Question> importedQuestions = questionService.importQuestionsFromExcel(offeringId, bankId,file);
+            List<Question> importedQuestions = questionService.importQuestionsFromExcel(offeringId, bankId, file);
             return ResponseEntity.ok("Import thành công " + importedQuestions.size() + " câu hỏi.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     @PutMapping("/course/{id}")
     public ResponseEntity<Question> updateQuestion(
             @PathVariable String id,
@@ -76,10 +79,12 @@ public class QuestionController {
         Question updatedQuestion = questionService.updateQuestion(id, request);
         return ResponseEntity.ok(updatedQuestion);
     }
+
     @GetMapping("/course/{offeringId}/count")
     public ResponseEntity<Long> countQuestionsByCourse(@PathVariable String offeringId) {
         return ResponseEntity.ok(questionService.getQuestionCountByOfferingId(offeringId));
     }
+
     @GetMapping("/course/{offeringId}/bank/{bankId}/count")
     public ResponseEntity<Long> countQuestionsByBank(
             @PathVariable String offeringId,
@@ -92,6 +97,7 @@ public class QuestionController {
                 )
         );
     }
+
     @PostMapping(
             value = "/course/{offeringId}/bank/{bankId}/import",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -123,10 +129,12 @@ public class QuestionController {
                     .body(e.getMessage());
         }
     }
+
     @PostMapping("/course/counts")
     public ResponseEntity<Map<String, Long>> getQuestionCountsByCourses(@RequestBody List<String> offeringIds) {
         return ResponseEntity.ok(questionService.getQuestionCountsForOfferings(offeringIds));
     }
+
     @GetMapping("/course/{offeringId}/bank/{bankId}")
     public ResponseEntity<List<Question>> getQuestionsByBank(
             @PathVariable String offeringId,
@@ -145,5 +153,18 @@ public class QuestionController {
             @PathVariable String bankId
     ) {
         return ResponseEntity.ok(questionService.getQuestionsByBankId(bankId));
+    }
+
+    @GetMapping("/department/public/{offeringId}")
+    public ResponseEntity<List<QuestionResponse>> getQuestionsByDepartment(
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @PathVariable String offeringId) {
+        if (userId == null) return ResponseEntity.status(401).body(null);
+        List<QuestionResponse> questions = questionService.getAllQuestionsOfCourse(offeringId);
+        if (questions.isEmpty()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        return ResponseEntity.ok(questions);
+
     }
 }

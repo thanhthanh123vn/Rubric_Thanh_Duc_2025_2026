@@ -94,16 +94,19 @@ public class QuestionBankController {
     }
 
     @GetMapping("/department/public/{offeringId}")
-    public ResponseEntity<?> getPublicDepartmentBanks(@RequestHeader("X-User-Id") String userId,
-                                                     @PathVariable String offeringId) {
+    public ResponseEntity<?> getPublicDepartmentBanks(
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @PathVariable String offeringId) {
+
         if (userId == null) {
-            return ResponseEntity.status(403).body(null);
-        }
-        List<QuestionResponse> publicBanks = questionBankService.getPublicQuestionBanks(offeringId);
-        if (publicBanks.isEmpty()) {
-            return ResponseEntity.status(404).body(null);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User ID is missing");
         }
 
+        List<QuestionBankResponse> publicBanks = questionBankService.getPublicQuestionBanks(offeringId);
+
+        if (publicBanks.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy kho câu hỏi public nào cho môn học này.");
+        }
 
         return ResponseEntity.ok(publicBanks);
     }
@@ -111,7 +114,7 @@ public class QuestionBankController {
     @PutMapping("/department/public")
     public ResponseEntity<?> updatePublicDepartmentBanks(@RequestHeader("X-User-Id") String userId,
                                                          String bankId, boolean isPublic) {
-        if (userId == null) return ResponseEntity.status(403).body(null);
+        if (userId == null) return ResponseEntity.status(401).body(null);
         return ResponseEntity.ok(questionBankService.updatePublicStatus(bankId, isPublic));
     }
 
