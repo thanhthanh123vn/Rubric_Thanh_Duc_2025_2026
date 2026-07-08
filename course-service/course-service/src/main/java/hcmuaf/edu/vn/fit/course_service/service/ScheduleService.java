@@ -5,8 +5,8 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.ScheduleResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseSchedule;
 import hcmuaf.edu.vn.fit.course_service.mapper.CourseScheduleMapper;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseScheduleRepository; // Repo tự tạo
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseScheduleRepository; // Repo tự tạo
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

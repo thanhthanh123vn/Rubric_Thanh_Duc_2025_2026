@@ -13,6 +13,7 @@ public class QuestionResponse {
     private String content;
     private String type;
     private String difficulty;
+    private Double score;
 //    private List<CLOLecturerResponse> clos;
     private List<String> cloIds ;
 

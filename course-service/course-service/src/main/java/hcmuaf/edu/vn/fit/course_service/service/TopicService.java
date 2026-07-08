@@ -8,8 +8,8 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse; // Dùng User
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.entity.Topic;
 import hcmuaf.edu.vn.fit.course_service.mapper.TopicMapper;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.TopicRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

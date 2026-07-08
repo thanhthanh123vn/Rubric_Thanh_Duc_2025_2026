@@ -67,7 +67,17 @@ export const teacherCourseMenu = [
   { key: 'assignments', icon: ClipboardList, label: 'Bài tập', path: 'assignments' },
   { key: 'rubric', icon: FileText, label: 'Rubric', path: 'rubric' },
   { key: 'questions',  icon: ClipboardList , label: 'Câu Hỏi', path: 'questions' },
-  { key: 'create-exam', icon: FileEdit, label: 'Ra đề thi', path: 'create-exam' },
+  {
+    key: 'exams',
+    icon: FileEdit,
+    label: 'Đề thi',
+    path: 'exams',
+    children: [
+      { key: 'create-exam', label: 'Tạo đề thi', path: 'create-exam' },
+      { key: 'exam-list', label: 'Danh sách đề thi', path: 'exam-list' },
+      { key: 'grading-final', label: 'Nhập điểm cuối kỳ', path: 'grading-final' }
+    ]
+  },
   { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
 
   { key: 'groups', icon: Workflow, label: 'Nhóm & Dự án', path: 'groups' },

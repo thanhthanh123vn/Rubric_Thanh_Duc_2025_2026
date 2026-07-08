@@ -8,21 +8,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { questionBankApi, type QuestionBankResponse } from '@/api/QuestionBankApi';
 import { getAllClo } from '@/features/rubric/rubricApi';
 import { assessmentPaperApi, type GenerateExamRequest } from "@/api/assessmentApi.ts";
-import { FileEdit, ArrowLeft } from 'lucide-react'; // Thêm icon cho đẹp
+import { FileEdit, ArrowLeft } from 'lucide-react';
 
 export default function CreateExamPage() {
-    const { id: assessmentId } = useParams();
+    const { id } = useParams();
     const navigate = useNavigate();
 
     const [banks, setBanks] = useState<QuestionBankResponse[]>([]);
     const [cloItems, setCloItems] = useState<any[]>([]);
 
     const [config, setConfig] = useState({
+        offeringId:'',
         questionBankId: '',
         easyCount: 0,
         mediumCount: 0,
         hardCount: 0,
-        cloId: 'all'
+        cloId: 'all',
+        examTitle: '',
+        durationMinutes: 60,
+        startTime: "",
+        endTime: ""
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,8 +49,16 @@ export default function CreateExamPage() {
     }, []);
 
     const handleGenerate = async () => {
-        if (!assessmentId) {
+        if (!id) {
             toast.error("Không tìm thấy ID bài đánh giá (Assessment)");
+            return;
+        }
+        if (!config.examTitle.trim()) {
+            toast.error("Vui lòng nhập tên đề thi");
+            return;
+        }
+        if (!config.durationMinutes || config.durationMinutes <= 0) {
+            toast.error("Vui lòng nhập thời gian làm bài hợp lệ (phút)");
             return;
         }
         if (!config.questionBankId) {
@@ -56,14 +69,38 @@ export default function CreateExamPage() {
             toast.error("Vui lòng nhập số lượng câu hỏi cần tạo");
             return;
         }
+        if (!config.startTime) {
+            toast.error("Vui lòng chọn thời gian bắt đầu");
+            return;
+        }
+        if (!config.endTime) {
+            toast.error("Vui lòng chọn thời gian kết thúc");
+            return;
+        }
+
+        const start = new Date(config.startTime);
+        const end = new Date(config.endTime);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            toast.error("Thời gian không hợp lệ");
+            return;
+        }
+        if (end <= start) {
+            toast.error("Thời gian kết thúc phải sau thời gian bắt đầu");
+            return;
+        }
 
         const payload: GenerateExamRequest = {
-            assessmentId: assessmentId,
+            offeringId: id,
             questionBankId: config.questionBankId,
             easyCount: config.easyCount,
             mediumCount: config.mediumCount,
             hardCount: config.hardCount,
-            cloId: config.cloId === 'all' ? null : config.cloId
+            cloId: config.cloId === 'all' ? null : config.cloId,
+            examTitle: config.examTitle.trim(),
+            durationMinutes,
+            startTime: new Date(config.startTime).toISOString(),
+            endTime: new Date(config.endTime).toISOString()
         };
 
         setIsSubmitting(true);
@@ -79,10 +116,16 @@ export default function CreateExamPage() {
             setIsSubmitting(false);
         }
     };
-
+    const getDurationMinutes = (startTime: string, endTime: string) => {
+        if (!startTime || !endTime) return 0;
+        const start = new Date(startTime).getTime();
+        const end = new Date(endTime).getTime();
+        if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return 0;
+        return Math.floor((end - start) / 60000);
+    };
+    const durationMinutes = getDurationMinutes(config.startTime, config.endTime);
     return (
         <div className="w-full max-w-3xl mx-auto p-4 md:p-6 space-y-6">
-            {/* Header của trang */}
             <div className="flex items-center gap-4 mb-6">
                 <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
                     <ArrowLeft className="w-5 h-5" />
@@ -105,14 +148,51 @@ export default function CreateExamPage() {
                 </CardHeader>
 
                 <CardContent className="p-4 md:p-6 space-y-6">
-                    {/* Chọn Kho câu hỏi */}
+                    {/* ✅ Tên đề thi */}
                     <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700">1. Chọn Kho câu hỏi <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-semibold text-slate-700">
+                            Tên đề thi <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                            type="text"
+                            placeholder="Ví dụ: Đề thi giữa kỳ OOP - Mã đề 01"
+                            value={config.examTitle}
+                            onChange={(e) => setConfig({...config, examTitle: e.target.value})}
+                        />
+                    </div>
+
+                    {/* ✅ Thời gian làm bài */}
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-700">
+                            Thời gian bắt đầu <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                            type="datetime-local"
+                            value={config.startTime}
+                            onChange={(e) => setConfig({...config, startTime: e.target.value})}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-700">
+                            Thời gian kết thúc <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                            type="datetime-local"
+                            value={config.endTime}
+                            onChange={(e) => setConfig({...config, endTime: e.target.value})}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-700">1. Chọn Kho câu hỏi <span
+                            className="text-red-500">*</span></label>
                         <Select onValueChange={(val) => setConfig({...config, questionBankId: val})}>
                             <SelectTrigger className="w-full">
                                 <SelectValue placeholder="-- Nhấn để chọn kho câu hỏi --"/>
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border shadow-lg z-50">
                                 {banks.map(bank => (
                                     <SelectItem key={bank.id} value={bank.id}>
                                         {bank.name} {bank.courseName ? `(${bank.courseName})` : ''}
@@ -122,24 +202,25 @@ export default function CreateExamPage() {
                         </Select>
                     </div>
 
-                    {/* Chọn CLO */}
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-slate-700">2. Lọc theo Chuẩn đầu ra (CLO)</label>
                         <Select onValueChange={(val) => setConfig({...config, cloId: val})}>
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger  className="w-full">
                                 <SelectValue placeholder="Tất cả CLO"/>
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border shadow-lg z-50">
                                 <SelectItem value="all">Tất cả (Không lọc)</SelectItem>
-                                {cloItems.map(c => <SelectItem key={c.cloId} value={c.cloCode}>{c.cloCode}</SelectItem>)}
+                                {cloItems.map(c => <SelectItem key={c.cloId}
+                                                               value={c.cloCode}>{c.cloCode}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* Phân bổ số lượng câu hỏi - Responsive Grid */}
                     <div className="space-y-3">
-                        <label className="text-sm font-semibold text-slate-700">3. Số lượng câu hỏi theo mức độ <span className="text-red-500">*</span></label>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <label className="text-sm font-semibold text-slate-700">3. Số lượng câu hỏi theo mức độ <span
+                            className="text-red-500">*</span></label>
+                        <div
+                            className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                             <div className="space-y-2">
                                 <label className="text-sm text-slate-600 font-medium">Mức độ Dễ</label>
                                 <Input type="number" min="0" placeholder="0" className="bg-white"
@@ -159,11 +240,13 @@ export default function CreateExamPage() {
                     </div>
                 </CardContent>
 
-                <CardFooter className="flex flex-col-reverse sm:flex-row justify-end gap-3 p-4 md:p-6 border-t border-slate-100 bg-slate-50/50">
+                <CardFooter
+                    className="flex flex-col-reverse sm:flex-row justify-end gap-3 p-4 md:p-6 border-t border-slate-100 bg-slate-50/50">
                     <Button variant="outline" className="w-full sm:w-auto" onClick={() => navigate(-1)}>
                         Hủy bỏ
                     </Button>
-                    <Button onClick={handleGenerate} disabled={isSubmitting} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleGenerate} disabled={isSubmitting}
+                            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
                         {isSubmitting ? "Đang xử lý..." : "Xác nhận tạo đề"}
                     </Button>
                 </CardFooter>

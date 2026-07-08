@@ -3,14 +3,12 @@ package hcmuaf.edu.vn.fit.course_service.service;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.CommentResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Comment;
 import hcmuaf.edu.vn.fit.course_service.entity.Topic;
 import hcmuaf.edu.vn.fit.course_service.mapper.CommentMapper; // Import Mapper
-import hcmuaf.edu.vn.fit.course_service.repository.CommentRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.TopicRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CommentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

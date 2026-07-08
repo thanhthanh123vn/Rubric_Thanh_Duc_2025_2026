@@ -18,6 +18,7 @@ import type {
   Type,
 } from "@/features/course/student/api/type.ts";
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
+import StudentExamListPage from "@/features/course/student/components/StudentExamListPage.tsx";
 
 type SectionKey = "attendance" | "assignments" | "project" | "final";
 
@@ -716,13 +717,18 @@ export default function CourseEvaluations() {
     if (activeSection === "attendance") {
       return <StudentAttendanceCheckIn offeringId={offeringId || ""} />;
     }
+
     if (activeSection === "assignments") {
       return renderAssignments();
     }
+
     if (activeSection === "project") {
       return renderProject();
     }
-    return renderFinal();
+
+
+
+    return null;
   };
 
   const currentLabel =

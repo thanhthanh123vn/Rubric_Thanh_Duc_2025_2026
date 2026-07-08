@@ -6,16 +6,13 @@ import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Post;
 import hcmuaf.edu.vn.fit.course_service.entity.SyllabusFile;
 import hcmuaf.edu.vn.fit.course_service.mapper.SyllabusFileMapper;
-import hcmuaf.edu.vn.fit.course_service.mapper.SyllarbusMapper;
-import hcmuaf.edu.vn.fit.course_service.repository.PostRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.SyllabusFileRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.mongo.PostRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.SyllabusFileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service

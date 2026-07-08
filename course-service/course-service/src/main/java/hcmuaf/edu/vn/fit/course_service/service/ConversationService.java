@@ -2,7 +2,7 @@ package hcmuaf.edu.vn.fit.course_service.service;
 import hcmuaf.edu.vn.fit.course_service.dto.response.ConversationResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Conversation;
 import hcmuaf.edu.vn.fit.course_service.mapper.ConversationMapper;
-import hcmuaf.edu.vn.fit.course_service.repository.ConversationRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.ConversationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 @Service

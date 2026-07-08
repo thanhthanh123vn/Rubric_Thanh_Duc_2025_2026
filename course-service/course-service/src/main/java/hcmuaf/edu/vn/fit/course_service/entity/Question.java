@@ -27,6 +27,7 @@ public class Question {
 
     private String offeringId;
     private String chapterId;
+    private Double score;
 
     @Builder.Default
     private List<AnswerOption> options = new ArrayList<>();

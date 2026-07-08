@@ -1,4 +1,4 @@
-package hcmuaf.edu.vn.fit.course_service.repository;
+package hcmuaf.edu.vn.fit.course_service.repository.jpa;
 
 
 
