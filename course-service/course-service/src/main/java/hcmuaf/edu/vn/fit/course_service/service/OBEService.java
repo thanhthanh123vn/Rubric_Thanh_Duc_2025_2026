@@ -1,8 +1,8 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

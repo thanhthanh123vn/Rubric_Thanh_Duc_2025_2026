@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.client;
 
+import hcmuaf.edu.vn.fit.course_service.dto.request.NotificationRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,5 +41,13 @@ public interface NotificationClient {
             @RequestParam("submissionId") String submissionId,
             @RequestParam("studentName") String studentName,
             @RequestParam("assignmentTitle") String assignmentTitle
+    );
+
+    @PostMapping("/api/v1/notification-service")
+    Object createNotification(
+            @RequestParam("senderId") String senderId,
+            @RequestParam("owenrID") String ownerId, // giữ đúng theo API hiện tại đang bị typo
+            @RequestParam("title") String title,
+            @RequestParam("content") String content
     );
 }

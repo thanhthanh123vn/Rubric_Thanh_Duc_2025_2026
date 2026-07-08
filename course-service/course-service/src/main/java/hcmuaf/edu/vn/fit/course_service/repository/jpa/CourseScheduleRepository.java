@@ -1,4 +1,4 @@
-package hcmuaf.edu.vn.fit.course_service.repository;
+package hcmuaf.edu.vn.fit.course_service.repository.jpa;
 
 import hcmuaf.edu.vn.fit.course_service.entity.CourseSchedule;
 import org.springframework.data.jpa.repository.JpaRepository;

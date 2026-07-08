@@ -1,7 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
-import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
-import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;

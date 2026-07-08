@@ -8,11 +8,10 @@ import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.GradeStatus;
-import hcmuaf.edu.vn.fit.course_service.entity.enums.ParticipantRole;
 import hcmuaf.edu.vn.fit.course_service.mapper.AssessmentMapper;
 import hcmuaf.edu.vn.fit.course_service.mapper.CommentMapper;
 import hcmuaf.edu.vn.fit.course_service.mapper.CourseMapper;
-import hcmuaf.edu.vn.fit.course_service.repository.*;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.*;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -34,7 +32,7 @@ public class AssessmentService {
 
 
     private final AssessmentRepository assessmentRepository;
-    private final  EnrollmentRepository enrollmentRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final GradingClient gradingClient;
     private final CourseMapper courseMapper;
 

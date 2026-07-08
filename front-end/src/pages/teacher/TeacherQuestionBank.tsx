@@ -33,6 +33,7 @@ interface Question {
   content: string;
   type: 'MULTIPLE_CHOICE' | 'ESSAY';
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  score: number;
   options: AnswerOption[];
   cloIds: string[];
 }
@@ -66,6 +67,7 @@ export default function TeacherQuestionBank() {
     topicId: '',
     difficulty: 'MEDIUM',
     type: 'ESSAY',
+    score:1,
     content: ''
   });
   const [options, setOptions] = useState<AnswerOption[]>([
@@ -132,7 +134,7 @@ export default function TeacherQuestionBank() {
   useEffect(() => {
     if (!isModalOpen) {
       setEditingQuestionId(null);
-      setFormData({ cloIds:[], topicId: '', difficulty: 'MEDIUM', type: 'ESSAY', content: '' });
+      setFormData({ cloIds:[], topicId: '', difficulty: 'MEDIUM', score: 1,type: 'ESSAY', content: '' });
       setOptions([
         { content: '', isCorrect: true }, { content: '', isCorrect: false },
         { content: '', isCorrect: false }, { content: '', isCorrect: false },
@@ -148,6 +150,7 @@ export default function TeacherQuestionBank() {
       cloIds: question.cloIds || '',
       topicId: 'T1', // Tuỳ chỉnh theo logic project của bạn
       difficulty: question.difficulty,
+      score: 1,
       type: question.type,
       content: question.content
     });
@@ -400,6 +403,18 @@ export default function TeacherQuestionBank() {
                         <option value="HARD">Khó</option>
                       </select>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-700">Điểm <span
+                          className="text-red-500">*</span></label>
+                      <Input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          className="w-full h-10 px-3 py-2 bg-white border-slate-300 text-slate-700"
+                          value={formData.score}
+                          onChange={(e) => setFormData({...formData, score: parseFloat(e.target.value) || 0})}
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -535,6 +550,7 @@ export default function TeacherQuestionBank() {
                     <TableHead className="font-semibold text-slate-600">Nội dung câu hỏi</TableHead>
                     <TableHead className="w-[140px] font-semibold text-slate-600">Kiểu</TableHead>
                     <TableHead className="w-[120px] font-semibold text-slate-600 text-center">Độ khó</TableHead>
+                    <TableHead className="w-[80px] font-semibold text-slate-600 text-center">Điểm</TableHead>
                     <TableHead className="w-[150px] font-semibold text-slate-600">CĐR</TableHead>
                     <TableHead className="w-[100px] font-semibold text-slate-600 text-right pr-6">Thao tác</TableHead>
                   </TableRow>
@@ -576,6 +592,10 @@ export default function TeacherQuestionBank() {
                         }`}>
                           {q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó'}
                         </span>
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              <span className="font-medium text-slate-700">{q.score ?? 1}</span>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1">

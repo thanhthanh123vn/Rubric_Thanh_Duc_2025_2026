@@ -55,6 +55,7 @@ export default function ClassSidebar({ isOpen = false, onClose }: SidebarProps) 
         children: [
           { key: "attendance", label: "Điểm danh", path: "evaluations", search: "?section=attendance", icon: TimerReset },
           { key: "assignment", label: "Bài tập", path: "evaluations", search: "?section=assignments", icon: ClipboardList },
+          { key: "my-exams", label: "Bài Thi", path: "my-exams" , icon: ClipboardList },
           { key: "project", label: "Project", path: "evaluations", search: "?section=project", icon: FolderKanban },
         ],
       },
