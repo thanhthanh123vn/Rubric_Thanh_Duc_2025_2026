@@ -15,4 +15,6 @@ public interface StudentExamAssignmentRepository extends MongoRepository<Student
     boolean existsByAssessmentPaperIdAndStudentId(String assessmentPaperId, String studentId);
 
     List<StudentExamAssignment> findByStatus(StudentExamStatus status);
+
+
 }

@@ -80,6 +80,8 @@ import CreateExamPage from "@/pages/teacher/CreateExamPage.tsx";
 import TeacherProjects from "@/pages/teacher/TeacherProjects.tsx";
 import TeacherExamList from "@/pages/teacher/TeacherExamList.tsx";
 import StudentExamListPage from "@/features/course/student/components/StudentExamListPage.tsx";
+import LecturerExamDetailPage from "@/pages/teacher/LecturerExamDetailPage.tsx";
+import StudentTakeExamPage from "@/features/course/student/components/StudentTakeExamPage.tsx";
 
 export const router = createBrowserRouter([
 
@@ -143,7 +145,10 @@ export const router = createBrowserRouter([
         path: "/course/:id/createGroup",
         Component: CreateGroup
     },
-
+    {
+        path: "/course/:id/my-exams/:examId",
+        Component: StudentTakeExamPage,
+    },
     {
         path: "/login",
         Component: LoginPage,
@@ -192,13 +197,19 @@ export const router = createBrowserRouter([
                             {
                                 path: "exam-list",
                                 Component: TeacherExamList,
-                            }
+                            },
+                            {
+                                path: "view-exam-list/:examId",
+                                Component: LecturerExamDetailPage,
+                            },
                             // {
                             //     path: "grading-final",
                             //     Component: FinalGradePage,
                             // },
                         ],
                     },
+
+
                     {
                         path: "assessment/:assessmentId/submissions",
                         loader: async ({ params }) =>

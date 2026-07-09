@@ -32,7 +32,7 @@ public class Question {
     @Builder.Default
     private List<AnswerOption> options = new ArrayList<>();
 
-
+    private String expectedAnswer;
     @Builder.Default
     private List<String> cloIds = new ArrayList<>();
 }

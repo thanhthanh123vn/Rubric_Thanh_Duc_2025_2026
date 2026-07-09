@@ -4,10 +4,7 @@ import hcmuaf.edu.vn.fit.course_service.client.NotificationClient;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.GenerateExamRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.request.NotificationRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.ExamQuestionDetailResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.StudentAssignedExamResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.StudentExamStatus;
@@ -276,5 +273,91 @@ public class AssessmentPaperService {
                     .questionCount(paper.getQuestionIds() != null ? paper.getQuestionIds().size() : 0)
                     .build();
         }).filter(java.util.Objects::nonNull).toList();
+    }
+
+    public LecturerExamDetailResponse getLecturerExamDetail(String paperId) {
+        // 1. Lấy thông tin đề thi
+        AssessmentPaper paper = assessmentPaperRepository.findById(paperId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi với ID: " + paperId));
+
+        // Lấy danh sách câu hỏi
+        List<Question> questions = (List<Question>) questionRepository.findAllById(paper.getQuestionIds());
+
+        // 2. Tính lại điểm cho từng câu hỏi (Theo logic lúc generate)
+        double totalWeight = 0;
+        for (Question q : questions) {
+            if (q.getDifficulty() == Difficulty.EASY) totalWeight += 1.0;
+            else if (q.getDifficulty() == Difficulty.MEDIUM) totalWeight += 2.0;
+            else if (q.getDifficulty() == Difficulty.HARD) totalWeight += 3.0;
+        }
+
+        double baseScorePerWeight = 10.0 / totalWeight;
+        double currentTotalScore = 0.0;
+        List<LecturerExamDetailResponse.ExamQuestionDetailDTO> questionDTOs = new ArrayList<>();
+
+        for (int i = 0; i < questions.size(); i++) {
+            Question q = questions.get(i);
+            double questionScore = 0.0;
+
+            if (q.getDifficulty() == Difficulty.EASY) questionScore = Math.round(1.0 * baseScorePerWeight * 100.0) / 100.0;
+            else if (q.getDifficulty() == Difficulty.MEDIUM) questionScore = Math.round(2.0 * baseScorePerWeight * 100.0) / 100.0;
+            else if (q.getDifficulty() == Difficulty.HARD) questionScore = Math.round(3.0 * baseScorePerWeight * 100.0) / 100.0;
+
+            // Xử lý câu cuối cùng để tròn 10 điểm
+            if (i == questions.size() - 1) {
+                questionScore = Math.round((10.0 - currentTotalScore) * 100.0) / 100.0;
+            } else {
+                currentTotalScore += questionScore;
+            }
+
+            questionDTOs.add(LecturerExamDetailResponse.ExamQuestionDetailDTO.builder()
+                    .id(q.getId())
+                    .content(q.getContent())
+                    .difficulty(q.getDifficulty().name())
+                    .points(questionScore)
+
+                     .type(q.getType() != null ? q.getType().name() : "MULTIPLE_CHOICE")
+                     .options(q.getOptions())
+                     .correctOptionIndex(q.getOptions().get(0).isCorrect())
+                     .cloCode(q.getCloIds())
+                    .build());
+        }
+
+        // 3. Lấy thông tin sinh viên được giao bài thi này
+        // Cần repository để query: studentExamAssignmentRepository.findByAssessmentPaperId(paperId);
+        // Giả sử bạn có hàm findByAssessmentPaperId trong repo
+        // Nếu chưa có, hãy thêm vào StudentExamAssignmentRepository: List<StudentExamAssignment> findByAssessmentPaperId(String paperId);
+        List<StudentExamAssignment> assignments = studentExamAssignmentRepository.findByAssessmentPaperId(paperId);
+
+        List<LecturerExamDetailResponse.StudentSubmissionRowDTO> submissionDTOs = assignments.stream().map(a -> {
+            // TODO: Lấy thông tin Name, Code của sinh viên từ UserClient hoặc Database bằng a.getStudentId()
+            // Dưới đây là giá trị mặc định, bạn hãy gọi service/client tương ứng để điền thông tin thật
+            String studentName = "Sinh viên " + a.getStudentId().substring(a.getStudentId().length() - 4);
+            String studentCode = a.getStudentId();
+
+            return LecturerExamDetailResponse.StudentSubmissionRowDTO.builder()
+                    .studentId(a.getStudentId())
+                    .studentName(studentName) // Lấy từ UserClient
+                    .studentCode(studentCode) // Lấy từ UserClient
+                    .classCode("N/A")         // Có thể lấy qua Enrollment
+                    .score(0.0)               // Thêm logic điểm từ a.getScore() nếu Assignment có
+                    .submitTime(null)         // Lấy từ Assignment / Submission
+                    .status(a.getStatus().name())
+                    .build();
+        }).collect(Collectors.toList());
+
+        // 4. Trả về kết quả
+        return LecturerExamDetailResponse.builder()
+                .examId(paper.getId())
+                .examTitle(paper.getExamTitle())
+                .courseName("Môn học " + paper.getSourceQuestionBankId()) // Lấy tên Course thật thông qua offeringId
+                .courseCode(paper.getSourceQuestionBankId())
+                .durationMinutes(paper.getDurationMinutes())
+                .totalPoints(10.0)
+                .status(paper.getStatus())
+                //.createdAt(paper.getCreatedAt()) // Nếu Entity của bạn có field CreateAt
+                .questions(questionDTOs)
+                .submissions(submissionDTOs)
+                .build();
     }
 }
