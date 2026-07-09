@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
     Select,
     SelectContent,
@@ -19,7 +20,17 @@ import {
 } from '@/components/ui/table';
 import { assessmentPaperApi } from '@/api/assessmentApi';
 import { toast } from 'sonner';
-import { Search } from 'lucide-react';
+import {useNavigate, useParams} from 'react-router-dom';
+import {
+    Search,
+    Eye,
+    Clock,
+    FileText,
+    ChevronLeft,
+    ChevronRight,
+    Filter,
+    Send
+} from 'lucide-react';
 
 type AssessmentPaper = {
     id: string;
@@ -37,30 +48,31 @@ type AssessmentPaper = {
 const PAGE_SIZE = 8;
 
 export default function TeacherExamList() {
+    const {id} =useParams();
+    const navigate = useNavigate();
     const [assessments, setAssessments] = useState<AssessmentPaper[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // filter/search
+    // Filter/search states
     const [keyword, setKeyword] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED'>('ALL');
+    const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-    // pagination
-    const [page, setPage] = useState(1);
+    // Pagination
+    const [currentPage, setPage] = useState(1);
 
-    const loadAssessments = async () => {
+    // Gọi đúng tên API cũ của bạn
+    const loadData = async () => {
         try {
             setLoading(true);
             const response = await assessmentPaperApi.getAllExams();
 
-            const rows =
-                Array.isArray(response) ? response :
-                    Array.isArray(response?.data) ? response.data :
-                        Array.isArray(response?.content) ? response.content :
-                            [];
+            const rows = Array.isArray(response) ? response :
+                Array.isArray(response?.data) ? response.data :
+                    Array.isArray(response?.content) ? response.content : [];
 
             setAssessments(rows);
-        } catch {
-            toast.error('Không thể tải danh sách bài thi');
+        } catch (error) {
+            toast.error('Không thể tải danh sách đề thi');
             setAssessments([]);
         } finally {
             setLoading(false);
@@ -68,43 +80,28 @@ export default function TeacherExamList() {
     };
 
     useEffect(() => {
-        loadAssessments();
+        loadData();
     }, []);
 
+    // Hàm xử lý giao đề (Publish)
     const handlePublish = async (id: string) => {
         try {
             await assessmentPaperApi.publishExam(id);
             toast.success('Đã giao đề thành công cho sinh viên!');
-            loadAssessments();
+            loadData();
         } catch {
             toast.error('Lỗi khi giao đề');
         }
     };
 
-    const formatDateTime = (iso?: string | null) => {
-        if (!iso) return '--';
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return '--';
-        return d.toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
-    };
-
-    const statusBadge = (status?: string | null) => {
-        const s = status ?? 'DRAFT';
-        if (s === 'PUBLISHED') {
-            return <span className="px-2 py-1 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-700">Đã giao</span>;
-        }
-        if (s === 'DRAFT') {
-            return <span className="px-2 py-1 rounded-md text-xs font-semibold bg-amber-100 text-amber-700">Nháp</span>;
-        }
-        return <span className="px-2 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">{s}</span>;
-    };
-
+    // Filter logic
     const filtered = useMemo(() => {
         const kw = keyword.trim().toLowerCase();
 
         return [...assessments]
             .filter((a) => {
-                if (statusFilter !== 'ALL' && (a.status ?? 'DRAFT') !== statusFilter) return false;
+                const s = a.status || 'DRAFT';
+                if (statusFilter !== 'ALL' && s !== statusFilter) return false;
 
                 if (!kw) return true;
                 return (
@@ -120,109 +117,181 @@ export default function TeacherExamList() {
             });
     }, [assessments, keyword, statusFilter]);
 
-    // reset về trang 1 khi filter đổi
+    // Reset pagination when filter changes
     useEffect(() => {
         setPage(1);
     }, [keyword, statusFilter]);
 
+    // Pagination logic
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const currentPage = Math.min(page, totalPages);
-    const start = (currentPage - 1) * PAGE_SIZE;
-    const pageData = filtered.slice(start, start + PAGE_SIZE);
+    const paginatedItems = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filtered.slice(start, start + PAGE_SIZE);
+    }, [filtered, currentPage]);
+
+    const formatDateTime = (iso?: string | null) => {
+        if (!iso) return '--';
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '--';
+        return d.toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+    };
+
+    const getStatusBadge = (status?: string | null) => {
+        const s = status || 'DRAFT';
+        switch (s) {
+            case 'PUBLISHED':
+                return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium border-none px-2.5 py-0.5">Đã giao</Badge>;
+            case 'DRAFT':
+                return <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100 font-medium px-2.5 py-0.5">Bản nháp</Badge>;
+            default:
+                return <Badge variant="outline" className="text-slate-500 px-2.5 py-0.5">{s}</Badge>;
+        }
+    };
 
     return (
-        <div className="p-6 space-y-4">
-            <h1 className="text-2xl font-bold">Danh sách đề thi của bạn</h1>
+        <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
+            {/* Thanh Tiêu Đề */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5 border-slate-200">
+                <div>
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Quản lý Đề thi</h1>
+                    <p className="text-sm text-slate-500 mt-1">Quản lý, tạo lập cấu trúc và giao đề thi cho sinh viên</p>
+                </div>
+            </div>
 
-            <Card className="border-slate-200">
-                <CardHeader>
-                    <CardTitle>Đề thi đã tạo ({filtered.length})</CardTitle>
+            {/* Khung Bộ Lọc & Tìm Kiếm */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div className="relative sm:col-span-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                        placeholder="Tìm kiếm theo tên đề, mã đề, kho câu hỏi..."
+                        value={keyword}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        className="pl-9 border-slate-200 focus-visible:ring-blue-500 h-10 text-sm"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-slate-400 shrink-0 hidden xs:block" />
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="border-slate-200 focus:ring-blue-500 h-10 text-sm bg-white">
+                            <SelectValue placeholder="Lọc trạng thái" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                            <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                            <SelectItem value="PUBLISHED">Đã giao</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            {/* Bảng Dữ Liệu Đề Thi */}
+            <Card className="shadow-sm border-slate-200 rounded-xl overflow-hidden bg-white">
+                <CardHeader className="border-b border-slate-100 bg-slate-50/50 py-4 px-6">
+                    <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-500" />
+                        Danh sách đề thi đã tạo ({filtered.length})
+                    </CardTitle>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                    {/* Toolbar giống style ảnh */}
-                    <div className="flex flex-col md:flex-row gap-3">
-                        <div className="relative flex-1">
-                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            <Input
-                                className="pl-9"
-                                placeholder="Tìm theo tên đề, mã đề, kho câu hỏi..."
-                                value={keyword}
-                                onChange={(e) => setKeyword(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="w-full md:w-52">
-                            <Select
-                                value={statusFilter}
-                                onValueChange={(v: 'ALL' | 'DRAFT' | 'PUBLISHED') => setStatusFilter(v)}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Tất cả trạng thái" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white border shadow-lg z-50">
-                                    <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                                    <SelectItem value="DRAFT">Nháp</SelectItem>
-                                    <SelectItem value="PUBLISHED">Đã giao</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto rounded-md ">
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>STT</TableHead>
-                                    <TableHead>Tên đề thi</TableHead>
-                                    <TableHead>Mã đề</TableHead>
-                                    <TableHead>Kho câu hỏi</TableHead>
-                                    <TableHead>Số câu</TableHead>
-                                    <TableHead>Thời lượng</TableHead>
-                                    <TableHead>Bắt đầu</TableHead>
-                                    <TableHead>Kết thúc</TableHead>
-                                    <TableHead>Trạng thái</TableHead>
-                                    <TableHead>Thao tác</TableHead>
+                            <TableHeader className="bg-slate-50/70">
+                                <TableRow className="border-b border-slate-200">
+                                    <TableHead className="font-semibold text-slate-700 pl-6 w-[5%]">STT</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 w-[25%]">Tên đề thi & Mã</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 w-[12%] text-center">Thời lượng</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 w-[10%] text-center">Số câu</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 w-[18%]">Thời gian mở - đóng</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 w-[12%] text-center">Trạng thái</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 pr-6 text-center w-[18%]">Thao tác</TableHead>
                                 </TableRow>
                             </TableHeader>
 
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={10} className="text-center py-8 text-slate-500">
-                                            Đang tải dữ liệu...
+                                        <TableCell colSpan={7} className="text-center py-12 text-slate-400 font-medium">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Đang tải danh sách đề thi...</span>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
-                                ) : pageData.length === 0 ? (
+                                ) : paginatedItems.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={10} className="text-center py-8 text-slate-500">
-                                            Không có dữ liệu phù hợp
+                                        <TableCell colSpan={7} className="text-center py-16 text-slate-400 bg-slate-50/30">
+                                            <FileText className="mx-auto h-10 w-10 text-slate-300 mb-2" />
+                                            <p className="font-medium text-slate-500">Không tìm thấy dữ liệu phù hợp</p>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    pageData.map((a, idx) => {
-                                        const isDraft = (a.status ?? 'DRAFT') === 'DRAFT';
+                                    paginatedItems.map((x, idx) => {
+                                        const isDraft = (x.status || 'DRAFT') === 'DRAFT';
+
                                         return (
-                                            <TableRow key={a.id}>
-                                                <TableCell>{start + idx + 1}</TableCell>
-                                                <TableCell className="font-medium">{a.examTitle || 'Chưa đặt tên'}</TableCell>
-                                                <TableCell>{a.id}</TableCell>
-                                                <TableCell>{a.sourceQuestionBankId || '--'}</TableCell>
-                                                <TableCell>{a.questionIds?.length ?? 0}</TableCell>
-                                                <TableCell>{a.durationMinutes ?? '--'} phút</TableCell>
-                                                <TableCell>{formatDateTime(a.startTime)}</TableCell>
-                                                <TableCell>{formatDateTime(a.endTime)}</TableCell>
-                                                <TableCell>{statusBadge(a.status)}</TableCell>
-                                                <TableCell>
-                                                    {isDraft ? (
-                                                        <Button size="sm" onClick={() => handlePublish(a.id)}>
-                                                            Giao đề
-                                                        </Button>
-                                                    ) : (
-                                                        <Button size="sm" variant="outline" disabled>
-                                                            Đã giao
-                                                        </Button>
+                                            <TableRow
+                                                key={x.id}
+                                                className="group hover:bg-slate-50/80 transition-colors border-b border-slate-100"
+                                            >
+                                                <TableCell className="pl-6 align-middle font-medium text-slate-500">
+                                                    {(currentPage - 1) * PAGE_SIZE + idx + 1}
+                                                </TableCell>
+                                                <TableCell className="font-medium text-slate-800 align-middle">
+                                                    <div className="line-clamp-2 leading-snug">{x.examTitle || 'Chưa đặt tiêu đề'}</div>
+                                                    <div className="text-[11px] font-mono text-slate-400 mt-1">ID: {x.id}</div>
+                                                    {x.sourceQuestionBankId && (
+                                                        <div className="text-[11px] text-blue-500 mt-0.5">Kho: {x.sourceQuestionBankId}</div>
                                                     )}
+                                                </TableCell>
+                                                <TableCell className="text-center align-middle font-medium text-slate-600">
+                                                    <div className="inline-flex items-center justify-center gap-1">
+                                                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                                                        <span>{x.durationMinutes ? `${x.durationMinutes} p` : '--'}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center align-middle font-medium text-slate-600">
+                                                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-semibold">
+                                                        {x.questionIds?.length || 0}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="align-middle text-xs text-slate-600 space-y-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-emerald-600 font-semibold w-6">Từ:</span>
+                                                        <span className="text-slate-700 font-medium">{formatDateTime(x.startTime)}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-rose-600 font-semibold w-6">Đến:</span>
+                                                        <span className="text-slate-700 font-medium">{formatDateTime(x.endTime)}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="align-middle text-center">
+                                                    {getStatusBadge(x.status)}
+                                                </TableCell>
+                                                <TableCell className="text-center pr-6 align-middle">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        {isDraft && (
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1.5 font-medium shadow-sm transition-all"
+                                                                onClick={() => handlePublish(x.id)}
+                                                                title="Giao đề thi cho sinh viên"
+                                                            >
+                                                                <Send className="h-3.5 w-3.5" />
+                                                                <span className="hidden xl:inline">Giao đề</span>
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 px-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg gap-1.5 font-medium"
+                                                            onClick={() => navigate(`/teacher/course/${id}/exams/view-exam-list/${x.id}`)}
+                                                            title="Xem chi tiết cấu trúc đề"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            <span className="hidden xl:inline">Chi tiết</span>
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         );
@@ -232,27 +301,29 @@ export default function TeacherExamList() {
                         </Table>
                     </div>
 
-                    {/* Pagination */}
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-slate-500">
-                            Trang {currentPage}/{totalPages}
+                    {/* Phân Trang (Pagination) Đồng Bộ */}
+                    <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-slate-50/50">
+                        <p className="text-sm text-slate-500 font-medium">
+                            Hiển thị trang <span className="text-slate-800 font-semibold">{currentPage}</span> / <span className="text-slate-800 font-semibold">{totalPages}</span>
                         </p>
                         <div className="flex gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-8 w-8 p-0 border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
                                 disabled={currentPage <= 1}
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                             >
-                                Trước
+                                <ChevronLeft className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-8 w-8 p-0 border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
                                 disabled={currentPage >= totalPages}
                                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                             >
-                                Sau
+                                <ChevronRight className="h-4 w-4" />
                             </Button>
                         </div>
                     </div>

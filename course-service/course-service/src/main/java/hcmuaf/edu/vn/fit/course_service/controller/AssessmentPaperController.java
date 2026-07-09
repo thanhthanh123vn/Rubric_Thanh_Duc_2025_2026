@@ -2,7 +2,9 @@ package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.GenerateExamRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.ExamQuestionDetailResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerExamDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.AssessmentPaper;
+import hcmuaf.edu.vn.fit.course_service.exception.ResourceNotFoundException;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentPaperService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -64,13 +66,26 @@ public class AssessmentPaperController {
         }
         return ResponseEntity.ok(assessmentPaperService.getAssignedExamsForStudent(userId, offeringId));
     }
-    // (Tùy chọn) Thêm API để xem đề thi đã bốc gồm những câu nào
-    // Dành cho giảng viên review trước khi publish
-    /*
-    @GetMapping("/{assessmentId}")
-    public ResponseEntity<?> getExamPaper(@PathVariable String assessmentId) {
-        // Gọi service tìm AssessmentPaper theo AssessmentID và join với bảng Questions
-        return ...
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<?> getLecturerExamDetail(
+            @PathVariable("id") String paperId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+
+        if (userId == null || userId.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thiếu thông tin người dùng");
+        }
+
+        try {
+            // Lấy chi tiết đề thi
+            LecturerExamDetailResponse response = assessmentPaperService.getLecturerExamDetail(paperId);
+            return ResponseEntity.ok(response);
+
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
-    */
+
+
 }
