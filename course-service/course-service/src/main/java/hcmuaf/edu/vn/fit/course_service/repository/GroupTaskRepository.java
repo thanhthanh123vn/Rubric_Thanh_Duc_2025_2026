@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface GroupTaskRepository extends JpaRepository<GroupTask, String> {
     List<GroupTask> findByGroup_IdOrderByCreatedAtDesc(String groupId);
+    void deleteByGroup_Id(String groupId);
 }

@@ -66,86 +66,61 @@ public interface CourseRepository extends JpaRepository<Course, String> {
     );
 
     // =========================================================
-    // 2. LECTURER CLO PROGRESS (FIXED)
+    // 2. CLO LIST BY OFFERING
     // =========================================================
     @Query(value = """
-    SELECT 
+    SELECT DISTINCT
         c.clo_id,
         c.clo_code,
-        c.description,
-
-        ROUND(SUM(COALESCE(rr.calculated_score, 0)), 2) AS achievedScore,
-
-        SUM(rc.weight) AS totalWeight,
-
-        ROUND(
-            SUM(COALESCE(rr.calculated_score, 0)) 
-            / NULLIF(SUM(rc.weight), 0) * 100,
-            2
-        ) AS progressPercent
-
-    FROM course_offerings co
-
-    JOIN assessments a 
-        ON a.offering_id = co.offering_id
-
-    JOIN assessment_clo ac 
+        c.description
+    FROM assessments a
+    JOIN assessment_clo ac
         ON ac.assessment_id = a.assessment_id
-
-    JOIN course_clo c 
+    JOIN course_clo c
         ON c.clo_id = ac.clo_id
-
-    LEFT JOIN rubric_criteria rc 
-        ON rc.clo_id = c.clo_id
-
-    LEFT JOIN rubric_results rr 
-        ON rr.criteria_id = rc.criteria_id
-
-    WHERE co.offering_id = :offeringId
-
-    GROUP BY c.clo_id, c.clo_code, c.description
+    WHERE a.offering_id = :offeringId
+    ORDER BY c.clo_code
     """, nativeQuery = true)
-    List<Object[]> getOBEByOffering(@Param("offeringId") String offeringId);
+    List<Object[]> getCLOsByOffering(@Param("offeringId") String offeringId);
 
     // =========================================================
     // 3. STUDENT SCORE BY CLO (FIXED)
     // =========================================================
     @Query(value = """
-    SELECT 
+    SELECT
         s.student_id,
         s.full_name,
-
-        ROUND(SUM(COALESCE(rr.calculated_score, 0)), 2) AS score
-
+        ROUND(
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN rc.criteria_id IS NOT NULL THEN rr.calculated_score
+                        ELSE 0
+                    END
+                ),
+                0
+            ),
+            2
+        ) AS score
     FROM enrollments e
-
-    JOIN students s 
+    JOIN students s
         ON s.student_id = e.student_id
-
-    JOIN submissions sub 
-        ON sub.student_id = s.student_id
-
-    JOIN assessments a 
-        ON a.assessment_id = sub.assessment_id
-        AND a.offering_id = e.offering_id
-
-    JOIN assessment_clo ac 
+    JOIN assessments a
+        ON a.offering_id = e.offering_id
+    JOIN assessment_clo ac
         ON ac.assessment_id = a.assessment_id
-
-    JOIN course_clo c 
-        ON c.clo_id = ac.clo_id
-
-    LEFT JOIN rubric_results rr 
+        AND ac.clo_id = :cloId
+    LEFT JOIN submissions sub
+        ON sub.student_id = s.student_id
+        AND sub.assessment_id = a.assessment_id
+    LEFT JOIN rubric_results rr
         ON rr.submission_id = sub.submission_id
-
-    LEFT JOIN rubric_criteria rc 
+    LEFT JOIN rubric_criteria rc
         ON rc.criteria_id = rr.criteria_id
-        AND rc.clo_id = c.clo_id
-
+        AND rc.clo_id = :cloId
     WHERE e.offering_id = :offeringId
-      AND c.clo_id = :cloId
-
     GROUP BY s.student_id, s.full_name
+    ORDER BY s.full_name
     """, nativeQuery = true)
     List<Object[]> getStudentScoresByCLO(
             @Param("offeringId") String offeringId,
@@ -156,10 +131,9 @@ public interface CourseRepository extends JpaRepository<Course, String> {
     // 4. DISTRIBUTION BY SCORE RANGE (FIXED REAL DATA)
     // =========================================================
     @Query(value = """
-    SELECT 
+    SELECT
         t.clo_id,
-        CASE 
-            WHEN t.score IS NULL THEN 'NOT_ASSESSED'
+        CASE
             WHEN t.score < 40 THEN '0-40'
             WHEN t.score < 70 THEN '40-70'
             ELSE '70-100'
@@ -167,38 +141,39 @@ public interface CourseRepository extends JpaRepository<Course, String> {
         COUNT(*) AS total_students
 
     FROM (
-        SELECT 
+        SELECT
             c.clo_id,
             s.student_id,
-
-            ROUND(SUM(COALESCE(rr.calculated_score, 0)), 2) AS score
-
-        FROM students s
-
-        JOIN enrollments e 
-            ON e.student_id = s.student_id
-
-        JOIN course_offerings co 
-            ON co.offering_id = e.offering_id
-
-        JOIN submissions sub 
-            ON sub.student_id = s.student_id
-
-        JOIN assessments a 
-            ON a.assessment_id = sub.assessment_id
-            AND a.offering_id = co.offering_id
-
-        JOIN assessment_clo ac 
+            ROUND(
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN rc.criteria_id IS NOT NULL THEN rr.calculated_score
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ),
+                2
+            ) AS score
+        FROM enrollments e
+        JOIN students s
+            ON s.student_id = e.student_id
+        JOIN assessments a
+            ON a.offering_id = e.offering_id
+        JOIN assessment_clo ac
             ON ac.assessment_id = a.assessment_id
-
-        JOIN course_clo c 
+        JOIN course_clo c
             ON c.clo_id = ac.clo_id
-
-        LEFT JOIN rubric_results rr 
+        LEFT JOIN submissions sub
+            ON sub.student_id = s.student_id
+            AND sub.assessment_id = a.assessment_id
+        LEFT JOIN rubric_results rr
             ON rr.submission_id = sub.submission_id
-
-        WHERE co.offering_id = :offeringId
-
+        LEFT JOIN rubric_criteria rc
+            ON rc.criteria_id = rr.criteria_id
+            AND rc.clo_id = c.clo_id
+        WHERE e.offering_id = :offeringId
         GROUP BY c.clo_id, s.student_id
     ) t
 

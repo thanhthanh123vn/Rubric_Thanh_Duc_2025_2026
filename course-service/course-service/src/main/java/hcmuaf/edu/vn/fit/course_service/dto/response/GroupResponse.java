@@ -13,6 +13,10 @@ public class GroupResponse {
     private String topic;
     private String createdById;
     private String conversationId;
+    private String parentGroupId;
+    private String parentGroupName;
+    private boolean subgroup;
+    private int subgroupCount;
 
     private List<ParticipantResponse> participants;
 }

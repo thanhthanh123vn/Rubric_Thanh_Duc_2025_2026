@@ -117,6 +117,14 @@ function getProjectStatusClass(item: Assessment) {
   return "bg-slate-100 text-slate-700";
 }
 
+function isGroupMember(group: GroupResponse, userId: string) {
+  return group.participants.some((participant) => participant.userId === userId);
+}
+
+function getGroupKindLabel(group: GroupResponse) {
+  return group.subgroup ? "Nhóm tách" : "Nhóm gốc";
+}
+
 function ModalShell({
   title,
   subtitle,
@@ -190,19 +198,29 @@ function GroupInfoCard({
   students,
   currentUserId,
   onGroupUpdated,
+  onSubgroupsChanged,
+  onGroupsReload,
 }: {
   group: GroupResponse;
   students: Type[];
   currentUserId: string;
   onGroupUpdated: (updatedGroup: GroupResponse) => void;
+  onSubgroupsChanged: (createdGroups: GroupResponse[]) => void;
+  onGroupsReload: (preferredGroupId?: string | null) => void;
 }) {
   const [isAdding, setIsAdding] = useState(false);
+  const [isSplitting, setIsSplitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNewMember, setSelectedNewMember] = useState("");
   const [showAllMembers, setShowAllMembers] = useState(false);
+  const [subgroupName, setSubgroupName] = useState("");
+  const [subgroupTopic, setSubgroupTopic] = useState("");
+  const [subgroupLeaderId, setSubgroupLeaderId] = useState("");
+  const [selectedSubMembers, setSelectedSubMembers] = useState<string[]>([]);
 
   const currentUserRole = group.participants.find((participant) => participant.userId === currentUserId)?.role;
   const isAdmin = currentUserRole === "ADMIN";
+  const canSplitGroup = isAdmin && !group.subgroup && group.subgroupCount === 0;
   const availableStudents = students.filter(
     (student) =>
       !group.participants.some(
@@ -223,6 +241,7 @@ function GroupInfoCard({
     group.participants.find((participant) => participant.role === "ADMIN")?.userId || group.createdById;
 
   const visibleMembers = showAllMembers ? group.participants : group.participants.slice(0, 5);
+  const subgroupCandidates = group.participants;
 
   const handleAddMember = async () => {
     if (!selectedNewMember) return;
@@ -258,6 +277,72 @@ function GroupInfoCard({
     }
   };
 
+  const handleDissolveGroup = async () => {
+    const confirmed = window.confirm(
+      group.subgroup
+        ? "Giải tán nhóm này? Thành viên sẽ không còn thấy nhóm tách này nữa."
+        : "Giải tán nhóm này? Các nhóm đã tách từ nhóm này cũng sẽ bị giải tán.",
+    );
+    if (!confirmed) return;
+
+    try {
+      await groupService.dissolveGroup(group.id);
+      onGroupsReload(group.parentGroupId || null);
+      alert("Giải tán nhóm thành công.");
+    } catch (error: any) {
+      alert(error?.response?.data?.message || error?.message || "Không thể giải tán nhóm.");
+    }
+  };
+
+  const toggleSubgroupMember = (userId: string) => {
+    setSelectedSubMembers((prev) => {
+      if (prev.includes(userId)) {
+        return prev.filter((item) => item !== userId);
+      }
+      return [...prev, userId];
+    });
+  };
+
+  const handleSplitGroup = async () => {
+    if (!subgroupName.trim()) {
+      alert("Vui lòng nhập tên nhóm tách.");
+      return;
+    }
+    if (selectedSubMembers.length === 0) {
+      alert("Vui lòng chọn thành viên cho nhóm tách.");
+      return;
+    }
+    if (!subgroupLeaderId) {
+      alert("Vui lòng chọn trưởng nhóm tách.");
+      return;
+    }
+
+    try {
+      const createdGroups = await groupService.splitGroup(group.id, {
+        groupName: subgroupName.trim(),
+        topic: subgroupTopic.trim() || undefined,
+        subgroupLeaderId,
+        memberIds: selectedSubMembers,
+      });
+
+      setIsSplitting(false);
+      setSubgroupName("");
+      setSubgroupTopic("");
+      setSubgroupLeaderId("");
+      setSelectedSubMembers([]);
+      onSubgroupsChanged(createdGroups);
+      alert("Tách nhóm thành công.");
+    } catch (error: any) {
+      alert(error?.response?.data?.message || error?.message || "Không thể tách nhóm.");
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedSubMembers.includes(subgroupLeaderId)) {
+      setSubgroupLeaderId("");
+    }
+  }, [selectedSubMembers, subgroupLeaderId]);
+
   return (
     <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-start lg:justify-between">
@@ -266,6 +351,16 @@ function GroupInfoCard({
             {"Th\u00f4ng tin nh\u00f3m"}
           </p>
           <h3 className="mt-1 text-2xl font-semibold text-slate-900">{group.groupName}</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              {getGroupKindLabel(group)}
+            </span>
+            {group.subgroup && group.parentGroupName ? (
+              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
+                {`Tách từ ${group.parentGroupName}`}
+              </span>
+            ) : null}
+          </div>
           <p className="mt-2 text-sm text-slate-500">
             {group.topic || "Ch\u01b0a c\u1eadp nh\u1eadt \u0111\u1ec1 t\u00e0i"}
           </p>
@@ -286,17 +381,41 @@ function GroupInfoCard({
       <div className="mt-4 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h4 className="text-sm font-semibold text-slate-900">{"Danh s\u00e1ch th\u00e0nh vi\u00ean"}</h4>
-          {isAdmin ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setIsAdding((prev) => !prev)}
-            >
-              <UserPlus className="h-4 w-4" />
-              {isAdding ? "Thu g\u1ecdn" : "Th\u00eam th\u00e0nh vi\u00ean"}
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {canSplitGroup ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setIsSplitting((prev) => !prev)}
+              >
+                <Users className="h-4 w-4" />
+                {isSplitting ? "Đóng tách nhóm" : "Tách nhóm"}
+              </Button>
+            ) : null}
+            {isAdmin ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setIsAdding((prev) => !prev)}
+              >
+                <UserPlus className="h-4 w-4" />
+                {isAdding ? "Thu g\u1ecdn" : "Th\u00eam th\u00e0nh vi\u00ean"}
+              </Button>
+            ) : null}
+            {isAdmin ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+                onClick={() => void handleDissolveGroup()}
+              >
+                <Trash2 className="h-4 w-4" />
+                Giải tán nhóm
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {isAdding && isAdmin ? (
@@ -328,6 +447,95 @@ function GroupInfoCard({
               placeholder={"T\u00ecm sinh vi\u00ean theo t\u00ean ho\u1eb7c MSSV..."}
               className="mt-3 w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
             />
+          </div>
+        ) : null}
+
+        {isSplitting && canSplitGroup ? (
+          <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+            <div className="grid gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  type="text"
+                  value={subgroupName}
+                  onChange={(event) => setSubgroupName(event.target.value)}
+                  placeholder="Tên nhóm tách"
+                  className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <input
+                  type="text"
+                  value={subgroupTopic}
+                  onChange={(event) => setSubgroupTopic(event.target.value)}
+                  placeholder="Đề tài nhóm tách (nếu có)"
+                  className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <select
+                value={subgroupLeaderId}
+                onChange={(event) => setSubgroupLeaderId(event.target.value)}
+                className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500"
+              >
+                <option value="">Chọn trưởng nhóm tách</option>
+                {subgroupCandidates
+                  .filter((participant) => selectedSubMembers.includes(participant.userId))
+                  .map((participant) => (
+                    <option key={participant.userId} value={participant.userId}>
+                      {getStudentName(participant.userId, students)}
+                    </option>
+                  ))}
+              </select>
+
+              <div className="rounded-2xl border border-sky-100 bg-white p-3">
+                <p className="text-sm font-semibold text-slate-900">Chọn thành viên nhóm tách</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Thành viên không được chọn sẽ tự chuyển sang nhóm còn lại và không xem được nhóm này.
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {subgroupCandidates.map((participant) => {
+                    const isSelected = selectedSubMembers.includes(participant.userId);
+                    return (
+                      <button
+                        key={participant.id}
+                        type="button"
+                        onClick={() => toggleSubgroupMember(participant.userId)}
+                        className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left text-sm transition ${
+                          isSelected
+                            ? "border-sky-300 bg-sky-50 text-sky-700"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-sky-200"
+                        }`}
+                      >
+                        <span>{getStudentName(participant.userId, students)}</span>
+                        <span className="text-xs font-semibold">{isSelected ? "Đã chọn" : "Chọn"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => {
+                    setIsSplitting(false);
+                    setSubgroupName("");
+                    setSubgroupTopic("");
+                    setSubgroupLeaderId("");
+                    setSelectedSubMembers([]);
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-xl bg-sky-600 hover:bg-sky-700"
+                  onClick={() => void handleSplitGroup()}
+                >
+                  Tách nhóm
+                </Button>
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -1246,42 +1454,47 @@ const CourseGroups = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activePanel, setActivePanel] = useState<"chat" | "tasks" | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!offeringId || !currentUserId) return;
+  const loadGroupPageData = async (preferredGroupId?: string | null) => {
+    if (!offeringId || !currentUserId) return;
 
-      try {
-        setIsLoading(true);
-        const [studentData, groupData, assessmentData] = await Promise.all([
-          courseService.getStudentsByOffering(offeringId),
-          groupService.getMyGroups(offeringId, currentUserId),
-          courseService.getAssessmentByOffering(offeringId),
-        ]);
+    try {
+      setIsLoading(true);
+      const [studentData, groupData, assessmentData] = await Promise.all([
+        courseService.getStudentsByOffering(offeringId),
+        groupService.getMyGroups(offeringId, currentUserId),
+        courseService.getAssessmentByOffering(offeringId),
+      ]);
 
-        setStudents(studentData || []);
-        setMyGroups(groupData || []);
-        setProjectAssessments((assessmentData || []).filter((item: Assessment) => isProjectAssessment(item)));
+      setStudents(studentData || []);
+      setMyGroups(groupData || []);
+      setProjectAssessments((assessmentData || []).filter((item: Assessment) => isProjectAssessment(item)));
 
-        if (groupData?.length > 0) {
-          const storageKey = getActiveGroupStorageKey(offeringId);
-          const savedGroupId = storageKey ? localStorage.getItem(storageKey) : null;
-          const nextGroupId =
-            savedGroupId && groupData.some((group: GroupResponse) => group.id === savedGroupId)
-              ? savedGroupId
-              : groupData[0].id;
+      if (groupData?.length > 0) {
+        const storageKey = getActiveGroupStorageKey(offeringId);
+        const savedGroupId = storageKey ? localStorage.getItem(storageKey) : null;
+        const preferredId =
+          preferredGroupId && groupData.some((group: GroupResponse) => group.id === preferredGroupId)
+            ? preferredGroupId
+            : null;
+        const nextGroupId =
+          preferredId ||
+          (savedGroupId && groupData.some((group: GroupResponse) => group.id === savedGroupId)
+            ? savedGroupId
+            : groupData[0].id);
 
-          setActiveGroupId(nextGroupId);
-        } else {
-          setActiveGroupId(null);
-        }
-      } catch (error) {
-        console.error("L\u1ed7i t\u1ea3i d\u1eef li\u1ec7u nh\u00f3m:", error);
-      } finally {
-        setIsLoading(false);
+        setActiveGroupId(nextGroupId);
+      } else {
+        setActiveGroupId(null);
       }
-    };
+    } catch (error) {
+      console.error("L\u1ed7i t\u1ea3i d\u1eef li\u1ec7u nh\u00f3m:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    void fetchData();
+  useEffect(() => {
+    void loadGroupPageData();
   }, [offeringId, currentUserId]);
 
   useEffect(() => {
@@ -1301,6 +1514,12 @@ const CourseGroups = () => {
 
   const handleGroupUpdated = (updatedGroup: GroupResponse) => {
     setMyGroups((prev) => prev.map((group) => (group.id === updatedGroup.id ? updatedGroup : group)));
+  };
+
+  const handleSubgroupsChanged = (createdGroups: GroupResponse[]) => {
+    const preferredGroupId =
+      createdGroups.find((group) => currentUserId && isGroupMember(group, currentUserId))?.id || null;
+    void loadGroupPageData(preferredGroupId);
   };
 
   const handleOpenProject = (projectId: string) => {
@@ -1356,7 +1575,7 @@ const CourseGroups = () => {
                             : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                         }`}
                       >
-                        {group.groupName}
+                        {group.subgroup ? `${group.groupName} • Nhóm tách` : `${group.groupName} • Nhóm gốc`}
                       </button>
                     ))}
                   </div>
@@ -1368,9 +1587,14 @@ const CourseGroups = () => {
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
-                            {"Kh\u00f4ng gian nh\u00f3m"}
+                            {getGroupKindLabel(activeGroup)}
                           </p>
                           <h3 className="mt-1 text-2xl font-semibold text-slate-900">{activeGroup.groupName}</h3>
+                          {activeGroup.subgroup && activeGroup.parentGroupName ? (
+                            <p className="mt-1 text-sm font-medium text-sky-700">
+                              {`Nhóm gốc: ${activeGroup.parentGroupName}`}
+                            </p>
+                          ) : null}
                           <p className="mt-2 text-sm text-slate-500">
                             {"M\u1edf chat ho\u1eb7c c\u00f4ng vi\u1ec7c khi c\u1ea7n, gi\u1eef m\u00e0n h\u00ecnh ch\u00ednh g\u1ecdn v\u00e0 d\u1ec5 theo d\u00f5i."}
                           </p>
@@ -1402,6 +1626,8 @@ const CourseGroups = () => {
                       students={students}
                       currentUserId={currentUserId as string}
                       onGroupUpdated={handleGroupUpdated}
+                      onSubgroupsChanged={handleSubgroupsChanged}
+                      onGroupsReload={(preferredGroupId) => void loadGroupPageData(preferredGroupId)}
                     />
 
                     <ProjectSection

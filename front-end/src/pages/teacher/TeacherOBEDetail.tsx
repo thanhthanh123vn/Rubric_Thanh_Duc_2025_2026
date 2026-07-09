@@ -23,6 +23,7 @@ export default function TeacherOBEDetail() {
     if (!data) return <div>Loading...</div>;
 
     const students = data.students || [];
+    const assessments = data.assessments || [];
 
     const total = students.length;
 
@@ -128,7 +129,7 @@ export default function TeacherOBEDetail() {
                 </p>
 
                 <div className="space-y-2 text-sm text-gray-600">
-                    {data.assessments.map((a: any, i: number) => (
+                    {assessments.map((a: any, i: number) => (
                         <div key={i} className="flex justify-between">
                             <span>{a.assessmentName}</span>
                             <span>{Math.round(a.weight * 100)}%</span>
