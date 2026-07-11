@@ -1,16 +1,24 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
-import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentMappingResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.CLOLecturerResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.OBECloDetailResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.OBELecturerProcessResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.OBEProgressResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.StudentScoreResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class OBEService {
+
+    private static final double PASS_THRESHOLD = 50;
 
     private final CourseRepository courseRepo;
     private final EnrollmentRepository enrollmentRepo;
@@ -45,35 +53,45 @@ public class OBEService {
 
     public OBELecturerProcessResponse getOBEForLecturer(String offeringId) {
 
-        List<Object[]> cloRows = courseRepo.getOBEByOffering(offeringId);
-
-        int totalStudents = enrollmentRepo.countByCourseOffering_OfferingId(offeringId);
+        List<Object[]> cloRows = courseRepo.getCLOsByOffering(offeringId);
 
         List<CLOLecturerResponse> clos = cloRows.stream().map(r -> {
+            String cloId = (String) r[0];
+            List<StudentScoreResponse> students = getStudentScores(offeringId, cloId);
 
-            double achieved = r[3] != null ? ((Number) r[3]).doubleValue() : 0;
-            double totalWeight = r[4] != null ? ((Number) r[4]).doubleValue() : 0;
+            double progressPercent = normalizePercent(
+                    students.stream()
+                            .mapToDouble(StudentScoreResponse::getScore)
+                            .average()
+                            .orElse(0)
+            );
 
-            double percent = (totalWeight == 0) ? 0 : (achieved / totalWeight) * 100;
-
-            percent = Math.min(percent, 100);
-
-            int passed = (int) Math.round(percent / 100.0 * totalStudents);
-            int failed = totalStudents - passed;
+            int totalStudents = students.size();
+            int passedStudents = (int) students.stream()
+                    .filter(student -> student.getScore() >= PASS_THRESHOLD)
+                    .count();
+            int failedStudents = totalStudents - passedStudents;
+            int below40 = (int) students.stream()
+                    .filter(student -> student.getScore() < 40)
+                    .count();
+            int from40to70 = (int) students.stream()
+                    .filter(student -> student.getScore() >= 40 && student.getScore() < 70)
+                    .count();
+            int above70 = (int) students.stream()
+                    .filter(student -> student.getScore() >= 70)
+                    .count();
 
             return CLOLecturerResponse.builder()
-                    .cloId((String) r[0])
+                    .cloId(cloId)
                     .cloCode((String) r[1])
                     .cloDescription((String) r[2])
-                    .progressPercent(percent)
+                    .progressPercent(progressPercent)
                     .totalStudents(totalStudents)
-                    .passedStudents(passed)
-                    .failedStudents(failed)
-
-                    // tạm giữ fake distribution
-                    .below40((int) (totalStudents * 0.2))
-                    .from40to70((int) (totalStudents * 0.5))
-                    .above70((int) (totalStudents * 0.3))
+                    .passedStudents(passedStudents)
+                    .failedStudents(failedStudents)
+                    .below40(below40)
+                    .from40to70(from40to70)
+                    .above70(above70)
                     .build();
         }).toList();
 
@@ -84,7 +102,7 @@ public class OBEService {
 
         return OBELecturerProcessResponse.builder()
                 .offeringId(offeringId)
-                .totalStudents(totalStudents)
+                .totalStudents(enrollmentRepo.countByCourseOffering_OfferingId(offeringId))
                 .overallProgress(overall)
                 .clos(clos)
                 .build();
@@ -95,15 +113,7 @@ public class OBEService {
 
     public OBECloDetailResponse getCloDetail(String offeringId, String cloId) {
 
-        List<Object[]> studentRows = courseRepo.getStudentScoresByCLO(offeringId, cloId);
-
-        List<StudentScoreResponse> students = studentRows.stream().map(r ->
-                StudentScoreResponse.builder()
-                        .studentId((String) r[0])
-                        .fullName((String) r[1])
-                        .score(r[2] != null ? ((Number) r[2]).doubleValue() : 0)
-                        .build()
-        ).toList();
+        List<StudentScoreResponse> students = getStudentScores(offeringId, cloId);
 
         List<Object[]> assessRows = courseRepo.getAssessmentByCLO(offeringId, cloId);
 
@@ -115,7 +125,7 @@ public class OBEService {
                         .build()
         ).toList();
 
-        List<Object[]> cloInfo = courseRepo.getOBEByOffering(offeringId);
+        List<Object[]> cloInfo = courseRepo.getCLOsByOffering(offeringId);
 
         Object[] clo = cloInfo.stream()
                 .filter(c -> c[0].equals(cloId))
@@ -129,5 +139,22 @@ public class OBEService {
                 .students(students)
                 .assessments(assessments)
                 .build();
+    }
+
+    private List<StudentScoreResponse> getStudentScores(String offeringId, String cloId) {
+        return courseRepo.getStudentScoresByCLO(offeringId, cloId).stream()
+                .map(r -> StudentScoreResponse.builder()
+                        .studentId((String) r[0])
+                        .fullName((String) r[1])
+                        .score(normalizePercent(r[2] != null ? ((Number) r[2]).doubleValue() : 0))
+                        .build()
+                )
+                .sorted(Comparator.comparing(StudentScoreResponse::getScore).reversed()
+                        .thenComparing(StudentScoreResponse::getFullName))
+                .toList();
+    }
+
+    private double normalizePercent(double value) {
+        return Math.min(Math.max(value, 0), 100);
     }
 }

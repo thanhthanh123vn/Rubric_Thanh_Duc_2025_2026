@@ -2,6 +2,21 @@ import { GraduationCap, Sparkles } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { teacherModuleLinks } from './teacherData';
 
+function getTeacherSidebarLabel(path: string, fallback: string) {
+  switch (path) {
+    case '/teacher':
+      return 'Tổng quan';
+    case '/teacher/rubric':
+      return 'LO & Rubric';
+    case '/teacher/questions':
+      return 'Ngân hàng câu hỏi';
+    case '/teacher/course':
+      return 'Môn học được phân công';
+    default:
+      return fallback;
+  }
+}
+
 export default function TeacherSidebar() {
   return (
     <>
@@ -19,7 +34,7 @@ export default function TeacherSidebar() {
         <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-500">Hoc ky hien tai</p>
+              <p className="text-sm font-medium text-slate-500">Học kỳ hiện tại</p>
               <p className="text-xl font-bold text-slate-900">HK2 2025-2026</p>
             </div>
             <div className="rounded-2xl bg-white p-3 text-emerald-600 shadow-sm">
@@ -27,7 +42,7 @@ export default function TeacherSidebar() {
             </div>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Quan ly CLO, rubric, cham diem, phan hoi va bao cao nang luc trong mot khong gian lam viec duy nhat.
+            Quản lý CLO, rubric, chấm điểm, phản hồi và báo cáo năng lực trong một không gian làm việc duy nhất.
           </p>
         </div>
 
@@ -44,7 +59,7 @@ export default function TeacherSidebar() {
               }
             >
               <item.icon className="h-4 w-4" />
-              <span>{item.label}</span>
+              <span>{getTeacherSidebarLabel(item.path, item.label)}</span>
             </NavLink>
           ))}
         </nav>
@@ -63,7 +78,7 @@ export default function TeacherSidebar() {
             }
           >
             <item.icon className="h-4 w-4" />
-            {item.label}
+            {getTeacherSidebarLabel(item.path, item.label)}
           </NavLink>
         ))}
       </div>

@@ -4,17 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CreateAttendanceSessionRequest;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AttendanceSessionResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AttendanceSessionSummaryResponse;
-import hcmuaf.edu.vn.fit.course_service.dto.response.AttendanceStudentResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.request.UpdateAttendanceOverviewCellRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.UpsertAttendanceLegendRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.Attendance;
+import hcmuaf.edu.vn.fit.course_service.entity.AttendanceLegend;
 import hcmuaf.edu.vn.fit.course_service.entity.AttendanceSession;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.AttendanceSessionStatus;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.AttendanceSessionType;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.AttendanceStatus;
 import hcmuaf.edu.vn.fit.course_service.exception.BadRequestException;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.AttendanceRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.AttendanceSessionRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.AttendanceLegendRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,10 +39,21 @@ public class AttendanceSessionService {
 
     private static final long SUSPICIOUS_CHECK_IN_WINDOW_SECONDS = 15
             ;
+    private static final double ATTENDANCE_PASS_THRESHOLD = 0.8;
+    private static final String ATTENDANCE_CATEGORY_DEFAULT = "DEFAULT";
+    private static final String ATTENDANCE_CATEGORY_FRAUD = "FRAUD";
+    private static final String FRAUD_NOTE_PREFIX = "[[FRAUD]]";
+    private static final String ATTENDANCE_META_PREFIX = "[[META]]";
+    private static final String ATTENDANCE_META_SUFFIX = "[[/META]]";
+    private static final String SYSTEM_QR_SUCCESS_NOTE = "Diem danh thanh cong bang QR + GPS";
+    private static final String SYSTEM_FRAUD_ABSENT_NOTE = "Giang vien danh vang sau khi doi chieu GPS";
+    private static final String SYSTEM_FRAUD_RESTORED_NOTE = "Giang vien khoi phuc co mat";
 
     private final AttendanceSessionRepository attendanceSessionRepository;
     private final AttendanceRepository attendanceRepository;
+    private final AttendanceLegendRepository attendanceLegendRepository;
     private final CourseOfferingRepository courseOfferingRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
 
@@ -116,6 +131,154 @@ public class AttendanceSessionService {
     }
 
     @Transactional(readOnly = true)
+    public List<AttendanceStudentOverviewResponse> getAttendanceOverviewByOffering(String offeringId) {
+        if (offeringId == null || offeringId.trim().isEmpty()) {
+            throw new BadRequestException("offeringId khong duoc de trong");
+        }
+
+        List<AttendanceSession> sessions = attendanceSessionRepository.findByOfferingIdOrderByCreatedAtDesc(offeringId.trim())
+                .stream()
+                .filter(session -> session.getAttendanceDate() != null && !session.getAttendanceDate().isAfter(LocalDate.now()))
+                .sorted((first, second) -> first.getAttendanceDate().compareTo(second.getAttendanceDate()))
+                .toList();
+
+        List<String> studentIds = enrollmentRepository.findStudentIdsByOfferingId(offeringId.trim());
+        List<Attendance> attendances = attendanceRepository.findByOfferingId(offeringId.trim());
+
+        Map<String, Map<String, Attendance>> attendanceByStudentAndSession = attendances.stream()
+                .collect(Collectors.groupingBy(
+                        Attendance::getStudentId,
+                        Collectors.toMap(
+                                Attendance::getSessionId,
+                                attendance -> attendance,
+                                (current, ignored) -> current
+                        )
+                ));
+
+        return studentIds.stream()
+                .map(studentId -> buildAttendanceOverviewRow(studentId, sessions, attendanceByStudentAndSession))
+                .sorted((first, second) -> first.getStudentId().compareToIgnoreCase(second.getStudentId()))
+                .toList();
+    }
+
+    @Transactional
+    public AttendanceOverviewDateResponse updateAttendanceOverviewCell(
+            String offeringId,
+            UpdateAttendanceOverviewCellRequest request
+    ) {
+        if (offeringId == null || offeringId.trim().isEmpty()) {
+            throw new BadRequestException("offeringId khong duoc de trong");
+        }
+        if (request == null) {
+            throw new BadRequestException("Request cap nhat o diem danh khong duoc de trong");
+        }
+        if (request.getStudentId() == null || request.getStudentId().trim().isEmpty()) {
+            throw new BadRequestException("studentId khong duoc de trong");
+        }
+        if (request.getSessionId() == null || request.getSessionId().trim().isEmpty()) {
+            throw new BadRequestException("sessionId khong duoc de trong");
+        }
+        if (request.getStatus() == null || request.getStatus().trim().isEmpty()) {
+            throw new BadRequestException("status khong duoc de trong");
+        }
+
+        String normalizedOfferingId = offeringId.trim();
+        String normalizedStudentId = request.getStudentId().trim();
+        String normalizedSessionId = request.getSessionId().trim();
+        AttendanceStatus status = parseAttendanceStatus(request.getStatus());
+
+        if (enrollmentRepository.findByStudentIdAndCourseOffering_OfferingId(normalizedStudentId, normalizedOfferingId).isEmpty()) {
+            throw new BadRequestException("Sinh vien khong thuoc lop hoc phan nay");
+        }
+
+        AttendanceSession session = attendanceSessionRepository.findById(normalizedSessionId)
+                .orElseThrow(() -> new BadRequestException("Khong tim thay phien diem danh"));
+
+        if (!normalizedOfferingId.equals(session.getOfferingId())) {
+            throw new BadRequestException("Phien diem danh khong thuoc lop hoc phan nay");
+        }
+
+        Attendance attendance = attendanceRepository.findBySessionIdAndStudentId(normalizedSessionId, normalizedStudentId)
+                .orElseGet(() -> Attendance.builder()
+                        .sessionId(normalizedSessionId)
+                        .studentId(normalizedStudentId)
+                        .offeringId(normalizedOfferingId)
+                        .studyDate(session.getAttendanceDate())
+                        .build());
+
+        attendance.setStatus(status);
+        attendance.setStudyDate(session.getAttendanceDate());
+
+        String normalizedCategory = normalizeAttendanceCategory(request.getCategory());
+        String normalizedNote = normalizeNote(request.getNote());
+        String normalizedColorHex = normalizeColorHex(request.getColorHex());
+        String normalizedLegendLabel = normalizeLegendLabel(request.getLegendLabel());
+        attendance.setNote(buildStoredAttendanceNote(
+                normalizedCategory,
+                normalizedNote,
+                normalizedColorHex,
+                normalizedLegendLabel
+        ));
+
+        if (status == AttendanceStatus.PRESENT && attendance.getCheckinTime() == null) {
+            attendance.setCheckinTime(LocalDateTime.now());
+        }
+
+        Attendance savedAttendance = attendanceRepository.save(attendance);
+        return toAttendanceOverviewDateResponse(session, savedAttendance);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceLegendResponse> getAttendanceLegendsByOffering(String offeringId) {
+        String normalizedOfferingId = normalizeOfferingId(offeringId);
+        validateOfferingExists(normalizedOfferingId);
+
+        return attendanceLegendRepository.findByOfferingIdOrderByCreatedAtAsc(normalizedOfferingId).stream()
+                .map(this::toAttendanceLegendResponse)
+                .toList();
+    }
+
+    @Transactional
+    public AttendanceLegendResponse upsertAttendanceLegend(
+            String offeringId,
+            UpsertAttendanceLegendRequest request
+    ) {
+        String normalizedOfferingId = normalizeOfferingId(offeringId);
+        validateOfferingExists(normalizedOfferingId);
+        if (request == null) {
+            throw new BadRequestException("Request chu thich khong duoc de trong");
+        }
+
+        String normalizedLegendLabel = normalizeLegendLabel(request.getLegendLabel());
+        String normalizedColorHex = normalizeColorHex(request.getColorHex());
+        if (normalizedLegendLabel == null) {
+            throw new BadRequestException("legendLabel khong duoc de trong");
+        }
+        if (normalizedColorHex == null) {
+            throw new BadRequestException("colorHex khong hop le");
+        }
+
+        AttendanceLegend legend;
+        if (request.getLegendId() != null && !request.getLegendId().trim().isEmpty()) {
+            legend = attendanceLegendRepository.findById(request.getLegendId().trim())
+                    .orElseThrow(() -> new BadRequestException("Khong tim thay chu thich"));
+            if (!normalizedOfferingId.equals(legend.getOfferingId())) {
+                throw new BadRequestException("Chu thich khong thuoc lop hoc phan nay");
+            }
+        } else {
+            legend = AttendanceLegend.builder()
+                    .offeringId(normalizedOfferingId)
+                    .build();
+        }
+
+        legend.setLegendLabel(normalizedLegendLabel);
+        legend.setColorHex(normalizedColorHex);
+
+        AttendanceLegend savedLegend = attendanceLegendRepository.save(legend);
+        return toAttendanceLegendResponse(savedLegend);
+    }
+
+    @Transactional(readOnly = true)
     public List<AttendanceStudentResponse> getAttendanceBySession(String sessionId) {
         if (sessionId == null || sessionId.trim().isEmpty()) {
             throw new BadRequestException("sessionId khong duoc de trong");
@@ -130,6 +293,45 @@ public class AttendanceSessionService {
         return attendances.stream()
                 .map(attendance -> toAttendanceStudentResponse(attendance, session, suspiciousClusters.get(attendance.getAttendanceId())))
                 .toList();
+    }
+
+    @Transactional
+    public AttendanceStudentResponse updateAttendanceStatus(
+            String sessionId,
+            String attendanceId,
+            AttendanceStatus status
+    ) {
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            throw new BadRequestException("sessionId khong duoc de trong");
+        }
+        if (attendanceId == null || attendanceId.trim().isEmpty()) {
+            throw new BadRequestException("attendanceId khong duoc de trong");
+        }
+        if (status == null) {
+            throw new BadRequestException("status khong duoc de trong");
+        }
+
+        AttendanceSession session = attendanceSessionRepository.findById(sessionId.trim())
+                .orElseThrow(() -> new BadRequestException("Khong tim thay phien diem danh"));
+        Attendance attendance = attendanceRepository.findById(attendanceId.trim())
+                .orElseThrow(() -> new BadRequestException("Khong tim thay ban ghi diem danh"));
+
+        if (!session.getSessionId().equals(attendance.getSessionId())) {
+            throw new BadRequestException("Ban ghi diem danh khong thuoc phien nay");
+        }
+
+        attendance.setStatus(status);
+        if (status == AttendanceStatus.ABSENT) {
+            attendance.setNote(buildStoredAttendanceNote(ATTENDANCE_CATEGORY_FRAUD, null, null, null));
+        } else if (hasFraudCategory(attendance.getNote())) {
+            attendance.setNote(null);
+        }
+
+        Attendance savedAttendance = attendanceRepository.save(attendance);
+        Map<String, SuspiciousClusterInfo> suspiciousClusters = detectSuspiciousClusters(
+                attendanceRepository.findBySessionIdOrderByCheckinTimeAsc(sessionId.trim())
+        );
+        return toAttendanceStudentResponse(savedAttendance, session, suspiciousClusters.get(savedAttendance.getAttendanceId()));
     }
 
     private void validateRequest(CreateAttendanceSessionRequest request, String currentUserId) {
@@ -384,6 +586,263 @@ public class AttendanceSessionService {
             return "--";
         }
         return value;
+    }
+
+    private AttendanceStudentOverviewResponse buildAttendanceOverviewRow(
+            String studentId,
+            List<AttendanceSession> sessions,
+            Map<String, Map<String, Attendance>> attendanceByStudentAndSession
+    ) {
+        String studentName = studentId;
+        String email = null;
+
+        try {
+            SinhVienResponse student = userClient.getSinhVien(studentId);
+            if (student != null) {
+                if (student.getFullName() != null && !student.getFullName().isBlank()) {
+                    studentName = student.getFullName();
+                }
+                email = student.getEmail();
+            }
+        } catch (Exception ignored) {
+        }
+
+        Map<String, Attendance> attendanceBySession = attendanceByStudentAndSession.getOrDefault(studentId, Map.of());
+        List<AttendanceOverviewDateResponse> attendanceDates = sessions.stream()
+                .map(session -> {
+                    Attendance attendance = attendanceBySession.get(session.getSessionId());
+                    return toAttendanceOverviewDateResponse(session, attendance);
+                })
+                .toList();
+
+        int totalSessions = attendanceDates.size();
+        int presentCount = (int) attendanceDates.stream()
+                .filter(item -> AttendanceStatus.PRESENT.name().equals(item.getStatus()))
+                .count();
+        int absentCount = totalSessions - presentCount;
+        double presentRate = totalSessions == 0 ? 1 : (double) presentCount / totalSessions;
+
+        return AttendanceStudentOverviewResponse.builder()
+                .studentId(studentId)
+                .studentName(studentName)
+                .email(email)
+                .totalSessions(totalSessions)
+                .presentCount(presentCount)
+                .absentCount(absentCount)
+                .resultStatus(presentRate >= ATTENDANCE_PASS_THRESHOLD ? "PASS" : "FAIL")
+                .attendanceDates(attendanceDates)
+                .build();
+    }
+
+    private AttendanceOverviewDateResponse toAttendanceOverviewDateResponse(
+            AttendanceSession session,
+            Attendance attendance
+    ) {
+        AttendanceStatus status = attendance != null && attendance.getStatus() == AttendanceStatus.PRESENT
+                ? AttendanceStatus.PRESENT
+                : AttendanceStatus.ABSENT;
+        String storedNote = attendance != null ? attendance.getNote() : null;
+        String category = extractAttendanceCategory(storedNote);
+        String note = extractAttendanceDisplayNote(storedNote);
+        AttendanceLegendMetadata metadata = extractAttendanceLegendMetadata(storedNote);
+
+        return AttendanceOverviewDateResponse.builder()
+                .sessionId(session.getSessionId())
+                .attendanceId(attendance != null ? attendance.getAttendanceId() : null)
+                .attendanceDate(session.getAttendanceDate())
+                .status(status.name())
+                .category(category)
+                .displayText(buildAttendanceDisplayText(status, note))
+                .note(note)
+                .colorHex(metadata != null ? metadata.colorHex() : null)
+                .legendLabel(metadata != null ? metadata.legendLabel() : null)
+                .build();
+    }
+
+    private AttendanceLegendResponse toAttendanceLegendResponse(AttendanceLegend legend) {
+        return AttendanceLegendResponse.builder()
+                .legendId(legend.getId())
+                .offeringId(legend.getOfferingId())
+                .legendLabel(legend.getLegendLabel())
+                .colorHex(legend.getColorHex())
+                .build();
+    }
+
+    private String buildAttendanceDisplayText(AttendanceStatus status, String note) {
+        if (note != null && !note.isBlank()) {
+            return note;
+        }
+        return "";
+    }
+
+    private AttendanceStatus parseAttendanceStatus(String value) {
+        try {
+            return AttendanceStatus.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new BadRequestException("status khong hop le");
+        }
+    }
+
+    private String normalizeNote(String note) {
+        if (note == null) {
+            return null;
+        }
+
+        String trimmed = note.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeOfferingId(String offeringId) {
+        if (offeringId == null || offeringId.trim().isEmpty()) {
+            throw new BadRequestException("offeringId khong duoc de trong");
+        }
+        return offeringId.trim();
+    }
+
+    private void validateOfferingExists(String offeringId) {
+        courseOfferingRepository.findById(offeringId)
+                .orElseThrow(() -> new BadRequestException("Khong tim thay lop hoc phan voi offeringId: " + offeringId));
+    }
+
+    private String normalizeAttendanceCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            return ATTENDANCE_CATEGORY_DEFAULT;
+        }
+
+        String normalized = category.trim().toUpperCase();
+        return ATTENDANCE_CATEGORY_FRAUD.equals(normalized)
+                ? ATTENDANCE_CATEGORY_FRAUD
+                : ATTENDANCE_CATEGORY_DEFAULT;
+    }
+
+    private String normalizeColorHex(String colorHex) {
+        if (colorHex == null || colorHex.trim().isEmpty()) {
+            return null;
+        }
+
+        String trimmed = colorHex.trim();
+        return trimmed.matches("^#[0-9a-fA-F]{6}$") ? trimmed.toUpperCase() : null;
+    }
+
+    private String normalizeLegendLabel(String legendLabel) {
+        return normalizeNote(legendLabel);
+    }
+
+    private String buildStoredAttendanceNote(String category, String note, String colorHex, String legendLabel) {
+        String normalizedNote = normalizeNote(note);
+        AttendanceLegendMetadata metadata = buildAttendanceLegendMetadata(colorHex, legendLabel);
+
+        StringBuilder storedNote = new StringBuilder();
+        if (ATTENDANCE_CATEGORY_FRAUD.equals(category)) {
+            storedNote.append(FRAUD_NOTE_PREFIX);
+        }
+        if (metadata != null) {
+            storedNote.append(ATTENDANCE_META_PREFIX)
+                    .append(writeAttendanceLegendMetadata(metadata))
+                    .append(ATTENDANCE_META_SUFFIX);
+        }
+        if (normalizedNote != null) {
+            storedNote.append(normalizedNote);
+        }
+
+        return storedNote.isEmpty() ? null : storedNote.toString();
+    }
+
+    private boolean hasFraudCategory(String storedNote) {
+        return storedNote != null
+                && (storedNote.startsWith(FRAUD_NOTE_PREFIX) || SYSTEM_FRAUD_ABSENT_NOTE.equals(storedNote));
+    }
+
+    private String extractAttendanceCategory(String storedNote) {
+        return hasFraudCategory(storedNote) ? ATTENDANCE_CATEGORY_FRAUD : ATTENDANCE_CATEGORY_DEFAULT;
+    }
+
+    private String extractAttendanceDisplayNote(String storedNote) {
+        if (storedNote == null || storedNote.isBlank()) {
+            return null;
+        }
+
+        if (SYSTEM_QR_SUCCESS_NOTE.equals(storedNote)
+                || SYSTEM_FRAUD_ABSENT_NOTE.equals(storedNote)
+                || SYSTEM_FRAUD_RESTORED_NOTE.equals(storedNote)) {
+            return null;
+        }
+
+        if (!hasFraudCategory(storedNote)) {
+            return extractNoteContent(storedNote);
+        }
+
+        return extractNoteContent(storedNote.substring(FRAUD_NOTE_PREFIX.length()));
+    }
+
+    private AttendanceLegendMetadata buildAttendanceLegendMetadata(String colorHex, String legendLabel) {
+        String normalizedColorHex = normalizeColorHex(colorHex);
+        String normalizedLegendLabel = normalizeLegendLabel(legendLabel);
+        if (normalizedColorHex == null && normalizedLegendLabel == null) {
+            return null;
+        }
+        return new AttendanceLegendMetadata(normalizedColorHex, normalizedLegendLabel);
+    }
+
+    private String writeAttendanceLegendMetadata(AttendanceLegendMetadata metadata) {
+        try {
+            return objectMapper.writeValueAsString(metadata);
+        } catch (Exception exception) {
+            throw new BadRequestException("Khong the luu chu thich mau");
+        }
+    }
+
+    private AttendanceLegendMetadata extractAttendanceLegendMetadata(String storedNote) {
+        String noteBody = removeFraudPrefix(storedNote);
+        if (noteBody == null || !noteBody.startsWith(ATTENDANCE_META_PREFIX)) {
+            return null;
+        }
+
+        int metaEndIndex = noteBody.indexOf(ATTENDANCE_META_SUFFIX);
+        if (metaEndIndex < 0) {
+            return null;
+        }
+
+        String json = noteBody.substring(ATTENDANCE_META_PREFIX.length(), metaEndIndex);
+        try {
+            AttendanceLegendMetadata metadata = objectMapper.readValue(json, AttendanceLegendMetadata.class);
+            return buildAttendanceLegendMetadata(metadata.colorHex(), metadata.legendLabel());
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private String extractNoteContent(String storedNote) {
+        String noteBody = removeFraudPrefix(storedNote);
+        if (noteBody == null || noteBody.isBlank()) {
+            return null;
+        }
+
+        if (!noteBody.startsWith(ATTENDANCE_META_PREFIX)) {
+            return normalizeNote(noteBody);
+        }
+
+        int metaEndIndex = noteBody.indexOf(ATTENDANCE_META_SUFFIX);
+        if (metaEndIndex < 0) {
+            return normalizeNote(noteBody);
+        }
+
+        return normalizeNote(noteBody.substring(metaEndIndex + ATTENDANCE_META_SUFFIX.length()));
+    }
+
+    private String removeFraudPrefix(String storedNote) {
+        if (storedNote == null) {
+            return null;
+        }
+
+        if (storedNote.startsWith(FRAUD_NOTE_PREFIX)) {
+            return storedNote.substring(FRAUD_NOTE_PREFIX.length());
+        }
+
+        return storedNote;
+    }
+
+    private record AttendanceLegendMetadata(String colorHex, String legendLabel) {
     }
 
     private record SuspiciousClusterInfo(String reason) {

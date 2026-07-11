@@ -258,7 +258,7 @@ const AssignmentDetail = () => {
                         {/*)}*/}
 
                         {/* RESULT */}
-                        {data.calculatedScore && (
+                        {data.calculatedScore !== null && data.calculatedScore !== undefined && (
                             <div className="bg-white rounded-2xl shadow-sm p-5">
                                 <h3 className="font-semibold mb-4">Kết quả</h3>
 

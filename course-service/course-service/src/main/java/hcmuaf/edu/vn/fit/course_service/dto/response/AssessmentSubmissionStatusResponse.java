@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -23,4 +24,8 @@ public class AssessmentSubmissionStatusResponse {
     private LocalDateTime submittedAt;
     private String status;
     private boolean submitted;
+    private Double totalScore;
+    private String grade;
+    private String comment;
+    private List<SubmissionCriterionScoreResponse> gradedCriteria;
 }

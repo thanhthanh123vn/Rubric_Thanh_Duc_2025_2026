@@ -6,6 +6,7 @@ import type {
     CreateTaskRequest,
     GroupResponse,
     GroupTaskResponse,
+    SplitGroupRequest,
     UpdateTaskStatusRequest
 } from "@/features/course/student/api/type.ts";
 
@@ -24,6 +25,16 @@ export const groupService = {
 
     getGroupsByOffering: async (offeringId: string): Promise<GroupResponse[]> => {
         const response = await courseApi.get(`/group/offering/${offeringId}`);
+        return response.data;
+    },
+
+    splitGroup: async (groupId: string, data: SplitGroupRequest): Promise<GroupResponse[]> => {
+        const response = await courseApi.post(`/group/${groupId}/subgroups`, data);
+        return response.data.data.createdGroups;
+    },
+
+    dissolveGroup: async (groupId: string) => {
+        const response = await courseApi.delete(`/group/${groupId}`);
         return response.data;
     },
 

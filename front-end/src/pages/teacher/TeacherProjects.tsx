@@ -5,7 +5,7 @@ import { projectGroups } from './teacherData';
 
 export default function TeacherProjects() {
   const { id } = useParams<{ id: string }>();
-  const course = teacherCourses.find((item) => item.id === id);
+  const course = teacherCourses.find((item) => item.offeringId === id);
 
   return (
     <div className="space-y-6">

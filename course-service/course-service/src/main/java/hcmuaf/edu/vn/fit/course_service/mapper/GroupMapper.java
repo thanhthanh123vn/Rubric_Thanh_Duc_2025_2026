@@ -14,13 +14,19 @@ import java.util.List;
 public interface GroupMapper {
 
     @Mapping(source = "conversation.id", target = "conversationId")
-    @Mapping(source = "conversation.participants", target = "participants") // Lôi thành viên từ phòng chat ra
+    @Mapping(source = "conversation.participants", target = "participants")
+    @Mapping(source = "parentGroup.id", target = "parentGroupId")
+    @Mapping(source = "parentGroup.groupName", target = "parentGroupName")
+    @Mapping(target = "subgroup", expression = "java(group.getParentGroup() != null)")
+    @Mapping(target = "subgroupCount", expression = "java(group.getSubgroups() != null ? group.getSubgroups().size() : 0)")
     GroupResponse toGroupResponse(Group group);
 
     List<GroupResponse> toGroupResponseList(List<Group> groups);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "courseOffering", ignore = true)
+    @Mapping(target = "parentGroup", ignore = true)
+    @Mapping(target = "subgroups", ignore = true)
     @Mapping(target = "conversation", ignore = true)
     Group toGroup(GroupRequest request);
 

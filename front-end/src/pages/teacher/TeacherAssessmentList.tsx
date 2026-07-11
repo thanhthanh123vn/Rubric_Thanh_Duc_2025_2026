@@ -195,10 +195,10 @@ export default function TeacherAssessmentList() {
                 <button
                   type="button"
                   onClick={() => navigate(`/teacher/course/${id}/assessment/${assessment.assessmentId}/grading`)}
-                  className="flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                  className="flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
                 >
                   <span className="hidden md:inline">Chấm bài</span>
-                  <ChevronRight className="h-5 w-5 md:hidden" />
+                  <ChevronRight className="h-5 w-5 text-white md:hidden" />
                 </button>
               </div>
             </div>

@@ -81,6 +81,36 @@ export type AttendanceStudentResponse = {
   note: string;
 };
 
+export type AttendanceLegendResponse = {
+  legendId: string;
+  offeringId: string;
+  legendLabel: string;
+  colorHex: string;
+};
+
+export type AttendanceOverviewDateResponse = {
+  sessionId: string;
+  attendanceId: string | null;
+  attendanceDate: string;
+  status: string;
+  category: string;
+  displayText: string;
+  note: string | null;
+  colorHex: string | null;
+  legendLabel: string | null;
+};
+
+export type AttendanceStudentOverviewResponse = {
+  studentId: string;
+  studentName: string;
+  email: string | null;
+  totalSessions: number;
+  presentCount: number;
+  absentCount: number;
+  resultStatus: string;
+  attendanceDates: AttendanceOverviewDateResponse[];
+};
+
 type ApiErrorResponse = {
   message?: string;
 };
@@ -118,9 +148,63 @@ export const attendanceApi = {
     );
     return response.data;
   },
+  async getAttendanceOverviewByOffering(offeringId: string) {
+    const response = await courseApi.get<AttendanceStudentOverviewResponse[]>(
+      `/attendance-sessions/offering/${offeringId}/overview`,
+    );
+    return response.data;
+  },
+  async updateAttendanceOverviewCell(
+    offeringId: string,
+    payload: {
+      studentId: string;
+      sessionId: string;
+      status: "PRESENT" | "ABSENT";
+      note: string;
+      category: string;
+      colorHex?: string | null;
+      legendLabel?: string | null;
+    },
+  ) {
+    const response = await courseApi.put<AttendanceOverviewDateResponse>(
+      `/attendance-sessions/offering/${offeringId}/overview/cell`,
+      payload,
+    );
+    return response.data;
+  },
+  async getAttendanceLegendsByOffering(offeringId: string) {
+    const response = await courseApi.get<AttendanceLegendResponse[]>(
+      `/attendance-sessions/offering/${offeringId}/overview/legends`,
+    );
+    return response.data;
+  },
+  async upsertAttendanceLegend(
+    offeringId: string,
+    payload: {
+      legendId?: string | null;
+      legendLabel: string;
+      colorHex: string;
+    },
+  ) {
+    const response = await courseApi.put<AttendanceLegendResponse>(
+      `/attendance-sessions/offering/${offeringId}/overview/legend`,
+      payload,
+    );
+    return response.data;
+  },
   async getAttendanceRecordsBySession(sessionId: string) {
     const response = await courseApi.get<AttendanceStudentResponse[]>(
       `/attendance-sessions/${sessionId}/records`,
+    );
+    return response.data;
+  },
+  async updateAttendanceStatus(
+    sessionId: string,
+    attendanceId: string,
+    status: "PRESENT" | "ABSENT",
+  ) {
+    const response = await courseApi.put<AttendanceStudentResponse>(
+      `/attendance-sessions/${sessionId}/records/${attendanceId}/status?status=${status}`,
     );
     return response.data;
   },

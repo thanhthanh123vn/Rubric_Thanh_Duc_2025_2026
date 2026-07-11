@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,7 +35,7 @@ public class AssessmentService {
 
 
     private final AssessmentRepository assessmentRepository;
-    private final EnrollmentRepository enrollmentRepository;
+    private final  EnrollmentRepository enrollmentRepository;
     private final GradingClient gradingClient;
     private final CourseMapper courseMapper;
 
@@ -184,6 +187,51 @@ public class AssessmentService {
                                 .build();
                     }
 
+                    GradeDetailResponse gradeDetail = null;
+                    Double fallbackTotalScore = null;
+                    String fallbackComment = null;
+                    List<SubmissionCriterionScoreResponse> gradedCriteria = Collections.emptyList();
+                    try {
+                        gradeDetail = gradingClient.getGradeByStudentAndAssessment(assessmentId, studentId);
+                    } catch (Exception ignored) {
+                    }
+
+                    if (gradeDetail == null) {
+                        try {
+                            List<Object[]> rubricDetails = assessmentRepository.getRubricCriterionDetails(assessmentId, studentId);
+                            if (rubricDetails != null && !rubricDetails.isEmpty()) {
+                                fallbackTotalScore = rubricDetails.stream()
+                                        .map(row -> row[4])
+                                        .filter(Number.class::isInstance)
+                                        .map(Number.class::cast)
+                                        .mapToDouble(Number::doubleValue)
+                                        .sum();
+                                fallbackComment = "Đã chấm theo rubric";
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+
+                    try {
+                        List<Object[]> rubricDetails = assessmentRepository.getRubricCriterionDetails(assessmentId, studentId);
+                        if (rubricDetails != null && !rubricDetails.isEmpty()) {
+                            gradedCriteria = rubricDetails.stream()
+                                    .map(this::mapSubmissionCriterionScore)
+                                    .toList();
+                        }
+                    } catch (Exception ignored) {
+                    }
+
+                    if (fallbackTotalScore != null && Math.abs(fallbackTotalScore) < 0.000001d) {
+                        fallbackTotalScore = null;
+                        fallbackComment = null;
+                    }
+
+                    Double resolvedTotalScore = resolveDisplayedTotalScore(
+                            gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                            fallbackTotalScore
+                    );
+
                     return AssessmentSubmissionStatusResponse.builder()
                             .id(submission.getId())
                             .assessmentId(submission.getAssessmentId())
@@ -193,15 +241,60 @@ public class AssessmentService {
                             .submittedLink(submission.getSubmittedLink())
                             .submittedAt(submission.getSubmittedAt())
                             .status(
-                                    submission.getStatus() != null && !submission.getStatus().isBlank()
-                                            ? submission.getStatus()
-                                            : "SUBMITTED"
+                                    gradeDetail != null && gradeDetail.getStatus() != null && !gradeDetail.getStatus().isBlank()
+                                            ? gradeDetail.getStatus()
+                                            : fallbackTotalScore != null
+                                                ? "GRADED"
+                                            : submission.getStatus() != null && !submission.getStatus().isBlank()
+                                                ? submission.getStatus()
+                                                : "SUBMITTED"
                             )
                             .submitted(true)
+                            .totalScore(roundToSingleDecimal(resolvedTotalScore))
+                            .grade(gradeDetail != null ? gradeDetail.getGrade() : null)
+                            .comment(gradeDetail != null ? gradeDetail.getComment() : fallbackComment)
+                            .gradedCriteria(gradedCriteria)
                             .build();
                 })
                 .sorted(Comparator.comparing(AssessmentSubmissionStatusResponse::getStudentId))
                 .toList();
+    }
+
+    private SubmissionCriterionScoreResponse mapSubmissionCriterionScore(Object[] row) {
+        return SubmissionCriterionScoreResponse.builder()
+                .criteriaId(row[0] != null ? row[0].toString() : null)
+                .criteriaName(row[1] != null ? row[1].toString() : null)
+                .levelId(row[2] != null ? row[2].toString() : null)
+                .levelName(row[3] != null ? row[3].toString() : null)
+                .score(roundToSingleDecimal(row[4] instanceof Number number ? number.doubleValue() : null))
+                .build();
+    }
+
+    private Double roundToSingleDecimal(Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            return value;
+        }
+        return BigDecimal.valueOf(value)
+                .setScale(1, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    private Double resolveDisplayedTotalScore(Double gradeScore, Double rubricScore) {
+        if (gradeScore != null && Double.isFinite(gradeScore)) {
+            if (gradeScore <= 10d) {
+                return gradeScore;
+            }
+
+            if (rubricScore != null && Double.isFinite(rubricScore) && rubricScore <= 10d) {
+                return rubricScore;
+            }
+        }
+
+        if (rubricScore != null && Double.isFinite(rubricScore)) {
+            return rubricScore;
+        }
+
+        return gradeScore;
     }
     public SubmissionEntity submitAssignment(
             String assessmentId,

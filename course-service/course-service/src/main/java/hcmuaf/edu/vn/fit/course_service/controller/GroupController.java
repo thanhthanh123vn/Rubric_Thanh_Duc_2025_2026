@@ -1,8 +1,9 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.GroupRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.SplitGroupRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.GroupResponse;
-import hcmuaf.edu.vn.fit.course_service.entity.Group;
+import hcmuaf.edu.vn.fit.course_service.dto.response.SplitGroupResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.ParticipantRole;
 import hcmuaf.edu.vn.fit.course_service.service.GroupService;
 import lombok.RequiredArgsConstructor;
@@ -16,22 +17,18 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/course-service")
-
 public class GroupController {
     private final GroupService groupService;
+
     @PostMapping("/group/create")
     public ResponseEntity<?> createGroup(@RequestBody GroupRequest req) {
         try {
             GroupResponse createdGroup = groupService.createGroup(req);
-
-            // Trả về JSON thông báo thành công
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Đã tạo nhóm thành công");
             response.put("data", createdGroup);
-
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("status", "error");
@@ -39,27 +36,58 @@ public class GroupController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    @PostMapping("/group/{groupId}/subgroups")
+    public ResponseEntity<?> splitGroup(
+            @PathVariable String groupId,
+            @RequestBody SplitGroupRequest req,
+            @RequestHeader("X-User-Id") String requesterId) {
+        try {
+            SplitGroupResponse createdGroup = groupService.splitGroup(groupId, req, requesterId);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Đã tách nhóm thành công",
+                    "data", createdGroup
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/group/{groupId}")
+    public ResponseEntity<?> dissolveGroup(
+            @PathVariable String groupId,
+            @RequestHeader("X-User-Id") String requesterId) {
+        try {
+            groupService.dissolveGroup(groupId, requesterId);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Đã giải tán nhóm"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/group/offering/{offeringId}/user/me")
     public ResponseEntity<?> getMyGroups(
             @PathVariable String offeringId,
             @RequestHeader("X-User-Id") String userId) {
         try {
-
             List<GroupResponse> myGroups = groupService.getMyGroups(offeringId, userId);
-
-
             return ResponseEntity.ok(myGroups);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi khi tải danh sách nhóm của sinh viên: " + e.getMessage());
         }
     }
+
     @GetMapping("/group/offering/{offeringId}")
     public ResponseEntity<?> getGroupsByOffering(@PathVariable String offeringId) {
         try {
             List<GroupResponse> groups = groupService.getGroupsByOfferingId(offeringId);
             return ResponseEntity.ok(groups);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Loi khi tai danh sach nhom cua hoc phan: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Lỗi khi tải danh sách nhóm của học phần: " + e.getMessage());
         }
     }
 
@@ -73,7 +101,7 @@ public class GroupController {
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "Đã thêm thành viên",
-                    "data", updatedGroup // Trả về GroupResponse mới nhất
+                    "data", updatedGroup
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
