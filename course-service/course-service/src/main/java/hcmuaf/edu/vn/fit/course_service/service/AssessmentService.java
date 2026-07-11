@@ -76,11 +76,6 @@ public class AssessmentService {
                 if(item[5] != null){
                     dto.setSubmissionId(item[5].toString());
                     dto.setSubmissionAt((Timestamp) item[6]);
-
-                    dto.setCalculatedScore(item[7] != null ? ((Number) item[7]).floatValue() : null);
-
-                    dto.setLecturerComment(item[8] != null ? item[8].toString() : null);
-
                 }
 
                 if (item[9] != null) {
@@ -91,6 +86,25 @@ public class AssessmentService {
                     );
                     dto.setCloCode(clos);
                 }
+
+                GradeDetailResponse gradeDetail = getGradeDetailSafely(dto.getAssessmentId(), studentId);
+                Double fallbackTotalScore = dto.getSubmissionId() != null
+                        ? getRubricFallbackTotalScore(dto.getAssessmentId(), studentId)
+                        : null;
+
+                dto.setCalculatedScore(
+                        roundToSingleDecimal(resolveDisplayedTotalScore(
+                                gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                                fallbackTotalScore
+                        ))
+                );
+                dto.setLecturerComment(
+                        gradeDetail != null && gradeDetail.getComment() != null && !gradeDetail.getComment().isBlank()
+                                ? gradeDetail.getComment()
+                                : fallbackTotalScore != null
+                                    ? "Đã chấm theo rubric"
+                                    : null
+                );
 
                 return dto;
 
@@ -123,9 +137,6 @@ public class AssessmentService {
             dto.setSubmissionId((String) res[6]);
             dto.setSubmissionAt((Timestamp) res[7]);
 
-            dto.setCalculatedScore(res[8] != null ? ((Number) res[8]).doubleValue() : null);
-            dto.setLecturerComment((String) res[9]);
-
             String closJson = (String) res[10];
             if (closJson != null) {
                 ObjectMapper mapper = new ObjectMapper();
@@ -138,6 +149,28 @@ public class AssessmentService {
                 }
 
                 dto.setClos(closMap);
+            }
+
+            GradeDetailResponse gradeDetail = getGradeDetailSafely(assessmentId, studentId);
+            Double fallbackTotalScore = dto.getSubmissionId() != null
+                    ? getRubricFallbackTotalScore(assessmentId, studentId)
+                    : null;
+
+            dto.setCalculatedScore(
+                    roundToSingleDecimal(resolveDisplayedTotalScore(
+                            gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                            fallbackTotalScore
+                    ))
+            );
+            dto.setLecturerComment(
+                    gradeDetail != null && gradeDetail.getComment() != null && !gradeDetail.getComment().isBlank()
+                            ? gradeDetail.getComment()
+                            : fallbackTotalScore != null
+                                ? "Đã chấm theo rubric"
+                                : null
+            );
+            if (dto.getRubricId() == null && gradeDetail != null && gradeDetail.getRubricId() != null) {
+                dto.setRubricId(gradeDetail.getRubricId());
             }
 
             return dto;
@@ -619,6 +652,25 @@ public class AssessmentService {
             response.setRubricDetails(rubricDetails);
         }
 
+        GradeDetailResponse gradeDetail = getGradeDetailSafely(assessmentId, studentId);
+        Double fallbackTotalScore = getRubricFallbackTotalScore(rubricDetailRows);
+        response.setCalculatedScore(
+                roundToSingleDecimal(resolveDisplayedTotalScore(
+                        gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                        fallbackTotalScore
+                ))
+        );
+        response.setLecturerComment(
+                gradeDetail != null && gradeDetail.getComment() != null && !gradeDetail.getComment().isBlank()
+                        ? gradeDetail.getComment()
+                        : fallbackTotalScore != null
+                            ? "Đã chấm theo rubric"
+                            : response.getLecturerComment()
+        );
+        if (response.getRubricId() == null && gradeDetail != null && gradeDetail.getRubricId() != null) {
+            response.setRubricId(gradeDetail.getRubricId());
+        }
+
         if (assessmentCLOS != null && !assessmentCLOS.isEmpty()) {
             Map<String, String> cloMap = assessmentCLOS.stream()
                     .collect(Collectors.toMap(
@@ -631,6 +683,37 @@ public class AssessmentService {
         }
 
         return response;
+    }
+
+    private GradeDetailResponse getGradeDetailSafely(String assessmentId, String studentId) {
+        try {
+            return gradingClient.getGradeByStudentAndAssessment(assessmentId, studentId);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Double getRubricFallbackTotalScore(String assessmentId, String studentId) {
+        try {
+            return getRubricFallbackTotalScore(assessmentRepository.getRubricCriterionDetails(assessmentId, studentId));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Double getRubricFallbackTotalScore(List<Object[]> rubricDetails) {
+        if (rubricDetails == null || rubricDetails.isEmpty()) {
+            return null;
+        }
+
+        double total = rubricDetails.stream()
+                .map(row -> row[4])
+                .filter(Number.class::isInstance)
+                .map(Number.class::cast)
+                .mapToDouble(Number::doubleValue)
+                .sum();
+
+        return Math.abs(total) < 0.000001d ? null : total;
     }
 
     public void unsubmitAssignment(String assessmentId, String studentId) {

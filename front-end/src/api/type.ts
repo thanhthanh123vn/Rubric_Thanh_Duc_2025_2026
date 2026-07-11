@@ -31,6 +31,11 @@ export interface SubmissionStatusDTO {
     }[] | null;
 }
 
+export interface FeedbackTemplateDTO {
+    id: number;
+    content: string;
+}
+
 export interface SyllabusFile {
     id: string;
     fileName: string;
