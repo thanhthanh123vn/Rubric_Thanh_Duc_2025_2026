@@ -1,9 +1,11 @@
 package hcmuaf.edu.vn.fit.grading_service.controller;
 
 import hcmuaf.edu.vn.fit.grading_service.client.NotificationClient;
+import hcmuaf.edu.vn.fit.grading_service.dto.request.FeedbackTemplateRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.GradeRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.NotificationRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.response.ApiResponse;
+import hcmuaf.edu.vn.fit.grading_service.dto.response.FeedbackTemplateResponse;
 import hcmuaf.edu.vn.fit.grading_service.entity.Grade;
 import hcmuaf.edu.vn.fit.grading_service.service.GradingService;
 import lombok.RequiredArgsConstructor;
@@ -63,5 +65,37 @@ public class GradingController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(grade);
+    }
+
+    @GetMapping("/feedback-templates")
+    public ResponseEntity<?> getFeedbackTemplates(@RequestParam String userId) {
+        try {
+            return ResponseEntity.ok(service.getFeedbackTemplates(userId));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
+    }
+
+    @PostMapping("/feedback-templates")
+    public ResponseEntity<?> createFeedbackTemplate(@RequestBody FeedbackTemplateRequest request) {
+        try {
+            FeedbackTemplateResponse response = service.createFeedbackTemplate(request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
+    }
+
+    @DeleteMapping("/feedback-templates/{templateId}")
+    public ResponseEntity<?> deleteFeedbackTemplate(
+            @PathVariable Long templateId,
+            @RequestParam String userId
+    ) {
+        try {
+            service.deleteFeedbackTemplate(templateId, userId);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
     }
 }

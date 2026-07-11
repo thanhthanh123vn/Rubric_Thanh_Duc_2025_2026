@@ -12,8 +12,14 @@ import {
     Search,
 } from "lucide-react";
 import { getRubricMatrixById } from "@/api/RubricApi";
-import { fetchSubmissionStatuses, submitStudentGrade } from "@/api/GradingApi";
-import type { SubmissionStatusDTO } from "@/api/type";
+import {
+    createFeedbackTemplate,
+    deleteFeedbackTemplate,
+    fetchFeedbackTemplates,
+    fetchSubmissionStatuses,
+    submitStudentGrade,
+} from "@/api/GradingApi";
+import type { FeedbackTemplateDTO, SubmissionStatusDTO } from "@/api/type";
 
 interface LevelDTO {
     levelId: string;
@@ -35,6 +41,12 @@ interface RubricDTO {
     name: string;
     description: string;
     rows: RubricRowDTO[];
+}
+
+interface CriteriaGradePayload {
+    criteriaId: string;
+    levelId: string | null;
+    scoreAchieved: number;
 }
 
 type ExpandedPane = "none" | "submission" | "rubric";
@@ -140,6 +152,22 @@ const readFeedbackLibrary = () => {
     }
 };
 
+const readCurrentUserId = () => {
+    if (typeof window === "undefined") return null;
+
+    try {
+        const rawValue = window.localStorage.getItem("user");
+        if (!rawValue) return null;
+
+        const parsedValue = JSON.parse(rawValue);
+        return typeof parsedValue?.userId === "string" && parsedValue.userId.trim()
+            ? parsedValue.userId.trim()
+            : null;
+    } catch {
+        return null;
+    }
+};
+
 export default function TeacherGrading() {
     const { assessmentId } = useParams<{ assessmentId: string }>();
 
@@ -150,7 +178,7 @@ export default function TeacherGrading() {
     const [criteriaScores, setCriteriaScores] = useState<Record<string, number>>({});
     const [selectedLevels, setSelectedLevels] = useState<Record<string, string>>({});
     const [generalComment, setGeneralComment] = useState("");
-    const [feedbackLibrary, setFeedbackLibrary] = useState<string[]>(() => readFeedbackLibrary());
+    const [feedbackLibrary, setFeedbackLibrary] = useState<FeedbackTemplateDTO[]>([]);
     const [newFeedback, setNewFeedback] = useState("");
     const [saving, setSaving] = useState(false);
     const [expandedPane, setExpandedPane] = useState<ExpandedPane>("none");
@@ -165,6 +193,10 @@ export default function TeacherGrading() {
     }, [assessmentId]);
 
     useEffect(() => {
+        void loadFeedbackLibrary();
+    }, []);
+
+    useEffect(() => {
         if (!activeSubmission) {
             setGeneralComment("");
             setGradingView("grading");
@@ -174,11 +206,6 @@ export default function TeacherGrading() {
         setGeneralComment(activeSubmission.comment ?? "");
         setGradingView(isSubmissionGraded(activeSubmission) ? "feedback" : "grading");
     }, [activeSubmission?.id, activeSubmission?.comment]);
-
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        window.localStorage.setItem(FEEDBACK_LIBRARY_KEY, JSON.stringify(feedbackLibrary));
-    }, [feedbackLibrary]);
 
     const loadSubmissions = async () => {
         if (!assessmentId) return;
@@ -227,6 +254,22 @@ export default function TeacherGrading() {
             setActiveSubmission(null);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadFeedbackLibrary = async () => {
+        const userId = readCurrentUserId();
+        if (!userId) {
+            setFeedbackLibrary([]);
+            return;
+        }
+
+        try {
+            const templates = await fetchFeedbackTemplates(userId);
+            setFeedbackLibrary(Array.isArray(templates) ? templates : []);
+        } catch (error) {
+            console.error("Lỗi tải thư viện nhận xét mẫu:", error);
+            setFeedbackLibrary([]);
         }
     };
 
@@ -337,21 +380,71 @@ export default function TeacherGrading() {
         );
     };
 
-    const handleAddFeedbackTemplate = () => {
+    const handleAddFeedbackTemplate = async () => {
+        const userId = readCurrentUserId();
         const trimmedFeedback = newFeedback.trim();
-        if (!trimmedFeedback) return;
+        if (!trimmedFeedback || !userId) return;
 
-        setFeedbackLibrary((current) => {
-            if (current.some((item) => item.toLowerCase() === trimmedFeedback.toLowerCase())) {
-                return current;
-            }
-            return [trimmedFeedback, ...current];
-        });
-        setNewFeedback("");
+        if (feedbackLibrary.some((item) => item.content.toLowerCase() === trimmedFeedback.toLowerCase())) {
+            setNewFeedback("");
+            return;
+        }
+
+        try {
+            const savedTemplate = await createFeedbackTemplate({
+                userId,
+                content: trimmedFeedback,
+            });
+            setFeedbackLibrary((current) => [savedTemplate, ...current]);
+            setNewFeedback("");
+        } catch (error) {
+            console.error("Lỗi lưu nhận xét mẫu:", error);
+            alert("Lỗi khi lưu nhận xét mẫu");
+        }
     };
 
-    const handleRemoveFeedbackTemplate = (feedback: string) => {
-        setFeedbackLibrary((current) => current.filter((item) => item !== feedback));
+    const handleRemoveFeedbackTemplate = async (template: FeedbackTemplateDTO) => {
+        const userId = readCurrentUserId();
+        if (!userId) return;
+
+        try {
+            await deleteFeedbackTemplate(template.id, userId);
+            setFeedbackLibrary((current) => current.filter((item) => item.id !== template.id));
+        } catch (error) {
+            console.error("Lỗi xóa nhận xét mẫu:", error);
+            alert("Lỗi khi xóa nhận xét mẫu");
+        }
+    };
+
+    const buildCriteriaGradesPayload = (): CriteriaGradePayload[] => {
+        if (!rubric?.rows?.length) return [];
+
+        return rubric.rows.flatMap((row) => {
+            const hasLevels = Array.isArray(row.levels) && row.levels.length > 0;
+            const selectedLevelId = selectedLevels[row.criteriaId] ?? gradedCriteriaById[row.criteriaId]?.levelId ?? null;
+            const editedScore = criteriaScores[row.criteriaId];
+            const existingWeightedScore = gradedCriteriaById[row.criteriaId]?.score;
+
+            let calculatedScore: number | null = null;
+
+            if (editedScore !== undefined) {
+                calculatedScore = hasLevels
+                    ? roundToSingleDecimal(Number(editedScore || 0) * normalizeCriterionWeight(row.weight))
+                    : roundToSingleDecimal(Number(editedScore || 0));
+            } else if (existingWeightedScore !== null && existingWeightedScore !== undefined) {
+                calculatedScore = roundToSingleDecimal(Number(existingWeightedScore || 0));
+            }
+
+            if (calculatedScore === null || !Number.isFinite(calculatedScore)) {
+                return [];
+            }
+
+            return [{
+                criteriaId: row.criteriaId,
+                levelId: selectedLevelId ?? null,
+                scoreAchieved: calculatedScore,
+            }];
+        });
     };
 
     const handleSaveGrade = async () => {
@@ -368,6 +461,7 @@ export default function TeacherGrading() {
                 assessmentId,
                 rubricId: rubric.id,
                 scores: criteriaScores,
+                criteriaGrades: buildCriteriaGradesPayload(),
                 totalScore: displayedTotalScore,
                 generalComment: generalComment.trim(),
             });
@@ -752,21 +846,21 @@ export default function TeacherGrading() {
                                                             <div className="mt-3 flex flex-wrap gap-2">
                                                                 {feedbackLibrary.map((feedback) => (
                                                                     <div
-                                                                        key={feedback}
+                                                                        key={feedback.id}
                                                                         className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                                                                     >
                                                                         <button
                                                                             type="button"
-                                                                            onClick={() => handleAppendFeedback(feedback)}
+                                                                            onClick={() => handleAppendFeedback(feedback.content)}
                                                                             className="text-left hover:text-emerald-700"
                                                                         >
-                                                                            {feedback}
+                                                                            {feedback.content}
                                                                         </button>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleRemoveFeedbackTemplate(feedback)}
                                                                             className="text-slate-400 hover:text-rose-500"
-                                                                            aria-label={`Xóa nhận xét mẫu ${feedback}`}
+                                                                            aria-label={`Xóa nhận xét mẫu ${feedback.content}`}
                                                                         >
                                                                             ×
                                                                         </button>
@@ -834,28 +928,28 @@ export default function TeacherGrading() {
                                                         </p>
 
                                                         <div className="mt-3 flex flex-wrap gap-2">
-                                                            {feedbackLibrary.map((feedback) => (
-                                                                <div
-                                                                    key={feedback}
-                                                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-                                                                >
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleAppendFeedback(feedback)}
-                                                                        className="text-left hover:text-emerald-700"
+                                                                {feedbackLibrary.map((feedback) => (
+                                                                    <div
+                                                                        key={feedback.id}
+                                                                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                                                                     >
-                                                                        {feedback}
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleRemoveFeedbackTemplate(feedback)}
-                                                                        className="text-slate-400 hover:text-rose-500"
-                                                                        aria-label={`XÃ³a nháº­n xÃ©t máº«u ${feedback}`}
-                                                                    >
-                                                                        Ã—
-                                                                    </button>
-                                                                </div>
-                                                            ))}
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleAppendFeedback(feedback.content)}
+                                                                            className="text-left hover:text-emerald-700"
+                                                                        >
+                                                                            {feedback.content}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveFeedbackTemplate(feedback)}
+                                                                            className="text-slate-400 hover:text-rose-500"
+                                                                            aria-label={`XÃ³a nháº­n xÃ©t máº«u ${feedback.content}`}
+                                                                        >
+                                                                            Ã—
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
                                                         </div>
 
                                                         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -993,21 +1087,21 @@ export default function TeacherGrading() {
                                                         <div className="mt-3 flex flex-wrap gap-2">
                                                             {feedbackLibrary.map((feedback) => (
                                                                 <div
-                                                                    key={feedback}
+                                                                    key={feedback.id}
                                                                     className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                                                                 >
                                                                     <button
                                                                         type="button"
-                                                                        onClick={() => handleAppendFeedback(feedback)}
+                                                                        onClick={() => handleAppendFeedback(feedback.content)}
                                                                         className="text-left hover:text-emerald-700"
                                                                     >
-                                                                        {feedback}
+                                                                        {feedback.content}
                                                                     </button>
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleRemoveFeedbackTemplate(feedback)}
                                                                         className="text-slate-400 hover:text-rose-500"
-                                                                        aria-label={`Xóa nhận xét mẫu ${feedback}`}
+                                                                        aria-label={`Xóa nhận xét mẫu ${feedback.content}`}
                                                                     >
                                                                         ×
                                                                     </button>

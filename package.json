@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "react-redux": "^9.2.0",
     "stompjs": "^2.3.3"
   }
