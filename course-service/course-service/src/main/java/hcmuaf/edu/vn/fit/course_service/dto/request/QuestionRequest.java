@@ -15,13 +15,13 @@ public class QuestionRequest {
 
     private String content;
 
-    private String type; // MULTIPLE_CHOICE, ESSAY
+    private String type;
 
-    private String difficulty; // EASY, MEDIUM, HARD
+    private String difficulty;
+    private Double score;
+    private List<OptionRequest> options;
 
-    private List<OptionRequest> options; // Danh sách các đáp án
-
-    private List<String> cloIds; // Danh sách ID của các chuẩn đầu ra (CLOs) được map với câu hỏi này
+    private List<String> cloIds;
 
     @Data
     @Builder

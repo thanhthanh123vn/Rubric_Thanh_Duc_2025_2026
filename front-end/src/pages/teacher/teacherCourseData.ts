@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ClipboardList, FileText, TimerReset, Users, Workflow } from "lucide-react";
+import {BarChart3, BookOpen, ClipboardList, FileEdit, FileText, TimerReset, Users, Workflow} from 'lucide-react';
 
 export interface TeacherCourseItem {
   offeringId: string;
@@ -62,6 +62,30 @@ export const teacherCourses: TeacherCourseItem[] = [
 ];
 
 export const teacherCourseMenu = [
+  { key: 'overview', icon: BookOpen, label: 'Tổng quan', path: '' },
+  { key: 'students', icon: Users, label: 'Sinh viên', path: 'students' },
+  { key: 'assignments', icon: ClipboardList, label: 'Bài tập', path: 'assignments' },
+  { key: 'rubric', icon: FileText, label: 'Rubric', path: 'rubric' },
+  { key: 'questions',  icon: ClipboardList , label: 'Câu Hỏi', path: 'questions' },
+  {
+    key: 'exams',
+    icon: FileEdit,
+    label: 'Đề thi',
+    path: 'exams',
+    children: [
+      { key: 'create-exam', label: 'Tạo đề thi', path: 'create-exam' },
+      { key: 'exam-list', label: 'Danh sách đề thi', path: 'exam-list' },
+      { key: 'view-exam-list', label: 'xem chi tiết đề thi', path: 'view-exam-list' },
+      { key: 'grading-final', label: 'Nhập điểm cuối kỳ', path: 'grading-final' }
+    ]
+  },
+  { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
+
+  { key: 'groups', icon: Workflow, label: 'Nhóm & Dự án', path: 'groups' },
+  { key: 'grading', icon: FileText, label: 'Chấm bài', path: 'grading' },
+  { key: 'projects', icon: Workflow, label: 'Dự án', path: 'projects' },
+  { key: 'attendance', icon: TimerReset, label: 'Điểm danh', path: 'attendance' },
+  { key: 'report', icon: BarChart3, label: 'Báo cáo', path: 'report' },
   { key: "overview", icon: BookOpen, label: "Tổng quan", path: "" },
   { key: "students", icon: Users, label: "Sinh viên", path: "students" },
   { key: "assignments", icon: ClipboardList, label: "Bài tập", path: "assignments" },

@@ -1,0 +1,273 @@
+package hcmuaf.edu.vn.fit.course_service.repository.jpa;
+
+import hcmuaf.edu.vn.fit.course_service.entity.Course;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface CourseRepository extends JpaRepository<Course, String> {
+
+    boolean existsByCourseCode(String courseCode);
+
+    // =========================================================
+    // 1. STUDENT OBE PROGRESS BY CLO (FIXED)
+    // =========================================================
+    @Query(value = """
+    SELECT
+        clo.clo_id AS cloId,
+        clo.clo_code AS cloCode,
+        clo.description AS cloDescription,
+        ROUND(COALESCE(SUM(assessment_progress.weighted_score), 0), 2) AS achievedScore,
+        ROUND(COALESCE(SUM(assessment_progress.clo_weight), 0), 2) AS totalWeight,
+        ROUND(
+            COALESCE(SUM(assessment_progress.weighted_score), 0)
+            / NULLIF(SUM(assessment_progress.clo_weight), 0) * 100,
+            2
+        ) AS progressPercent
+    FROM course_clo clo
+    JOIN (
+        SELECT DISTINCT ac.clo_id
+        FROM assessments a
+        JOIN assessment_clo ac
+            ON ac.assessment_id = a.assessment_id
+        WHERE a.offering_id = :offeringId
+    ) mapped_clo
+        ON mapped_clo.clo_id = clo.clo_id
+    LEFT JOIN (
+        SELECT
+            a.offering_id,
+            sub.student_id,
+            ac.clo_id,
+            ac.clo_weight,
+            (
+                COALESCE(SUM(rr.calculated_score), 0)
+                / NULLIF(SUM(max_level.max_score * rc.weight), 0)
+                * 100 * ac.clo_weight / 100
+            ) AS weighted_score
+        FROM assessments a
+        JOIN assessment_clo ac
+            ON ac.assessment_id = a.assessment_id
+        JOIN submissions sub
+            ON sub.assessment_id = a.assessment_id
+        JOIN rubric_criteria rc
+            ON rc.rubric_id = COALESCE(sub.rubric_id, a.rubric_id)
+            AND rc.clo_id = ac.clo_id
+        JOIN (
+            SELECT criteria_id, MAX(score) AS max_score
+            FROM rubric_levels
+            GROUP BY criteria_id
+        ) max_level
+            ON max_level.criteria_id = rc.criteria_id
+        LEFT JOIN rubric_results rr
+            ON rr.submission_id = sub.submission_id
+            AND rr.criteria_id = rc.criteria_id
+        WHERE a.offering_id = :offeringId
+          AND sub.student_id = :studentId
+        GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.assessment_id
+    ) assessment_progress
+        ON assessment_progress.offering_id = :offeringId
+        AND assessment_progress.student_id = :studentId
+        AND assessment_progress.clo_id = clo.clo_id
+    GROUP BY clo.clo_id, clo.clo_code, clo.description
+    ORDER BY clo.clo_code
+    """, nativeQuery = true)
+    List<Object[]> getOBEByOfferingByStudent(
+            @Param("offeringId") String offeringId,
+            @Param("studentId") String studentId
+    );
+
+    // =========================================================
+    // 2. CLO LIST BY OFFERING
+    // =========================================================
+    @Query(value = """
+    SELECT DISTINCT
+        c.clo_id,
+        c.clo_code,
+        c.description
+    FROM assessments a
+    JOIN assessment_clo ac
+        ON ac.assessment_id = a.assessment_id
+    JOIN course_clo c
+        ON c.clo_id = ac.clo_id
+    WHERE a.offering_id = :offeringId
+    ORDER BY c.clo_code
+    """, nativeQuery = true)
+    List<Object[]> getCLOsByOffering(@Param("offeringId") String offeringId);
+
+    // =========================================================
+    // 3. STUDENT SCORE BY CLO (FIXED)
+    // =========================================================
+    @Query(value = """
+    SELECT
+        s.student_id,
+        s.full_name,
+        ROUND(
+            COALESCE(
+                SUM(assessment_progress.weighted_score)
+                / NULLIF(SUM(assessment_progress.clo_weight), 0) * 100,
+                0
+            ),
+            2
+        ) AS score
+    FROM enrollments e
+    JOIN students s
+        ON s.student_id = e.student_id
+    LEFT JOIN (
+        SELECT
+            a.offering_id,
+            sub.student_id,
+            ac.clo_id,
+            ac.clo_weight,
+            (
+                COALESCE(SUM(rr.calculated_score), 0)
+                / NULLIF(SUM(max_level.max_score * rc.weight), 0)
+                * 100 * ac.clo_weight / 100
+            ) AS weighted_score
+        FROM assessments a
+        JOIN assessment_clo ac
+            ON ac.assessment_id = a.assessment_id
+            AND ac.clo_id = :cloId
+        JOIN submissions sub
+            ON sub.assessment_id = a.assessment_id
+        JOIN rubric_criteria rc
+            ON rc.rubric_id = COALESCE(sub.rubric_id, a.rubric_id)
+            AND rc.clo_id = ac.clo_id
+        JOIN (
+            SELECT criteria_id, MAX(score) AS max_score
+            FROM rubric_levels
+            GROUP BY criteria_id
+        ) max_level
+            ON max_level.criteria_id = rc.criteria_id
+        LEFT JOIN rubric_results rr
+            ON rr.submission_id = sub.submission_id
+            AND rr.criteria_id = rc.criteria_id
+        WHERE a.offering_id = :offeringId
+        GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.assessment_id
+    ) assessment_progress
+        ON assessment_progress.offering_id = e.offering_id
+        AND assessment_progress.student_id = e.student_id
+        AND assessment_progress.clo_id = :cloId
+    WHERE e.offering_id = :offeringId
+    GROUP BY s.student_id, s.full_name
+    ORDER BY s.full_name
+    """, nativeQuery = true)
+    List<Object[]> getStudentScoresByCLO(
+            @Param("offeringId") String offeringId,
+            @Param("cloId") String cloId
+    );
+
+    // =========================================================
+    // 4. DISTRIBUTION BY SCORE RANGE (FIXED REAL DATA)
+    // =========================================================
+    @Query(value = """
+    SELECT
+        t.clo_id,
+        CASE
+            WHEN t.score < 40 THEN '0-40'
+            WHEN t.score < 70 THEN '40-70'
+            ELSE '70-100'
+        END AS range_label,
+        COUNT(*) AS total_students
+    FROM (
+        SELECT
+            clo.clo_id,
+            e.student_id,
+            ROUND(
+                COALESCE(
+                    SUM(assessment_progress.weighted_score)
+                    / NULLIF(SUM(assessment_progress.clo_weight), 0) * 100,
+                    0
+                ),
+                2
+            ) AS score
+        FROM enrollments e
+        JOIN (
+            SELECT DISTINCT ac.clo_id
+            FROM assessments a
+            JOIN assessment_clo ac
+                ON ac.assessment_id = a.assessment_id
+            WHERE a.offering_id = :offeringId
+        ) clo
+            ON 1 = 1
+        LEFT JOIN (
+            SELECT
+                a.offering_id,
+                sub.student_id,
+                ac.clo_id,
+                ac.clo_weight,
+                (
+                    COALESCE(SUM(rr.calculated_score), 0)
+                    / NULLIF(SUM(max_level.max_score * rc.weight), 0)
+                    * 100 * ac.clo_weight / 100
+                ) AS weighted_score
+            FROM assessments a
+            JOIN assessment_clo ac
+                ON ac.assessment_id = a.assessment_id
+            JOIN submissions sub
+                ON sub.assessment_id = a.assessment_id
+            JOIN rubric_criteria rc
+                ON rc.rubric_id = COALESCE(sub.rubric_id, a.rubric_id)
+                AND rc.clo_id = ac.clo_id
+            JOIN (
+                SELECT criteria_id, MAX(score) AS max_score
+                FROM rubric_levels
+                GROUP BY criteria_id
+            ) max_level
+                ON max_level.criteria_id = rc.criteria_id
+            LEFT JOIN rubric_results rr
+                ON rr.submission_id = sub.submission_id
+                AND rr.criteria_id = rc.criteria_id
+            WHERE a.offering_id = :offeringId
+            GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.assessment_id
+        ) assessment_progress
+            ON assessment_progress.offering_id = e.offering_id
+            AND assessment_progress.student_id = e.student_id
+            AND assessment_progress.clo_id = clo.clo_id
+        WHERE e.offering_id = :offeringId
+        GROUP BY clo.clo_id, e.student_id
+    ) t
+    GROUP BY t.clo_id, range_label
+    """, nativeQuery = true)
+    List<Object[]> getDistributionByOffering(@Param("offeringId") String offeringId);
+
+    // =========================================================
+    // 5. ASSESSMENT MAPPING (OK)
+    // =========================================================
+    @Query(value = """
+    SELECT 
+        a.assessment_id,
+        a.assessment_name,
+        ac.clo_weight
+
+    FROM assessments a
+
+    JOIN assessment_clo ac 
+        ON ac.assessment_id = a.assessment_id
+
+    WHERE ac.clo_id = :cloId
+      AND a.offering_id = :offeringId
+    """, nativeQuery = true)
+    List<Object[]> getAssessmentByCLO(
+            @Param("offeringId") String offeringId,
+            @Param("cloId") String cloId
+    );
+
+    // =========================================================
+    // 6. SEARCH COURSE
+    // =========================================================
+    Page<Course> findByCourseNameContainingIgnoreCaseOrCourseIdContainingIgnoreCase(
+            String courseName,
+            String courseId,
+            Pageable pageable
+    );
+
+    List<Course> findByDepartment(String department);
+
+    List<Course> findByCourseNameContainingIgnoreCase(String keyword);
+}

@@ -1,11 +1,11 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import {Link, Outlet, useLocation, useNavigate} from 'react-router-dom';
 import {
     Building2,
     LayoutDashboard,
     ClipboardCheck,
     Layers,
     FileSignature,
-    Settings2, Database, BarChart3, Target
+    Settings2, Database, BarChart3, Target, LogOut
 } from 'lucide-react';
 
 const deptHeadLinks = [
@@ -24,7 +24,15 @@ export default function DepartmentHeadLayout() {
 
     const inDetailView = location.pathname.split('/').length > 6;
 
+    const navigate = useNavigate();
 
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        sessionStorage.clear();
+
+        navigate("/login");
+    };
     const checkIsActive = (path: string) => {
 
         if (path === '/department') {
@@ -96,12 +104,27 @@ export default function DepartmentHeadLayout() {
                         {/* User Profile snippet dưới cùng của Sidebar */}
                         <div className="mt-auto pt-4 border-t border-slate-200">
                             <div className="flex items-center gap-3 px-2 py-2">
-                                <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
-                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" className="w-full h-full object-cover" />
+                                <div
+                                    className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar"
+                                         className="w-full h-full object-cover"/>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-slate-800 truncate">Quản lý Bộ môn</p>
-                                    <p className="text-xs text-slate-500 truncate">Sẵn sàng làm việc</p>
+                                    <p className="text-sm font-semibold text-slate-800">
+                                        Quản lý Bộ môn
+                                    </p>
+
+                                    <p className="text-xs text-slate-500">
+                                        Sẵn sàng làm việc
+                                    </p>
+
+                                    <button
+                                        onClick={handleLogout}
+                                        className="mt-2 flex items-center gap-1 text-xs text-red-600 hover:text-red-700 transition-colors"
+                                    >
+                                        <LogOut size={14}/>
+                                        Đăng xuất
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -113,7 +136,8 @@ export default function DepartmentHeadLayout() {
 
                     {/* --- MOBILE NAVIGATION --- */}
                     {!inDetailView && (
-                        <div className="flex gap-2 overflow-x-auto px-4 py-4 md:px-6 xl:hidden hide-scrollbar bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20">
+                        <div
+                            className="flex gap-2 overflow-x-auto px-4 py-4 md:px-6 xl:hidden hide-scrollbar bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20">
                             {deptHeadLinks.map((item) => {
                                 const isActive = checkIsActive(item.path);
                                 return (

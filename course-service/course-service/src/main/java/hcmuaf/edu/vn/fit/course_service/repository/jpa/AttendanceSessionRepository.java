@@ -1,0 +1,24 @@
+package hcmuaf.edu.vn.fit.course_service.repository.jpa;
+
+import hcmuaf.edu.vn.fit.course_service.entity.AttendanceSession;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.AttendanceSessionStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.time.LocalDateTime;
+
+@Repository
+public interface AttendanceSessionRepository extends JpaRepository<AttendanceSession, String> {
+    List<AttendanceSession> findByOfferingIdOrderByCreatedAtDesc(String offeringId);
+    Optional<AttendanceSession> findFirstByOfferingIdAndStatusOrderByEndTimeDesc(
+            String offeringId,
+            AttendanceSessionStatus status
+    );
+    List<AttendanceSession> findByOfferingIdAndStatusAndEndTimeBefore(
+            String offeringId,
+            AttendanceSessionStatus status,
+            LocalDateTime endTime
+    );
+}

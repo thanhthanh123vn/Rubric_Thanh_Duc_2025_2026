@@ -31,6 +31,7 @@ interface Question {
     content: string;
     type: 'MULTIPLE_CHOICE' | 'ESSAY';
     difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+    score: number;
     options: AnswerOption[];
     cloIds: string[];
 }
@@ -59,9 +60,10 @@ export default function QuestionFormBank() {
 
     const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
-        cloId: [] as string[],
+        cloIds: [] as string[],
         topicId: '',
         difficulty: 'MEDIUM',
+        score: 1,
         type: 'ESSAY',
         content: ''
     });
@@ -121,11 +123,11 @@ export default function QuestionFormBank() {
         fetchClos();
     }, [offeringId]);
 
-    // Reset form khi đóng modal
+
     useEffect(() => {
         if (!isModalOpen) {
             setEditingQuestionId(null);
-            setFormData({ cloId:[], topicId: '', difficulty: 'MEDIUM', type: 'ESSAY', content: '' });
+            setFormData({ cloIds:[], topicId: '', difficulty: 'MEDIUM', score: 1, type: 'ESSAY', content: '' }); // Đừng quên thêm score ở đây
             setOptions([
                 { content: '', isCorrect: true }, { content: '', isCorrect: false },
                 { content: '', isCorrect: false }, { content: '', isCorrect: false },
@@ -136,11 +138,11 @@ export default function QuestionFormBank() {
     // Hành động bấm nút "Sửa"
     const handleEditClick = async (question: Question) => {
         setEditingQuestionId(question.id);
-        console.log(question);
         setFormData({
-            cloId: question.cloIds || '',
-            topicId: 'T1', // Tuỳ chỉnh theo logic project của bạn
+            cloIds: question.cloIds || '',
+            topicId: 'T1',
             difficulty: question.difficulty,
+            score: question.score || 1,
             type: question.type,
             content: question.content
         });
@@ -202,7 +204,7 @@ export default function QuestionFormBank() {
 
     // Lưu Câu Hỏi (Tạo mới & Cập nhật)
     const handleSaveQuestion = async () => {
-        if (!formData.content || !formData.cloId) {
+        if (!formData.content || !formData.cloIds) {
             toast.error("Vui lòng nhập nội dung câu hỏi và chọn Chuẩn đầu ra!");
             return;
         }
@@ -314,7 +316,8 @@ export default function QuestionFormBank() {
                                             Chuẩn đầu ra <span className="text-red-500">*</span>
                                         </label>
 
-                                        <div className="border border-slate-300 rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                                        <div
+                                            className="border border-slate-300 rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
                                             {cloItems.map((clo) => (
                                                 <label
                                                     key={clo.cloId}
@@ -323,17 +326,17 @@ export default function QuestionFormBank() {
                                                     <input
                                                         type="checkbox"
                                                         className="h-4 w-4"
-                                                        checked={formData.cloId.includes(clo.cloId)}
+                                                        checked={formData.cloIds.includes(clo.cloId)}
                                                         onChange={(e) => {
                                                             if (e.target.checked) {
                                                                 setFormData({
                                                                     ...formData,
-                                                                    cloId: [...formData.cloId, clo.cloId],
+                                                                    cloIds: [...formData.cloIds, clo.cloId],
                                                                 });
                                                             } else {
                                                                 setFormData({
                                                                     ...formData,
-                                                                    cloId: formData.cloId.filter(
+                                                                    cloIds: formData.cloIds.filter(
                                                                         (id) => id !== clo.cloId
                                                                     ),
                                                                 });
@@ -344,7 +347,7 @@ export default function QuestionFormBank() {
                                                     <span className="text-sm">
                                               <span className="font-medium">{clo.cloCode}</span>
                                                         {clo.description && (
-                                              <span className="text-slate-500 ml-1">
+                                                            <span className="text-slate-500 ml-1">
                                                   - {clo.description}
                                                 </span>
                                                         )}
@@ -382,6 +385,21 @@ export default function QuestionFormBank() {
                                             <option value="MEDIUM">Trung bình</option>
                                             <option value="HARD">Khó</option>
                                         </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">Điểm <span
+                                            className="text-red-500">*</span></label>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.5"
+                                            className="w-full h-10 px-3 py-2 bg-white border-slate-300 text-slate-700"
+                                            value={formData.score}
+                                            onChange={(e) => setFormData({
+                                                ...formData,
+                                                score: parseFloat(e.target.value) || 0
+                                            })}
+                                        />
                                     </div>
                                 </div>
 
@@ -518,6 +536,7 @@ export default function QuestionFormBank() {
                                     <TableHead className="font-semibold text-slate-600">Nội dung câu hỏi</TableHead>
                                     <TableHead className="w-[140px] font-semibold text-slate-600">Kiểu</TableHead>
                                     <TableHead className="w-[120px] font-semibold text-slate-600 text-center">Độ khó</TableHead>
+                                    <TableHead className="w-[80px] font-semibold text-slate-600 text-center">Điểm</TableHead>
                                     <TableHead className="w-[150px] font-semibold text-slate-600">CĐR</TableHead>
                                     <TableHead className="w-[100px] font-semibold text-slate-600 text-right pr-6">Thao tác</TableHead>
                                 </TableRow>
@@ -552,13 +571,13 @@ export default function QuestionFormBank() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
-                            q.difficulty === 'EASY' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                q.difficulty === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                    'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó'}
-                        </span>
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
+                                                        q.difficulty === 'EASY' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                            q.difficulty === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                                'bg-rose-50 text-rose-700 border-rose-200'
+                                                    }`}>
+                                                      {q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó'}
+                                                    </span>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-wrap gap-1">
@@ -578,6 +597,10 @@ export default function QuestionFormBank() {
                                                         <span className="text-xs text-slate-400 italic">--</span>
                                                     )}
                                                 </div>
+                                            </TableCell>
+
+                                            <TableCell className="text-center">
+                                                <span className="font-medium text-slate-700">{q.score ?? 1}</span>
                                             </TableCell>
                                             <TableCell className="text-right pr-4">
                                                 <div className="flex justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">

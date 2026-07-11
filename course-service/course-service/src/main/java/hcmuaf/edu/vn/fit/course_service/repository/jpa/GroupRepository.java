@@ -1,0 +1,49 @@
+package hcmuaf.edu.vn.fit.course_service.repository.jpa;
+import hcmuaf.edu.vn.fit.course_service.entity.Group;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+
+@Repository
+public interface GroupRepository extends JpaRepository<Group,String> {
+    @Query("SELECT DISTINCT g FROM Group g " +
+            "JOIN Conversation c ON g.conversation.id = c.id " +
+            "JOIN Participant p ON p.conversation.id = c.id " +
+            "WHERE g.courseOffering.offeringId = :offeringId AND p.userId = :userId")
+    List<Group> findMyGroups(@Param("offeringId") String offeringId, @Param("userId") String userId);
+
+    @Query("SELECT g FROM Group g WHERE g.courseOffering.offeringId = :offeringId")
+    List<Group> findByOfferingId(@Param("offeringId") String offeringId);
+
+    List<Group> findByParentGroup_Id(String parentGroupId);
+
+
+
+    @Query("""
+    SELECT COUNT(p) > 0
+    FROM Participant p
+    JOIN p.conversation c
+    JOIN Group g ON g.conversation = c
+    WHERE p.userId = :userId
+      AND g.courseOffering.offeringId = :offeringId
+""")
+    boolean existsStudentInOffering(
+            @Param("userId") String userId,
+            @Param("offeringId") String offeringId
+    );
+
+    @Query("""
+    SELECT COUNT(p) > 0
+    FROM Participant p
+    JOIN p.conversation c
+    JOIN Group g ON g.conversation = c
+    WHERE p.userId = :userId
+      AND g.parentGroup.id = :parentGroupId
+""")
+    boolean existsStudentInSubgroups(
+            @Param("userId") String userId,
+            @Param("parentGroupId") String parentGroupId
+    );
+}

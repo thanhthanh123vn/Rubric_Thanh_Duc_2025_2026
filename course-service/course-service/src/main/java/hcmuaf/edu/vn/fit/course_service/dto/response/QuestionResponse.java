@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.course_service.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -12,6 +13,8 @@ public class QuestionResponse {
     private String content;
     private String type;
     private String difficulty;
-    private List<CLOLecturerResponse> clos;
-    // DTO chỉ chứa ID và Tên của CLO, không chứa Entity CourseCLO
+    private Double score;
+//    private List<CLOLecturerResponse> clos;
+    private List<String> cloIds ;
+
 }

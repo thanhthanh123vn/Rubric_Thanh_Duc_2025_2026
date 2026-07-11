@@ -2,25 +2,18 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.MessageRequest; // Bạn cần tạo DTO này
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
-import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
 import hcmuaf.edu.vn.fit.course_service.entity.Message;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.EnrollmentRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.MessageRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.util.ObjectUtils;
 
 
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

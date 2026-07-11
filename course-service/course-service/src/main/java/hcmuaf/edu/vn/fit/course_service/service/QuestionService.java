@@ -2,14 +2,16 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.QuestionRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.OfferingQuestionCount;
+import hcmuaf.edu.vn.fit.course_service.dto.response.QuestionResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.QuestionType;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseCLORepository;
-import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.QuestionBankRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.QuestionRepository;
-// import hcmuaf.edu.vn.fit.course_service.repository.CourseOfferingRepository; // Import thêm cái này nếu cần lấy Course
+import hcmuaf.edu.vn.fit.course_service.mapper.QuestionMapper;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseCLORepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.mongo.QuestionBankRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.mongo.QuestionRepository;
+// import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository; // Import thêm cái này nếu cần lấy Course
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final CourseCLORepository courseCLORepository;
     private final QuestionBankRepository questionBankRepository;
+    private final QuestionMapper questionMapper;
 
 
     private final CourseOfferingRepository courseOfferingRepository;
@@ -49,6 +52,7 @@ public class QuestionService {
                 .content(request.getContent())
                 .type(QuestionType.valueOf(request.getType().toUpperCase()))
                 .difficulty(Difficulty.valueOf(request.getDifficulty().toUpperCase()))
+                .score(request.getScore() != null ? request.getScore() : 1.0)
                 .offeringId(offeringId)
                 .build();
 
@@ -182,11 +186,20 @@ public class QuestionService {
 
                 String typeStr = dataFormatter.formatCellValue(currentRow.getCell(2));
                 String difficultyStr = dataFormatter.formatCellValue(currentRow.getCell(3));
-
+                Cell scoreCell = currentRow.getCell(10);
+                Double score = 1.0;
+                if (scoreCell != null) {
+                    try {
+                        score = Double.parseDouble(dataFormatter.formatCellValue(scoreCell).trim());
+                    } catch (NumberFormatException e) {
+                        score = 1.0;
+                    }
+                }
                 Question question = Question.builder()
                         .content(content)
                         .type(QuestionType.valueOf(typeStr.toUpperCase()))
                         .difficulty(Difficulty.valueOf(difficultyStr.toUpperCase()))
+                        .score(score)
                         .offeringId(offeringId)
                         .build();
 
@@ -202,7 +215,7 @@ public class QuestionService {
                             .collect(Collectors.toList());
 
                     if (!cloCodes.isEmpty()) {
-                        List<CourseCLO> mappedCLOs = courseCLORepository.findByCourseIdAndCloCodesIgnoreCase(actualCourseId, cloCodes);
+                        List<CourseCLO> mappedCLOs = courseCLORepository.findByCloCodeIn( cloCodes);
                         List<String> cloIds = mappedCLOs.stream()
                                 .map(CourseCLO::getCloId)
                                 .toList();
@@ -278,6 +291,9 @@ public class QuestionService {
         question.setDifficulty(
                 Difficulty.valueOf(request.getDifficulty().toUpperCase())
         );
+        if (request.getScore() != null) {
+            question.setScore(request.getScore());
+        }
 
         List<AnswerOption> options = new ArrayList<>();
 
@@ -422,5 +438,23 @@ public class QuestionService {
         return Optional.ofNullable(bank.getQuestionIds())
                 .map(List::size)
                 .orElse(0);
+    }
+    public List<QuestionResponse> getAllQuestionsOfCourse(String offeringId) {
+        Optional<CourseOffering> courseOfferingOpt = courseOfferingRepository.findById(offeringId);
+        if (courseOfferingOpt.isEmpty() || courseOfferingOpt.get().getCourse() == null) {
+            return Collections.emptyList();
+        }
+
+        String courseId = courseOfferingOpt.get().getCourse().getCourseId();
+        List<CourseOffering> allOfferings = courseOfferingRepository.findByCourse_CourseIdIn(Set.of(courseId));
+        Set<String> allOfferingIds = allOfferings.stream()
+                .map(CourseOffering::getOfferingId)
+                .collect(Collectors.toSet());
+
+        List<Question> questions = questionRepository.findAllByOfferingIdIn(allOfferingIds);
+
+        return questions.stream()
+                .map(questionMapper::mapToResponse)
+                .collect(Collectors.toList());
     }
 }

@@ -53,7 +53,8 @@ public class Assessment {
 
     @Column(name = "end_time")
     private Timestamp endTime;
-
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
     @Override
     public String toString() {
         return "Assessment{" +

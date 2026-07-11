@@ -4,6 +4,7 @@ import { type TeacherCourseItem, teacherCourseMenu } from './teacherCourseData';
 import { useEffect, useState } from 'react';
 import courseService from '@/pages/admin/api/courseService.ts';
 import { NotificationBell } from '@/components/home/NotificationBell.tsx';
+import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@radix-ui/react-accordion";
 
 export default function TeacherCourseLayout() {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +79,34 @@ export default function TeacherCourseLayout() {
                 const isQuestionActive =
                     item.key === "questions" &&
                     location.pathname.includes("/questions");
+                if (item.children) {
+                  return (
+                      <div key={item.key} className="space-y-1">
+                        <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 bg-slate-50">
+                          <item.icon className="w-5 h-5" />
+                          <span>{item.label}</span>
+                        </div>
 
+                        <div className="ml-6 space-y-1 border-l border-slate-200 pl-4">
+                          {item.children.map((child) => (
+                              <NavLink
+                                  key={child.key}
+                                  to={`/teacher/course/${id}/${item.path}/${child.path}`}
+                                  className={({ isActive }) =>
+                                      `flex items-center rounded-xl px-3 py-2 text-sm transition ${
+                                          isActive
+                                              ? "bg-emerald-600 text-white"
+                                              : "text-slate-600 hover:bg-slate-100 hover:text-emerald-700"
+                                      }`
+                                  }
+                              >
+                                {child.label}
+                              </NavLink>
+                          ))}
+                        </div>
+                      </div>
+                  );
+                }
                 return (
                     <NavLink
                         key={item.key}

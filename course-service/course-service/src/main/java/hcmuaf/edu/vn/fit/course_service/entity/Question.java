@@ -26,11 +26,13 @@ public class Question {
     private Difficulty difficulty;
 
     private String offeringId;
+    private String chapterId;
+    private Double score;
 
     @Builder.Default
     private List<AnswerOption> options = new ArrayList<>();
 
-
+    private String expectedAnswer;
     @Builder.Default
     private List<String> cloIds = new ArrayList<>();
 }
