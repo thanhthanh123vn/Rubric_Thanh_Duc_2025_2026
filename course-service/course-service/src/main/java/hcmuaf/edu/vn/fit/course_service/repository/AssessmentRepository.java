@@ -124,6 +124,5 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     """, nativeQuery = true)
     List<Object[]> getRubricCriterionDetails(@Param("assessmentId") String assessmentId, @Param("studentId") String studentId);
 
-
     List<Assessment> findByCourseOffering_OfferingIdOrderByStartTimeDesc(String offeringId);
 }

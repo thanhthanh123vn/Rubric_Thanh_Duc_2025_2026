@@ -202,6 +202,10 @@ public class CourseService {
             StudentCourseResponse response = new StudentCourseResponse();
             response.setStudentId(enroll.getStudentId());
             response.setEnrollmentDate(enroll.getEnrollmentDate());
+            response.setMidtermScore(enroll.getMidtermScore());
+            response.setFinalScore(enroll.getFinalScore());
+            response.setTotalScore(enroll.getTotalScore());
+            response.setLetterGrade(enroll.getLetterGrade());
 
             try {
                 SinhVienResponse sv = userClient.getSinhVien(enroll.getStudentId());

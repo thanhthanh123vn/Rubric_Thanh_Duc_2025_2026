@@ -662,7 +662,7 @@ export default function TeacherCourseGroups() {
                                   }
                                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
                                 >
-                                  <CheckCircle2 className="h-4 w-4" />
+                                  <CheckCircle2 className="h-4 w-4 text-white" />
                                   {"Ch\u1ea5m b\u00e0i"}
                                 </button>
 

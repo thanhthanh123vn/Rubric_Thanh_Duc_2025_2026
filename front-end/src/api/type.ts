@@ -19,6 +19,16 @@ export interface SubmissionStatusDTO {
     submittedAt?: string | null;
     status: string;
     submitted: boolean;
+    totalScore?: number | null;
+    grade?: string | null;
+    comment?: string | null;
+    gradedCriteria?: {
+        criteriaId: string;
+        criteriaName: string;
+        levelId?: string | null;
+        levelName?: string | null;
+        score?: number | null;
+    }[] | null;
 }
 
 export interface SyllabusFile {

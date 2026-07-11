@@ -4,6 +4,10 @@ export interface Type {
     studentId: string;
     fullName: string;
     email: string;
+    midtermScore?: number | null;
+    finalScore?: number | null;
+    totalScore?: number | null;
+    letterGrade?: string | null;
 }
 export interface MessageData {
     messageId?: string;
