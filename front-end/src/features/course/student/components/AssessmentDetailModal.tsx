@@ -1,4 +1,13 @@
 import { ClipboardCheck, ExternalLink, FileText, MessageSquareText, NotepadTextDashed, X } from "lucide-react";
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 
 import type { RubricDTO } from "@/api/RubricApi.ts";
 import type { Assessment } from "@/features/course/student/assignmentSlice";
@@ -90,6 +99,28 @@ function InfoCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function RadarTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: { criterion: string; score: number; maxScore: number; percentage: number } }>;
+}) {
+  if (!active || !payload?.length || !payload[0]?.payload) return null;
+
+  const item = payload[0].payload;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg">
+      <p className="text-sm font-semibold text-slate-900">{item.criterion}</p>
+      <p className="mt-1 text-xs font-semibold text-emerald-700">{formatNumber(item.percentage)}%</p>
+      <p className="mt-1 text-xs text-slate-600">
+        {formatNumber(item.score)}/{formatNumber(item.maxScore)}
+      </p>
+    </div>
+  );
+}
+
 export default function AssessmentDetailModal({
   isOpen,
   detailLoading,
@@ -143,6 +174,19 @@ export default function AssessmentDetailModal({
 
   const rubricDetailTotal = rubricDetailDisplayRows.reduce((sum, item) => sum + (item.score || 0), 0);
   const rubricDetailMax = rubricDetailDisplayRows.reduce((sum, item) => sum + (item.weightedMaxScore || 0), 0);
+  const rubricRadarData = rubricDetailDisplayRows.map((item, index) => {
+    const score = Number(item.score || 0);
+    const maxScore = Number(item.weightedMaxScore || 0);
+    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+    return {
+      criterion: item.criteriaName || resolveCriterionName(item.matchedCriterion) || `Tiêu chí ${index + 1}`,
+      score,
+      maxScore,
+      percentage,
+      fullMark: 100,
+    };
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
@@ -306,6 +350,44 @@ export default function AssessmentDetailModal({
                     </div>
                     <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
                       Tổng {formatNumber(rubricDetailTotal)}/{formatNumber(rubricDetailMax || selectedAssessmentDetail.calculatedScore || 0)}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h5 className="text-sm font-semibold text-slate-900">Biểu đồ mạng nhện</h5>
+                        <p className="mt-1 text-xs text-slate-500">So sánh tỷ lệ hoàn thành theo từng tiêu chí rubric.</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 h-[320px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={rubricRadarData} outerRadius="72%">
+                          <PolarGrid stroke="#cbd5e1" />
+                          <PolarAngleAxis
+                            dataKey="criterion"
+                            tick={{ fill: "#334155", fontSize: 12 }}
+                            tickLine={false}
+                          />
+                          <PolarRadiusAxis
+                            angle={90}
+                            domain={[0, 100]}
+                            tick={{ fill: "#64748b", fontSize: 11 }}
+                            tickCount={5}
+                            tickFormatter={(value) => `${value}%`}
+                          />
+                          <Tooltip content={<RadarTooltip />} />
+                          <Radar
+                            name="Tỷ lệ đạt"
+                            dataKey="percentage"
+                            stroke="#059669"
+                            fill="#10b981"
+                            fillOpacity={0.35}
+                            strokeWidth={2}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
