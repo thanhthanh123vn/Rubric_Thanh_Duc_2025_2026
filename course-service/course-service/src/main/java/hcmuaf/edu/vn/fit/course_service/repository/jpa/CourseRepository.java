@@ -44,19 +44,24 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             a.offering_id,
             sub.student_id,
             ac.clo_id,
-            ac.clo_weight,
+            COALESCE(ac.clo_weight, a.weight, 0) AS clo_weight,
             (
                 COALESCE(SUM(rr.calculated_score), 0)
-                / NULLIF(SUM(max_level.max_score * rc.weight), 0)
-                * 100 * ac.clo_weight / 100
+                / NULLIF(SUM(max_level.max_score * CASE WHEN rc.weight > 1 THEN rc.weight / 100 ELSE rc.weight END), 0)
+                * 100 * COALESCE(ac.clo_weight, a.weight, 0) / 100
             ) AS weighted_score
         FROM assessments a
         JOIN assessment_clo ac
             ON ac.assessment_id = a.assessment_id
         JOIN submissions sub
             ON sub.assessment_id = a.assessment_id
+        JOIN grades g
+            ON g.assessment_id = a.assessment_id
+            AND g.student_id = sub.student_id
+            AND g.submission_id = sub.submission_id
+            AND g.status = 'GRADED'
         JOIN rubric_criteria rc
-            ON rc.rubric_id = COALESCE(sub.rubric_id, a.rubric_id)
+            ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
             AND rc.clo_id = ac.clo_id
         JOIN (
             SELECT criteria_id, MAX(score) AS max_score
@@ -65,11 +70,11 @@ public interface CourseRepository extends JpaRepository<Course, String> {
         ) max_level
             ON max_level.criteria_id = rc.criteria_id
         LEFT JOIN rubric_results rr
-            ON rr.submission_id = sub.submission_id
+            ON rr.submission_id = g.submission_id
             AND rr.criteria_id = rc.criteria_id
         WHERE a.offering_id = :offeringId
           AND sub.student_id = :studentId
-        GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.assessment_id
+        GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.weight, a.assessment_id
     ) assessment_progress
         ON assessment_progress.offering_id = :offeringId
         AND assessment_progress.student_id = :studentId
@@ -123,11 +128,11 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             a.offering_id,
             sub.student_id,
             ac.clo_id,
-            ac.clo_weight,
+            COALESCE(ac.clo_weight, a.weight, 0) AS clo_weight,
             (
                 COALESCE(SUM(rr.calculated_score), 0)
-                / NULLIF(SUM(max_level.max_score * rc.weight), 0)
-                * 100 * ac.clo_weight / 100
+                / NULLIF(SUM(max_level.max_score * CASE WHEN rc.weight > 1 THEN rc.weight / 100 ELSE rc.weight END), 0)
+                * 100 * COALESCE(ac.clo_weight, a.weight, 0) / 100
             ) AS weighted_score
         FROM assessments a
         JOIN assessment_clo ac
@@ -135,8 +140,13 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             AND ac.clo_id = :cloId
         JOIN submissions sub
             ON sub.assessment_id = a.assessment_id
+        JOIN grades g
+            ON g.assessment_id = a.assessment_id
+            AND g.student_id = sub.student_id
+            AND g.submission_id = sub.submission_id
+            AND g.status = 'GRADED'
         JOIN rubric_criteria rc
-            ON rc.rubric_id = COALESCE(sub.rubric_id, a.rubric_id)
+            ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
             AND rc.clo_id = ac.clo_id
         JOIN (
             SELECT criteria_id, MAX(score) AS max_score
@@ -145,10 +155,10 @@ public interface CourseRepository extends JpaRepository<Course, String> {
         ) max_level
             ON max_level.criteria_id = rc.criteria_id
         LEFT JOIN rubric_results rr
-            ON rr.submission_id = sub.submission_id
+            ON rr.submission_id = g.submission_id
             AND rr.criteria_id = rc.criteria_id
         WHERE a.offering_id = :offeringId
-        GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.assessment_id
+        GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.weight, a.assessment_id
     ) assessment_progress
         ON assessment_progress.offering_id = e.offering_id
         AND assessment_progress.student_id = e.student_id
@@ -200,19 +210,24 @@ public interface CourseRepository extends JpaRepository<Course, String> {
                 a.offering_id,
                 sub.student_id,
                 ac.clo_id,
-                ac.clo_weight,
+                COALESCE(ac.clo_weight, a.weight, 0) AS clo_weight,
                 (
                     COALESCE(SUM(rr.calculated_score), 0)
-                    / NULLIF(SUM(max_level.max_score * rc.weight), 0)
-                    * 100 * ac.clo_weight / 100
+                    / NULLIF(SUM(max_level.max_score * CASE WHEN rc.weight > 1 THEN rc.weight / 100 ELSE rc.weight END), 0)
+                    * 100 * COALESCE(ac.clo_weight, a.weight, 0) / 100
                 ) AS weighted_score
             FROM assessments a
             JOIN assessment_clo ac
                 ON ac.assessment_id = a.assessment_id
             JOIN submissions sub
                 ON sub.assessment_id = a.assessment_id
+            JOIN grades g
+                ON g.assessment_id = a.assessment_id
+                AND g.student_id = sub.student_id
+                AND g.submission_id = sub.submission_id
+                AND g.status = 'GRADED'
             JOIN rubric_criteria rc
-                ON rc.rubric_id = COALESCE(sub.rubric_id, a.rubric_id)
+                ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
                 AND rc.clo_id = ac.clo_id
             JOIN (
                 SELECT criteria_id, MAX(score) AS max_score
@@ -221,10 +236,10 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             ) max_level
                 ON max_level.criteria_id = rc.criteria_id
             LEFT JOIN rubric_results rr
-                ON rr.submission_id = sub.submission_id
+                ON rr.submission_id = g.submission_id
                 AND rr.criteria_id = rc.criteria_id
             WHERE a.offering_id = :offeringId
-            GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.assessment_id
+            GROUP BY a.offering_id, sub.student_id, ac.clo_id, ac.clo_weight, a.weight, a.assessment_id
         ) assessment_progress
             ON assessment_progress.offering_id = e.offering_id
             AND assessment_progress.student_id = e.student_id
@@ -243,7 +258,7 @@ public interface CourseRepository extends JpaRepository<Course, String> {
     SELECT 
         a.assessment_id,
         a.assessment_name,
-        ac.clo_weight
+        COALESCE(ac.clo_weight, a.weight, 0) AS clo_weight
 
     FROM assessments a
 

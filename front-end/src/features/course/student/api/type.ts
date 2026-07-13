@@ -82,6 +82,12 @@ export interface UpdateTaskStatusRequest {
     resultLink?: string;
     file?: File | null;
 }
+export interface SubmissionAttachmentItem {
+    id: string;
+    type: "FILE" | "LINK";
+    url: string;
+    originalName?: string | null;
+}
 export interface AssessmentSubmission {
     assessmentId: string;
     description: string;
@@ -104,6 +110,7 @@ export interface AssessmentSubmission {
 
     submittedFileUrl: string | null;
     submittedLink: string | null;
+    submittedAttachments?: SubmissionAttachmentItem[] | null;
     rubricDetails?: {
         criteriaId: string | null;
         criteriaName: string | null;

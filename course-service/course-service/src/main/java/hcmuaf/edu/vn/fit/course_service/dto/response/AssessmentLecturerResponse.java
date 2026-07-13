@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.sql.Timestamp;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -19,6 +20,8 @@ public class AssessmentLecturerResponse {
     private Float weight;
     private String fileUrl;
     private String offeringId;
+    private String rubricId;
+    private List<String> cloIds;
 
     private Timestamp startTime;
     private Timestamp endTime;

@@ -55,14 +55,13 @@ export default function TeacherCourseRubric() {
           rubricUsageMap.set(rubricId, linkedNames);
         });
 
-        const filteredRubrics = (Array.isArray(allRubrics) ? allRubrics : [])
-          .filter((rubric) => rubricUsageMap.has(rubric.id))
+        const courseRubrics = (Array.isArray(allRubrics) ? allRubrics : [])
           .map((rubric) => ({
             ...rubric,
             linkedAssessmentNames: rubricUsageMap.get(rubric.id) || [],
           }));
 
-        setRubrics(filteredRubrics);
+        setRubrics(courseRubrics);
       } catch (error) {
         console.error("Loi khi tai danh sach Rubric:", error);
         setRubrics([]);
@@ -86,7 +85,7 @@ export default function TeacherCourseRubric() {
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">Rubric</p>
           <h4 className="mt-1 text-2xl font-bold text-slate-900">Rubric cua hoc phan</h4>
           <p className="mt-2 text-sm text-slate-500">
-            Hien thi cac rubric dang duoc gan vao bai tap trong hoc phan nay.
+            Hien thi cac rubric co the su dung va bai tap dang lien ket trong hoc phan nay.
           </p>
         </div>
         <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
@@ -142,12 +141,16 @@ export default function TeacherCourseRubric() {
                     </span>
                   ))}
                 </div>
-              ) : null}
+              ) : (
+                <span className="mt-3 inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                  Chua gan vao bai tap
+                </span>
+              )}
             </button>
           ))
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 py-8 text-center text-slate-500">
-            Chua co rubric nao duoc gan vao bai tap cua hoc phan nay.
+            Chua co rubric nao san sang de su dung.
           </div>
         )}
       </div>
