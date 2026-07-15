@@ -1,14 +1,20 @@
-import { BookOpen, ChevronLeft, GraduationCap, PanelLeft, Users2 } from 'lucide-react';
-import { Link, NavLink, Outlet, useParams } from 'react-router-dom';
+import { BookOpen, ChevronDown, ChevronLeft, GraduationCap, PanelLeft, Users2 } from 'lucide-react';
+import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { type TeacherCourseItem, teacherCourseMenu } from './teacherCourseData';
 import { useEffect, useState } from 'react';
 import courseService from '@/pages/admin/api/courseService.ts';
 import { NotificationBell } from '@/components/home/NotificationBell.tsx';
-import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@radix-ui/react-accordion";
 
 export default function TeacherCourseLayout() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<TeacherCourseItem[]>([]);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(() =>
+    teacherCourseMenu.find(
+      (item) => item.children && location.pathname.startsWith(`/teacher/course/${id}/${item.path}`),
+    )?.key || null,
+  );
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -80,14 +86,26 @@ export default function TeacherCourseLayout() {
                     item.key === "questions" &&
                     location.pathname.includes("/questions");
                 if (item.children) {
+                  const isExpanded = expandedMenu === item.key;
+                  const isParentActive = location.pathname.startsWith(`/teacher/course/${id}/${item.path}`);
                   return (
                       <div key={item.key} className="space-y-1">
-                        <div className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 bg-slate-50">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedMenu((current) => current === item.key ? null : item.key)}
+                          aria-expanded={isExpanded}
+                          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                            isParentActive
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "text-slate-600 hover:bg-slate-50 hover:text-emerald-700"
+                          }`}
+                        >
                           <item.icon className="w-5 h-5" />
                           <span>{item.label}</span>
-                        </div>
+                          <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </button>
 
-                        <div className="ml-6 space-y-1 border-l border-slate-200 pl-4">
+                        {isExpanded ? <div className="ml-6 space-y-1 border-l border-slate-200 pl-4">
                           {item.children.map((child) => (
                               <NavLink
                                   key={child.key}
@@ -103,7 +121,7 @@ export default function TeacherCourseLayout() {
                                 {child.label}
                               </NavLink>
                           ))}
-                        </div>
+                        </div> : null}
                       </div>
                   );
                 }
@@ -199,23 +217,50 @@ export default function TeacherCourseLayout() {
             </div>
 
             <div className="mt-4 flex gap-2 overflow-x-auto pb-1 xl:hidden">
-              {teacherCourseMenu.map((item) => (
-                <NavLink
-                  key={item.key}
-                  to={item.path ? `/teacher/course/${id}/${item.path}` : `/teacher/course/${id}`}
-                  end={item.path === ''}
-                  className={({ isActive }) =>
-                    `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all ${
-                      isActive
-                        ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700'
-                    }`
-                  }
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </NavLink>
-              ))}
+              {teacherCourseMenu.map((item) => {
+                if (item.children) {
+                  const activeChild = item.children.find((child) =>
+                    location.pathname.startsWith(`/teacher/course/${id}/${item.path}/${child.path}`),
+                  );
+                  return (
+                    <label
+                      key={item.key}
+                      className={`relative inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2.5 text-sm font-medium transition-all ${
+                        activeChild
+                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                          : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <select
+                        aria-label={item.label}
+                        value={activeChild?.path || ''}
+                        onChange={(event) => navigate(`/teacher/course/${id}/${item.path}/${event.target.value}`)}
+                        className="appearance-none bg-transparent pr-5 font-medium outline-none"
+                      >
+                        <option value="" disabled className="text-slate-700">{item.label}</option>
+                        {item.children.map((child) => <option key={child.key} value={child.path} className="text-slate-700">{child.label}</option>)}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5" />
+                    </label>
+                  );
+                }
+                return <NavLink
+                    key={item.key}
+                    to={item.path ? `/teacher/course/${id}/${item.path}` : `/teacher/course/${id}`}
+                    end={item.path === ''}
+                    className={({ isActive }) =>
+                      `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all ${
+                        isActive
+                          ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700'
+                      }`
+                    }
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </NavLink>;
+              })}
             </div>
           </header>
 

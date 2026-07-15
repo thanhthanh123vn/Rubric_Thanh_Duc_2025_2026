@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
-import { CalendarDays, ChevronRight, ClipboardList, Clock3, Search, X } from "lucide-react";
+import { CalendarDays, ChevronRight, ClipboardList, Clock3, ListFilter, Search, X } from "lucide-react";
 
 interface TeacherAssessmentItem {
   assessmentId: string;
   assessmentName: string;
+  assessmentType?: string | null;
   endTime?: string | null;
   submittedCount?: number | null;
   pendingCount?: number | null;
@@ -33,11 +34,25 @@ const matchesDateRange = (value: string | null | undefined, fromDate: string, to
   return true;
 };
 
+const formatAssessmentType = (value?: string | null) => {
+  const normalized = value?.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    quiz: "Trắc nghiệm",
+    upload: "Nộp tập tin",
+    assignment: "Bài tập",
+    project: "Đồ án",
+    exam: "Bài thi",
+    attendance: "Chuyên cần",
+  };
+  return normalized ? labels[normalized] || value || "Khác" : "Chưa phân loại";
+};
+
 export default function TeacherAssessmentList() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [assessments, setAssessments] = useState<TeacherAssessmentItem[]>([]);
   const [keyword, setKeyword] = useState("");
+  const [selectedType, setSelectedType] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -47,6 +62,11 @@ export default function TeacherAssessmentList() {
       setAssessments(Array.isArray(data) ? data : []);
     });
   }, [id]);
+
+  const assessmentTypes = useMemo(() =>
+    [...new Set(assessments.map((item) => item.assessmentType?.trim()).filter(Boolean) as string[])]
+      .sort((left, right) => formatAssessmentType(left).localeCompare(formatAssessmentType(right), "vi")),
+  [assessments]);
 
   const filteredAssessments = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -58,13 +78,15 @@ export default function TeacherAssessmentList() {
         assessment.assessmentId?.toLowerCase().includes(normalizedKeyword);
 
       const matchesDate = matchesDateRange(assessment.endTime, fromDate, toDate);
+      const matchesType = !selectedType || assessment.assessmentType?.trim() === selectedType;
 
-      return matchesKeyword && matchesDate;
+      return matchesKeyword && matchesDate && matchesType;
     });
-  }, [assessments, fromDate, keyword, toDate]);
+  }, [assessments, fromDate, keyword, selectedType, toDate]);
 
   const clearFilters = () => {
     setKeyword("");
+    setSelectedType("");
     setFromDate("");
     setToDate("");
   };
@@ -80,7 +102,7 @@ export default function TeacherAssessmentList() {
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_220px_220px]">
+          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_210px_190px_190px]">
             <label className="block">
               <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
                 <Search className="h-4 w-4 text-emerald-600" />
@@ -96,6 +118,21 @@ export default function TeacherAssessmentList() {
                   className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
+            </label>
+
+            <label className="block">
+              <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <ListFilter className="h-4 w-4 text-emerald-600" />
+                Loại bài tập
+              </span>
+              <select
+                value={selectedType}
+                onChange={(event) => setSelectedType(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="">Tất cả loại</option>
+                {assessmentTypes.map((type) => <option key={type} value={type}>{formatAssessmentType(type)}</option>)}
+              </select>
             </label>
 
             <label className="block">
@@ -161,6 +198,9 @@ export default function TeacherAssessmentList() {
                   <h4 className="text-base font-bold leading-tight text-slate-900 md:text-lg">
                     {assessment.assessmentName}
                   </h4>
+                  <span className="mt-1.5 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                    {formatAssessmentType(assessment.assessmentType)}
+                  </span>
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 md:text-sm">
                     <Clock3 className="h-3.5 w-3.5" />
                     <span>

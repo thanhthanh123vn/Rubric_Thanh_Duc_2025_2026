@@ -19,7 +19,7 @@ const authService = {
     },
 
     loginWithGoogle: () => {
-        window.location.href = "http://localhost:8081/oauth2/authorization/google";
+        window.location.href = `${import.meta.env.VITE_AUTH_BASE ?? ''}/oauth2/authorization/google`;
     },
     isAuthenticated: (): boolean => {
         const token = localStorage.getItem('token');

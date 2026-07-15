@@ -27,7 +27,8 @@ import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
 import TeacherCourses from "@/pages/teacher/TeacherCourses";
 import TeacherAssessmentList from "@/pages/teacher/TeacherAssessmentList.tsx";
 import CreateQrAttendancePage from "@/pages/teacher/CreateQrAttendancePage";
-import TeacherReport from "@/pages/teacher/TeacherReport";
+import {TeacherGradebookReport, TeacherOutcomeReport} from "@/pages/teacher/TeacherReport";
+import TeacherGradeEntry from "@/pages/teacher/TeacherGradeEntry";
 import TeacherRubric from "@/pages/teacher/TeacherRubric";
 import TeacherQuestionBank from "@/pages/teacher/TeacherQuestionBank";
 import PublicQuestionBank from "@/pages/teacher/PublicQuestionBank";
@@ -228,8 +229,24 @@ export const router = createBrowserRouter([
                         path: "projects",
                         loader: async ({ params }) => redirect(`/teacher/course/${params.id}/groups`),
                     },
-                    { path: "attendance", Component: CreateQrAttendancePage },
-                    { path: "report", Component: TeacherReport },
+                    {
+                        path: "attendance",
+                        children: [
+                            {index: true, loader: async () => redirect("create")},
+                            {path: "create", element: <CreateQrAttendancePage view="create" />},
+                            {path: "history", element: <CreateQrAttendancePage view="history" />},
+                            {path: "monitoring", element: <CreateQrAttendancePage view="overview" />},
+                        ],
+                    },
+                    {
+                        path: "report",
+                        children: [
+                            {index: true, loader: async () => redirect("grade-entry")},
+                            {path: "grade-entry", Component: TeacherGradeEntry},
+                            {path: "gradebook", Component: TeacherGradebookReport},
+                            {path: "outcomes", Component: TeacherOutcomeReport},
+                        ],
+                    },
 
                 ],
             },

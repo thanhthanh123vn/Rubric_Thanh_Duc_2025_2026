@@ -33,7 +33,7 @@ type ReverseGeocodeResponse = {
 };
 
 type AttendanceRecordTab = "valid" | "invalid" | "suspicious";
-type AttendancePageTab = "session" | "overview";
+export type AttendancePageView = "create" | "history" | "overview";
 type AttendanceLegendType = "present" | "absent" | "fraud" | "custom";
 type AttendanceCellEditorState = {
   studentId: string;
@@ -284,7 +284,7 @@ function getOverviewColorKey(cell: AttendanceOverviewDateResponse): AttendanceLe
   return cell.status === "PRESENT" ? "present" : "absent";
 }
 
-export default function CreateQrAttendancePage() {
+export default function CreateQrAttendancePage({ view = "create" }: { view?: AttendancePageView }) {
   const { id } = useParams<{ id: string }>();
 
   const [form, setForm] = useState<FormState>({
@@ -300,7 +300,6 @@ export default function CreateQrAttendancePage() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceStudentResponse[]>([]);
   const [attendanceOverviewRows, setAttendanceOverviewRows] = useState<AttendanceStudentOverviewResponse[]>([]);
   const [activeRecordTab, setActiveRecordTab] = useState<AttendanceRecordTab>("valid");
-  const [activePageTab, setActivePageTab] = useState<AttendancePageTab>("session");
   const [editingCell, setEditingCell] = useState<AttendanceCellEditorState | null>(null);
   const [customLegends, setCustomLegends] = useState<AttendanceLegendItem[]>([]);
   const [legendDraft, setLegendDraft] = useState<AttendanceLegendDraft>({
@@ -1029,34 +1028,9 @@ export default function CreateQrAttendancePage() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200/80 bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-wrap gap-3">
-          {([
-            { key: "session", label: "Theo phiên điểm danh" },
-            { key: "overview", label: "Theo dõi lớp" },
-          ] as { key: AttendancePageTab; label: string }[]).map((item) => {
-            const isActive = activePageTab === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setActivePageTab(item.key)}
-                className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
-                  isActive
-                    ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20"
-                    : "bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {activePageTab === "session" ? (
+      {view !== "overview" ? (
         <>
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)]">
+          <section className={`${view === "history" ? "hidden" : "grid"} gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)]`}>
             <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
@@ -1233,7 +1207,7 @@ export default function CreateQrAttendancePage() {
             </article>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)]">
+          <section className={`${view === "create" ? "hidden" : "grid"} gap-6 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)]`}>
             <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
