@@ -1,716 +1,521 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  ArrowRight,
-  BarChart3,
-  BookOpenCheck,
-  ClipboardCheck,
-  FolderKanban,
-  GraduationCap,
-  Loader2,
-  ShieldAlert,
-  TimerReset,
-  TriangleAlert,
-  Users,
+  ArrowRight, BarChart3, BookOpenCheck, CheckCircle2, ClipboardList,
+  FileSpreadsheet, FolderKanban, GraduationCap, Loader2, Users, X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { attendanceApi, type AttendanceStudentOverviewResponse } from "@/api/attendanceApi.ts";
-import { courseService } from "@/features/course/courseApi.ts";
-import { groupService } from "@/features/course/student/api/GroupService.ts";
+import { fetchSubmissionStatuses } from "@/api/GradingApi.ts";
+import type { SubmissionStatusDTO } from "@/api/type.ts";
+import { courseService, type CourseGradebook } from "@/features/course/courseApi.ts";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart.tsx";
+import { getRubricMatrixById } from "@/api/RubricApi.ts";
 
-type TeacherAssessmentReportItem = {
+type ReportSection = "grades" | "outcomes";
+type GradeCategory = "attendance" | "assignments" | "projects";
+type AssessmentItem = {
   assessmentId: string;
   assessmentName: string;
   assessmentType?: string | null;
-  endTime?: string | null;
-  submittedCount?: number | null;
-  pendingCount?: number | null;
+  weight?: number | null;
 };
-
-type TeacherCourseInfo = {
-  courseCode?: string;
-  courseName?: string;
-};
-
-type OBEProgressItem = {
+type CourseInfo = { courseCode?: string; courseName?: string };
+type CourseStudent = { studentId: string; fullName: string };
+type CloItem = {
   cloId: string;
   cloCode?: string | null;
   cloDescription?: string | null;
   progressPercent?: number | null;
+  passedStudents?: number | null;
+  failedStudents?: number | null;
 };
-
-type OBEProgressResponse = {
-  clos?: OBEProgressItem[];
+type ObeProgress = {
+  clos?: CloItem[];
   totalStudents?: number;
   overallProgress?: number;
 };
+type RubricLevel = { levelId: string; levelName: string; description?: string | null; score?: number | null };
+type RubricRow = { criteriaId: string; criteriaName: string; weight: number; levels: RubricLevel[] };
+type AttendanceRubric = { id: string; name: string; description?: string; rows: RubricRow[] };
 
-type CourseStudentScore = {
-  studentId: string;
-  fullName: string;
-  totalScore?: number | null;
-  midtermScore?: number | null;
-  finalScore?: number | null;
-};
-
-const scoreChartConfig = {
-  totalScore: {
-    label: "Điểm tổng",
-    color: "#10b981",
-  },
-  midtermScore: {
-    label: "Giữa kỳ",
-    color: "#0f766e",
-  },
-  finalScore: {
-    label: "Cuối kỳ",
-    color: "#f59e0b",
-  },
-  assignments: {
-    label: "Bài tập",
-    color: "#14b8a6",
-  },
-  projects: {
-    label: "Project",
-    color: "#3b82f6",
-  },
-  pending: {
-    label: "Chờ xử lý",
-    color: "#f97316",
-  },
-  overdue: {
-    label: "Quá hạn",
-    color: "#ef4444",
-  },
-} as const;
-
-function formatPercent(value: number) {
-  return `${Math.round(value)}%`;
-}
-
-function isPastDeadline(value?: string | null) {
-  if (!value) return false;
-  const time = new Date(value).getTime();
-  return !Number.isNaN(time) && time < Date.now();
-}
-
-function SummaryCard({
-  icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">{icon}</div>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      </div>
-      <p className="mt-4 text-3xl font-bold text-slate-900">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{hint}</p>
-    </div>
-  );
-}
-
-function SectionShell({
-  icon,
-  title,
-  description,
-  children,
-}: {
-  icon: ReactNode;
+const GRADE_CATEGORIES: Array<{
+  key: GradeCategory;
   title: string;
   description: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">{icon}</div>
-        <div>
-          <h4 className="text-xl font-bold text-slate-900">{title}</h4>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
-        </div>
-      </div>
-      <div className="mt-5">{children}</div>
-    </section>
-  );
-}
-
-function ShortcutCard({
-  icon,
-  title,
-  description,
-  onClick,
-}: {
   icon: ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-[1.5rem] border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/40"
-    >
-      <div className="w-fit rounded-2xl bg-slate-100 p-3 text-slate-700">{icon}</div>
-      <p className="mt-4 text-base font-bold text-slate-900">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
-      <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-        Mở chi tiết
-        <ArrowRight className="h-4 w-4" />
-      </div>
-    </button>
-  );
+}> = [
+  { key: "attendance", title: "Chuyên cần", description: "Điểm danh theo từng buổi và tỷ lệ tham dự.", icon: <CheckCircle2 className="h-5 w-5" /> },
+  { key: "assignments", title: "Bài tập", description: "Điểm quiz, bài nộp và đánh giá thường xuyên.", icon: <ClipboardList className="h-5 w-5" /> },
+  { key: "projects", title: "Project", description: "Điểm các đồ án và project của học phần.", icon: <FolderKanban className="h-5 w-5" /> },
+];
+
+const assessmentType = (value?: string | null) => (value || "").trim().toLowerCase();
+const clampPercent = (value: number) => Math.max(0, Math.min(value, 100));
+
+function formatScore(value?: number | null) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "--";
+  return Number(value).toFixed(1);
 }
 
-export default function TeacherReport() {
+function formatDate(value?: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+}
+
+function TeacherReportPage({ section }: { section: ReportSection }) {
   const { id: offeringId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [courseInfo, setCourseInfo] = useState<TeacherCourseInfo | null>(null);
-  const [attendanceRows, setAttendanceRows] = useState<AttendanceStudentOverviewResponse[]>([]);
-  const [assessments, setAssessments] = useState<TeacherAssessmentReportItem[]>([]);
-  const [groupCount, setGroupCount] = useState(0);
-  const [obeProgress, setObeProgress] = useState<OBEProgressResponse | null>(null);
-  const [courseStudents, setCourseStudents] = useState<CourseStudentScore[]>([]);
+  const [gradeCategory, setGradeCategory] = useState<GradeCategory>("attendance");
+  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState<CourseInfo | null>(null);
+  const [attendance, setAttendance] = useState<AttendanceStudentOverviewResponse[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentItem[]>([]);
+  const [scores, setScores] = useState<Record<string, SubmissionStatusDTO[]>>({});
+  const [obe, setObe] = useState<ObeProgress | null>(null);
+  const [students, setStudents] = useState<CourseStudent[]>([]);
+  const [gradebook, setGradebook] = useState<CourseGradebook | null>(null);
+  const [rubricStudent, setRubricStudent] = useState<CourseStudent | null>(null);
+  const [attendanceRubric, setAttendanceRubric] = useState<AttendanceRubric | null>(null);
+  const [loadingRubric, setLoadingRubric] = useState(false);
+  const [savingAttendanceStudent, setSavingAttendanceStudent] = useState<string | null>(null);
+  const [selectedRubricLevels, setSelectedRubricLevels] = useState<Record<string, string>>({});
+  const [warningDrafts, setWarningDrafts] = useState<Record<string, string>>({});
+  const [bulkGrading, setBulkGrading] = useState(false);
 
   useEffect(() => {
     if (!offeringId) return;
-
-    const loadReportData = async () => {
+    const loadData = async () => {
+      setLoading(true);
       try {
-        setIsLoading(true);
-        const [courseResponse, attendanceResponse, assessmentResponse, groupsResponse, obeResponse, studentResponse] =
-          await Promise.all([
-            courseService.getCourseById(offeringId),
-            attendanceApi.getAttendanceOverviewByOffering(offeringId),
-            assessmentService.getAssessmentsByOffering(offeringId),
-            groupService.getGroupsByOffering(offeringId),
-            courseService.getOBEProgress(offeringId),
-            courseService.getStudentsByOffering(offeringId),
-          ]);
+        const [courseData, attendanceData, assessmentData, obeData, studentData, gradebookData] = await Promise.all([
+          courseService.getCourseById(offeringId),
+          attendanceApi.getAttendanceOverviewByOffering(offeringId),
+          assessmentService.getAssessmentsByOffering(offeringId),
+          courseService.getOBEProgress(offeringId),
+          courseService.getStudentsByOffering(offeringId),
+          courseService.getGradebook(offeringId),
+        ]);
+        const assessmentRows: AssessmentItem[] = Array.isArray(assessmentData) ? assessmentData : [];
+        setCourse(courseData || null);
+        setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
+        setAssessments(assessmentRows);
+        setObe(obeData || null);
+        setStudents(Array.isArray(studentData) ? studentData : []);
+        setGradebook(gradebookData || null);
+        setWarningDrafts(Object.fromEntries((gradebookData?.students || []).map((student) => [
+          student.studentId,
+          String(student.attendanceWarningCount ?? 0),
+        ])));
 
-        setCourseInfo(courseResponse || null);
-        setAttendanceRows(Array.isArray(attendanceResponse) ? attendanceResponse : []);
-        setAssessments(Array.isArray(assessmentResponse) ? assessmentResponse : []);
-        setGroupCount(Array.isArray(groupsResponse) ? groupsResponse.length : 0);
-        setObeProgress(obeResponse || null);
-        setCourseStudents(Array.isArray(studentResponse) ? studentResponse : []);
+        const entries = await Promise.all(assessmentRows.map(async (item) => {
+          try {
+            const data = await fetchSubmissionStatuses(item.assessmentId);
+            return [item.assessmentId, Array.isArray(data) ? data : []] as const;
+          } catch (error) {
+            console.error(`Không thể tải điểm của ${item.assessmentId}:`, error);
+            return [item.assessmentId, []] as const;
+          }
+        }));
+        setScores(Object.fromEntries(entries));
       } catch (error) {
-        console.error("Lỗi khi tải báo cáo học phần:", error);
-        setCourseInfo(null);
-        setAttendanceRows([]);
-        setAssessments([]);
-        setGroupCount(0);
-        setObeProgress(null);
-        setCourseStudents([]);
+        console.error("Không thể tải báo cáo học phần:", error);
+        setCourse(null); setAttendance([]); setAssessments([]); setScores({}); setObe(null); setStudents([]); setGradebook(null);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
-    void loadReportData();
+    void loadData();
   }, [offeringId]);
 
-  const attendanceSummary = useMemo(() => {
-    const totalStudents = attendanceRows.length;
-    const totalSessions = attendanceRows[0]?.totalSessions || 0;
-    const totalPresent = attendanceRows.reduce((sum, row) => sum + row.presentCount, 0);
-    const totalPossible = totalStudents * totalSessions;
-    const passCount = attendanceRows.filter((row) => row.resultStatus === "PASS").length;
-
-    const sessionsWithManyAbsences = Array.from({ length: totalSessions })
-      .map((_, index) => {
-        const absentCount = attendanceRows.reduce((sum, row) => {
-          const dateItem = row.attendanceDates?.[index];
-          return sum + (dateItem?.status === "ABSENT" ? 1 : 0);
-        }, 0);
-        const attendanceDate = attendanceRows[0]?.attendanceDates?.[index]?.attendanceDate || null;
-        return {
-          absentCount,
-          attendanceDate,
-        };
-      })
-      .filter((item) => item.attendanceDate)
-      .sort((first, second) => second.absentCount - first.absentCount)
-      .slice(0, 3);
-
-    return {
-      totalStudents,
-      totalSessions,
-      failCount: totalStudents - passCount,
-      averageRate: totalPossible > 0 ? (totalPresent / totalPossible) * 100 : 0,
-      sessionsWithManyAbsences,
-    };
-  }, [attendanceRows]);
-
-  const assignmentSummary = useMemo(() => {
-    const assignmentItems = assessments.filter((item) => {
-      const type = (item.assessmentType || "").trim().toLowerCase();
-      return type !== "project" && type !== "attendance";
+  const roster = useMemo(() => {
+    const rows = new Map<string, CourseStudent>();
+    students.forEach((item) => rows.set(item.studentId, { studentId: item.studentId, fullName: item.fullName?.trim() || item.studentId }));
+    attendance.forEach((item) => rows.set(item.studentId, { studentId: item.studentId, fullName: item.studentName?.trim() || rows.get(item.studentId)?.fullName || item.studentId }));
+    Object.values(scores).flat().forEach((item) => {
+      if (!rows.has(item.studentId)) rows.set(item.studentId, { studentId: item.studentId, fullName: item.studentId });
     });
+    return [...rows.values()].sort((a, b) => a.studentId.localeCompare(b.studentId));
+  }, [attendance, scores, students]);
 
-    const pendingCount = assignmentItems.reduce((sum, item) => sum + Number(item.pendingCount || 0), 0);
-    const overdueItems = assignmentItems
-      .filter((item) => isPastDeadline(item.endTime) && Number(item.pendingCount || 0) > 0)
-      .sort((first, second) => Number(second.pendingCount || 0) - Number(first.pendingCount || 0));
+  const attendanceDates = useMemo(() => {
+    const dates = new Map<string, { sessionId: string; attendanceDate: string }>();
+    attendance.forEach((row) => row.attendanceDates?.forEach((item) => {
+      if (!dates.has(item.sessionId)) dates.set(item.sessionId, { sessionId: item.sessionId, attendanceDate: item.attendanceDate });
+    }));
+    return [...dates.values()].sort((a, b) => new Date(a.attendanceDate).getTime() - new Date(b.attendanceDate).getTime());
+  }, [attendance]);
 
+  const attendanceMap = useMemo(() => new Map(attendance.map((row) => [row.studentId, row])), [attendance]);
+  const scoreMap = useMemo(() => {
+    const result = new Map<string, SubmissionStatusDTO>();
+    Object.entries(scores).forEach(([assessmentId, items]) => items.forEach((item) => result.set(`${assessmentId}:${item.studentId}`, item)));
+    return result;
+  }, [scores]);
+  const selectedAssessments = useMemo(() => assessments.filter((item) => {
+    const type = assessmentType(item.assessmentType);
+    if (gradeCategory === "projects") return type === "project";
+    if (gradeCategory === "assignments") return type !== "project" && type !== "attendance";
+    return false;
+  }), [assessments, gradeCategory]);
+  const quality = useMemo(() => {
+    const clos = Array.isArray(obe?.clos) ? obe.clos : [];
     return {
-      pendingCount,
-      overdueItems,
+      clos,
+      overall: Number(obe?.overallProgress || 0),
+      achieved: clos.filter((item) => Number(item.progressPercent || 0) >= 70).length,
+      warning: clos.filter((item) => Number(item.progressPercent || 0) < 50).length,
     };
-  }, [assessments]);
+  }, [obe]);
 
-  const projectSummary = useMemo(() => {
-    const projectItems = assessments.filter(
-      (item) => (item.assessmentType || "").trim().toLowerCase() === "project",
-    );
+  const loadAttendanceRubric = async () => {
+    if (attendanceRubric) return attendanceRubric;
+    setLoadingRubric(true);
+    try {
+      const response = await getRubricMatrixById("R1");
+      const rubric = response.data as AttendanceRubric;
+      setAttendanceRubric(rubric);
+      return rubric;
+    } catch (error) {
+      console.error("Không thể tải rubric chuyên cần:", error);
+      toast.error("Không thể tải rubric chuyên cần R1.");
+      return null;
+    } finally {
+      setLoadingRubric(false);
+    }
+  };
 
-    const pendingCount = projectItems.reduce((sum, item) => sum + Number(item.pendingCount || 0), 0);
-    const overdueItems = projectItems
-      .filter((item) => isPastDeadline(item.endTime) && Number(item.pendingCount || 0) > 0)
-      .sort((first, second) => Number(second.pendingCount || 0) - Number(first.pendingCount || 0));
+  const openAttendanceRubric = async (student: CourseStudent) => {
+    setRubricStudent(student);
+    setSelectedRubricLevels({});
+    await loadAttendanceRubric();
+  };
 
-    return {
-      total: projectItems.length,
-      pendingCount,
-      overdueItems,
-    };
-  }, [assessments]);
+  const rubricScore = useMemo(() => {
+    if (!attendanceRubric?.rows?.length) return null;
+    let weightedScore = 0;
+    let totalWeight = 0;
+    for (const criterion of attendanceRubric.rows) {
+      const level = criterion.levels?.find((item) => item.levelId === selectedRubricLevels[criterion.criteriaId]);
+      if (!level || level.score === null || level.score === undefined) continue;
+      const weight = Number(criterion.weight) || 0;
+      weightedScore += Number(level.score) * weight;
+      totalWeight += weight;
+    }
+    return totalWeight > 0 ? Math.round((weightedScore / totalWeight) * 10) / 10 : null;
+  }, [attendanceRubric, selectedRubricLevels]);
 
-  const qualitySummary = useMemo(() => {
-    const clos = Array.isArray(obeProgress?.clos) ? obeProgress.clos : [];
-    const weakClos = clos
-      .filter((item) => Number(item.progressPercent || 0) < 50)
-      .sort((first, second) => Number(first.progressPercent || 0) - Number(second.progressPercent || 0));
-    const watchClos = clos
-      .filter((item) => {
-        const progress = Number(item.progressPercent || 0);
-        return progress >= 50 && progress < 70;
-      })
-      .sort((first, second) => Number(first.progressPercent || 0) - Number(second.progressPercent || 0));
+  const saveAttendanceScore = async (studentId: string, score: number) => {
+    if (!offeringId) return false;
+    const saved = gradebook?.students?.find((item) => item.studentId === studentId);
+    setSavingAttendanceStudent(studentId);
+    try {
+      const updated = await courseService.updateGradebookScores(offeringId, [{
+        studentId,
+        attendanceScore: Math.round(score * 10) / 10,
+        assignmentScore: saved?.assignmentScore ?? null,
+        examScore: saved?.examScore ?? null,
+      }]);
+      setGradebook(updated);
+      return true;
+    } catch (error) {
+      console.error("Không thể lưu điểm chuyên cần:", error);
+      toast.error("Không thể lưu điểm chuyên cần.");
+      return false;
+    } finally {
+      setSavingAttendanceStudent(null);
+    }
+  };
 
-    return {
-      totalClos: clos.length,
-      overallProgress: Number(obeProgress?.overallProgress || 0),
-      weakClos,
-      watchClos,
-    };
-  }, [obeProgress]);
+  const saveWarningCount = async (studentId: string) => {
+    if (!offeringId) return;
+    const rawValue = warningDrafts[studentId] ?? "0";
+    const warningCount = Number(rawValue);
+    if (!Number.isInteger(warningCount) || warningCount < 0) {
+      toast.warning("Số lần bị nhắc nhở phải là số nguyên từ 0 trở lên.");
+      const savedValue = gradebook?.students?.find((item) => item.studentId === studentId)?.attendanceWarningCount ?? 0;
+      setWarningDrafts((current) => ({ ...current, [studentId]: String(savedValue) }));
+      return;
+    }
+    const saved = gradebook?.students?.find((item) => item.studentId === studentId);
+    if (warningCount === (saved?.attendanceWarningCount ?? 0)) {
+      setWarningDrafts((current) => ({ ...current, [studentId]: String(warningCount) }));
+      return;
+    }
+    setSavingAttendanceStudent(studentId);
+    try {
+      const updated = await courseService.updateGradebookScores(offeringId, [{
+        studentId,
+        attendanceScore: saved?.attendanceScore ?? null,
+        attendanceWarningCount: warningCount,
+        assignmentScore: saved?.assignmentScore ?? null,
+        examScore: saved?.examScore ?? null,
+      }]);
+      setGradebook(updated);
+      toast.success(`Đã lưu ${warningCount} lần nhắc nhở cho ${studentId}.`);
+    } catch (error) {
+      console.error("Không thể lưu số lần nhắc nhở:", error);
+      toast.error("Không thể lưu số lần bị nhắc nhở.");
+    } finally {
+      setSavingAttendanceStudent(null);
+    }
+  };
 
-  const workloadChartData = useMemo(() => {
-    const assignmentItems = assessments.filter((item) => {
-      const type = (item.assessmentType || "").trim().toLowerCase();
-      return type !== "project" && type !== "attendance";
-    });
-    const projectItems = assessments.filter(
-      (item) => (item.assessmentType || "").trim().toLowerCase() === "project",
-    );
+  const selectLevelByRank = (criterion: RubricRow, rank: number) => {
+    const levels = [...(criterion.levels || [])]
+      .filter((level) => level.score !== null && level.score !== undefined)
+      .sort((a, b) => Number(b.score) - Number(a.score));
+    return levels[Math.min(Math.max(rank, 0), Math.max(levels.length - 1, 0))];
+  };
 
-    return [
-      {
-        name: "Bài tập",
-        pending: assignmentItems.reduce((sum, item) => sum + Number(item.pendingCount || 0), 0),
-        overdue: assignmentItems.filter((item) => isPastDeadline(item.endTime) && Number(item.pendingCount || 0) > 0)
-          .length,
-      },
-      {
-        name: "Project",
-        pending: projectItems.reduce((sum, item) => sum + Number(item.pendingCount || 0), 0),
-        overdue: projectItems.filter((item) => isPastDeadline(item.endTime) && Number(item.pendingCount || 0) > 0)
-          .length,
-      },
-    ];
-  }, [assessments]);
+  const bulkGradeAttendance = async () => {
+    if (!offeringId || bulkGrading) return;
+    if (!window.confirm("Chấm lại điểm chuyên cần cho toàn bộ sinh viên có dữ liệu theo rubric R1?")) return;
+    setBulkGrading(true);
+    try {
+      const rubric = await loadAttendanceRubric();
+      if (!rubric?.rows?.length) return;
 
-  const topStudentScoreData = useMemo(() => {
-    return [...courseStudents]
-      .filter((student) => student.totalScore !== null && student.totalScore !== undefined)
-      .sort((first, second) => Number(second.totalScore || 0) - Number(first.totalScore || 0))
-      .slice(0, 8)
-      .map((student) => ({
-        name: student.fullName?.trim() || student.studentId,
-        shortName: (student.fullName?.trim() || student.studentId).split(" ").slice(-2).join(" "),
-        totalScore: Number(student.totalScore || 0),
-        midtermScore: Number(student.midtermScore || 0),
-        finalScore: Number(student.finalScore || 0),
-      }));
-  }, [courseStudents]);
+      const attendanceCriterion = rubric.rows.find((item) =>
+        item.criteriaId === "C1" || item.criteriaName.toLowerCase().includes("tham dự"),
+      ) || rubric.rows[0];
+      const attitudeCriterion = rubric.rows.find((item) =>
+        item.criteriaId === "C2" || item.criteriaName.toLowerCase().includes("thái độ"),
+      ) || rubric.rows[1];
 
-  const scoreDistributionData = useMemo(() => {
-    const initial = {
-      "Dưới 5": 0,
-      "5 - 6.9": 0,
-      "7 - 8.4": 0,
-      "8.5 - 10": 0,
-    };
+      if (!attendanceCriterion || !attitudeCriterion) {
+        toast.error("Rubric R1 phải có tiêu chí tham dự và thái độ trong lớp.");
+        return;
+      }
 
-    courseStudents.forEach((student) => {
-      const score = Number(student.totalScore);
-      if (!Number.isFinite(score)) return;
-      if (score < 5) initial["Dưới 5"] += 1;
-      else if (score < 7) initial["5 - 6.9"] += 1;
-      else if (score < 8.5) initial["7 - 8.4"] += 1;
-      else initial["8.5 - 10"] += 1;
-    });
+      const savedByStudent = new Map((gradebook?.students || []).map((item) => [item.studentId, item]));
+      const payload = attendance.flatMap((overview) => {
+        if (!overview.totalSessions) return [];
+        const attendanceRate = (overview.presentCount / overview.totalSessions) * 100;
+        const attendanceRank = attendanceRate >= 90 ? 0 : attendanceRate >= 80 ? 1 : attendanceRate >= 65 ? 2 : 3;
+        const warningCount = Math.max(0, Number(warningDrafts[overview.studentId] ?? 0) || 0);
+        const attitudeRank = warningCount === 0 ? 0 : warningCount === 1 ? 1 : warningCount <= 3 ? 2 : 3;
+        const attendanceLevel = selectLevelByRank(attendanceCriterion, attendanceRank);
+        const attitudeLevel = selectLevelByRank(attitudeCriterion, attitudeRank);
+        if (!attendanceLevel || !attitudeLevel) return [];
 
-    return [
-      { name: "Dưới 5", value: initial["Dưới 5"], fill: "#ef4444" },
-      { name: "5 - 6.9", value: initial["5 - 6.9"], fill: "#f59e0b" },
-      { name: "7 - 8.4", value: initial["7 - 8.4"], fill: "#10b981" },
-      { name: "8.5 - 10", value: initial["8.5 - 10"], fill: "#0f766e" },
-    ].filter((item) => item.value > 0);
-  }, [courseStudents]);
+        const attendanceWeight = Number(attendanceCriterion.weight) || 0;
+        const attitudeWeight = Number(attitudeCriterion.weight) || 0;
+        const totalWeight = attendanceWeight + attitudeWeight;
+        if (totalWeight <= 0) return [];
+        const score = Math.round((
+          (Number(attendanceLevel.score) * attendanceWeight
+            + Number(attitudeLevel.score) * attitudeWeight) / totalWeight
+        ) * 10) / 10;
+        const saved = savedByStudent.get(overview.studentId);
+        return [{
+          studentId: overview.studentId,
+          attendanceScore: score,
+          attendanceWarningCount: warningCount,
+          assignmentScore: saved?.assignmentScore ?? null,
+          examScore: saved?.examScore ?? null,
+        }];
+      });
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[320px] items-center justify-center rounded-[2rem] border border-slate-200 bg-white">
-        <div className="flex items-center gap-3 text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Đang tải báo cáo học phần...
-        </div>
-      </div>
-    );
-  }
+      if (!payload.length) {
+        toast.warning("Chưa có sinh viên nào đủ dữ liệu để chấm hàng loạt.");
+        return;
+      }
+      const updated = await courseService.updateGradebookScores(offeringId, payload);
+      setGradebook(updated);
+      setWarningDrafts(Object.fromEntries((updated.students || []).map((student) => [
+        student.studentId,
+        String(student.attendanceWarningCount ?? 0),
+      ])));
+      const skipped = roster.length - payload.length;
+      toast.success(`Đã chấm hàng loạt ${payload.length} sinh viên${skipped > 0 ? `, bỏ qua ${skipped} sinh viên chưa có dữ liệu` : ""}.`);
+    } catch (error) {
+      console.error("Không thể chấm hàng loạt:", error);
+      toast.error("Không thể chấm hàng loạt điểm chuyên cần.");
+    } finally {
+      setBulkGrading(false);
+    }
+  };
+
+  const applyRubricScore = async () => {
+    if (!rubricStudent || !attendanceRubric) return;
+    if (attendanceRubric.rows.some((criterion) => !selectedRubricLevels[criterion.criteriaId]) || rubricScore === null) {
+      toast.warning("Vui lòng chọn mức đánh giá cho tất cả tiêu chí.");
+      return;
+    }
+    if (await saveAttendanceScore(rubricStudent.studentId, rubricScore)) {
+      toast.success(`Đã lưu điểm chuyên cần ${rubricStudent.studentId}: ${rubricScore.toFixed(1)}/10.`);
+      setRubricStudent(null);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+      <div className="flex items-center gap-3 text-sm font-medium text-slate-500"><Loader2 className="h-5 w-5 animate-spin" />Đang tải dữ liệu báo cáo...</div>
+    </div>
+  );
+
+  const activeCategory = GRADE_CATEGORIES.find((item) => item.key === gradeCategory)!;
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">Báo cáo học phần</p>
-            <h3 className="mt-2 text-2xl font-bold text-slate-900">
-              {courseInfo?.courseName || "Tổng quan vận hành và chất lượng học tập"}
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              {courseInfo?.courseCode ? `${courseInfo.courseCode} · ` : ""}
-              Theo dõi nhanh tình hình chuyên cần, tiến độ xử lý bài tập, project và mức đạt CLO của lớp.
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Báo cáo này ưu tiên cho góc nhìn điều hành nhanh: nhìn tổng quan trước, sau đó mở từng khu vực để xem chi tiết.
-            </p>
-          </div>
-
-          <div className="xl:w-[180px]">
-            <div className="rounded-2xl bg-emerald-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">OBE tổng quan</p>
-              <p className="mt-2 text-2xl font-bold text-emerald-700">
-                {formatPercent(qualitySummary.overallProgress)}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          icon={<Users className="h-5 w-5" />}
-          label="Sinh viên"
-          value={String(attendanceSummary.totalStudents)}
-          hint={`${groupCount} nhóm đang hoạt động`}
-        />
-        <SummaryCard
-          icon={<TimerReset className="h-5 w-5" />}
-          label="Tỷ lệ chuyên cần"
-          value={formatPercent(attendanceSummary.averageRate)}
-          hint={`${attendanceSummary.failCount} sinh viên cần theo dõi`}
-        />
-        <SummaryCard
-          icon={<ClipboardCheck className="h-5 w-5" />}
-          label="Bài tập chờ xử lý"
-          value={String(assignmentSummary.pendingCount)}
-          hint={`${assignmentSummary.overdueItems.length} bài đang quá hạn`}
-        />
-        <SummaryCard
-          icon={<FolderKanban className="h-5 w-5" />}
-          label="Project chờ xử lý"
-          value={String(projectSummary.pendingCount)}
-          hint={`${projectSummary.total} đầu việc project`}
-        />
+    <div className="space-y-6 p-1">
+      <div className="border-b border-slate-200 pb-5">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">Báo cáo học phần</p>
+        <h1 className="mt-2 text-2xl font-bold text-slate-900">{course?.courseName || "Báo cáo và thống kê"}</h1>
+        {course?.courseCode ? <p className="mt-1 text-sm text-slate-500">{course.courseCode}</p> : null}
       </div>
 
-      <SectionShell
-        icon={<BarChart3 className="h-5 w-5" />}
-        title="Biểu đồ báo cáo nhanh"
-        description="Bổ sung góc nhìn trực quan về tiến độ xử lý và kết quả học tập của sinh viên trong học phần."
-      >
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Khối lượng xử lý bài tập và project</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Biểu đồ này cho biết số lượt đang chờ xử lý và số đầu việc đã quá hạn.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <ChartContainer className="h-[280px] w-full" config={scoreChartConfig}>
-                <BarChart data={workloadChartData} margin={{ left: 8, right: 8, top: 8 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar dataKey="pending" fill="var(--color-pending)" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="overdue" fill="var(--color-overdue)" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            </div>
-          </div>
-
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Phân bố điểm tổng sinh viên</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Dùng dữ liệu điểm hiện có của lớp để chia theo các nhóm kết quả chính.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              {scoreDistributionData.length === 0 ? (
-                <div className="flex h-[280px] items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm text-slate-500">
-                  Chưa có dữ liệu điểm tổng để hiển thị biểu đồ.
-                </div>
-              ) : (
-                <ChartContainer className="h-[280px] w-full" config={scoreChartConfig}>
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
-                    <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-                    <Pie
-                      data={scoreDistributionData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={90}
-                      paddingAngle={3}
-                    >
-                      {scoreDistributionData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Điểm tổng của từng sinh viên</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Hiển thị nhóm sinh viên có điểm tổng cao nhất, kèm theo điểm giữa kỳ và cuối kỳ nếu hệ thống đã lưu.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            {topStudentScoreData.length === 0 ? (
-              <div className="flex h-[320px] items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm text-slate-500">
-                Chưa có dữ liệu điểm tổng của sinh viên.
-              </div>
-            ) : (
-              <ChartContainer className="h-[320px] w-full" config={scoreChartConfig}>
-                <BarChart data={topStudentScoreData} margin={{ left: 8, right: 8, top: 8 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="shortName" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value, name, _item, _index, payload) => (
-                          <div className="flex w-full items-center justify-between gap-3">
-                            <span>
-                              {name === "totalScore"
-                                ? "Điểm tổng"
-                                : name === "midtermScore"
-                                  ? "Giữa kỳ"
-                                  : "Cuối kỳ"}
-                            </span>
-                            <span className="font-mono font-semibold">{Number(value).toFixed(1)}</span>
-                          </div>
-                        )}
-                        labelFormatter={(_value, payload) => payload?.[0]?.payload?.name as string}
-                      />
-                    }
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Bar dataKey="totalScore" fill="var(--color-totalScore)" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="midtermScore" fill="var(--color-midtermScore)" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="finalScore" fill="var(--color-finalScore)" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ChartContainer>
-            )}
-          </div>
-        </div>
-      </SectionShell>
-
-      <SectionShell
-        icon={<GraduationCap className="h-5 w-5" />}
-        title="Chất lượng học tập"
-        description="Tập trung vào mức đạt CLO và những điểm cần drill-down theo rubric, bài tập hoặc nhóm."
-      >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Tổng quan OBE</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {qualitySummary.totalClos} CLO, {qualitySummary.weakClos.length} CLO cần cảnh báo.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate(`/teacher/course/${offeringId}/obe/analytics`)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                Biểu đồ
-                <BarChart3 className="h-4 w-4" />
+      {section === "grades" ? (
+        <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div><h2 className="text-lg font-bold text-slate-900">Bảng điểm học phần</h2><p className="mt-1 text-sm text-slate-500">Chọn một nhóm điểm để xem bảng chi tiết.</p></div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {GRADE_CATEGORIES.map((item) => (
+              <button key={item.key} type="button" onClick={() => setGradeCategory(item.key)} className={`rounded-xl border p-4 text-left transition ${gradeCategory === item.key ? "border-emerald-500 bg-emerald-50" : "border-slate-200 hover:border-emerald-200"}`}>
+                <div className="flex items-center gap-3"><span className={`rounded-lg p-2 ${gradeCategory === item.key ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-600"}`}>{item.icon}</span><span className="font-semibold text-slate-900">{item.title}</span></div>
+                <p className="mt-3 text-sm leading-5 text-slate-500">{item.description}</p>
               </button>
-            </div>
-
-            <div className="mt-4 h-3 rounded-full bg-slate-200">
-              <div
-                className={`h-3 rounded-full ${
-                  qualitySummary.overallProgress >= 70
-                    ? "bg-emerald-500"
-                    : qualitySummary.overallProgress >= 50
-                      ? "bg-amber-500"
-                      : "bg-rose-500"
-                }`}
-                style={{ width: `${Math.max(0, Math.min(qualitySummary.overallProgress, 100))}%` }}
-              />
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tiến độ tổng</p>
-                <p className="mt-2 text-xl font-bold text-slate-900">
-                  {formatPercent(qualitySummary.overallProgress)}
-                </p>
-              </div>
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">CLO yếu</p>
-                <p className="mt-2 text-xl font-bold text-rose-600">{qualitySummary.weakClos.length}</p>
-              </div>
-              <div className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">CLO cần theo dõi</p>
-                <p className="mt-2 text-xl font-bold text-amber-600">{qualitySummary.watchClos.length}</p>
-              </div>
-            </div>
+            ))}
           </div>
-
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm font-semibold text-slate-900">CLO cần xem kỹ</p>
+          <div className="overflow-hidden rounded-xl border border-slate-300">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+              <div><h3 className="font-semibold text-slate-900">Điểm {activeCategory.title}</h3><p className="text-xs text-slate-500">{roster.length} sinh viên</p></div>
+              <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
             </div>
-
-            <div className="mt-4 space-y-3">
-              {qualitySummary.weakClos.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
-                  Hiện chưa có CLO nào rơi vào vùng cảnh báo.
-                </div>
-              ) : (
-                qualitySummary.weakClos.slice(0, 4).map((item) => (
-                  <button
-                    key={item.cloId}
-                    type="button"
-                    onClick={() => navigate(`/teacher/course/${offeringId}/obe/${item.cloId}`)}
-                    className="block w-full rounded-2xl border border-slate-200 px-4 py-3 text-left transition hover:border-emerald-200 hover:bg-slate-50"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-slate-900">{item.cloCode || "CLO"}</p>
-                        <p className="mt-1 text-sm text-slate-500">{item.cloDescription || "Chưa có mô tả"}</p>
+            <div className="max-h-[620px] overflow-auto">
+              {gradeCategory === "attendance" ? (
+                <table className="min-w-full border-collapse text-sm">
+                  <thead className="sticky top-0 z-20 bg-emerald-50"><tr>
+                    <th className="sticky left-0 z-30 w-14 border-b border-r border-slate-300 bg-emerald-50 px-3 py-3">STT</th>
+                    <th className="sticky left-14 z-30 min-w-32 border-b border-r border-slate-300 bg-emerald-50 px-3 py-3 text-left">MSSV</th>
+                    <th className="min-w-52 border-b border-r border-slate-300 px-3 py-3 text-left">Họ và tên</th>
+                    {attendanceDates.map((item, index) => <th key={item.sessionId} className="min-w-24 border-b border-r border-slate-300 px-3 py-3">Buổi {index + 1}<span className="block text-xs font-normal text-slate-500">{formatDate(item.attendanceDate)}</span></th>)}
+                    <th className="min-w-24 border-b border-r border-slate-300 px-3 py-3">Tỷ lệ</th>
+                    <th className="min-w-32 border-b border-r border-slate-300 px-3 py-3">Bị nhắc nhở</th>
+                    <th className="min-w-24 border-b border-r border-slate-300 px-3 py-3">Điểm</th>
+                    <th className="min-w-40 border-b border-slate-300 px-3 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Chấm</span>
+                        <details className="relative text-left">
+                          <summary aria-label="Mở menu chấm hàng loạt" title="Chấm hàng loạt" className="flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-lg border border-emerald-300 bg-white text-sm font-bold normal-case tracking-normal text-emerald-700 hover:bg-emerald-50">▾</summary>
+                          <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                            <button type="button" onClick={() => void bulkGradeAttendance()} disabled={bulkGrading || attendance.length === 0} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold normal-case tracking-normal text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:text-slate-400">{bulkGrading ? "Đang chấm..." : "Chấm toàn bộ theo rubric R1"}</button>
+                          </div>
+                        </details>
                       </div>
-                      <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                        {formatPercent(Number(item.progressPercent || 0))}
-                      </span>
-                    </div>
-                  </button>
-                ))
+                    </th>
+                  </tr></thead>
+                  <tbody>{roster.map((student, index) => {
+                    const row = attendanceMap.get(student.studentId);
+                    const cells = new Map(row?.attendanceDates?.map((item) => [item.sessionId, item]) || []);
+                    const rate = row && row.totalSessions > 0 ? (row.presentCount / row.totalSessions) * 100 : null;
+                    return <tr key={student.studentId} className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/50">
+                      <td className="sticky left-0 z-10 border-b border-r border-slate-200 bg-inherit px-3 py-2.5 text-center text-slate-500">{index + 1}</td>
+                      <td className="sticky left-14 z-10 border-b border-r border-slate-200 bg-inherit px-3 py-2.5 font-mono font-medium">{student.studentId}</td>
+                      <td className="border-b border-r border-slate-200 px-3 py-2.5 font-medium">{student.fullName}</td>
+                      {attendanceDates.map((date) => { const status = cells.get(date.sessionId)?.status; return <td key={date.sessionId} className={`border-b border-r border-slate-200 px-3 py-2.5 text-center font-semibold ${status === "PRESENT" ? "text-emerald-700" : status === "ABSENT" ? "text-rose-600" : "text-slate-400"}`}>{status === "PRESENT" ? "P" : status === "ABSENT" ? "V" : "--"}</td>; })}
+                      <td className="border-b border-r border-slate-200 px-3 py-2.5 text-center font-bold">{rate === null ? "--" : `${Math.round(rate)}%`}</td>
+                      <td className="border-b border-r border-slate-200 px-2 py-2.5 text-center">
+                        <input type="number" min="0" step="1" inputMode="numeric" aria-label={`Số lần bị nhắc nhở của ${student.studentId}`} value={warningDrafts[student.studentId] ?? "0"} onChange={(event) => { if (/^\d*$/.test(event.target.value)) setWarningDrafts((current) => ({ ...current, [student.studentId]: event.target.value })); }} onBlur={() => void saveWarningCount(student.studentId)} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={savingAttendanceStudent === student.studentId} className="h-9 w-16 rounded-lg border border-slate-300 bg-white px-2 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100" />
+                      </td>
+                      <td className="border-b border-r border-slate-200 px-3 py-2.5 text-center font-bold text-emerald-700">{formatScore(gradebook?.students?.find((item) => item.studentId === student.studentId)?.attendanceScore)}</td>
+                      <td className="border-b border-slate-200 px-3 py-2.5">
+                        <div className="flex items-center justify-center">
+                          <button type="button" onClick={() => void openAttendanceRubric(student)} disabled={savingAttendanceStudent === student.studentId} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{savingAttendanceStudent === student.studentId ? "Đang lưu..." : "Chấm"}</button>
+                        </div>
+                      </td>
+                    </tr>;
+                  })}</tbody>
+                </table>
+              ) : selectedAssessments.length === 0 ? (
+                <div className="flex min-h-48 items-center justify-center px-6 text-center text-sm text-slate-500">Chưa có đầu điểm {activeCategory.title.toLowerCase()} trong học phần này.</div>
+              ) : (
+                <table className="min-w-full border-collapse text-sm">
+                  <thead className="sticky top-0 z-20 bg-emerald-50"><tr>
+                    <th className="sticky left-0 z-30 w-14 border-b border-r border-slate-300 bg-emerald-50 px-3 py-3">STT</th>
+                    <th className="sticky left-14 z-30 min-w-32 border-b border-r border-slate-300 bg-emerald-50 px-3 py-3 text-left">MSSV</th>
+                    <th className="min-w-52 border-b border-r border-slate-300 px-3 py-3 text-left">Họ và tên</th>
+                    {selectedAssessments.map((item) => <th key={item.assessmentId} className="min-w-36 border-b border-r border-slate-300 px-3 py-3">{item.assessmentName}{item.weight ? <span className="block text-xs font-normal text-slate-500">Trọng số {item.weight}%</span> : null}</th>)}
+                    <th className="min-w-24 border-b border-slate-300 px-3 py-3">Trung bình</th>
+                  </tr></thead>
+                  <tbody>{roster.map((student, index) => {
+                    const studentScores = selectedAssessments.map((item) => scoreMap.get(`${item.assessmentId}:${student.studentId}`)?.totalScore).filter((value): value is number => value !== null && value !== undefined && Number.isFinite(Number(value)));
+                    const average = studentScores.length ? studentScores.reduce((sum, value) => sum + Number(value), 0) / studentScores.length : null;
+                    return <tr key={student.studentId} className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/50">
+                      <td className="sticky left-0 z-10 border-b border-r border-slate-200 bg-inherit px-3 py-2.5 text-center text-slate-500">{index + 1}</td>
+                      <td className="sticky left-14 z-10 border-b border-r border-slate-200 bg-inherit px-3 py-2.5 font-mono font-medium">{student.studentId}</td>
+                      <td className="border-b border-r border-slate-200 px-3 py-2.5 font-medium">{student.fullName}</td>
+                      {selectedAssessments.map((item) => { const submission = scoreMap.get(`${item.assessmentId}:${student.studentId}`); return <td key={item.assessmentId} className="border-b border-r border-slate-200 px-3 py-2.5 text-center font-semibold">{submission?.totalScore !== null && submission?.totalScore !== undefined ? formatScore(submission.totalScore) : submission?.submitted ? <span className="text-xs font-medium text-amber-600">Chờ chấm</span> : "--"}</td>; })}
+                      <td className="border-b border-slate-200 px-3 py-2.5 text-center font-bold text-emerald-700">{formatScore(average)}</td>
+                    </tr>;
+                  })}</tbody>
+                </table>
               )}
             </div>
           </div>
+          {gradeCategory === "attendance" ? <div className="space-y-1 text-xs text-slate-500"><p>Quy ước: P = Có mặt, V = Vắng.</p><p>Chấm hàng loạt theo R1: tham dự ≥90% / ≥80% / ≥65% / &lt;65%; thái độ tương ứng 0 / 1 / 2–3 / ≥4 lần bị nhắc nhở.</p></div> : null}
+        </section>
+      ) : (
+        <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="text-lg font-bold text-slate-900">Báo cáo chuẩn đầu ra (OBE)</h2><p className="mt-1 text-sm text-slate-500">Theo dõi mức độ đạt CLO và liên kết dữ liệu CLO–PLO của học phần.</p></div><button type="button" onClick={() => navigate(`/teacher/course/${offeringId}/obe`)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">Xem chi tiết OBE<ArrowRight className="h-4 w-4" /></button></div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: "Mức đạt OBE", value: `${Math.round(quality.overall)}%`, icon: <BarChart3 className="h-5 w-5" /> },
+              { label: "CLO được đo lường", value: String(quality.clos.length), icon: <BookOpenCheck className="h-5 w-5" /> },
+              { label: "CLO đạt từ 70%", value: String(quality.achieved), icon: <CheckCircle2 className="h-5 w-5" /> },
+              { label: "Sinh viên", value: String(obe?.totalStudents || roster.length), icon: <Users className="h-5 w-5" /> },
+            ].map((item) => <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-center justify-between text-slate-500"><span className="text-xs font-semibold uppercase tracking-wide">{item.label}</span>{item.icon}</div><p className="mt-3 text-2xl font-bold text-slate-900">{item.value}</p></div>)}
+          </div>
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="overflow-hidden rounded-xl border border-slate-200"><div className="border-b border-slate-200 bg-slate-50 px-4 py-3"><h3 className="font-semibold text-slate-900">Mức độ đạt theo CLO</h3></div><div className="divide-y divide-slate-100">
+              {quality.clos.length === 0 ? <div className="px-4 py-12 text-center text-sm text-slate-500">Chưa có dữ liệu CLO để thống kê.</div> : quality.clos.map((clo) => { const progress = Number(clo.progressPercent || 0); return <button key={clo.cloId} type="button" onClick={() => navigate(`/teacher/course/${offeringId}/obe/${clo.cloId}`)} className="block w-full px-4 py-4 text-left hover:bg-slate-50"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold text-slate-900">{clo.cloCode || "CLO"}</p><p className="mt-1 text-sm text-slate-500">{clo.cloDescription || "Chưa có mô tả"}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${progress >= 70 ? "bg-emerald-100 text-emerald-700" : progress >= 50 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>{Math.round(progress)}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${progress >= 70 ? "bg-emerald-500" : progress >= 50 ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${clampPercent(progress)}%` }} /></div><p className="mt-2 text-xs text-slate-500">Đạt {clo.passedStudents || 0} · Chưa đạt {clo.failedStudents || 0}</p></button>; })}
+            </div></div>
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 p-5"><div className="flex items-center gap-3"><span className="rounded-lg bg-indigo-50 p-2 text-indigo-600"><GraduationCap className="h-5 w-5" /></span><h3 className="font-semibold text-slate-900">CLO–PLO</h3></div><p className="mt-3 text-sm leading-6 text-slate-500">Kết quả PLO được tổng hợp từ mức đạt CLO và ánh xạ chuẩn đầu ra của chương trình đào tạo.</p><button type="button" onClick={() => navigate(`/teacher/course/${offeringId}/obe`)} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">Xem phân tích CLO–PLO<ArrowRight className="h-4 w-4" /></button></div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-semibold text-slate-900">Cảnh báo chất lượng</p><p className="mt-2 text-3xl font-bold text-rose-600">{quality.warning}</p><p className="mt-1 text-sm text-slate-500">CLO có mức đạt dưới 50% cần được xem xét.</p></div>
+            </div>
+          </div>
+        </section>
+      )}
+      {rubricStudent ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setRubricStudent(null); }}>
+        <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+            <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Chấm chuyên cần bằng rubric</p><h2 className="mt-1 text-xl font-bold text-slate-900">{attendanceRubric?.name || "Rubric chuyên cần"}</h2><p className="mt-1 text-sm text-slate-500">{rubricStudent.studentId} - {rubricStudent.fullName}</p></div>
+            <button type="button" onClick={() => setRubricStudent(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Đóng bảng rubric"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="overflow-y-auto p-6">
+            {loadingRubric ? <div className="flex min-h-56 items-center justify-center text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-600" />Đang tải rubric chuyên cần...</div>
+              : !attendanceRubric?.rows?.length ? <div className="py-14 text-center text-sm text-slate-500">Không tìm thấy rubric chuyên cần R1.</div>
+                : <div className="space-y-5">
+                  {attendanceRubric.description ? <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{attendanceRubric.description}</p> : null}
+                  {attendanceRubric.rows.map((criterion) => <div key={criterion.criteriaId} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold text-slate-900">{criterion.criteriaName}</h3><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Trọng số {criterion.weight}%</span></div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{(criterion.levels || []).map((level) => {
+                      const selected = selectedRubricLevels[criterion.criteriaId] === level.levelId;
+                      return <button key={level.levelId} type="button" onClick={() => setSelectedRubricLevels((current) => ({ ...current, [criterion.criteriaId]: level.levelId }))} className={`rounded-xl border p-3 text-left transition ${selected ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 hover:border-emerald-300 hover:bg-slate-50"}`}><div className="flex items-start justify-between gap-3"><span className="font-semibold text-slate-900">{level.levelName}</span><span className="rounded-lg bg-white px-2 py-1 text-sm font-bold text-emerald-700">{Number(level.score ?? 0).toFixed(1)}</span></div>{level.description ? <p className="mt-2 text-xs leading-5 text-slate-500">{level.description}</p> : null}</button>;
+                    })}</div>
+                  </div>)}
+                </div>}
+          </div>
+          <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div><span className="text-sm text-slate-500">Điểm chuyên cần: </span><span className="text-2xl font-bold text-emerald-700">{rubricScore === null ? "--" : rubricScore.toFixed(1)}</span><span className="text-sm font-semibold text-slate-500"> / 10</span></div>
+            <div className="flex justify-end gap-2"><button type="button" onClick={() => setRubricStudent(null)} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Hủy</button><button type="button" onClick={() => void applyRubricScore()} disabled={loadingRubric || !attendanceRubric?.rows?.length || savingAttendanceStudent === rubricStudent.studentId} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300">{savingAttendanceStudent === rubricStudent.studentId ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Lưu điểm</button></div>
+          </div>
         </div>
-      </SectionShell>
-
-      <SectionShell
-        icon={<BookOpenCheck className="h-5 w-5" />}
-        title="Lối tắt hành động"
-        description="Khi cần xem danh sách đầy đủ, bằng chứng hoặc drill-down thì đi sang các trang sau."
-      >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <ShortcutCard
-            icon={<TimerReset className="h-5 w-5" />}
-            title="Điểm danh"
-            description={
-              attendanceSummary.sessionsWithManyAbsences.length > 0
-                ? `Buổi vắng nhiều nhất: ${attendanceSummary.sessionsWithManyAbsences[0].absentCount} sinh viên.`
-                : "Mở bảng điểm danh, ma trận buổi học và danh sách nghi vấn."
-            }
-            onClick={() => navigate(`/teacher/course/${offeringId}/attendance`)}
-          />
-          <ShortcutCard
-            icon={<ClipboardCheck className="h-5 w-5" />}
-            title="Bài tập"
-            description={
-              assignmentSummary.overdueItems[0]
-                ? `${assignmentSummary.overdueItems[0].assessmentName} đang cần xử lý trước.`
-                : "Xem danh sách bài tập, tình trạng nộp và chấm bài."
-            }
-            onClick={() => navigate(`/teacher/course/${offeringId}/assignments`)}
-          />
-          <ShortcutCard
-            icon={<FolderKanban className="h-5 w-5" />}
-            title="Nhóm và project"
-            description={
-              projectSummary.overdueItems[0]
-                ? `${projectSummary.overdueItems[0].assessmentName} đang trễ hạn.`
-                : "Theo dõi nhóm, project và tiến độ nộp bài."
-            }
-            onClick={() => navigate(`/teacher/course/${offeringId}/groups`)}
-          />
-          <ShortcutCard
-            icon={<TriangleAlert className="h-5 w-5" />}
-            title="OBE và rubric"
-            description="Drill-down theo CLO, rubric, bài đánh giá và chất lượng học tập."
-            onClick={() => navigate(`/teacher/course/${offeringId}/obe`)}
-          />
-        </div>
-      </SectionShell>
+      </div> : null}
     </div>
   );
 }
+
+export function TeacherGradebookReport() {
+  return <TeacherReportPage section="grades" />;
+}
+
+export function TeacherOutcomeReport() {
+  return <TeacherReportPage section="outcomes" />;
+}
+
+export default TeacherGradebookReport;

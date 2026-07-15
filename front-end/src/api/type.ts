@@ -45,6 +45,31 @@ export interface FeedbackTemplateDTO {
     content: string;
 }
 
+export interface AssessmentEvidenceTaskDTO {
+    taskId: string;
+    title: string;
+    groupId: string;
+    groupName: string;
+    status: "TODO" | "IN_PROGRESS" | "COMPLETED";
+    deadline?: string | null;
+    completedAt?: string | null;
+    completedLate: boolean;
+    overdue: boolean;
+}
+
+export interface AssessmentEvidenceDTO {
+    studentId: string;
+    totalAssignedTasks: number;
+    completedTasks: number;
+    completedOnTimeTasks: number;
+    completedLateTasks: number;
+    overdueTasks: number;
+    inProgressTasks: number;
+    todoTasks: number;
+    completionRate: number;
+    tasks: AssessmentEvidenceTaskDTO[];
+}
+
 export interface SyllabusFile {
     id: string;
     fileName: string;

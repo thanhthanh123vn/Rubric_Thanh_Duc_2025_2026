@@ -48,6 +48,14 @@ public class CourseOffering {
     @Builder.Default
     private String status = "OPEN";
 
+    @Column(name = "attendance_score_weight")
+    @Builder.Default
+    private Double attendanceScoreWeight = 10.0;
+
+    @Column(name = "assignment_score_weight")
+    @Builder.Default
+    private Double assignmentScoreWeight = 40.0;
+
 
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(

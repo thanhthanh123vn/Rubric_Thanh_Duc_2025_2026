@@ -80,6 +80,26 @@ export const teacherCourseMenu = [
   { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
   { key: 'groups', icon: Workflow, label: 'Nhóm & dự án', path: 'groups' },
   { key: 'grading', icon: FileText, label: 'Chấm bài', path: 'grading' },
-  { key: 'attendance', icon: TimerReset, label: 'Điểm danh', path: 'attendance' },
-  { key: 'report', icon: BarChart3, label: 'Báo cáo', path: 'report' },
+  {
+    key: 'attendance',
+    icon: TimerReset,
+    label: 'Điểm danh',
+    path: 'attendance',
+    children: [
+      { key: 'attendance-create', label: 'Tạo phiên điểm danh', path: 'create' },
+      { key: 'attendance-history', label: 'Lịch sử điểm danh', path: 'history' },
+      { key: 'attendance-monitoring', label: 'Theo dõi lớp', path: 'monitoring' },
+    ],
+  },
+  {
+    key: 'report',
+    icon: BarChart3,
+    label: 'Báo cáo',
+    path: 'report',
+    children: [
+      { key: 'grade-entry', label: 'Nhập điểm học phần', path: 'grade-entry' },
+      { key: 'gradebook-report', label: 'Bảng điểm học phần', path: 'gradebook' },
+      { key: 'outcome-report', label: 'Báo cáo chuẩn đầu ra', path: 'outcomes' },
+    ],
+  },
 ];

@@ -9,7 +9,7 @@ import java.util.List;
 
 
 
-@FeignClient(name = "course-service",    url = "http://localhost:8082",
+@FeignClient(name = "course-service", url = "${clients.course-service.url:http://localhost:8082}",
         path = "/api/v1/course-service/courses")
 public interface CourseClient {
 

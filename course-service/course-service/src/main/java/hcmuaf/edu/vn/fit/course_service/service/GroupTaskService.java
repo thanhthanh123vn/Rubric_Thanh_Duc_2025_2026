@@ -2,6 +2,8 @@ package hcmuaf.edu.vn.fit.course_service.service;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.GroupTaskRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.GroupTaskResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentEvidenceResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.AssessmentEvidenceTaskResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Group;
 import hcmuaf.edu.vn.fit.course_service.entity.GroupTask;
 import hcmuaf.edu.vn.fit.course_service.entity.Participant;
@@ -18,6 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -68,6 +72,76 @@ public class GroupTaskService {
                 .filter(task -> canViewTask(task, participant))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public AssessmentEvidenceResponse getAssessmentEvidence(
+            String offeringId,
+            String studentId,
+            LocalDateTime submittedAt) {
+        LocalDateTime evidenceTime = submittedAt == null ? LocalDateTime.now() : submittedAt;
+        Map<String, GroupTask> taskById = new LinkedHashMap<>();
+        groupRepository.findMyGroups(offeringId, studentId).forEach(group ->
+                groupTaskRepository.findByGroup_IdOrderByCreatedAtDesc(group.getId())
+                        .forEach(task -> taskById.putIfAbsent(task.getId(), task)));
+        List<GroupTask> tasks = taskById.values().stream()
+                .filter(task -> task.getCreatedAt() == null || !task.getCreatedAt().isAfter(evidenceTime))
+                .filter(task -> Objects.equals(task.getAssigneeId(), studentId)
+                        || (Boolean.TRUE.equals(task.getAssignToGroup())
+                        && Objects.equals(task.getCompletedById(), studentId)
+                        && task.getCompletedAt() != null
+                        && !task.getCompletedAt().isAfter(evidenceTime)))
+                .toList();
+
+        List<AssessmentEvidenceTaskResponse> taskEvidence = tasks.stream()
+                .map(task -> {
+                    boolean completed = task.getCompletedAt() != null
+                            && !task.getCompletedAt().isAfter(evidenceTime);
+                    TaskStatus evidenceStatus = completed
+                            ? TaskStatus.COMPLETED
+                            : task.getStatus() == TaskStatus.TODO ? TaskStatus.TODO : TaskStatus.IN_PROGRESS;
+                    boolean completedLate = completed
+                            && task.getDeadline() != null
+                            && task.getCompletedAt() != null
+                            && task.getCompletedAt().isAfter(task.getDeadline());
+                    boolean overdue = !completed
+                            && task.getDeadline() != null
+                            && evidenceTime.isAfter(task.getDeadline());
+                    return AssessmentEvidenceTaskResponse.builder()
+                            .taskId(task.getId())
+                            .title(task.getTitle())
+                            .groupId(task.getGroup().getId())
+                            .groupName(task.getGroup().getGroupName())
+                            .status(evidenceStatus)
+                            .deadline(task.getDeadline())
+                            .completedAt(completed ? task.getCompletedAt() : null)
+                            .completedLate(completedLate)
+                            .overdue(overdue)
+                            .build();
+                })
+                .toList();
+
+        int completedTasks = (int) taskEvidence.stream().filter(task -> task.getStatus() == TaskStatus.COMPLETED).count();
+        int completedLateTasks = (int) taskEvidence.stream().filter(AssessmentEvidenceTaskResponse::isCompletedLate).count();
+        int overdueTasks = (int) taskEvidence.stream().filter(AssessmentEvidenceTaskResponse::isOverdue).count();
+        int inProgressTasks = (int) taskEvidence.stream().filter(task -> task.getStatus() == TaskStatus.IN_PROGRESS).count();
+        int todoTasks = (int) taskEvidence.stream().filter(task -> task.getStatus() == TaskStatus.TODO).count();
+        double completionRate = tasks.isEmpty()
+                ? 0
+                : Math.round(completedTasks * 1000.0 / tasks.size()) / 10.0;
+
+        return AssessmentEvidenceResponse.builder()
+                .studentId(studentId)
+                .totalAssignedTasks(tasks.size())
+                .completedTasks(completedTasks)
+                .completedOnTimeTasks(completedTasks - completedLateTasks)
+                .completedLateTasks(completedLateTasks)
+                .overdueTasks(overdueTasks)
+                .inProgressTasks(inProgressTasks)
+                .todoTasks(todoTasks)
+                .completionRate(completionRate)
+                .tasks(taskEvidence)
+                .build();
     }
 
     @Transactional

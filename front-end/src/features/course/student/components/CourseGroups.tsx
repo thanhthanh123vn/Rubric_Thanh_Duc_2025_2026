@@ -757,7 +757,7 @@ function ChatPanel({
     void fetchHistory();
 
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8082/ws"),
+      webSocketFactory: () => new SockJS(`${import.meta.env.VITE_WS_URL ?? ''}/ws`),
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(`/topic/chat/${conversationId}`, (message) => {

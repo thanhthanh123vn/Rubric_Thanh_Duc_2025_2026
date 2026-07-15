@@ -15,11 +15,12 @@ import { getRubricMatrixById } from "@/api/RubricApi";
 import {
     createFeedbackTemplate,
     deleteFeedbackTemplate,
+    fetchAssessmentEvidence,
     fetchFeedbackTemplates,
     fetchSubmissionStatuses,
     submitStudentGrade,
 } from "@/api/GradingApi";
-import type { FeedbackTemplateDTO, SubmissionStatusDTO } from "@/api/type";
+import type { AssessmentEvidenceDTO, FeedbackTemplateDTO, SubmissionStatusDTO } from "@/api/type";
 
 interface LevelDTO {
     levelId: string;
@@ -52,6 +53,7 @@ interface CriteriaGradePayload {
 type ExpandedPane = "none" | "submission" | "rubric";
 type SubmissionFilter = "ALL" | "SUBMITTED" | "NOT_SUBMITTED";
 type GradingView = "grading" | "feedback";
+type GradingMode = "RUBRIC" | "MANUAL";
 
 const FILTER_OPTIONS: { value: SubmissionFilter; label: string }[] = [
     { value: "ALL", label: "Tất cả" },
@@ -219,7 +221,7 @@ const readCurrentUserId = () => {
 };
 
 export default function TeacherGrading() {
-    const { assessmentId } = useParams<{ assessmentId: string }>();
+    const { id: offeringId, assessmentId } = useParams<{ id: string; assessmentId: string }>();
 
     const [submissions, setSubmissions] = useState<SubmissionStatusDTO[]>([]);
     const [loading, setLoading] = useState(false);
@@ -227,6 +229,7 @@ export default function TeacherGrading() {
     const [activeSubmission, setActiveSubmission] = useState<SubmissionStatusDTO | null>(null);
     const [criteriaScores, setCriteriaScores] = useState<Record<string, number>>({});
     const [selectedLevels, setSelectedLevels] = useState<Record<string, string>>({});
+    const [manualScore, setManualScore] = useState("");
     const [generalComment, setGeneralComment] = useState("");
     const [feedbackLibrary, setFeedbackLibrary] = useState<FeedbackTemplateDTO[]>([]);
     const [newFeedback, setNewFeedback] = useState("");
@@ -235,6 +238,9 @@ export default function TeacherGrading() {
     const [searchStudentId, setSearchStudentId] = useState("");
     const [submissionFilter, setSubmissionFilter] = useState<SubmissionFilter>("ALL");
     const [gradingView, setGradingView] = useState<GradingView>("grading");
+    const [assessmentEvidence, setAssessmentEvidence] = useState<AssessmentEvidenceDTO | null>(null);
+    const [loadingEvidence, setLoadingEvidence] = useState(false);
+    const gradingMode: GradingMode = activeSubmission?.rubricId ? "RUBRIC" : "MANUAL";
 
     useEffect(() => {
         if (assessmentId) {
@@ -248,14 +254,16 @@ export default function TeacherGrading() {
 
     useEffect(() => {
         if (!activeSubmission) {
+            setManualScore("");
             setGeneralComment("");
             setGradingView("grading");
             return;
         }
 
+        setManualScore(formatScore(activeSubmission.totalScore) ?? "");
         setGeneralComment(activeSubmission.comment ?? "");
         setGradingView(isSubmissionGraded(activeSubmission) ? "feedback" : "grading");
-    }, [activeSubmission?.id, activeSubmission?.comment]);
+    }, [activeSubmission]);
 
     const loadSubmissions = async () => {
         if (!assessmentId) return;
@@ -323,6 +331,22 @@ export default function TeacherGrading() {
         }
     };
 
+    const loadAssessmentEvidence = async (studentId: string, submittedAt?: string | null) => {
+        if (!offeringId) {
+            setAssessmentEvidence(null);
+            return;
+        }
+        setLoadingEvidence(true);
+        try {
+            setAssessmentEvidence(await fetchAssessmentEvidence(offeringId, studentId, submittedAt));
+        } catch (error) {
+            console.error("Không thể tải minh chứng đánh giá:", error);
+            setAssessmentEvidence(null);
+        } finally {
+            setLoadingEvidence(false);
+        }
+    };
+
     const filteredSubmissions = useMemo(() => {
         const keyword = searchStudentId.trim().toLowerCase();
 
@@ -374,9 +398,12 @@ export default function TeacherGrading() {
     }, [criteriaScores, gradedCriteriaById, rubric]);
 
     const hasEditedScores = Object.keys(criteriaScores).length > 0;
-    const displayedTotalScore = hasEditedScores
-        ? roundToSingleDecimal(totalScore)
-        : roundToSingleDecimal(activeSubmission?.totalScore ?? 0);
+    const parsedManualScore = manualScore.trim() === "" ? null : Number(manualScore);
+    const displayedTotalScore = gradingMode === "MANUAL"
+        ? roundToSingleDecimal(parsedManualScore ?? 0)
+        : hasEditedScores
+            ? roundToSingleDecimal(totalScore)
+            : roundToSingleDecimal(activeSubmission?.totalScore ?? 0);
 
     const hasSubmissionContent = Boolean(
         activeSubmission?.attachments?.length ||
@@ -392,7 +419,9 @@ export default function TeacherGrading() {
             setActiveSubmission(submission);
             setCriteriaScores({});
             setSelectedLevels({});
+            setManualScore(formatScore(submission.totalScore) ?? "");
             setGradingView(isSubmissionGraded(submission) ? "feedback" : "grading");
+            void loadAssessmentEvidence(submission.studentId, submission.submittedAt);
 
             if (!submission.rubricId) {
                 setRubric(null);
@@ -502,8 +531,21 @@ export default function TeacherGrading() {
     };
 
     const handleSaveGrade = async () => {
-        if (!assessmentId || !activeSubmission || !rubric || !activeSubmission.submitted) {
+        if (!assessmentId || !activeSubmission || !activeSubmission.submitted) {
             alert("Vui lòng chọn sinh viên đã nộp bài.");
+            return;
+        }
+
+        if (gradingMode === "RUBRIC" && !rubric) {
+            alert("Không tải được rubric của bài đánh giá. Vui lòng thử tải lại trước khi chấm điểm.");
+            return;
+        }
+
+        if (
+            gradingMode === "MANUAL" &&
+            (parsedManualScore === null || !Number.isFinite(parsedManualScore) || parsedManualScore < 0 || parsedManualScore > 10)
+        ) {
+            alert("Vui lòng nhập điểm hợp lệ từ 0 đến 10.");
             return;
         }
 
@@ -513,9 +555,9 @@ export default function TeacherGrading() {
                 submissionId: activeSubmission.id,
                 studentId: activeSubmission.studentId,
                 assessmentId,
-                rubricId: rubric.id,
-                scores: criteriaScores,
-                criteriaGrades: buildCriteriaGradesPayload(),
+                rubricId: gradingMode === "RUBRIC" ? rubric?.id ?? null : null,
+                scores: gradingMode === "RUBRIC" ? criteriaScores : {},
+                criteriaGrades: gradingMode === "RUBRIC" ? buildCriteriaGradesPayload() : [],
                 totalScore: displayedTotalScore,
                 generalComment: generalComment.trim(),
             });
@@ -657,8 +699,7 @@ export default function TeacherGrading() {
 
                 <main className="flex min-h-0 flex-col overflow-hidden">
                     <div className="border-b border-slate-200 bg-white px-5 py-4">
-                        <h1 className="text-xl font-bold text-slate-900">Chấm điểm theo rubric</h1>
-                        <p className="mt-1 text-sm text-slate-500">Chọn sinh viên rồi chấm điểm, thêm nhận xét và lưu kết quả.</p>
+                        <h1 className="text-xl font-bold text-slate-900">Chấm bài sinh viên</h1>
                     </div>
 
                     {!activeSubmission ? (
@@ -770,6 +811,42 @@ export default function TeacherGrading() {
                                                 </div>
                                             </div>
 
+                                            {activeSubmission.submitted ? (
+                                                <div className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
+                                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-slate-900">Minh chứng đánh giá cá nhân</p>
+                                                            <p className="mt-1 text-xs text-slate-500">Tự động tổng hợp từ công việc nhóm để hỗ trợ chấm rubric cá nhân hóa.</p>
+                                                        </div>
+                                                        {assessmentEvidence ? <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Hoàn thành {assessmentEvidence.completionRate.toFixed(1)}%</span> : null}
+                                                    </div>
+
+                                                    {loadingEvidence ? (
+                                                        <div className="flex min-h-28 items-center justify-center text-sm text-slate-500"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Đang tổng hợp minh chứng...</div>
+                                                    ) : assessmentEvidence ? (
+                                                        <div className="mt-4 space-y-4">
+                                                            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                                                                {[
+                                                                    { label: "Task được giao", value: assessmentEvidence.totalAssignedTasks, tone: "text-slate-900" },
+                                                                    { label: "Đã hoàn thành", value: assessmentEvidence.completedTasks, tone: "text-emerald-700" },
+                                                                    { label: "Hoàn thành trễ", value: assessmentEvidence.completedLateTasks, tone: "text-amber-700" },
+                                                                    { label: "Quá hạn chưa xong", value: assessmentEvidence.overdueTasks, tone: "text-rose-700" },
+                                                                ].map((item) => <div key={item.label} className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">{item.label}</p><p className={`mt-1 text-xl font-bold ${item.tone}`}>{item.value}</p></div>)}
+                                                            </div>
+                                                            <div>
+                                                                <div className="mb-1 flex justify-between text-xs text-slate-500"><span>Tiến độ hoàn thành</span><span>{assessmentEvidence.completedOnTimeTasks} đúng hạn · {assessmentEvidence.completedLateTasks} trễ hạn</span></div>
+                                                                <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(100, Math.max(0, assessmentEvidence.completionRate))}%` }} /></div>
+                                                            </div>
+                                                            {assessmentEvidence.tasks.length ? (
+                                                                <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                                                                    {assessmentEvidence.tasks.map((task) => <div key={task.taskId} className="flex flex-col gap-2 rounded-xl border border-slate-200 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="truncate text-sm font-medium text-slate-800">{task.title}</p><p className="mt-0.5 text-xs text-slate-500">{task.groupName || "Nhóm"} · Hạn: {formatDate(task.deadline)}</p></div><span className={`w-fit shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${task.completedLate ? "bg-amber-100 text-amber-700" : task.overdue ? "bg-rose-100 text-rose-700" : task.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : task.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{task.completedLate ? "Hoàn thành trễ" : task.overdue ? "Đang quá hạn" : task.status === "COMPLETED" ? "Đúng hạn" : task.status === "IN_PROGRESS" ? "Đang làm" : "Chưa làm"}</span></div>)}
+                                                                </div>
+                                                            ) : <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">Sinh viên chưa có task cá nhân để tổng hợp.</p>}
+                                                        </div>
+                                                    ) : <p className="mt-4 rounded-xl bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">Không tải được dữ liệu minh chứng.</p>}
+                                                </div>
+                                            ) : null}
+
                                             {activeSubmission.attachments?.length ? (
                                                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
                                                     <p className="text-sm font-semibold text-slate-900">Tệp và liên kết đã nộp</p>
@@ -857,33 +934,91 @@ export default function TeacherGrading() {
                                     <div className="border-b border-slate-200 px-5 py-4">
                                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-900">Bảng chấm rubric</p>
-                                                <p className="mt-1 text-sm text-slate-500">
-                                                    {rubric?.description || "Sinh viên này chưa có rubric để chấm điểm."}
+                                                <p className="text-sm font-semibold text-slate-900">
+                                                    {gradingMode === "MANUAL" ? "Chấm điểm thông thường" : "Bảng chấm rubric"}
                                                 </p>
+                                                {gradingMode === "RUBRIC" && rubric?.description ? (
+                                                    <p className="mt-1 text-sm text-slate-500">{rubric.description}</p>
+                                                ) : null}
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => togglePane("rubric")}
-                                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                            >
-                                                {expandedPane === "rubric" ? (
-                                                    <>
-                                                        <Minimize2 className="h-4 w-4" />
-                                                        Thu gọn
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Expand className="h-4 w-4" />
-                                                        Toàn màn hình
-                                                    </>
-                                                )}
-                                            </button>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => togglePane("rubric")}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                                >
+                                                    {expandedPane === "rubric" ? (
+                                                        <>
+                                                            <Minimize2 className="h-4 w-4" />
+                                                            Thu gọn
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Expand className="h-4 w-4" />
+                                                            Toàn màn hình
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className="flex-1 overflow-y-auto p-5">
-                                        {!rubric ? (
+                                        {gradingMode === "MANUAL" ? (
+                                            <div className="mx-auto max-w-3xl space-y-5">
+                                                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                                    <label htmlFor="manual-score" className="text-sm font-semibold text-slate-900">
+                                                        Điểm bài làm <span className="text-rose-500">*</span>
+                                                    </label>
+                                                    <div className="mt-3 flex items-center gap-3">
+                                                        <input
+                                                            id="manual-score"
+                                                            type="number"
+                                                            min="0"
+                                                            max="10"
+                                                            step="0.1"
+                                                            value={manualScore}
+                                                            onChange={(event) => setManualScore(event.target.value)}
+                                                            placeholder="0.0"
+                                                            className="w-36 rounded-xl border border-slate-300 px-4 py-3 text-lg font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                                                        />
+                                                        <span className="font-semibold text-slate-500">/ 10 điểm</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                                    <label htmlFor="manual-comment" className="text-sm font-semibold text-slate-900">
+                                                        Nhận xét của giảng viên
+                                                    </label>
+                                                    <textarea
+                                                        id="manual-comment"
+                                                        value={generalComment}
+                                                        onChange={(event) => setGeneralComment(event.target.value)}
+                                                        placeholder="Nhập nhận xét, góp ý hoặc hướng dẫn cải thiện..."
+                                                        className="mt-3 min-h-40 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                                                    />
+                                                    {feedbackLibrary.length > 0 ? (
+                                                        <div className="mt-4">
+                                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                                                Nhận xét nhanh
+                                                            </p>
+                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                {feedbackLibrary.map((feedback) => (
+                                                                    <button
+                                                                        key={feedback.id}
+                                                                        type="button"
+                                                                        onClick={() => handleAppendFeedback(feedback.content)}
+                                                                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-left text-sm text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                                                                    >
+                                                                        {feedback.content}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                        ) : !rubric ? (
                                             <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
                                                 {activeSubmission.submitted
                                                     ? "Không tải được rubric cho bài nộp này."
@@ -997,7 +1132,7 @@ export default function TeacherGrading() {
                                                             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                                                         >
                                                             <ArrowLeft className="h-4 w-4" />
-                                                            Quay láº¡i bÃ ng cháº¥m
+                                                            Quay lại bảng chấm
                                                         </button>
                                                     </div>
 
@@ -1011,7 +1146,7 @@ export default function TeacherGrading() {
                                                     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
                                                         <p className="text-sm font-semibold text-slate-900">ThÆ° viá»‡n nháº­n xÃ©t máº«u</p>
                                                         <p className="mt-1 text-xs text-slate-500">
-                                                            Chá»n Ä‘á»ƒ chÃ¨n nhanh vÃ o pháº§n nháº­n xÃ©t.
+                                                            Chọn để chèn nhanh vào phần nhận xét.
                                                         </p>
 
                                                         <div className="mt-3 flex flex-wrap gap-2">
@@ -1226,7 +1361,7 @@ export default function TeacherGrading() {
                       </span>
                                         </div>
 
-                                        {gradingView === "grading" && canShowFeedback ? (
+                                        {gradingMode === "RUBRIC" && gradingView === "grading" && canShowFeedback ? (
                                             <button
                                                 type="button"
                                                 onClick={() => setGradingView("feedback")}
@@ -1241,11 +1376,20 @@ export default function TeacherGrading() {
                                         <button
                                             type="button"
                                             onClick={handleSaveGrade}
-                                            disabled={saving || !rubric || !activeSubmission || !activeSubmission.submitted}
+                                            disabled={
+                                                saving ||
+                                                !activeSubmission ||
+                                                !activeSubmission.submitted ||
+                                                (gradingMode === "RUBRIC" && !rubric)
+                                            }
                                             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-4 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             <Save className="h-5 w-5" />
-                                            {saving ? "Đang lưu..." : `Lưu kết quả cho ${activeSubmission.studentId}`}
+                                            {saving
+                                                ? "Đang lưu..."
+                                                : gradingMode === "MANUAL"
+                                                    ? `Lưu điểm và nhận xét cho ${activeSubmission.studentId}`
+                                                    : `Lưu kết quả rubric cho ${activeSubmission.studentId}`}
                                         </button>
 
                                         {!activeSubmission.submitted ? (

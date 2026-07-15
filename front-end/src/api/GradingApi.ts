@@ -1,5 +1,5 @@
 import {courseApi, gradeSerciveApi, rubricServiceApi} from "@/services/axiosConfig.ts";
-import type { FeedbackTemplateDTO } from "@/api/type";
+import type { AssessmentEvidenceDTO, FeedbackTemplateDTO } from "@/api/type";
 
 
 export const fetchSubmissionsPending = async (assessmentId: string) => {
@@ -14,6 +14,18 @@ export const fetchSubmissionStatuses = async (assessmentId: string) => {
         `/assessments/${assessmentId}/submission-statuses`
     );
     return response.data;
+};
+
+export const fetchAssessmentEvidence = async (
+    offeringId: string,
+    studentId: string,
+    submittedAt?: string | null,
+) => {
+    const response = await courseApi.get<{ data: AssessmentEvidenceDTO }>(
+        `/group/tasks/evidence/${offeringId}/${studentId}`,
+        { params: submittedAt ? { submittedAt } : undefined },
+    );
+    return response.data.data;
 };
 
 export const getRubricById = async (id: string) => {

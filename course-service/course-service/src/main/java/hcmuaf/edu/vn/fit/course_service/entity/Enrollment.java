@@ -42,6 +42,16 @@ public class Enrollment {
     private Float finalScore;
     private Float totalScore;
 
+    @Column(name = "attendance_score")
+    private Float attendanceScore;
+
+    @Column(name = "assignment_score")
+    private Float assignmentScore;
+
+    @Builder.Default
+    @Column(name = "attendance_warning_count", nullable = false)
+    private Integer attendanceWarningCount = 0;
+
     private String letterGrade;
 
     private LocalDateTime lastReadTime;
