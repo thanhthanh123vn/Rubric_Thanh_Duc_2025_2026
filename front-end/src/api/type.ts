@@ -5,8 +5,16 @@ export interface SubmissionDTO {
     rubricId:string;
     fileUrl: string | null;
     submittedLink?: string | null;
+    attachments?: SubmissionAttachmentItem[] | null;
     submittedAt: string;
     status: string;
+}
+
+export interface SubmissionAttachmentItem {
+    id: string;
+    type: "FILE" | "LINK";
+    url: string;
+    originalName?: string | null;
 }
 
 export interface SubmissionStatusDTO {
@@ -16,6 +24,7 @@ export interface SubmissionStatusDTO {
     rubricId?: string | null;
     fileUrl: string | null;
     submittedLink?: string | null;
+    attachments?: SubmissionAttachmentItem[] | null;
     submittedAt?: string | null;
     status: string;
     submitted: boolean;

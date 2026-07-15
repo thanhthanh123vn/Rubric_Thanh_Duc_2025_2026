@@ -102,6 +102,56 @@ const normalizeCriterionWeight = (weight?: number | null) => {
     return numericWeight > 1 ? numericWeight / 100 : numericWeight;
 };
 
+const SubmissionFilePreview = ({
+    url,
+    name,
+    title,
+    expanded,
+}: {
+    url: string;
+    name: string;
+    title: string;
+    expanded: boolean;
+}) => (
+    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+        <div className="mb-3 flex items-center justify-between gap-3 px-1">
+            <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{name}</p>
+            <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-emerald-700 hover:underline"
+            >
+                <ExternalLink className="h-4 w-4" />
+                Mở tệp
+            </a>
+        </div>
+
+        {isPreviewableFile(url) ? (
+            <iframe
+                src={url}
+                title={title}
+                className={`w-full rounded-xl border border-slate-200 bg-white ${
+                    expanded ? "h-[calc(100vh-300px)]" : "h-[680px]"
+                }`}
+            />
+        ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                <p className="text-sm text-slate-600">Không thể xem trước định dạng tệp này.</p>
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                >
+                    <ExternalLink className="h-4 w-4" />
+                    Mở tệp bài làm
+                </a>
+            </div>
+        )}
+    </div>
+);
+
 const sumWeightedScores = (
     gradedCriteria?: SubmissionStatusDTO["gradedCriteria"],
 ) => {
@@ -328,7 +378,11 @@ export default function TeacherGrading() {
         ? roundToSingleDecimal(totalScore)
         : roundToSingleDecimal(activeSubmission?.totalScore ?? 0);
 
-    const hasSubmissionContent = Boolean(activeSubmission?.fileUrl || activeSubmission?.submittedLink);
+    const hasSubmissionContent = Boolean(
+        activeSubmission?.attachments?.length ||
+        activeSubmission?.fileUrl ||
+        activeSubmission?.submittedLink,
+    );
     const showSubmissionPane = expandedPane === "none" || expandedPane === "submission";
     const showRubricPane = expandedPane === "none" || expandedPane === "rubric";
     const canShowFeedback = isSubmissionGraded(activeSubmission);
@@ -577,19 +631,21 @@ export default function TeacherGrading() {
                       </span>
                                             <span
                                                 className={`rounded-full px-2.5 py-1 font-medium ${
-                                                    sub.fileUrl ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                                                    (sub.attachments?.some((item) => item.type === "FILE") || sub.fileUrl)
+                                                        ? "bg-emerald-100 text-emerald-700"
+                                                        : "bg-slate-100 text-slate-500"
                                                 }`}
                                             >
-                        {sub.fileUrl ? "Có file" : "Không file"}
+                        {sub.attachments?.some((item) => item.type === "FILE") || sub.fileUrl ? "Có file" : "Không file"}
                       </span>
                                             <span
                                                 className={`rounded-full px-2.5 py-1 font-medium ${
-                                                    sub.submittedLink
+                                                    sub.attachments?.some((item) => item.type === "LINK") || sub.submittedLink
                                                         ? "bg-amber-100 text-amber-700"
                                                         : "bg-slate-100 text-slate-500"
                                                 }`}
                                             >
-                        {sub.submittedLink ? "Có link" : "Không link"}
+                        {sub.attachments?.some((item) => item.type === "LINK") || sub.submittedLink ? "Có link" : "Không link"}
                       </span>
                                         </div>
                                     </button>
@@ -695,24 +751,43 @@ export default function TeacherGrading() {
                           </span>
                                                     <span
                                                         className={`rounded-full px-3 py-1 font-medium ${
-                                                            activeSubmission.fileUrl
+                                                            activeSubmission.attachments?.some((item) => item.type === "FILE") || activeSubmission.fileUrl
                                                                 ? "bg-emerald-100 text-emerald-700"
                                                                 : "bg-slate-100 text-slate-500"
                                                         }`}
                                                     >
-                            {activeSubmission.fileUrl ? "Có file" : "Không file"}
+                            {activeSubmission.attachments?.some((item) => item.type === "FILE") || activeSubmission.fileUrl ? "Có file" : "Không file"}
                           </span>
                                                     <span
                                                         className={`rounded-full px-3 py-1 font-medium ${
-                                                            activeSubmission.submittedLink
+                                                            activeSubmission.attachments?.some((item) => item.type === "LINK") || activeSubmission.submittedLink
                                                                 ? "bg-amber-100 text-amber-700"
                                                                 : "bg-slate-100 text-slate-500"
                                                         }`}
                                                     >
-                            {activeSubmission.submittedLink ? "Có link" : "Không link"}
+                            {activeSubmission.attachments?.some((item) => item.type === "LINK") || activeSubmission.submittedLink ? "Có link" : "Không link"}
                           </span>
                                                 </div>
                                             </div>
+
+                                            {activeSubmission.attachments?.length ? (
+                                                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                                    <p className="text-sm font-semibold text-slate-900">Tệp và liên kết đã nộp</p>
+                                                    <div className="mt-3 space-y-2">
+                                                        {activeSubmission.attachments.map((item) => (
+                                                            <a
+                                                                key={item.id}
+                                                                href={item.url}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex w-full break-all rounded-xl border border-slate-200 px-3 py-3 text-sm font-medium text-emerald-700 hover:bg-slate-50"
+                                                            >
+                                                                {item.type === "FILE" ? item.originalName || item.url : item.url}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null}
 
                                             {activeSubmission.submittedLink ? (
                                                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -728,7 +803,19 @@ export default function TeacherGrading() {
                                                 </div>
                                             ) : null}
 
-                                            {activeSubmission.fileUrl ? (
+                                            {activeSubmission.attachments
+                                                ?.filter((item) => item.type === "FILE")
+                                                .map((file, index) => (
+                                                    <SubmissionFilePreview
+                                                        key={file.id || `${file.url}-${index}`}
+                                                        url={file.url}
+                                                        name={file.originalName || `Tệp bài làm ${index + 1}`}
+                                                        title={`Submission ${activeSubmission.studentId} - file ${index + 1}`}
+                                                        expanded={expandedPane === "submission"}
+                                                    />
+                                                ))}
+
+                                            {!activeSubmission.attachments?.some((item) => item.type === "FILE") && activeSubmission.fileUrl ? (
                                                 <div className="rounded-2xl border border-slate-200 bg-white p-3">
                                                     {isPreviewableFile(activeSubmission.fileUrl) ? (
                                                         <iframe

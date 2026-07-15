@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useMemo} from "react";
 import {useParams, useNavigate} from "react-router-dom";
 import {
     ChevronLeft,
@@ -21,6 +21,122 @@ import {useAppSelector} from "@/hooks/useAppSelector.ts";
 import {assessmentCommentApi} from "@/features/course/student/api/AssignmentDetailPost.ts";
 import {getRubricById, type RubricDTO} from "@/api/RubricApi.ts";
 import {ru} from "react-day-picker/locale";
+
+const getPreviewKind = (name: string, mimeType = "") => {
+    const extension = name.split("?")[0].split(".").pop()?.toLowerCase();
+
+    if (mimeType.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"].includes(extension || "")) return "image";
+    if (mimeType.startsWith("video/") || ["mp4", "webm", "ogg", "mov"].includes(extension || "")) return "video";
+    if (mimeType.startsWith("audio/") || ["mp3", "wav", "m4a", "aac", "flac"].includes(extension || "")) return "audio";
+    if (mimeType === "application/pdf" || extension === "pdf") return "document";
+    if (mimeType.startsWith("text/") || ["txt", "md", "csv", "json", "xml", "html", "css", "js", "ts"].includes(extension || "")) return "document";
+    return null;
+};
+
+const SubmissionFileCard = ({
+    url,
+    originalName,
+    index,
+}: {
+    url: string;
+    originalName?: string | null;
+    index: number;
+}) => {
+    const displayName = originalName || url.split("/").pop()?.split("?")[0] || `Tệp đính kèm ${index + 1}`;
+    const previewKind = getPreviewKind(displayName);
+
+    return (
+        <div className="overflow-hidden rounded-xl border border-emerald-200 bg-white">
+            <div className="flex items-center gap-3 border-b border-emerald-100 p-3">
+                <div className="shrink-0 rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                    <FileText className="h-4 w-4"/>
+                </div>
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-emerald-800">{displayName}</p>
+                    <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-0.5 block text-xs text-blue-600 hover:underline"
+                    >
+                        Mở tệp
+                    </a>
+                </div>
+            </div>
+
+            {previewKind === "image" && (
+                <img src={url} alt={displayName} className="h-48 w-full bg-gray-50 object-contain"/>
+            )}
+            {previewKind === "video" && (
+                <video src={url} controls className="h-48 w-full bg-black object-contain"/>
+            )}
+            {previewKind === "audio" && (
+                <div className="p-3"><audio src={url} controls className="w-full"/></div>
+            )}
+            {previewKind === "document" && (
+                <iframe src={url} title={`Preview ${displayName}`} className="h-56 w-full border-0 bg-gray-50"/>
+            )}
+
+        </div>
+    );
+};
+
+const SelectedFileCard = ({
+    file,
+    index,
+    onRemove,
+}: {
+    file: File;
+    index: number;
+    onRemove: (index: number) => void;
+}) => {
+    const previewKind = getPreviewKind(file.name, file.type);
+    const previewUrl = useMemo(
+        () => previewKind ? URL.createObjectURL(file) : "",
+        [file, previewKind]
+    );
+
+    useEffect(() => {
+        return () => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+        };
+    }, [previewUrl]);
+
+    return (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div className="flex items-center gap-3 p-3">
+                <div className="shrink-0 rounded-lg bg-gray-100 p-2 text-gray-500">
+                    <FileText className="h-4 w-4"/>
+                </div>
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-800">{file.name}</p>
+                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => onRemove(index)}
+                    aria-label={`Xóa tệp ${file.name}`}
+                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                >
+                    <X className="h-4 w-4"/>
+                </button>
+            </div>
+
+            {previewUrl && previewKind === "image" && (
+                <img src={previewUrl} alt={file.name} className="h-48 w-full border-t bg-gray-50 object-contain"/>
+            )}
+            {previewUrl && previewKind === "video" && (
+                <video src={previewUrl} controls className="h-48 w-full border-t bg-black object-contain"/>
+            )}
+            {previewUrl && previewKind === "audio" && (
+                <div className="border-t p-3"><audio src={previewUrl} controls className="w-full"/></div>
+            )}
+            {previewUrl && previewKind === "document" && (
+                <iframe src={previewUrl} title={`Preview ${file.name}`} className="h-56 w-full border-0 border-t bg-gray-50"/>
+            )}
+        </div>
+    );
+};
 
 const AssignmentDetailPost = () => {
     const {id: offeringId, assignmentId} = useParams<{ id: string; assignmentId: string }>();
@@ -45,6 +161,10 @@ const AssignmentDetailPost = () => {
             user = JSON.parse(localUser);
         }
     }
+    const submittedAttachments = Array.isArray(assignment?.submittedAttachments) ? assignment.submittedAttachments : [];
+    const submittedFiles = submittedAttachments.filter((item: any) => item.type === "FILE");
+    const submittedLinks = submittedAttachments.filter((item: any) => item.type === "LINK");
+
     const fetchComments = async () => {
         try {
             const comments = await assessmentCommentApi.getComments(assignmentId!);
@@ -84,7 +204,14 @@ const AssignmentDetailPost = () => {
             const data = await assessmentCommentApi.getAssessmentDetail(assignmentId);
 
             setAssignment(data);
-            setIsSubmitted(!!data.submittedLink);
+            setIsSubmitted(
+                Boolean(
+                    data.submissionId ||
+                    data.submittedFileUrl ||
+                    data.submittedLink ||
+                    (Array.isArray(data.submittedAttachments) && data.submittedAttachments.length > 0)
+                )
+            );
 
 
             if (data.rubricId) {
@@ -109,23 +236,42 @@ const AssignmentDetailPost = () => {
         fetchComments();
 
     }, [assignmentId, offeringId]);
-    const [file, setFile] = useState<File | null>(null);
-    const [link, setLink] = useState("");
+    const [files, setFiles] = useState<File[]>([]);
+    const [links, setLinks] = useState<string[]>([""]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-            e.target.value = "";
-        }
+        // FileList belongs to the input and becomes empty when its value is reset.
+        // Copy it synchronously so every selected file is retained in React state.
+        const selectedFiles = Array.from(e.currentTarget.files ?? []);
+        if (selectedFiles.length === 0) return;
+
+        setFiles((prev) => [...prev, ...selectedFiles]);
+        e.currentTarget.value = "";
     };
 
-    const handleRemoveFile = () => {
-        setFile(null);
+    const handleRemoveFile = (index: number) => {
+        setFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    };
+
+    const handleLinkChange = (index: number, value: string) => {
+        setLinks((prev) => prev.map((item, itemIndex) => (itemIndex === index ? value : item)));
+    };
+
+    const handleAddLinkField = () => {
+        setLinks((prev) => [...prev, ""]);
+    };
+
+    const handleRemoveLinkField = (index: number) => {
+        setLinks((prev) => {
+            const next = prev.filter((_, itemIndex) => itemIndex !== index);
+            return next.length > 0 ? next : [""];
+        });
     };
 
     const handleSubmit = async () => {
-        if (!file && !link.trim()) {
+        const normalizedLinks = links.map((item) => item.trim()).filter(Boolean);
+        if (files.length === 0 && normalizedLinks.length === 0) {
             toast.error("Vui lòng đính kèm file hoặc nhập link trước khi nộp!");
             return;
         }
@@ -135,16 +281,20 @@ const AssignmentDetailPost = () => {
             if (!assignmentId) return;
 
             const formData = new FormData();
-            if (file) formData.append("file", file);
-            if (link.trim()) formData.append("link", link.trim());
-            formData.append("rubricId",assignment.rubricId);
+            files.forEach((selectedFile) => formData.append("files", selectedFile));
+            normalizedLinks.forEach((submittedLink) => formData.append("links", submittedLink));
+            if (assignment?.rubricId) {
+                formData.append("rubricId", assignment.rubricId);
+            }
 
 
             await courseService.submitAssignment(assignmentId, formData);
 
             toast.success("Nộp bài thành công!");
             setIsSubmitted(true);
-            fetchData();
+            setFiles([]);
+            setLinks([""]);
+            await fetchData();
 
         } catch (error) {
             console.error("Lỗi khi nộp bài:", error);
@@ -171,9 +321,9 @@ const AssignmentDetailPost = () => {
             toast.success("Đã hủy nộp bài thành công!");
 
 
-            setFile(null);
-            setLink("");
-            fetchData();
+            setFiles([]);
+            setLinks([""]);
+            await fetchData();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Lỗi khi hủy nộp bài");
         } finally {
@@ -335,15 +485,12 @@ const AssignmentDetailPost = () => {
                                             <div
                                                 className="w-[96px] shrink-0 bg-white border-r border-gray-200 relative overflow-hidden flex items-center justify-center">
 
-                                                {/* Kỹ thuật Scale Iframe: Phóng to khung nhìn rồi thu nhỏ 25% để tạo Thumbnail trang đầu */}
                                                 <iframe
-
                                                     src={`${assignment.fileUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                                                    className="absolute top-0 left-0 w-[384px] h-[288px] origin-top-left scale-[0.25] pointer-events-none border-none opacity-95 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute top-0 left-0 h-[288px] w-[384px] origin-top-left scale-[0.25] pointer-events-none border-none opacity-95 transition-opacity group-hover:opacity-100"
                                                     tabIndex={-1}
+                                                    title={`Preview ${name}`}
                                                 />
-
-
                                                 <div className="absolute inset-0 z-10 bg-black/0"/>
                                             </div>
 
@@ -421,7 +568,7 @@ const AssignmentDetailPost = () => {
                                 {/* KHUNG NHẬP NHẬN XÉT */}
                                 <div className="flex items-center gap-3 mt-2">
                                     {/* Avatar người đăng */}
-                                    {user.avatarUrl ? (
+                                    {user?.avatarUrl ? (
                                         <img
                                             src={user.avatarUrl}
                                             alt="avatar"
@@ -430,7 +577,7 @@ const AssignmentDetailPost = () => {
                                     ) : (
                                         <div
                                             className="w-9 h-9 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-sm font-bold shrink-0">
-                                            {user.fullName?.charAt(0) || "U"}
+                                            {user?.fullName?.charAt(0) || "U"}
                                         </div>
                                     )}
 
@@ -485,36 +632,40 @@ const AssignmentDetailPost = () => {
                                 {isSubmitted ? (
                                     // TRẠNG THÁI 1: ĐÃ NỘP BÀI (KHÓA GIAO DIỆN)
                                     <div className="mb-4 space-y-2">
-                                        {(assignment?.submittedFileUrl || file) && (
-                                            <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl overflow-hidden">
-                                                <div className="p-3 flex items-center gap-3 bg-white border-b border-emerald-100">
-                                                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600 shrink-0">
-                                                        <FileText className="w-4 h-4"/>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-emerald-800 truncate">
-                                                            {file ? file.name : assignment?.submittedFileUrl?.split('/').pop()?.split('?')[0] || "Tệp đính kèm"}
-                                                        </p>
-                                                        {assignment?.submittedFileUrl && !file && (
-                                                            <a href={assignment.submittedFileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline mt-0.5 block">
-                                                                Tải xuống tệp
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                        {submittedFiles.map((item: any, index: number) => (
+                                            <SubmissionFileCard
+                                                key={item.id || `${item.url}-${index}`}
+                                                url={item.url}
+                                                originalName={item.originalName}
+                                                index={index}
+                                            />
+                                        ))}
+
+                                        {submittedLinks.map((item: any) => (
+                                            <div key={item.id} className="bg-emerald-50/50 border border-emerald-200 rounded-xl overflow-hidden px-3 py-2 flex items-center gap-2">
+                                                <Paperclip className="w-4 h-4 text-emerald-600 shrink-0"/>
+                                                <a href={item.url} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 hover:underline truncate flex-1">
+                                                    {item.url}
+                                                </a>
                                             </div>
+                                        ))}
+                                        {submittedAttachments.length === 0 && assignment?.submittedFileUrl && (
+                                            <SubmissionFileCard
+                                                url={assignment.submittedFileUrl}
+                                                index={0}
+                                            />
                                         )}
 
-                                        {(assignment?.submittedLink || link) && (
+                                        {submittedAttachments.length === 0 && assignment?.submittedLink && (
                                             <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl overflow-hidden px-3 py-2 flex items-center gap-2">
                                                 <Paperclip className="w-4 h-4 text-emerald-600 shrink-0"/>
-                                                <a href={assignment?.submittedLink || link} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 hover:underline truncate flex-1">
-                                                    {assignment?.submittedLink || link}
+                                                <a href={assignment?.submittedLink} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 hover:underline truncate flex-1">
+                                                    {assignment?.submittedLink}
                                                 </a>
                                             </div>
                                         )}
 
-                                        {!assignment?.submittedFileUrl && !file && !assignment?.submittedLink && !link && (
+                                        {submittedAttachments.length === 0 && !assignment?.submittedFileUrl && !assignment?.submittedLink && (
                                             <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-3 text-center text-sm text-emerald-700">
                                                 Đã nộp bài thành công (Không đính kèm tệp)
                                             </div>
@@ -526,29 +677,29 @@ const AssignmentDetailPost = () => {
                                             </p>
                                         )}
                                     </div>
-                                ) : file ? (
-                                    // TRẠNG THÁI 2: ĐÃ CHỌN FILE NHƯNG CHƯA NỘP
-                                    <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
-                                        <div className="p-3 flex justify-between items-center bg-white border-b border-gray-100">
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className="p-2 bg-gray-100 rounded-lg text-gray-500">
-                                                    <FileText className="w-4 h-4"/>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
-                                                    <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
-                                                </div>
-                                            </div>
-                                            <button onClick={handleRemoveFile} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                                <X className="w-4 h-4"/>
-                                            </button>
-                                        </div>
-                                    </div>
                                 ) : (
-                                    // TRẠNG THÁI 3: CHƯA CÓ GÌ
                                     <div className="space-y-3 mb-4">
+                                        {files.length > 0 && (
+                                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                                <span>Đã chọn {files.length} tệp</span>
+                                                <span>Có thể cuộn để xem tất cả</span>
+                                            </div>
+                                        )}
+
+                                        <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
+                                            {files.map((selectedFile, index) => (
+                                                <SelectedFileCard
+                                                    key={`${selectedFile.name}-${selectedFile.size}-${selectedFile.lastModified}-${index}`}
+                                                    file={selectedFile}
+                                                    index={index}
+                                                    onRemove={handleRemoveFile}
+                                                />
+                                            ))}
+                                        </div>
+
                                         <button
-                                            onClick={() => document.getElementById("fileInput")?.click()}
+                                            type="button"
+                                            onClick={() => document.getElementById("assignment-files")?.click()}
                                             disabled={isPastDeadline}
                                             className={`w-full flex items-center justify-center gap-2 py-2 border-2 border-dashed rounded-lg font-medium transition-colors ${
                                                 isPastDeadline
@@ -557,17 +708,42 @@ const AssignmentDetailPost = () => {
                                             }`}
                                         >
                                             <FileUp className="w-5 h-5"/>
-                                            <span>Thêm tệp đính kèm</span>
+                                            <span>{files.length > 0 ? "Thêm tệp khác" : "Thêm tệp đính kèm"}</span>
                                         </button>
-                                        <input type="file" id="fileInput" hidden onChange={handleFileChange}/>
+                                        <input type="file" id="assignment-files" hidden multiple onChange={handleFileChange}/>
 
-                                        <input
-                                            value={link}
-                                            onChange={(e) => setLink(e.target.value)}
+                                        <div className="space-y-2">
+                                            {links.map((linkValue, index) => (
+                                                <div key={`submission-link-${index}`} className="flex items-center gap-2">
+                                                    <input
+                                                        type="url"
+                                                        value={linkValue}
+                                                        onChange={(e) => handleLinkChange(index, e.target.value)}
+                                                        disabled={isPastDeadline}
+                                                        placeholder={index === 0 ? "Hoặc dán liên kết (Drive, GitHub)..." : "Thêm liên kết..."}
+                                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                                    />
+                                                    {(links.length > 1 || linkValue) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveLinkField(index)}
+                                                            aria-label={`Xóa liên kết ${index + 1}`}
+                                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                                                        >
+                                                            <X className="w-4 h-4"/>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleAddLinkField}
                                             disabled={isPastDeadline}
-                                            placeholder="Hoặc dán liên kết (Drive, GitHub)..."
-                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
-                                        />
+                                            className="w-full py-2 border border-gray-300 rounded-lg text-sm font-medium text-emerald-700 hover:bg-emerald-50 disabled:text-gray-400 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                                        >
+                                            + Thêm liên kết khác
+                                        </button>
                                     </div>
                                 )}
 
@@ -589,9 +765,9 @@ const AssignmentDetailPost = () => {
                                     // GIAO DIỆN KHI CHƯA NỘP
                                     <button
                                         onClick={handleSubmit}
-                                        disabled={isSubmitting || (!file && !link) || isPastDeadline}
+                                        disabled={isSubmitting || (files.length === 0 && links.every((item) => !item.trim())) || isPastDeadline}
                                         className={`w-full py-2.5 rounded-lg font-semibold transition shadow-md flex items-center justify-center gap-2 ${
-                                            (file || link) && !isPastDeadline
+                                            (files.length > 0 || links.some((item) => item.trim())) && !isPastDeadline
                                                 ? "bg-emerald-600 text-white hover:bg-emerald-700"
                                                 : "bg-gray-200 text-gray-500 cursor-not-allowed"
                                         }`}
@@ -600,7 +776,7 @@ const AssignmentDetailPost = () => {
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                         ) : isPastDeadline ? (
                                             "Đã hết hạn nộp bài"
-                                        ) : file || link ? (
+                                        ) : files.length > 0 || links.some((item) => item.trim()) ? (
                                             "Nộp bài"
                                         ) : (
                                             "Đánh dấu là đã hoàn thành"

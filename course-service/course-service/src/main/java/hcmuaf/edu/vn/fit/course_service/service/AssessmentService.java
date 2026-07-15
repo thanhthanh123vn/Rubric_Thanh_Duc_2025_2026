@@ -44,6 +44,7 @@ public class AssessmentService {
     private GradeStatus status = GradeStatus.PENDING;
     private final AssessmentMapper assessmentMapper;
     private final SubmissionRepository submissionRepository;
+    private final SubmissionAttachmentRepository submissionAttachmentRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final GroupRepository groupRepository;
     private final ParticipantRepository participantRepository;
@@ -198,13 +199,20 @@ public class AssessmentService {
             return Collections.emptyList();
         }
 
-        Map<String, SubmissionEntity> submissionMap = submissionRepository.findByAssessmentId(assessmentId)
-                .stream()
+        List<SubmissionEntity> submissions = submissionRepository.findByAssessmentId(assessmentId);
+        Map<String, SubmissionEntity> submissionMap = submissions.stream()
                 .collect(Collectors.toMap(
                         SubmissionEntity::getStudentId,
                         submission -> submission,
                         (current, ignored) -> current
                 ));
+        Map<String, List<SubmissionAttachmentResponse>> attachmentsBySubmissionId =
+                mapAttachmentsBySubmissionId(
+                        submissions.stream()
+                                .map(SubmissionEntity::getId)
+                                .filter(Objects::nonNull)
+                                .toList()
+                );
 
         return studentIds.stream()
                 .map(studentId -> {
@@ -264,14 +272,19 @@ public class AssessmentService {
                             gradeDetail != null ? gradeDetail.getTotalScore() : null,
                             fallbackTotalScore
                     );
+                    String effectiveRubricId = submission.getRubricId() != null
+                            && !submission.getRubricId().isBlank()
+                            ? submission.getRubricId()
+                            : assessment.getRubricId();
 
                     return AssessmentSubmissionStatusResponse.builder()
                             .id(submission.getId())
                             .assessmentId(submission.getAssessmentId())
                             .studentId(submission.getStudentId())
-                            .rubricId(submission.getRubricId())
+                            .rubricId(effectiveRubricId)
                             .fileUrl(submission.getFileUrl())
                             .submittedLink(submission.getSubmittedLink())
+                            .attachments(attachmentsBySubmissionId.getOrDefault(submission.getId(), Collections.emptyList()))
                             .submittedAt(submission.getSubmittedAt())
                             .status(
                                     gradeDetail != null && gradeDetail.getStatus() != null && !gradeDetail.getStatus().isBlank()
@@ -329,28 +342,79 @@ public class AssessmentService {
 
         return gradeScore;
     }
+    @Transactional
     public SubmissionEntity submitAssignment(
             String assessmentId,
             String studentId,
+            List<MultipartFile> files,
+            List<String> links,
             MultipartFile file,
             String link,
             String rubricId
 
     ){
         try{
-            boolean hasFile = file != null && !file.isEmpty();
-            boolean hasLink = link != null && !link.trim().isEmpty();
+            List<MultipartFile> normalizedFiles = new ArrayList<>();
+            if (files != null) {
+                normalizedFiles.addAll(
+                        files.stream()
+                                .filter(Objects::nonNull)
+                                .filter(item -> !item.isEmpty())
+                                .toList()
+                );
+            }
+            if (file != null && !file.isEmpty()) {
+                normalizedFiles.add(file);
+            }
 
-            if (!hasFile && !hasLink) {
+            List<String> normalizedLinks = new ArrayList<>();
+            if (links != null) {
+                normalizedLinks.addAll(
+                        links.stream()
+                                .filter(Objects::nonNull)
+                                .map(String::trim)
+                                .filter(item -> !item.isEmpty())
+                                .toList()
+                );
+            }
+            if (link != null && !link.trim().isEmpty()) {
+                normalizedLinks.add(link.trim());
+            }
+
+            if (normalizedFiles.isEmpty() && normalizedLinks.isEmpty()) {
                 throw new RuntimeException("Phải có file hoặc link");
             }
 
-            String fileUrl = null;
-            String submittedLink = hasLink ? link.trim() : null;
-
-            if (hasFile) {
-                fileUrl = s3Service.uploadFile(file);
+            List<SubmissionAttachmentEntity> attachments = new ArrayList<>();
+            for (MultipartFile multipartFile : normalizedFiles) {
+                String uploadedUrl = s3Service.uploadFile(multipartFile);
+                SubmissionAttachmentEntity attachment = new SubmissionAttachmentEntity();
+                attachment.setAttachmentType("FILE");
+                attachment.setAttachmentUrl(uploadedUrl);
+                attachment.setOriginalName(multipartFile.getOriginalFilename());
+                attachment.setCreatedAt(LocalDateTime.now());
+                attachments.add(attachment);
             }
+
+            for (String submittedLinkValue : normalizedLinks) {
+                SubmissionAttachmentEntity attachment = new SubmissionAttachmentEntity();
+                attachment.setAttachmentType("LINK");
+                attachment.setAttachmentUrl(submittedLinkValue);
+                attachment.setOriginalName(submittedLinkValue);
+                attachment.setCreatedAt(LocalDateTime.now());
+                attachments.add(attachment);
+            }
+
+            String fileUrl = attachments.stream()
+                    .filter(item -> "FILE".equalsIgnoreCase(item.getAttachmentType()))
+                    .map(SubmissionAttachmentEntity::getAttachmentUrl)
+                    .findFirst()
+                    .orElse(null);
+            String submittedLink = attachments.stream()
+                    .filter(item -> "LINK".equalsIgnoreCase(item.getAttachmentType()))
+                    .map(SubmissionAttachmentEntity::getAttachmentUrl)
+                    .findFirst()
+                    .orElse(null);
             if (!assessmentRepository.existsById(assessmentId)) {
                 throw new RuntimeException("Assessment không tồn tại: " + assessmentId);
             }
@@ -359,10 +423,13 @@ public class AssessmentService {
             if(existing != null){
                 existing.setFileUrl(fileUrl);
                 existing.setSubmittedLink(submittedLink);
-                existing.setSubmittedAt(java.time.LocalDateTime.now());
+                existing.setSubmittedAt(LocalDateTime.now());
                 existing.setRubricId(rubricId);
 
                 submissionRepository.save(existing);
+                submissionAttachmentRepository.deleteBySubmissionId(existing.getId());
+                attachments.forEach(item -> item.setSubmissionId(existing.getId()));
+                submissionAttachmentRepository.saveAll(attachments);
                 return existing;
             }
 
@@ -371,10 +438,12 @@ public class AssessmentService {
             submission.setStudentId(studentId);
             submission.setFileUrl(fileUrl);
             submission.setSubmittedLink(submittedLink);
-            submission.setSubmittedAt(java.time.LocalDateTime.now());
+            submission.setSubmittedAt(LocalDateTime.now());
             submission.setRubricId(rubricId);
 
             submissionRepository.save(submission);
+            attachments.forEach(item -> item.setSubmissionId(submission.getId()));
+            submissionAttachmentRepository.saveAll(attachments);
 
             return submission;
 
@@ -423,19 +492,24 @@ public class AssessmentService {
 
 
             if (cloIds != null && !cloIds.isEmpty()) {
+                double cloWeight = weight != null ? weight.doubleValue() / cloIds.size() : 0;
                 List<AssessmentCLO> assessmentCLOs = cloIds.stream().map(cloId -> {
                     CourseCLO clo = courseCLORepository.findById(cloId)
                             .orElseThrow(() -> new RuntimeException("CLO không tồn tại: " + cloId));
                     return AssessmentCLO.builder()
                             .assessmentCloId(UUID.randomUUID().toString())
                             .assessment(savedAssessment)
+                            .cloWeight(cloWeight)
                             .courseCLO(clo)
                             .build();
                 }).toList();
                 assessmentCLORepository.saveAll(assessmentCLOs);
             }
 
-            return assessmentMapper.toResponse(savedAssessment);
+            AssessmentLecturerResponse response = assessmentMapper.toResponse(savedAssessment);
+            response.setRubricId(savedAssessment.getRubricId());
+            response.setCloIds(cloIds == null ? Collections.emptyList() : List.copyOf(cloIds));
+            return response;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi: " + e.getMessage());
         }
@@ -482,19 +556,24 @@ public class AssessmentService {
             assessmentCLORepository.deleteByAssessment_AssessmentId(assessmentId);
 
             if (cloIds != null && !cloIds.isEmpty()) {
+                double cloWeight = weight != null ? weight.doubleValue() / cloIds.size() : 0;
                 List<AssessmentCLO> assessmentCLOs = cloIds.stream().map(cloId -> {
                     CourseCLO clo = courseCLORepository.findById(cloId)
                             .orElseThrow(() -> new RuntimeException("CLO không tồn tại: " + cloId));
                     return AssessmentCLO.builder()
                             .assessmentCloId(UUID.randomUUID().toString())
                             .assessment(savedAssessment)
+                            .cloWeight(cloWeight)
                             .courseCLO(clo)
                             .build();
                 }).toList();
                 assessmentCLORepository.saveAll(assessmentCLOs);
             }
 
-            return assessmentMapper.toResponse(savedAssessment);
+            AssessmentLecturerResponse response = assessmentMapper.toResponse(savedAssessment);
+            response.setRubricId(savedAssessment.getRubricId());
+            response.setCloIds(cloIds == null ? Collections.emptyList() : List.copyOf(cloIds));
+            return response;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi cập nhật bài tập: " + e.getMessage(), e);
         }
@@ -528,6 +607,13 @@ public class AssessmentService {
         return assessments.stream().map(assessment -> {
             AssessmentLecturerResponse response = assessmentMapper.toResponse(assessment);
             response.setTotalStudents(totalStudents);
+            response.setRubricId(assessment.getRubricId());
+            response.setCloIds(
+                    assessmentCLORepository.getByAssessment_AssessmentId(assessment.getAssessmentId())
+                            .stream()
+                            .map(assessmentCLO -> assessmentCLO.getCourseCLO().getCloId())
+                            .toList()
+            );
 
 
             Long submittedCount = submissionRepository.countByAssessmentId(assessment.getAssessmentId());
@@ -632,6 +718,7 @@ public class AssessmentService {
             response.setSubmissionAt(sub.getSubmittedAt() != null ? Timestamp.valueOf(sub.getSubmittedAt()) : null);
             response.setSubmittedFileUrl(sub.getFileUrl());
             response.setSubmittedLink(sub.getSubmittedLink());
+            response.setSubmittedAttachments(getSubmissionAttachments(sub.getId()));
             if (response.getRubricId() == null) {
                 response.setRubricId(sub.getRubricId());
             }
@@ -716,6 +803,7 @@ public class AssessmentService {
         return Math.abs(total) < 0.000001d ? null : total;
     }
 
+    @Transactional
     public void unsubmitAssignment(String assessmentId, String studentId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập!"));
@@ -733,8 +821,47 @@ public class AssessmentService {
                 .findByAssessmentIdAndStudentId(assessmentId, studentId)
                 .orElseThrow(() -> new RuntimeException("Bạn chưa nộp bài này!"));
 
+        submissionAttachmentRepository.deleteBySubmissionId(submission.getId());
         submissionRepository.delete(submission);
     }
+
+    private List<SubmissionAttachmentResponse> getSubmissionAttachments(String submissionId) {
+        if (submissionId == null || submissionId.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        return submissionAttachmentRepository.findBySubmissionIdOrderByCreatedAtAsc(submissionId)
+                .stream()
+                .map(this::toAttachmentResponse)
+                .toList();
+    }
+
+    private Map<String, List<SubmissionAttachmentResponse>> mapAttachmentsBySubmissionId(List<String> submissionIds) {
+        if (submissionIds == null || submissionIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return submissionAttachmentRepository.findBySubmissionIdIn(submissionIds)
+                .stream()
+                .sorted(Comparator.comparing(
+                        SubmissionAttachmentEntity::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .collect(Collectors.groupingBy(
+                        SubmissionAttachmentEntity::getSubmissionId,
+                        Collectors.mapping(this::toAttachmentResponse, Collectors.toList())
+                ));
+    }
+
+    private SubmissionAttachmentResponse toAttachmentResponse(SubmissionAttachmentEntity attachment) {
+        return new SubmissionAttachmentResponse(
+                attachment.getId(),
+                attachment.getAttachmentType(),
+                attachment.getAttachmentUrl(),
+                attachment.getOriginalName()
+        );
+    }
+
     public List<CourseOfferingResponse> getOfferingsByCourseId(String courseId) {
         List<CourseOffering> offerings = courseOfferingRepository.findByCourse_CourseId(courseId);
         CourseResponse courseResponse = courseMapper.toCourseResponse(offerings.getFirst().getCourse());

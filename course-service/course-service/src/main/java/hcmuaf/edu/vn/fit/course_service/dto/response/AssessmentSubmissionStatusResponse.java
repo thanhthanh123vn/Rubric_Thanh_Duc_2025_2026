@@ -21,6 +21,7 @@ public class AssessmentSubmissionStatusResponse {
     private String rubricId;
     private String fileUrl;
     private String submittedLink;
+    private List<SubmissionAttachmentResponse> attachments;
     private LocalDateTime submittedAt;
     private String status;
     private boolean submitted;

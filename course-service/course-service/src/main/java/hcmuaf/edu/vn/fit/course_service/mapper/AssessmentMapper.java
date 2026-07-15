@@ -12,7 +12,10 @@ import org.mapstruct.Mappings;
 public interface AssessmentMapper {
 
 
-    @Mapping(source = "courseOffering.offeringId", target = "offeringId")
+    @Mappings({
+            @Mapping(source = "courseOffering.offeringId", target = "offeringId"),
+            @Mapping(source = "rubricId", target = "rubricId")
+    })
 
     AssessmentLecturerResponse toResponse(Assessment assessment);
 

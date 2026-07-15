@@ -294,6 +294,31 @@ export default function AssessmentDetailModal({
                   </div>
 
                   <div className="mt-4 space-y-4">
+                    {Array.isArray(selectedAssessmentDetail.submittedAttachments) &&
+                      selectedAssessmentDetail.submittedAttachments.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">Tất cả tệp và liên kết</p>
+                          <div className="mt-2 space-y-2">
+                            {selectedAssessmentDetail.submittedAttachments.map((item: any) => (
+                              <a
+                                key={item.id}
+                                href={item.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-50"
+                              >
+                                <span className="truncate pr-4 font-medium">
+                                  {item.type === "FILE"
+                                    ? item.originalName || extractFileName(item.url)
+                                    : item.url}
+                                </span>
+                                <ExternalLink className="h-4 w-4 shrink-0 text-slate-400" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                     <div>
                       <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">Tệp</p>
                       <div className="mt-2">

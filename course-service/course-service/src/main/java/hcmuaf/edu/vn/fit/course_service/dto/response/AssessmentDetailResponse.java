@@ -28,5 +28,6 @@ public class AssessmentDetailResponse {
     private Map<String,String> clos;
     private String submittedFileUrl;
     private String submittedLink;
+    private List<SubmissionAttachmentResponse> submittedAttachments;
     private List<RubricCriterionDetailResponse> rubricDetails;
 }
