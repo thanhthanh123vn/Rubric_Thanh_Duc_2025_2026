@@ -16,7 +16,7 @@ export default function CreateExamPage() {
 
     const [banks, setBanks] = useState<QuestionBankResponse[]>([]);
     const [cloItems, setCloItems] = useState<any[]>([]);
-
+    const isEditMode = !!id;
     const [config, setConfig] = useState({
         offeringId:'',
         questionBankId: '',
@@ -116,6 +116,7 @@ export default function CreateExamPage() {
             setIsSubmitting(false);
         }
     };
+
     const getDurationMinutes = (startTime: string, endTime: string) => {
         if (!startTime || !endTime) return 0;
         const start = new Date(startTime).getTime();

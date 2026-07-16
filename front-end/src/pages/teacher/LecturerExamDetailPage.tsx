@@ -27,7 +27,7 @@ export type ExamQuestionDetail = {
     id: string;
     content: string;
     type: 'MULTIPLE_CHOICE' | 'ESSAY' | 'SHORT_ANSWER';
-    options?: string[];
+    options?: { id: string; content: string; correct: boolean }[];
     correctOptionIndex?: number;
     points: number;
     difficulty: 'EASY' | 'MEDIUM' | 'HARD';
@@ -65,7 +65,7 @@ export default function LecturerExamDetailPage() {
     const [loading, setLoading] = useState(false);
     const [examData, setExamData] = useState<LecturerExamDetailResponse | null>(null);
 
-    // Giả lập hoặc gọi API tải dữ liệu chi tiết đề thi
+
     const loadExamDetail = async () => {
         try {
             setLoading(true);
@@ -258,7 +258,7 @@ export default function LecturerExamDetailPage() {
     const totalStudents = examData.submissions.length;
     const gradedStudents = examData.submissions.filter(s => s.status === 'GRADED').length;
     const avgScore = gradedStudents > 0
-        ? (examData.submissions.filter(s => s.status === 'GRADED').reduce((acc, curr) => acc + s.score, 0) / gradedStudents).toFixed(2)
+        ? (examData.submissions.filter(s => s.status === 'GRADED').reduce((acc, curr) => acc + curr.score, 0) / gradedStudents).toFixed(2)
         : '--';
 
     return (
@@ -348,12 +348,31 @@ export default function LecturerExamDetailPage() {
 
                     {/* Phân vùng Tabs xem chi tiết */}
                     <Tabs defaultValue="questions" className="w-full space-y-4">
-                        <TabsList className="bg-slate-200/60 p-1 rounded-lg">
-                            <TabsTrigger value="questions" className="flex items-center gap-2">
-                                <FileText className="h-4 w-4" /> Cấu trúc & Nội dung câu hỏi
+                        <TabsList className="bg-slate-200/60 p-1 rounded-lg flex gap-2">
+                            <TabsTrigger
+                                value="questions"
+                                className="
+            flex items-center gap-2 rounded-md
+            data-[state=active]:bg-emerald-50
+            data-[state=active]:text-emerald-700
+            data-[state=active]:shadow-sm
+        "
+                            >
+                                <FileText className="h-4 w-4" />
+                                Cấu trúc & Nội dung câu hỏi
                             </TabsTrigger>
-                            <TabsTrigger value="students" className="flex items-center gap-2">
-                                <User className="h-4 w-4" /> Kết quả & Điểm số sinh viên
+
+                            <TabsTrigger
+                                value="students"
+                                className="
+                                        flex items-center gap-2 rounded-md
+                                        data-[state=active]:bg-emerald-50
+                                        data-[state=active]:text-emerald-700
+                                        data-[state=active]:shadow-sm
+                                    "
+                            >
+                                <User className="h-4 w-4" />
+                                Kết quả & Điểm số sinh viên
                             </TabsTrigger>
                         </TabsList>
 
@@ -432,7 +451,7 @@ export default function LecturerExamDetailPage() {
                                         {q.type === 'ESSAY' && (
                                             <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-500">
                                                 <span className="font-semibold text-slate-700 block mb-1">💡 Tiêu chí chấm điểm / Hướng dẫn:</span>
-                                                Sinh viên cần trình bày rõ ràng lý thuyết cốt lõi, lấy ví dụ thực tế liên quan đến dự án và thiết kế UML/Code mẫu sạch để đạt điểm tối đa (Tham khảo ma trận Rubric đi kèm môn học).
+                                                Sinh viên cần trình bày rõ ràng lý thuyết cốt lõi, lấy ví dụ thực tế liên quan (Tham khảo ma trận Rubric đi kèm môn học).
                                             </div>
                                         )}
                                     </CardContent>

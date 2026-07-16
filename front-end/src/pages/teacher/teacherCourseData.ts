@@ -75,7 +75,12 @@ export const teacherCourseMenu = [
     children: [
       { key: 'create-exam', label: 'Tạo đề thi', path: 'create-exam' },
       { key: 'exam-list', label: 'Danh sách đề thi', path: 'exam-list' },
+
+      { key: 'grading-final', label: 'Nhập điểm cuối kỳ', path: 'grading-final' }
+    ]
+
     ],
+
   },
   { key: 'obe', icon: BarChart3, label: 'OBE', path: 'obe' },
   { key: 'groups', icon: Workflow, label: 'Nhóm & dự án', path: 'groups' },

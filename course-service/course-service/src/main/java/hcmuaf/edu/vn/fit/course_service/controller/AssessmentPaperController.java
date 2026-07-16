@@ -1,11 +1,13 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.GenerateExamRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.UpdateAssessmentPaperRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.ExamQuestionDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerExamDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.AssessmentPaper;
 import hcmuaf.edu.vn.fit.course_service.exception.ResourceNotFoundException;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentPaperService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -76,7 +78,7 @@ public class AssessmentPaperController {
         }
 
         try {
-            // Lấy chi tiết đề thi
+
             LecturerExamDetailResponse response = assessmentPaperService.getLecturerExamDetail(paperId);
             return ResponseEntity.ok(response);
 
@@ -86,6 +88,52 @@ public class AssessmentPaperController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateExamPaper(
+            @PathVariable String id,
+            @RequestHeader("X-User-Id") String userId,
+            @Valid @RequestBody UpdateAssessmentPaperRequest request
+    ) {
+        if (userId == null || userId.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Thiếu thông tin người dùng"));
+        }
+
+        try {
+            AssessmentPaper updated = assessmentPaperService.updateExamPaper(id, userId, request);
+            return ResponseEntity.ok(updated);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Lỗi hệ thống khi cập nhật đề thi"));
+        }
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteExamPaper(
+            @PathVariable String id,
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        if (userId == null || userId.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Thiếu thông tin người dùng"));
+        }
+
+        try {
+            assessmentPaperService.deleteExamPaper(id, userId);
+            return ResponseEntity.ok(Map.of("message", "Xóa đề thi thành công!"));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Lỗi hệ thống khi xóa đề thi"));
+        }
+    }
+
 
 
 }

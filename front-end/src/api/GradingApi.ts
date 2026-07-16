@@ -38,6 +38,21 @@ export const submitStudentGrade = async (gradeData: any) => {
     return response.data;
 };
 
+export const gradingApi = {
+
+
+    saveGrades: async (payload: { assessmentId: string; grades: any[] }) => {
+        const res = await gradeSerciveApi.post('/exams/save-grades', payload);
+        return res.data;
+    },
+
+    getStudentsToGrade: async (offeringId: string, assessmentId: string) => {
+        const res = await gradeSerciveApi.get(`/exams/${offeringId}/students/${assessmentId}`);
+        return res.data;
+    },
+};
+
+
 export const fetchFeedbackTemplates = async (userId: string) => {
     const response = await gradeSerciveApi.get<FeedbackTemplateDTO[]>(`/feedback-templates`, {
         params: { userId },
@@ -55,3 +70,4 @@ export const deleteFeedbackTemplate = async (templateId: number, userId: string)
         params: { userId },
     });
 };
+

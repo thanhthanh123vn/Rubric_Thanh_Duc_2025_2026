@@ -65,12 +65,12 @@ export default function StudentExamListPage() {
         const et = new Date(x.endTime).getTime();
         return now >= st && now <= et && (x.status === 'NOT_STARTED' || x.status === 'IN_PROGRESS');
     };
-const takeExam =( id:string)=>{
-    navigate(`/${id}`);
+const takeExam =( paperId:string)=>{
+    navigate(`/course/${id}/my-exams/${paperId}`);
 }
     const handleNavigate = (x: StudentAssignedExamResponse) => {
         if (canStart(x)) {
-            navigate(`/student/exams/${x.assignmentId}`);
+            navigate(`/course/${id}/my-exams/${x.assessmentPaperId}`);
         }
     };
     const getCardColor = (id: string) => {

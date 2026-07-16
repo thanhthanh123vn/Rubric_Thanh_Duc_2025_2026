@@ -5,6 +5,7 @@ import hcmuaf.edu.vn.fit.course_service.entity.enums.StudentExamStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface StudentExamAssignmentRepository extends MongoRepository<StudentExamAssignment, String> {
 
@@ -16,5 +17,5 @@ public interface StudentExamAssignmentRepository extends MongoRepository<Student
 
     List<StudentExamAssignment> findByStatus(StudentExamStatus status);
 
-
+    Optional<StudentExamAssignment> findByAssessmentPaperIdAndStudentId(String examId, String studentId);
 }

@@ -14,7 +14,9 @@ public interface CourseCLORepository extends JpaRepository<CourseCLO, String> {
 
     @Query("SELECT c FROM CourseCLO c WHERE c.course.courseId = :courseId AND c.cloCode IN :cloCodes")
     List<CourseCLO> findByCourseIdAndCloCodes(@Param("courseId") String courseId, @Param("cloCodes") List<String> cloCodes);
+
     @Query("SELECT c FROM CourseCLO c WHERE c.course.courseId = :courseId AND LOWER(c.cloCode) IN :cloCodes")
     List<CourseCLO> findByCourseIdAndCloCodesIgnoreCase(@Param("courseId") String courseId, @Param("cloCodes") List<String> cloCodes);
-    List<CourseCLO> findByCloCodeIn( List<String> cloCodes);
+
+    List<CourseCLO> findByCloCodeIn(List<String> cloCodes);
 }

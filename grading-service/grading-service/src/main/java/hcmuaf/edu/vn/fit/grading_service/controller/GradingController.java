@@ -4,6 +4,8 @@ import hcmuaf.edu.vn.fit.grading_service.client.NotificationClient;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.FeedbackTemplateRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.GradeRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.NotificationRequest;
+import hcmuaf.edu.vn.fit.grading_service.dto.request.SaveGradesRequest;
+import hcmuaf.edu.vn.fit.grading_service.dto.request.StudentGradeDto;
 import hcmuaf.edu.vn.fit.grading_service.dto.response.ApiResponse;
 import hcmuaf.edu.vn.fit.grading_service.dto.response.FeedbackTemplateResponse;
 import hcmuaf.edu.vn.fit.grading_service.entity.Grade;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/grading-service")
@@ -67,6 +71,21 @@ public class GradingController {
         return ResponseEntity.ok(grade);
     }
 
+    @GetMapping("/exams/{offeringId}/students/{assessmentId}")
+    public ResponseEntity<List<StudentGradeDto>> getStudentsToGrade(
+            @PathVariable String offeringId,
+            @PathVariable String assessmentId
+    ) {
+        List<StudentGradeDto> response = service.getStudentsToGrade(offeringId, assessmentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/exams/save-grades")
+    public ResponseEntity<String> saveGrades(@RequestBody SaveGradesRequest request) {
+        service.saveGrades(request);
+        return ResponseEntity.ok("Lưu bảng điểm thành công!");
+
+
     @GetMapping("/feedback-templates")
     public ResponseEntity<?> getFeedbackTemplates(@RequestParam String userId) {
         try {
@@ -97,5 +116,6 @@ public class GradingController {
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(exception.getMessage());
         }
+
     }
 }

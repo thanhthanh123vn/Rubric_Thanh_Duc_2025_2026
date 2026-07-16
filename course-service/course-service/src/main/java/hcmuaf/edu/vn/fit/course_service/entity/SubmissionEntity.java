@@ -21,15 +21,19 @@ public class SubmissionEntity {
 
     @Column(name = "assessment_id")
     private String assessmentId;
+
     @Column(name = "student_id")
     private String studentId;
     @Column(name = "file_url")
     private String fileUrl;
 
     private String rubricId;
+    private Double gradeCore;
+
     @Column(name = "submission_text")
     private String submittedLink;
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
     private String status;
+
 }

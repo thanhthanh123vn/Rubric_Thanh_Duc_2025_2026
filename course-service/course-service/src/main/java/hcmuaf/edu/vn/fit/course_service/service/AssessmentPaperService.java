@@ -4,13 +4,16 @@ import hcmuaf.edu.vn.fit.course_service.client.NotificationClient;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.GenerateExamRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.request.NotificationRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.UpdateAssessmentPaperRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.entity.*;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.StudentExamStatus;
 import hcmuaf.edu.vn.fit.course_service.exception.BadRequestException;
 import hcmuaf.edu.vn.fit.course_service.exception.ResourceNotFoundException;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.jpa.SubmissionRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.AssessmentPaperRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.AssessmentRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.QuestionRepository;
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+
 public class AssessmentPaperService {
 
     private final QuestionRepository questionRepository;
@@ -40,6 +44,8 @@ public class AssessmentPaperService {
     private final AssessmentPaperRepository assessmentPaperRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentExamAssignmentRepository studentExamAssignmentRepository;
+    private final SubmissionRepository submissionRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
 
 
     public List<ExamQuestionDetailResponse> generateExamQuestions(String userId, GenerateExamRequest request) {
@@ -77,8 +83,8 @@ public class AssessmentPaperService {
             throw new BadRequestException("Tổng số câu hỏi trong đề phải lớn hơn 0!");
         }
 
-        // 5. --- THUẬT TOÁN TÍNH ĐIỂM THEO TRỌNG SỐ ĐỘ KHÓ (TỔNG = 10) ---
-        // Tính tổng số phần trọng số: Dễ (1 phần), Trung bình (2 phần), Khó (3 phần)
+        // 5. --- THUẬT TOÁN TÍNH ĐIỂM THEO TRỌNG SỐ ĐỘ KHÓ
+
         double totalWeight = (request.getEasyCount() * 1.0)
                 + (request.getMediumCount() * 2.0)
                 + (request.getHardCount() * 3.0);
@@ -119,7 +125,7 @@ public class AssessmentPaperService {
             }
 
             // XỬ LÝ CÂU HỎI CUỐI CÙNG: Lấy 10 trừ đi tổng điểm của các câu trước đó
-            // Điều này đảm bảo tổng điểm cả đề thi luôn khớp 10.00 tuyệt đối, không bị lệch do sai số làm tròn.
+
             if (i == selectedQuestions.size() - 1) {
                 questionScore = Math.round((10.0 - currentTotalScore) * 100.0) / 100.0;
             } else {
@@ -164,7 +170,7 @@ public class AssessmentPaperService {
         return assessmentPaperRepository.findByLecturerId(lecturerId);
     }
 
-    // Thêm hàm này để lấy chi tiết 1 bài thi cho giảng viên review
+
     public AssessmentPaper getPaperDetail(String paperId) {
         return assessmentPaperRepository.findById(paperId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi"));
@@ -242,7 +248,7 @@ public class AssessmentPaperService {
         List<StudentExamAssignment> assignments = studentExamAssignmentRepository.findByStudentId(studentId);
         if (assignments.isEmpty()) return List.of();
 
-        // 2) map assignment theo paperId
+
         Map<String, StudentExamAssignment> assignmentByPaperId = assignments.stream()
                 .filter(a -> a.getAssessmentPaperId() != null)
                 .collect(Collectors.toMap(
@@ -276,7 +282,7 @@ public class AssessmentPaperService {
     }
 
     public LecturerExamDetailResponse getLecturerExamDetail(String paperId) {
-        // 1. Lấy thông tin đề thi
+
         AssessmentPaper paper = assessmentPaperRepository.findById(paperId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi với ID: " + paperId));
 
@@ -295,6 +301,20 @@ public class AssessmentPaperService {
         double currentTotalScore = 0.0;
         List<LecturerExamDetailResponse.ExamQuestionDetailDTO> questionDTOs = new ArrayList<>();
 
+
+        String finalOfferingId;
+        String courseName = "Môn học";
+        if (!questions.isEmpty()) {
+            finalOfferingId = questions.get(0).getOfferingId();
+
+            CourseOffering offering = courseOfferingRepository.findById(finalOfferingId).orElse(null);
+            if (offering != null && offering.getCourse() != null) {
+                courseName = offering.getCourse().getCourseName();
+            }
+        } else {
+            finalOfferingId = "";
+        }
+
         for (int i = 0; i < questions.size(); i++) {
             Question q = questions.get(i);
             double questionScore = 0.0;
@@ -310,54 +330,108 @@ public class AssessmentPaperService {
                 currentTotalScore += questionScore;
             }
 
+
+            int correctIndex = -1;
+            if (q.getOptions() != null && !q.getOptions().isEmpty()) {
+                for (int j = 0; j < q.getOptions().size(); j++) {
+                    if (Boolean.TRUE.equals(q.getOptions().get(j).getCorrect())) {
+                        correctIndex = j;
+                        break;
+                    }
+                }
+            }
+
             questionDTOs.add(LecturerExamDetailResponse.ExamQuestionDetailDTO.builder()
                     .id(q.getId())
                     .content(q.getContent())
                     .difficulty(q.getDifficulty().name())
                     .points(questionScore)
-
-                     .type(q.getType() != null ? q.getType().name() : "MULTIPLE_CHOICE")
-                     .options(q.getOptions())
-                     .correctOptionIndex(q.getOptions().get(0).isCorrect())
-                     .cloCode(q.getCloIds())
+                    .type(q.getType() != null ? q.getType().name() : "MULTIPLE_CHOICE")
+                    .options(q.getOptions())
+                    .correctOptionIndex(correctIndex)
+                    .cloCode(q.getCloIds())
                     .build());
         }
 
-        // 3. Lấy thông tin sinh viên được giao bài thi này
-        // Cần repository để query: studentExamAssignmentRepository.findByAssessmentPaperId(paperId);
-        // Giả sử bạn có hàm findByAssessmentPaperId trong repo
-        // Nếu chưa có, hãy thêm vào StudentExamAssignmentRepository: List<StudentExamAssignment> findByAssessmentPaperId(String paperId);
+        // 3. Lấy thông tin sinh viên được giao bài thi
         List<StudentExamAssignment> assignments = studentExamAssignmentRepository.findByAssessmentPaperId(paperId);
 
         List<LecturerExamDetailResponse.StudentSubmissionRowDTO> submissionDTOs = assignments.stream().map(a -> {
-            // TODO: Lấy thông tin Name, Code của sinh viên từ UserClient hoặc Database bằng a.getStudentId()
-            // Dưới đây là giá trị mặc định, bạn hãy gọi service/client tương ứng để điền thông tin thật
-            String studentName = "Sinh viên " + a.getStudentId().substring(a.getStudentId().length() - 4);
-            String studentCode = a.getStudentId();
+
+            SinhVienResponse sinhVienResponse = userClient.getSinhVien(a.getStudentId());
+
+
+            SubmissionEntity submission = submissionRepository
+                    .findByAssessmentIdAndStudentId(a.getAssessmentPaperId(), a.getStudentId())
+                    .orElse(null);
+
+
 
             return LecturerExamDetailResponse.StudentSubmissionRowDTO.builder()
                     .studentId(a.getStudentId())
-                    .studentName(studentName) // Lấy từ UserClient
-                    .studentCode(studentCode) // Lấy từ UserClient
-                    .classCode("N/A")         // Có thể lấy qua Enrollment
-                    .score(0.0)               // Thêm logic điểm từ a.getScore() nếu Assignment có
-                    .submitTime(null)         // Lấy từ Assignment / Submission
-                    .status(a.getStatus().name())
+                    .studentName(sinhVienResponse != null ? sinhVienResponse.getFullName() : "N/A")
+                    .studentCode(sinhVienResponse != null ? sinhVienResponse.getUserId() : "N/A")
+                    .classCode(finalOfferingId)
+                    .score(submission != null ? submission.getGradeCore() : null)
+                    // Đã sửa lỗi ép kiểu thời gian
+                    .submitTime(submission != null && submission.getSubmittedAt() != null
+                            ? submission.getSubmittedAt().atZone(java.time.ZoneId.systemDefault()).toInstant()
+                            : null)
+                    .status(a.getStatus() != null ? a.getStatus().name() : "N/A")
                     .build();
         }).collect(Collectors.toList());
 
-        // 4. Trả về kết quả
+
         return LecturerExamDetailResponse.builder()
                 .examId(paper.getId())
                 .examTitle(paper.getExamTitle())
-                .courseName("Môn học " + paper.getSourceQuestionBankId()) // Lấy tên Course thật thông qua offeringId
-                .courseCode(paper.getSourceQuestionBankId())
+                .courseName(courseName)
+                .courseCode(finalOfferingId)
                 .durationMinutes(paper.getDurationMinutes())
                 .totalPoints(10.0)
                 .status(paper.getStatus())
-                //.createdAt(paper.getCreatedAt()) // Nếu Entity của bạn có field CreateAt
+                .createdAt(paper.getCreatedAt())
                 .questions(questionDTOs)
                 .submissions(submissionDTOs)
                 .build();
+    }
+    public AssessmentPaper updateExamPaper(String id, String userId, UpdateAssessmentPaperRequest request) {
+        AssessmentPaper paper = assessmentPaperRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi"));
+
+
+        if (paper.getLecturerId() != null && !paper.getLecturerId().equals(userId)) {
+            throw new IllegalStateException("Bạn không có quyền sửa đề thi này");
+        }
+
+
+        if ("PUBLISHED".equalsIgnoreCase(paper.getStatus())) {
+            throw new IllegalStateException("Đề thi đã giao, không thể chỉnh sửa");
+        }
+
+        if (request.getExamTitle() != null) paper.setExamTitle(request.getExamTitle());
+        if (request.getDurationMinutes() != null) paper.setDurationMinutes(request.getDurationMinutes());
+        if (request.getStartTime() != null) paper.setStartTime(Instant.from(request.getStartTime()));
+        if (request.getEndTime() != null) paper.setEndTime(Instant.from(request.getEndTime()));
+        if (request.getQuestionIds() != null) paper.setQuestionIds(request.getQuestionIds());
+        if (request.getSourceQuestionBankId() != null) paper.setSourceQuestionBankId(request.getSourceQuestionBankId());
+
+        return assessmentPaperRepository.save(paper);
+    }
+
+
+    public void deleteExamPaper(String id, String userId) {
+        AssessmentPaper paper = assessmentPaperRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi"));
+
+        if (paper.getLecturerId() != null && !paper.getLecturerId().equals(userId)) {
+            throw new IllegalStateException("Bạn không có quyền xóa đề thi này");
+        }
+
+        if ("PUBLISHED".equalsIgnoreCase(paper.getStatus())) {
+            throw new IllegalStateException("Đề thi đã giao, không thể xóa");
+        }
+
+        assessmentPaperRepository.delete(paper);
     }
 }

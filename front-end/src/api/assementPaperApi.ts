@@ -15,4 +15,25 @@ export const assessmentPaperServiceApi = {
         const res = await courseApi.post('/student/exams/submit', payload);
         return res.data;
     },
+
+    async updateExam(
+        examId: string,
+        payload: {
+            examTitle?: string;
+            durationMinutes?: number | null;
+            startTime?: string | null;
+            endTime?: string | null;
+            sourceQuestionBankId?: string | null;
+            questionIds?: string[];
+        }
+    ) {
+        const res = await courseApi.put(`/assessments/paper/${examId}`, payload);
+        return res.data;
+    },
+
+
+    async deleteExam(examId: string) {
+        const res = await courseApi.delete(`/assessments/paper/${examId}`);
+        return res.data;
+    },
 };

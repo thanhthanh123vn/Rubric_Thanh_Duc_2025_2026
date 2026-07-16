@@ -158,8 +158,8 @@ export default function TeacherQuestionBank() {
 
 
     if (question.type === 'MULTIPLE_CHOICE' && question.options) {
-      const newOptions = Array(4).fill({ content: '', isCorrect: false }).map((defaultOpt, idx) => {
-        return question.options[idx] ? { content: question.options[idx].content, isCorrect: question.options[idx].correct } : defaultOpt;
+      const newOptions = Array(4).fill({ content: '', correct: false }).map((defaultOpt, idx) => {
+        return question.options[idx] ? { content: question.options[idx].content, correct: question.options[idx].correct } : defaultOpt;
       });
 
       setOptions(newOptions);
@@ -456,7 +456,7 @@ export default function TeacherQuestionBank() {
                                 <div
                                     className="mt-0.5 cursor-pointer text-slate-400 hover:text-blue-500 transition-colors"
                                     onClick={() => {
-                                      const newOpts = options.map((opt, i) => ({...opt, isCorrect: i === index}));
+                                      const newOpts = options.map((opt, i) => ({...opt, correct: i === index}));
                                       setOptions(newOpts);
                                     }}
                                 >
