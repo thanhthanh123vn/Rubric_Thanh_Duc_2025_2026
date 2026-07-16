@@ -15,7 +15,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
         a.assessment_id,
         a.assessment_name,
         a.assessment_type,
-        ac.clo_weight,
+        a.weight,
         a.end_time,
 
         s.submission_id,
@@ -52,7 +52,7 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
         a.assessment_name,
         a.description,
         a.assessment_type,
-        ac.clo_weight,
+        a.weight,
         a.end_time,
 
         s.submission_id,
@@ -123,7 +123,6 @@ public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     ORDER BY rr.criteria_id
     """, nativeQuery = true)
     List<Object[]> getRubricCriterionDetails(@Param("assessmentId") String assessmentId, @Param("studentId") String studentId);
-
 
     List<Assessment> findByCourseOffering_OfferingIdOrderByStartTimeDesc(String offeringId);
 }

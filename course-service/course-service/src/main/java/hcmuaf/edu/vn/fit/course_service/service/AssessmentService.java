@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -32,7 +35,7 @@ public class AssessmentService {
 
 
     private final AssessmentRepository assessmentRepository;
-    private final EnrollmentRepository enrollmentRepository;
+    private final  EnrollmentRepository enrollmentRepository;
     private final GradingClient gradingClient;
     private final CourseMapper courseMapper;
 
@@ -41,6 +44,7 @@ public class AssessmentService {
     private GradeStatus status = GradeStatus.PENDING;
     private final AssessmentMapper assessmentMapper;
     private final SubmissionRepository submissionRepository;
+    private final SubmissionAttachmentRepository submissionAttachmentRepository;
     private final CourseOfferingRepository courseOfferingRepository;
     private final GroupRepository groupRepository;
     private final ParticipantRepository participantRepository;
@@ -73,11 +77,6 @@ public class AssessmentService {
                 if(item[5] != null){
                     dto.setSubmissionId(item[5].toString());
                     dto.setSubmissionAt((Timestamp) item[6]);
-
-                    dto.setCalculatedScore(item[7] != null ? ((Number) item[7]).floatValue() : null);
-
-                    dto.setLecturerComment(item[8] != null ? item[8].toString() : null);
-
                 }
 
                 if (item[9] != null) {
@@ -88,6 +87,25 @@ public class AssessmentService {
                     );
                     dto.setCloCode(clos);
                 }
+
+                GradeDetailResponse gradeDetail = getGradeDetailSafely(dto.getAssessmentId(), studentId);
+                Double fallbackTotalScore = dto.getSubmissionId() != null
+                        ? getRubricFallbackTotalScore(dto.getAssessmentId(), studentId)
+                        : null;
+
+                dto.setCalculatedScore(
+                        roundToSingleDecimal(resolveDisplayedTotalScore(
+                                gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                                fallbackTotalScore
+                        ))
+                );
+                dto.setLecturerComment(
+                        gradeDetail != null && gradeDetail.getComment() != null && !gradeDetail.getComment().isBlank()
+                                ? gradeDetail.getComment()
+                                : fallbackTotalScore != null
+                                    ? "Đã chấm theo rubric"
+                                    : null
+                );
 
                 return dto;
 
@@ -120,9 +138,6 @@ public class AssessmentService {
             dto.setSubmissionId((String) res[6]);
             dto.setSubmissionAt((Timestamp) res[7]);
 
-            dto.setCalculatedScore(res[8] != null ? ((Number) res[8]).doubleValue() : null);
-            dto.setLecturerComment((String) res[9]);
-
             String closJson = (String) res[10];
             if (closJson != null) {
                 ObjectMapper mapper = new ObjectMapper();
@@ -135,6 +150,28 @@ public class AssessmentService {
                 }
 
                 dto.setClos(closMap);
+            }
+
+            GradeDetailResponse gradeDetail = getGradeDetailSafely(assessmentId, studentId);
+            Double fallbackTotalScore = dto.getSubmissionId() != null
+                    ? getRubricFallbackTotalScore(assessmentId, studentId)
+                    : null;
+
+            dto.setCalculatedScore(
+                    roundToSingleDecimal(resolveDisplayedTotalScore(
+                            gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                            fallbackTotalScore
+                    ))
+            );
+            dto.setLecturerComment(
+                    gradeDetail != null && gradeDetail.getComment() != null && !gradeDetail.getComment().isBlank()
+                            ? gradeDetail.getComment()
+                            : fallbackTotalScore != null
+                                ? "Đã chấm theo rubric"
+                                : null
+            );
+            if (dto.getRubricId() == null && gradeDetail != null && gradeDetail.getRubricId() != null) {
+                dto.setRubricId(gradeDetail.getRubricId());
             }
 
             return dto;
@@ -162,13 +199,20 @@ public class AssessmentService {
             return Collections.emptyList();
         }
 
-        Map<String, SubmissionEntity> submissionMap = submissionRepository.findByAssessmentId(assessmentId)
-                .stream()
+        List<SubmissionEntity> submissions = submissionRepository.findByAssessmentId(assessmentId);
+        Map<String, SubmissionEntity> submissionMap = submissions.stream()
                 .collect(Collectors.toMap(
                         SubmissionEntity::getStudentId,
                         submission -> submission,
                         (current, ignored) -> current
                 ));
+        Map<String, List<SubmissionAttachmentResponse>> attachmentsBySubmissionId =
+                mapAttachmentsBySubmissionId(
+                        submissions.stream()
+                                .map(SubmissionEntity::getId)
+                                .filter(Objects::nonNull)
+                                .toList()
+                );
 
         return studentIds.stream()
                 .map(studentId -> {
@@ -184,47 +228,193 @@ public class AssessmentService {
                                 .build();
                     }
 
+                    GradeDetailResponse gradeDetail = null;
+                    Double fallbackTotalScore = null;
+                    String fallbackComment = null;
+                    List<SubmissionCriterionScoreResponse> gradedCriteria = Collections.emptyList();
+                    try {
+                        gradeDetail = gradingClient.getGradeByStudentAndAssessment(assessmentId, studentId);
+                    } catch (Exception ignored) {
+                    }
+
+                    if (gradeDetail == null) {
+                        try {
+                            List<Object[]> rubricDetails = assessmentRepository.getRubricCriterionDetails(assessmentId, studentId);
+                            if (rubricDetails != null && !rubricDetails.isEmpty()) {
+                                fallbackTotalScore = rubricDetails.stream()
+                                        .map(row -> row[4])
+                                        .filter(Number.class::isInstance)
+                                        .map(Number.class::cast)
+                                        .mapToDouble(Number::doubleValue)
+                                        .sum();
+                                fallbackComment = "Đã chấm theo rubric";
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+
+                    try {
+                        List<Object[]> rubricDetails = assessmentRepository.getRubricCriterionDetails(assessmentId, studentId);
+                        if (rubricDetails != null && !rubricDetails.isEmpty()) {
+                            gradedCriteria = rubricDetails.stream()
+                                    .map(this::mapSubmissionCriterionScore)
+                                    .toList();
+                        }
+                    } catch (Exception ignored) {
+                    }
+
+                    if (fallbackTotalScore != null && Math.abs(fallbackTotalScore) < 0.000001d) {
+                        fallbackTotalScore = null;
+                        fallbackComment = null;
+                    }
+
+                    Double resolvedTotalScore = resolveDisplayedTotalScore(
+                            gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                            fallbackTotalScore
+                    );
+                    String effectiveRubricId = submission.getRubricId() != null
+                            && !submission.getRubricId().isBlank()
+                            ? submission.getRubricId()
+                            : assessment.getRubricId();
+
                     return AssessmentSubmissionStatusResponse.builder()
                             .id(submission.getId())
                             .assessmentId(submission.getAssessmentId())
                             .studentId(submission.getStudentId())
-                            .rubricId(submission.getRubricId())
+                            .rubricId(effectiveRubricId)
                             .fileUrl(submission.getFileUrl())
                             .submittedLink(submission.getSubmittedLink())
+                            .attachments(attachmentsBySubmissionId.getOrDefault(submission.getId(), Collections.emptyList()))
                             .submittedAt(submission.getSubmittedAt())
                             .status(
-                                    submission.getStatus() != null && !submission.getStatus().isBlank()
-                                            ? submission.getStatus()
-                                            : "SUBMITTED"
+                                    gradeDetail != null && gradeDetail.getStatus() != null && !gradeDetail.getStatus().isBlank()
+                                            ? gradeDetail.getStatus()
+                                            : fallbackTotalScore != null
+                                                ? "GRADED"
+                                            : submission.getStatus() != null && !submission.getStatus().isBlank()
+                                                ? submission.getStatus()
+                                                : "SUBMITTED"
                             )
                             .submitted(true)
+                            .totalScore(roundToSingleDecimal(resolvedTotalScore))
+                            .grade(gradeDetail != null ? gradeDetail.getGrade() : null)
+                            .comment(gradeDetail != null ? gradeDetail.getComment() : fallbackComment)
+                            .gradedCriteria(gradedCriteria)
                             .build();
                 })
                 .sorted(Comparator.comparing(AssessmentSubmissionStatusResponse::getStudentId))
                 .toList();
     }
+
+    private SubmissionCriterionScoreResponse mapSubmissionCriterionScore(Object[] row) {
+        return SubmissionCriterionScoreResponse.builder()
+                .criteriaId(row[0] != null ? row[0].toString() : null)
+                .criteriaName(row[1] != null ? row[1].toString() : null)
+                .levelId(row[2] != null ? row[2].toString() : null)
+                .levelName(row[3] != null ? row[3].toString() : null)
+                .score(roundToSingleDecimal(row[4] instanceof Number number ? number.doubleValue() : null))
+                .build();
+    }
+
+    private Double roundToSingleDecimal(Double value) {
+        if (value == null || !Double.isFinite(value)) {
+            return value;
+        }
+        return BigDecimal.valueOf(value)
+                .setScale(1, RoundingMode.HALF_UP)
+                .doubleValue();
+    }
+
+    private Double resolveDisplayedTotalScore(Double gradeScore, Double rubricScore) {
+        if (gradeScore != null && Double.isFinite(gradeScore)) {
+            if (gradeScore <= 10d) {
+                return gradeScore;
+            }
+
+            if (rubricScore != null && Double.isFinite(rubricScore) && rubricScore <= 10d) {
+                return rubricScore;
+            }
+        }
+
+        if (rubricScore != null && Double.isFinite(rubricScore)) {
+            return rubricScore;
+        }
+
+        return gradeScore;
+    }
+    @Transactional
     public SubmissionEntity submitAssignment(
             String assessmentId,
             String studentId,
+            List<MultipartFile> files,
+            List<String> links,
             MultipartFile file,
             String link,
             String rubricId
 
     ){
         try{
-            boolean hasFile = file != null && !file.isEmpty();
-            boolean hasLink = link != null && !link.trim().isEmpty();
+            List<MultipartFile> normalizedFiles = new ArrayList<>();
+            if (files != null) {
+                normalizedFiles.addAll(
+                        files.stream()
+                                .filter(Objects::nonNull)
+                                .filter(item -> !item.isEmpty())
+                                .toList()
+                );
+            }
+            if (file != null && !file.isEmpty()) {
+                normalizedFiles.add(file);
+            }
 
-            if (!hasFile && !hasLink) {
+            List<String> normalizedLinks = new ArrayList<>();
+            if (links != null) {
+                normalizedLinks.addAll(
+                        links.stream()
+                                .filter(Objects::nonNull)
+                                .map(String::trim)
+                                .filter(item -> !item.isEmpty())
+                                .toList()
+                );
+            }
+            if (link != null && !link.trim().isEmpty()) {
+                normalizedLinks.add(link.trim());
+            }
+
+            if (normalizedFiles.isEmpty() && normalizedLinks.isEmpty()) {
                 throw new RuntimeException("Phải có file hoặc link");
             }
 
-            String fileUrl = null;
-            String submittedLink = hasLink ? link.trim() : null;
-
-            if (hasFile) {
-                fileUrl = s3Service.uploadFile(file);
+            List<SubmissionAttachmentEntity> attachments = new ArrayList<>();
+            for (MultipartFile multipartFile : normalizedFiles) {
+                String uploadedUrl = s3Service.uploadFile(multipartFile);
+                SubmissionAttachmentEntity attachment = new SubmissionAttachmentEntity();
+                attachment.setAttachmentType("FILE");
+                attachment.setAttachmentUrl(uploadedUrl);
+                attachment.setOriginalName(multipartFile.getOriginalFilename());
+                attachment.setCreatedAt(LocalDateTime.now());
+                attachments.add(attachment);
             }
+
+            for (String submittedLinkValue : normalizedLinks) {
+                SubmissionAttachmentEntity attachment = new SubmissionAttachmentEntity();
+                attachment.setAttachmentType("LINK");
+                attachment.setAttachmentUrl(submittedLinkValue);
+                attachment.setOriginalName(submittedLinkValue);
+                attachment.setCreatedAt(LocalDateTime.now());
+                attachments.add(attachment);
+            }
+
+            String fileUrl = attachments.stream()
+                    .filter(item -> "FILE".equalsIgnoreCase(item.getAttachmentType()))
+                    .map(SubmissionAttachmentEntity::getAttachmentUrl)
+                    .findFirst()
+                    .orElse(null);
+            String submittedLink = attachments.stream()
+                    .filter(item -> "LINK".equalsIgnoreCase(item.getAttachmentType()))
+                    .map(SubmissionAttachmentEntity::getAttachmentUrl)
+                    .findFirst()
+                    .orElse(null);
             if (!assessmentRepository.existsById(assessmentId)) {
                 throw new RuntimeException("Assessment không tồn tại: " + assessmentId);
             }
@@ -233,10 +423,13 @@ public class AssessmentService {
             if(existing != null){
                 existing.setFileUrl(fileUrl);
                 existing.setSubmittedLink(submittedLink);
-                existing.setSubmittedAt(java.time.LocalDateTime.now());
+                existing.setSubmittedAt(LocalDateTime.now());
                 existing.setRubricId(rubricId);
 
                 submissionRepository.save(existing);
+                submissionAttachmentRepository.deleteBySubmissionId(existing.getId());
+                attachments.forEach(item -> item.setSubmissionId(existing.getId()));
+                submissionAttachmentRepository.saveAll(attachments);
                 return existing;
             }
 
@@ -245,10 +438,12 @@ public class AssessmentService {
             submission.setStudentId(studentId);
             submission.setFileUrl(fileUrl);
             submission.setSubmittedLink(submittedLink);
-            submission.setSubmittedAt(java.time.LocalDateTime.now());
+            submission.setSubmittedAt(LocalDateTime.now());
             submission.setRubricId(rubricId);
 
             submissionRepository.save(submission);
+            attachments.forEach(item -> item.setSubmissionId(submission.getId()));
+            submissionAttachmentRepository.saveAll(attachments);
 
             return submission;
 
@@ -297,19 +492,24 @@ public class AssessmentService {
 
 
             if (cloIds != null && !cloIds.isEmpty()) {
+                double cloWeight = weight != null ? weight.doubleValue() / cloIds.size() : 0;
                 List<AssessmentCLO> assessmentCLOs = cloIds.stream().map(cloId -> {
                     CourseCLO clo = courseCLORepository.findById(cloId)
                             .orElseThrow(() -> new RuntimeException("CLO không tồn tại: " + cloId));
                     return AssessmentCLO.builder()
                             .assessmentCloId(UUID.randomUUID().toString())
                             .assessment(savedAssessment)
+                            .cloWeight(cloWeight)
                             .courseCLO(clo)
                             .build();
                 }).toList();
                 assessmentCLORepository.saveAll(assessmentCLOs);
             }
 
-            return assessmentMapper.toResponse(savedAssessment);
+            AssessmentLecturerResponse response = assessmentMapper.toResponse(savedAssessment);
+            response.setRubricId(savedAssessment.getRubricId());
+            response.setCloIds(cloIds == null ? Collections.emptyList() : List.copyOf(cloIds));
+            return response;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi: " + e.getMessage());
         }
@@ -356,19 +556,24 @@ public class AssessmentService {
             assessmentCLORepository.deleteByAssessment_AssessmentId(assessmentId);
 
             if (cloIds != null && !cloIds.isEmpty()) {
+                double cloWeight = weight != null ? weight.doubleValue() / cloIds.size() : 0;
                 List<AssessmentCLO> assessmentCLOs = cloIds.stream().map(cloId -> {
                     CourseCLO clo = courseCLORepository.findById(cloId)
                             .orElseThrow(() -> new RuntimeException("CLO không tồn tại: " + cloId));
                     return AssessmentCLO.builder()
                             .assessmentCloId(UUID.randomUUID().toString())
                             .assessment(savedAssessment)
+                            .cloWeight(cloWeight)
                             .courseCLO(clo)
                             .build();
                 }).toList();
                 assessmentCLORepository.saveAll(assessmentCLOs);
             }
 
-            return assessmentMapper.toResponse(savedAssessment);
+            AssessmentLecturerResponse response = assessmentMapper.toResponse(savedAssessment);
+            response.setRubricId(savedAssessment.getRubricId());
+            response.setCloIds(cloIds == null ? Collections.emptyList() : List.copyOf(cloIds));
+            return response;
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi cập nhật bài tập: " + e.getMessage(), e);
         }
@@ -402,6 +607,13 @@ public class AssessmentService {
         return assessments.stream().map(assessment -> {
             AssessmentLecturerResponse response = assessmentMapper.toResponse(assessment);
             response.setTotalStudents(totalStudents);
+            response.setRubricId(assessment.getRubricId());
+            response.setCloIds(
+                    assessmentCLORepository.getByAssessment_AssessmentId(assessment.getAssessmentId())
+                            .stream()
+                            .map(assessmentCLO -> assessmentCLO.getCourseCLO().getCloId())
+                            .toList()
+            );
 
 
             Long submittedCount = submissionRepository.countByAssessmentId(assessment.getAssessmentId());
@@ -506,6 +718,7 @@ public class AssessmentService {
             response.setSubmissionAt(sub.getSubmittedAt() != null ? Timestamp.valueOf(sub.getSubmittedAt()) : null);
             response.setSubmittedFileUrl(sub.getFileUrl());
             response.setSubmittedLink(sub.getSubmittedLink());
+            response.setSubmittedAttachments(getSubmissionAttachments(sub.getId()));
             if (response.getRubricId() == null) {
                 response.setRubricId(sub.getRubricId());
             }
@@ -526,6 +739,25 @@ public class AssessmentService {
             response.setRubricDetails(rubricDetails);
         }
 
+        GradeDetailResponse gradeDetail = getGradeDetailSafely(assessmentId, studentId);
+        Double fallbackTotalScore = getRubricFallbackTotalScore(rubricDetailRows);
+        response.setCalculatedScore(
+                roundToSingleDecimal(resolveDisplayedTotalScore(
+                        gradeDetail != null ? gradeDetail.getTotalScore() : null,
+                        fallbackTotalScore
+                ))
+        );
+        response.setLecturerComment(
+                gradeDetail != null && gradeDetail.getComment() != null && !gradeDetail.getComment().isBlank()
+                        ? gradeDetail.getComment()
+                        : fallbackTotalScore != null
+                            ? "Đã chấm theo rubric"
+                            : response.getLecturerComment()
+        );
+        if (response.getRubricId() == null && gradeDetail != null && gradeDetail.getRubricId() != null) {
+            response.setRubricId(gradeDetail.getRubricId());
+        }
+
         if (assessmentCLOS != null && !assessmentCLOS.isEmpty()) {
             Map<String, String> cloMap = assessmentCLOS.stream()
                     .collect(Collectors.toMap(
@@ -540,6 +772,38 @@ public class AssessmentService {
         return response;
     }
 
+    private GradeDetailResponse getGradeDetailSafely(String assessmentId, String studentId) {
+        try {
+            return gradingClient.getGradeByStudentAndAssessment(assessmentId, studentId);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Double getRubricFallbackTotalScore(String assessmentId, String studentId) {
+        try {
+            return getRubricFallbackTotalScore(assessmentRepository.getRubricCriterionDetails(assessmentId, studentId));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Double getRubricFallbackTotalScore(List<Object[]> rubricDetails) {
+        if (rubricDetails == null || rubricDetails.isEmpty()) {
+            return null;
+        }
+
+        double total = rubricDetails.stream()
+                .map(row -> row[4])
+                .filter(Number.class::isInstance)
+                .map(Number.class::cast)
+                .mapToDouble(Number::doubleValue)
+                .sum();
+
+        return Math.abs(total) < 0.000001d ? null : total;
+    }
+
+    @Transactional
     public void unsubmitAssignment(String assessmentId, String studentId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập!"));
@@ -557,8 +821,47 @@ public class AssessmentService {
                 .findByAssessmentIdAndStudentId(assessmentId, studentId)
                 .orElseThrow(() -> new RuntimeException("Bạn chưa nộp bài này!"));
 
+        submissionAttachmentRepository.deleteBySubmissionId(submission.getId());
         submissionRepository.delete(submission);
     }
+
+    private List<SubmissionAttachmentResponse> getSubmissionAttachments(String submissionId) {
+        if (submissionId == null || submissionId.isBlank()) {
+            return Collections.emptyList();
+        }
+
+        return submissionAttachmentRepository.findBySubmissionIdOrderByCreatedAtAsc(submissionId)
+                .stream()
+                .map(this::toAttachmentResponse)
+                .toList();
+    }
+
+    private Map<String, List<SubmissionAttachmentResponse>> mapAttachmentsBySubmissionId(List<String> submissionIds) {
+        if (submissionIds == null || submissionIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        return submissionAttachmentRepository.findBySubmissionIdIn(submissionIds)
+                .stream()
+                .sorted(Comparator.comparing(
+                        SubmissionAttachmentEntity::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .collect(Collectors.groupingBy(
+                        SubmissionAttachmentEntity::getSubmissionId,
+                        Collectors.mapping(this::toAttachmentResponse, Collectors.toList())
+                ));
+    }
+
+    private SubmissionAttachmentResponse toAttachmentResponse(SubmissionAttachmentEntity attachment) {
+        return new SubmissionAttachmentResponse(
+                attachment.getId(),
+                attachment.getAttachmentType(),
+                attachment.getAttachmentUrl(),
+                attachment.getOriginalName()
+        );
+    }
+
     public List<CourseOfferingResponse> getOfferingsByCourseId(String courseId) {
         List<CourseOffering> offerings = courseOfferingRepository.findByCourse_CourseId(courseId);
         CourseResponse courseResponse = courseMapper.toCourseResponse(offerings.getFirst().getCourse());

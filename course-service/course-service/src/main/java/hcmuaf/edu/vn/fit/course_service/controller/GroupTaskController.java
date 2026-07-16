@@ -4,10 +4,12 @@ import hcmuaf.edu.vn.fit.course_service.dto.request.GroupTaskRequest;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.TaskStatus;
 import hcmuaf.edu.vn.fit.course_service.service.GroupTaskService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -30,6 +32,21 @@ public class GroupTaskController {
     public ResponseEntity<?> getTasks(@PathVariable String groupId, @RequestHeader("X-User-Id") String userId) {
         try {
             return ResponseEntity.ok(Map.of("status", "success", "data", taskService.getTasksByGroup(groupId, userId)));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/evidence/{offeringId}/{studentId}")
+    public ResponseEntity<?> getAssessmentEvidence(
+            @PathVariable String offeringId,
+            @PathVariable String studentId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime submittedAt) {
+        try {
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "data", taskService.getAssessmentEvidence(offeringId, studentId, submittedAt)));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }

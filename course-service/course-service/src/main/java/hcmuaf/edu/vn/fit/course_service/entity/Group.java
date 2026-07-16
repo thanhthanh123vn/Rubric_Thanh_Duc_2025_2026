@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name="`groups`")
@@ -27,6 +28,14 @@ public class Group {
 
     private String groupName;
     private String topic;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_group_id")
+    private Group parentGroup;
+
+    @OneToMany(mappedBy = "parentGroup", fetch = FetchType.LAZY)
+    private List<Group> subgroups;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conversation_id", nullable = false)
     private Conversation conversation;

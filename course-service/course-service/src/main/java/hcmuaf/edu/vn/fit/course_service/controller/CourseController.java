@@ -1,8 +1,11 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.GradebookConfigRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.GradebookScoreRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.*;
 import hcmuaf.edu.vn.fit.course_service.service.CourseService;
+import hcmuaf.edu.vn.fit.course_service.service.GradebookService;
 import hcmuaf.edu.vn.fit.course_service.service.OBEService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +28,7 @@ public class CourseController {
 
     private final CourseService service;
     private final OBEService obeService;
+    private final GradebookService gradebookService;
 
     @GetMapping
     public ResponseEntity<Page<CourseResponse>> getAllCourses(
@@ -107,6 +112,42 @@ public class CourseController {
     @GetMapping("/offering/{offeringId}/students")
     public ResponseEntity<List<StudentCourseResponse>> getStudentsByOffering(@PathVariable String offeringId) {
         return ResponseEntity.ok(service.getStudentsByOfferingId(offeringId));
+    }
+
+    @GetMapping("/offering/{offeringId}/gradebook")
+    public ResponseEntity<CourseGradebookResponse> getGradebook(@PathVariable String offeringId) {
+        return ResponseEntity.ok(gradebookService.getGradebook(offeringId));
+    }
+
+    @PutMapping("/offering/{offeringId}/gradebook/config")
+    public ResponseEntity<CourseGradebookResponse> updateGradebookConfig(
+            @PathVariable String offeringId,
+            @RequestBody GradebookConfigRequest request) {
+        return ResponseEntity.ok(gradebookService.updateConfig(offeringId, request));
+    }
+
+    @PutMapping("/offering/{offeringId}/gradebook/scores")
+    public ResponseEntity<CourseGradebookResponse> updateGradebookScores(
+            @PathVariable String offeringId,
+            @RequestBody List<GradebookScoreRequest> requests) {
+        return ResponseEntity.ok(gradebookService.updateScores(offeringId, requests));
+    }
+
+    @PostMapping(value = "/offering/{offeringId}/gradebook/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> importGradebook(
+            @PathVariable String offeringId,
+            @RequestParam("file") MultipartFile file) throws Exception {
+        return ResponseEntity.ok(gradebookService.importExcel(offeringId, file));
+    }
+
+    @GetMapping("/offering/{offeringId}/gradebook/template")
+    public ResponseEntity<byte[]> downloadGradebookTemplate(@PathVariable String offeringId) throws Exception {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=gradebook-" + offeringId + ".xlsx")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(gradebookService.createTemplate(offeringId));
     }
 
     @GetMapping("/offering/{offeringId}/OBE")

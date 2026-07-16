@@ -4,6 +4,10 @@ export interface Type {
     studentId: string;
     fullName: string;
     email: string;
+    midtermScore?: number | null;
+    finalScore?: number | null;
+    totalScore?: number | null;
+    letterGrade?: string | null;
 }
 export interface MessageData {
     messageId?: string;
@@ -33,7 +37,18 @@ export interface GroupResponse {
     topic: string;
     createdById: string;
     conversationId: string;
+    parentGroupId?: string | null;
+    parentGroupName?: string | null;
+    subgroup: boolean;
+    subgroupCount: number;
     participants: ParticipantResponse[];
+}
+
+export interface SplitGroupRequest {
+    groupName: string;
+    topic?: string;
+    subgroupLeaderId: string;
+    memberIds: string[];
 }
 export interface GroupTaskResponse {
     id: string;
@@ -67,6 +82,12 @@ export interface UpdateTaskStatusRequest {
     resultLink?: string;
     file?: File | null;
 }
+export interface SubmissionAttachmentItem {
+    id: string;
+    type: "FILE" | "LINK";
+    url: string;
+    originalName?: string | null;
+}
 export interface AssessmentSubmission {
     assessmentId: string;
     description: string;
@@ -89,6 +110,7 @@ export interface AssessmentSubmission {
 
     submittedFileUrl: string | null;
     submittedLink: string | null;
+    submittedAttachments?: SubmissionAttachmentItem[] | null;
     rubricDetails?: {
         criteriaId: string | null;
         criteriaName: string | null;

@@ -17,6 +17,8 @@ public interface GroupRepository extends JpaRepository<Group,String> {
     @Query("SELECT g FROM Group g WHERE g.courseOffering.offeringId = :offeringId")
     List<Group> findByOfferingId(@Param("offeringId") String offeringId);
 
+    List<Group> findByParentGroup_Id(String parentGroupId);
+
 
 
     @Query("""
@@ -30,5 +32,18 @@ public interface GroupRepository extends JpaRepository<Group,String> {
     boolean existsStudentInOffering(
             @Param("userId") String userId,
             @Param("offeringId") String offeringId
+    );
+
+    @Query("""
+    SELECT COUNT(p) > 0
+    FROM Participant p
+    JOIN p.conversation c
+    JOIN Group g ON g.conversation = c
+    WHERE p.userId = :userId
+      AND g.parentGroup.id = :parentGroupId
+""")
+    boolean existsStudentInSubgroups(
+            @Param("userId") String userId,
+            @Param("parentGroupId") String parentGroupId
     );
 }

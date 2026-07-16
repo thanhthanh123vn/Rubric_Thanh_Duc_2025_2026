@@ -1,5 +1,34 @@
 import {courseApi} from "@/services/axiosConfig.ts";
 
+export type GradebookStudent = {
+    studentId: string;
+    fullName: string;
+    attendanceScore?: number | null;
+    attendanceWarningCount?: number | null;
+    assignmentScore?: number | null;
+    componentScore?: number | null;
+    examScore?: number | null;
+    totalScore?: number | null;
+    letterGrade?: string | null;
+};
+
+export type CourseGradebook = {
+    offeringId: string;
+    attendanceWeight: number;
+    assignmentWeight: number;
+    componentWeight: number;
+    examWeight: number;
+    students: GradebookStudent[];
+};
+
+export type GradebookScorePayload = {
+    studentId: string;
+    attendanceScore: number | null;
+    attendanceWarningCount?: number | null;
+    assignmentScore: number | null;
+    examScore: number | null;
+};
+
 export const getPost = (postId: string) => {
     const url = `/topic/offerings/${postId}/topics`
     console.log(" URL:", courseApi.defaults.baseURL + url)
@@ -67,6 +96,45 @@ export const courseService = {
     },
     getStudentsByOffering: async (offeringId: string) => {
         const response = await courseApi.get(`/courses/offering/${offeringId}/students`);
+        return response.data;
+    },
+    getGradebook: async (offeringId: string): Promise<CourseGradebook> => {
+        const response = await courseApi.get(`/courses/offering/${offeringId}/gradebook`);
+        return response.data;
+    },
+    updateGradebookConfig: async (
+        offeringId: string,
+        attendanceWeight: number,
+        assignmentWeight: number,
+    ): Promise<CourseGradebook> => {
+        const response = await courseApi.put(`/courses/offering/${offeringId}/gradebook/config`, {
+            attendanceWeight,
+            assignmentWeight,
+        });
+        return response.data;
+    },
+    updateGradebookScores: async (
+        offeringId: string,
+        scores: GradebookScorePayload[],
+    ): Promise<CourseGradebook> => {
+        const response = await courseApi.put(`/courses/offering/${offeringId}/gradebook/scores`, scores);
+        return response.data;
+    },
+    importGradebook: async (offeringId: string, file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await courseApi.post(
+            `/courses/offering/${offeringId}/gradebook/import`,
+            formData,
+            {headers: {"Content-Type": "multipart/form-data"}},
+        );
+        return response.data;
+    },
+    downloadGradebookTemplate: async (offeringId: string): Promise<Blob> => {
+        const response = await courseApi.get(
+            `/courses/offering/${offeringId}/gradebook/template`,
+            {responseType: "blob"},
+        );
         return response.data;
     },
 

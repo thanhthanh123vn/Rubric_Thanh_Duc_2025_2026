@@ -5,8 +5,16 @@ export interface SubmissionDTO {
     rubricId:string;
     fileUrl: string | null;
     submittedLink?: string | null;
+    attachments?: SubmissionAttachmentItem[] | null;
     submittedAt: string;
     status: string;
+}
+
+export interface SubmissionAttachmentItem {
+    id: string;
+    type: "FILE" | "LINK";
+    url: string;
+    originalName?: string | null;
 }
 
 export interface SubmissionStatusDTO {
@@ -16,9 +24,50 @@ export interface SubmissionStatusDTO {
     rubricId?: string | null;
     fileUrl: string | null;
     submittedLink?: string | null;
+    attachments?: SubmissionAttachmentItem[] | null;
     submittedAt?: string | null;
     status: string;
     submitted: boolean;
+    totalScore?: number | null;
+    grade?: string | null;
+    comment?: string | null;
+    gradedCriteria?: {
+        criteriaId: string;
+        criteriaName: string;
+        levelId?: string | null;
+        levelName?: string | null;
+        score?: number | null;
+    }[] | null;
+}
+
+export interface FeedbackTemplateDTO {
+    id: number;
+    content: string;
+}
+
+export interface AssessmentEvidenceTaskDTO {
+    taskId: string;
+    title: string;
+    groupId: string;
+    groupName: string;
+    status: "TODO" | "IN_PROGRESS" | "COMPLETED";
+    deadline?: string | null;
+    completedAt?: string | null;
+    completedLate: boolean;
+    overdue: boolean;
+}
+
+export interface AssessmentEvidenceDTO {
+    studentId: string;
+    totalAssignedTasks: number;
+    completedTasks: number;
+    completedOnTimeTasks: number;
+    completedLateTasks: number;
+    overdueTasks: number;
+    inProgressTasks: number;
+    todoTasks: number;
+    completionRate: number;
+    tasks: AssessmentEvidenceTaskDTO[];
 }
 
 export interface SyllabusFile {

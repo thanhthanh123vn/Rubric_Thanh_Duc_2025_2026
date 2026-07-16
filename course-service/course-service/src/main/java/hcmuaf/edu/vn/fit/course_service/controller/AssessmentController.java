@@ -70,6 +70,8 @@ public class AssessmentController {
     public ResponseEntity<?> submitAssignment(
             @RequestHeader("X-User-Id") String studentId,
             @PathVariable String assessmentId,
+            @RequestParam(required = false) List<MultipartFile> files,
+            @RequestParam(required = false) List<String> links,
             @RequestParam(required = false) MultipartFile file,
             @RequestParam(required = false) String link,
             @RequestParam(required = false) String rubricId
@@ -78,7 +80,15 @@ public class AssessmentController {
             Assessment assessment = assessmentRepository.findById(assessmentId).orElse(null);
             validateProjectLeaderSubmission(assessment, studentId);
 
-            SubmissionEntity submission = assessmentService.submitAssignment(assessmentId, studentId, file, link, rubricId);
+            SubmissionEntity submission = assessmentService.submitAssignment(
+                    assessmentId,
+                    studentId,
+                    files,
+                    links,
+                    file,
+                    link,
+                    rubricId
+            );
 
             if (assessment != null && assessment.getCourseOffering() != null) {
                 String courseId = assessment.getCourseOffering().getOfferingId();
