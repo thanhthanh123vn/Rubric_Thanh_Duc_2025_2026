@@ -55,5 +55,9 @@ export const assessmentPaperApi = {
     getLecturerExamDetail:async (examId: string) => {
         const response = await courseApi.get(`/assessments/paper/${examId}/detail`);
         return response.data;
-    }
+    },
+    async getExamResult(examId: string) {
+        const res = await courseApi.get(`/student/exams/${examId}/result`);
+        return res.data;
+    },
 };

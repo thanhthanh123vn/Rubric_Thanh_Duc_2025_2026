@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -18,9 +19,17 @@ import {
     TableHeader,
     TableRow
 } from '@/components/ui/table';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from '@/components/ui/dialog';
 import { assessmentPaperApi } from '@/api/assessmentApi';
+import { assessmentPaperServiceApi } from '@/api/assementPaperApi';
 import { toast } from 'sonner';
-import {useNavigate, useParams} from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     Search,
     Eye,
@@ -29,7 +38,9 @@ import {
     ChevronLeft,
     ChevronRight,
     Filter,
-    Send
+    Send,
+    Pencil,
+    Trash2
 } from 'lucide-react';
 
 type AssessmentPaper = {
@@ -48,8 +59,9 @@ type AssessmentPaper = {
 const PAGE_SIZE = 8;
 
 export default function TeacherExamList() {
-    const {id} =useParams();
+    const { id } = useParams();
     const navigate = useNavigate();
+
     const [assessments, setAssessments] = useState<AssessmentPaper[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -60,15 +72,51 @@ export default function TeacherExamList() {
     // Pagination
     const [currentPage, setPage] = useState(1);
 
-    // Gọi đúng tên API cũ của bạn
+    // Edit modal states
+    const [openEditModal, setOpenEditModal] = useState(false);
+    const [editingExam, setEditingExam] = useState<AssessmentPaper | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+
+    const [editForm, setEditForm] = useState<{
+        examTitle: string;
+        durationMinutes: string;
+        startTime: string;
+        endTime: string;
+        sourceQuestionBankId: string;
+    }>({
+        examTitle: '',
+        durationMinutes: '',
+        startTime: '',
+        endTime: '',
+        sourceQuestionBankId: ''
+    });
+
+    const toDateTimeLocalValue = (iso?: string | null) => {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '';
+
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth() + 1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const min = pad(d.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    };
+
     const loadData = async () => {
         try {
             setLoading(true);
             const response = await assessmentPaperApi.getAllExams();
 
-            const rows = Array.isArray(response) ? response :
-                Array.isArray(response?.data) ? response.data :
-                    Array.isArray(response?.content) ? response.content : [];
+            const rows = Array.isArray(response)
+                ? response
+                : Array.isArray(response?.data)
+                    ? response.data
+                    : Array.isArray(response?.content)
+                        ? response.content
+                        : [];
 
             setAssessments(rows);
         } catch (error) {
@@ -83,14 +131,103 @@ export default function TeacherExamList() {
         loadData();
     }, []);
 
-    // Hàm xử lý giao đề (Publish)
-    const handlePublish = async (id: string) => {
+    const handlePublish = async (examId: string) => {
+        if (!examId) {
+            toast.error('ID đề thi không hợp lệ!');
+            return;
+        }
+
         try {
-            await assessmentPaperApi.publishExam(id);
+            await assessmentPaperApi.publishExam(examId);
             toast.success('Đã giao đề thành công cho sinh viên!');
-            loadData();
+            await loadData();
+        } catch (error: any) {
+
+            console.error('Chi tiết lỗi khi giao đề:', error);
+
+
+            const errorMessage = error?.response?.data?.message || 'Lỗi khi giao đề';
+            toast.error(errorMessage);
+        }
+    };
+
+    const handleOpenEdit = (exam: AssessmentPaper) => {
+        setEditingExam(exam);
+        setEditForm({
+            examTitle: exam.examTitle ?? '',
+            durationMinutes:
+                exam.durationMinutes !== null && exam.durationMinutes !== undefined
+                    ? String(exam.durationMinutes)
+                    : '',
+            startTime: toDateTimeLocalValue(exam.startTime),
+            endTime: toDateTimeLocalValue(exam.endTime),
+            sourceQuestionBankId: exam.sourceQuestionBankId ?? ''
+        });
+        setOpenEditModal(true);
+    };
+
+    const handleSubmitEdit = async () => {
+        if (!editingExam?.id) return;
+
+        // Validate basic
+        if (!editForm.examTitle.trim()) {
+            toast.error('Vui lòng nhập tên đề thi');
+            return;
+        }
+
+        if (editForm.durationMinutes && Number(editForm.durationMinutes) <= 0) {
+            toast.error('Thời lượng phải lớn hơn 0');
+            return;
+        }
+
+        if (editForm.startTime && editForm.endTime) {
+            const s = new Date(editForm.startTime).getTime();
+            const e = new Date(editForm.endTime).getTime();
+            if (!Number.isNaN(s) && !Number.isNaN(e) && e <= s) {
+                toast.error('Thời gian đóng phải lớn hơn thời gian mở');
+                return;
+            }
+        }
+
+        try {
+            setSubmitting(true);
+
+            await assessmentPaperServiceApi.updatGeExam(editingExam.id, {
+                examTitle: editForm.examTitle.trim(),
+                durationMinutes: editForm.durationMinutes
+                    ? Number(editForm.durationMinutes)
+                    : null,
+                startTime: editForm.startTime
+                    ? new Date(editForm.startTime).toISOString()
+                    : null,
+                endTime: editForm.endTime
+                    ? new Date(editForm.endTime).toISOString()
+                    : null,
+                sourceQuestionBankId: editForm.sourceQuestionBankId.trim() || null,
+                questionIds: editingExam.questionIds ?? []
+            });
+
+            toast.success('Cập nhật đề thi thành công');
+            setOpenEditModal(false);
+            setEditingExam(null);
+            await loadData();
         } catch {
-            toast.error('Lỗi khi giao đề');
+            toast.error('Lỗi khi cập nhật đề thi');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (examId: string) => {
+        const ok = window.confirm('Bạn có chắc muốn xóa đề thi này không?');
+        if (!ok) return;
+
+        try {
+            await assessmentPaperServiceApi.deleteExam(examId);
+            toast.success('Xóa đề thi thành công');
+            await loadData();
+        } catch {
+            toast.error('Lỗi khi xóa đề thi');
         }
     };
 
@@ -133,18 +270,36 @@ export default function TeacherExamList() {
         if (!iso) return '--';
         const d = new Date(iso);
         if (Number.isNaN(d.getTime())) return '--';
-        return d.toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+        return d.toLocaleString('vi-VN', {
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh'
+        });
     };
 
     const getStatusBadge = (status?: string | null) => {
         const s = status || 'DRAFT';
         switch (s) {
             case 'PUBLISHED':
-                return <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium border-none px-2.5 py-0.5">Đã giao</Badge>;
+                return (
+                    <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium border-none px-2.5 py-0.5">
+                        Đã giao
+                    </Badge>
+                );
             case 'DRAFT':
-                return <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100 font-medium px-2.5 py-0.5">Bản nháp</Badge>;
+                return (
+                    <Badge
+                        variant="secondary"
+                        className="bg-amber-100 text-amber-800 hover:bg-amber-100 font-medium px-2.5 py-0.5"
+                    >
+                        Bản nháp
+                    </Badge>
+                );
             default:
-                return <Badge variant="outline" className="text-slate-500 px-2.5 py-0.5">{s}</Badge>;
+                return (
+                    <Badge variant="outline" className="text-slate-500 px-2.5 py-0.5">
+                        {s}
+                    </Badge>
+                );
         }
     };
 
@@ -153,8 +308,12 @@ export default function TeacherExamList() {
             {/* Thanh Tiêu Đề */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5 border-slate-200">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Quản lý Đề thi</h1>
-                    <p className="text-sm text-slate-500 mt-1">Quản lý, tạo lập cấu trúc và giao đề thi cho sinh viên</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">
+                        Quản lý Đề thi
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Quản lý, tạo lập cấu trúc và giao đề thi cho sinh viên
+                    </p>
                 </div>
             </div>
 
@@ -200,7 +359,7 @@ export default function TeacherExamList() {
                                 <TableRow className="border-b border-slate-200">
                                     <TableHead className="font-semibold text-slate-700 pl-6 w-[5%]">STT</TableHead>
                                     <TableHead className="font-semibold text-slate-700 w-[25%]">Tên đề thi & Mã</TableHead>
-                                    <TableHead className="font-semibold text-slate-700 w-[12%] text-center">Thời lượng</TableHead>
+                                    <TableHead className="font-semibold text-slate-700 w-[12%] text-center">Thời lượng Làm Bài</TableHead>
                                     <TableHead className="font-semibold text-slate-700 w-[10%] text-center">Số câu</TableHead>
                                     <TableHead className="font-semibold text-slate-700 w-[18%]">Thời gian mở - đóng</TableHead>
                                     <TableHead className="font-semibold text-slate-700 w-[12%] text-center">Trạng thái</TableHead>
@@ -270,22 +429,51 @@ export default function TeacherExamList() {
                                                 </TableCell>
                                                 <TableCell className="text-center pr-6 align-middle">
                                                     <div className="flex items-center justify-center gap-1.5">
+                                                        {/* Chỉ hiển thị Giao đề, Sửa, Xóa khi còn là Bản nháp */}
                                                         {isDraft && (
-                                                            <Button
-                                                                size="sm"
-                                                                className="h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1.5 font-medium shadow-sm transition-all"
-                                                                onClick={() => handlePublish(x.id)}
-                                                                title="Giao đề thi cho sinh viên"
-                                                            >
-                                                                <Send className="h-3.5 w-3.5" />
-                                                                <span className="hidden xl:inline">Giao đề</span>
-                                                            </Button>
+                                                            <>
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg gap-1.5 font-medium shadow-sm transition-all"
+                                                                    onClick={() => handlePublish(x.id)}
+                                                                    title="Giao đề thi cho sinh viên"
+                                                                >
+                                                                    <Send className="h-3.5 w-3.5" />
+                                                                    <span className="hidden xl:inline">Giao đề</span>
+                                                                </Button>
+
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-8 px-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg gap-1.5 font-medium"
+                                                                    onClick={() => handleOpenEdit(x)}
+                                                                    title="Sửa đề thi"
+                                                                >
+                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                    <span className="hidden xl:inline">Sửa</span>
+                                                                </Button>
+
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    className="h-8 px-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg gap-1.5 font-medium"
+                                                                    onClick={() => handleDelete(x.id)}
+                                                                    title="Xóa đề thi"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    <span className="hidden xl:inline">Xóa</span>
+                                                                </Button>
+                                                            </>
                                                         )}
+
+                                                        {/* Nút Xem chi tiết thì luôn luôn hiển thị */}
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
                                                             className="h-8 px-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-lg gap-1.5 font-medium"
-                                                            onClick={() => navigate(`/teacher/course/${id}/exams/view-exam-list/${x.id}`)}
+                                                            onClick={() =>
+                                                                navigate(`/teacher/course/${id}/exams/view-exam-list/${x.id}`)
+                                                            }
                                                             title="Xem chi tiết cấu trúc đề"
                                                         >
                                                             <Eye className="h-4 w-4" />
@@ -301,10 +489,11 @@ export default function TeacherExamList() {
                         </Table>
                     </div>
 
-                    {/* Phân Trang (Pagination) Đồng Bộ */}
+                    {/* Phân Trang */}
                     <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-slate-50/50">
                         <p className="text-sm text-slate-500 font-medium">
-                            Hiển thị trang <span className="text-slate-800 font-semibold">{currentPage}</span> / <span className="text-slate-800 font-semibold">{totalPages}</span>
+                            Hiển thị trang <span className="text-slate-800 font-semibold">{currentPage}</span> /{' '}
+                            <span className="text-slate-800 font-semibold">{totalPages}</span>
                         </p>
                         <div className="flex gap-2">
                             <Button
@@ -329,6 +518,98 @@ export default function TeacherExamList() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Modal sửa đề thi */}
+            <Dialog open={openEditModal} onOpenChange={setOpenEditModal}>
+                <DialogContent className="sm:max-w-lg background-white">
+                    <DialogHeader>
+                        <DialogTitle>Chỉnh sửa đề thi</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="examTitle">Tên đề thi</Label>
+                            <Input
+                                id="examTitle"
+                                value={editForm.examTitle}
+                                onChange={(e) =>
+                                    setEditForm((prev) => ({ ...prev, examTitle: e.target.value }))
+                                }
+                                placeholder="Nhập tên đề thi"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="durationMinutes">Thời lượng (phút)</Label>
+                            <Input
+                                id="durationMinutes"
+                                type="number"
+                                min={1}
+                                value={editForm.durationMinutes}
+                                onChange={(e) =>
+                                    setEditForm((prev) => ({ ...prev, durationMinutes: e.target.value }))
+                                }
+                                placeholder="Ví dụ: 60"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="startTime">Thời gian mở</Label>
+                                <Input
+                                    id="startTime"
+                                    type="datetime-local"
+                                    value={editForm.startTime}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({ ...prev, startTime: e.target.value }))
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="endTime">Thời gian đóng</Label>
+                                <Input
+                                    id="endTime"
+                                    type="datetime-local"
+                                    value={editForm.endTime}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({ ...prev, endTime: e.target.value }))
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="sourceQuestionBankId">ID Kho câu hỏi</Label>
+                            <Input
+                                id="sourceQuestionBankId"
+                                value={editForm.sourceQuestionBankId}
+                                onChange={(e) =>
+                                    setEditForm((prev) => ({
+                                        ...prev,
+                                        sourceQuestionBankId: e.target.value
+                                    }))
+                                }
+                                placeholder="sourceQuestionBankId"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setOpenEditModal(false);
+                                setEditingExam(null);
+                            }}
+                        >
+                            Hủy
+                        </Button>
+                        <Button onClick={handleSubmitEdit} disabled={submitting}>
+                            {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

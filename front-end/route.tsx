@@ -82,6 +82,8 @@ import TeacherExamList from "@/pages/teacher/TeacherExamList.tsx";
 import StudentExamListPage from "@/features/course/student/components/StudentExamListPage.tsx";
 import LecturerExamDetailPage from "@/pages/teacher/LecturerExamDetailPage.tsx";
 import StudentTakeExamPage from "@/features/course/student/components/StudentTakeExamPage.tsx";
+import StudentExamResultPage from "@/features/course/student/components/StudentExamResultPage.tsx";
+import TeacherGradingFinal from "@/pages/teacher/TeacherGradingFinal.tsx";
 
 export const router = createBrowserRouter([
 
@@ -150,6 +152,10 @@ export const router = createBrowserRouter([
         Component: StudentTakeExamPage,
     },
     {
+        path: "/course/:id/my-exams/:examId/result",
+        Component: StudentExamResultPage,
+    },
+    {
         path: "/login",
         Component: LoginPage,
     },
@@ -202,10 +208,11 @@ export const router = createBrowserRouter([
                                 path: "view-exam-list/:examId",
                                 Component: LecturerExamDetailPage,
                             },
-                            // {
-                            //     path: "grading-final",
-                            //     Component: FinalGradePage,
-                            // },
+
+                            {
+                                path: "grading-final/:assessmentId",
+                                Component: TeacherGradingFinal,
+                            },
                         ],
                     },
 

@@ -34,7 +34,7 @@ public class LecturerExamDetailResponse {
         private String content;
         private String type;
         private List<AnswerOption> options;
-        private boolean correctOptionIndex;
+        private Integer correctOptionIndex;
         private Double points;
         private String difficulty; // EASY, MEDIUM, HARD
         private List<String> cloCode;

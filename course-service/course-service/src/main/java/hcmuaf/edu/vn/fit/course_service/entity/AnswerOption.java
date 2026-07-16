@@ -15,5 +15,5 @@ public class AnswerOption {
     private String content;
 
 
-    private boolean correct;
+    private Boolean correct;
 }

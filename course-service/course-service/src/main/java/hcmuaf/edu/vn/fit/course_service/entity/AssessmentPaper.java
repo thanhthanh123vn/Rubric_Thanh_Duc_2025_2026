@@ -1,7 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.entity;
 
 import lombok.*;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;

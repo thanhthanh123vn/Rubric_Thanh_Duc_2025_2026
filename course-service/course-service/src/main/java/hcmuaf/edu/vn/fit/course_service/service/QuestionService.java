@@ -184,8 +184,9 @@ public class QuestionService {
                     continue;
                 }
 
-                String typeStr = dataFormatter.formatCellValue(currentRow.getCell(2));
-                String difficultyStr = dataFormatter.formatCellValue(currentRow.getCell(3));
+                String typeStr = dataFormatter.formatCellValue(currentRow.getCell(2)).trim();
+                String difficultyStr = dataFormatter.formatCellValue(currentRow.getCell(3)).trim();
+
                 Cell scoreCell = currentRow.getCell(10);
                 Double score = 1.0;
                 if (scoreCell != null) {
@@ -195,52 +196,55 @@ public class QuestionService {
                         score = 1.0;
                     }
                 }
+
                 Question question = Question.builder()
                         .content(content)
                         .type(QuestionType.valueOf(typeStr.toUpperCase()))
                         .difficulty(Difficulty.valueOf(difficultyStr.toUpperCase()))
                         .score(score)
                         .offeringId(offeringId)
+                        .options(new ArrayList<>())
                         .build();
 
-                // LOGIC ĐỌC VÀ MAP CLO (CỘT E - INDEX 4)
-                Cell cloCell = currentRow.getCell(4);
-                String cloCodesStr = dataFormatter.formatCellValue(cloCell).trim();
 
-                if (cloCodesStr != null && !cloCodesStr.trim().isEmpty()) {
+                String cloCodesStr = dataFormatter.formatCellValue(currentRow.getCell(9)).trim();
+                if (!cloCodesStr.isEmpty()) {
                     List<String> cloCodes = Arrays.stream(cloCodesStr.split(","))
                             .map(String::trim)
-                            .map(String::toLowerCase)
+                            .map(String::toUpperCase)
                             .filter(s -> !s.isEmpty())
-                            .collect(Collectors.toList());
+                            .toList();
 
                     if (!cloCodes.isEmpty()) {
-                        List<CourseCLO> mappedCLOs = courseCLORepository.findByCloCodeIn( cloCodes);
+                        List<CourseCLO> mappedCLOs =
+                                courseCLORepository.findByCloCodeIn(cloCodes);
+
                         List<String> cloIds = mappedCLOs.stream()
                                 .map(CourseCLO::getCloId)
                                 .toList();
+
                         question.setCloIds(cloIds);
                     }
                 }
 
-                // Đọc các đáp án A, B, C, D (Nếu là câu hỏi trắc nghiệm)
+
                 if (question.getType() == QuestionType.MULTIPLE_CHOICE) {
-                    String correctAnswer = dataFormatter.formatCellValue(currentRow.getCell(9)).trim();
+                    String correctAnswer = dataFormatter.formatCellValue(currentRow.getCell(8))
+                            .trim().toUpperCase();
                     String[] optionLabels = {"A", "B", "C", "D"};
 
+
                     for (int i = 0; i < 4; i++) {
-                        Cell optionCell = currentRow.getCell(5 + i);
-                        if (optionCell != null) {
-                            String optContent = dataFormatter.formatCellValue(optionCell);
-                            if (!optContent.trim().isEmpty()) {
-                                boolean isCorrect = optionLabels[i].equalsIgnoreCase(correctAnswer);
-                                question.getOptions().add(
-                                        AnswerOption.builder()
-                                                .content(optContent)
-                                                .correct(isCorrect)
-                                                .build()
-                                );
-                            }
+                        String optContent = dataFormatter.formatCellValue(currentRow.getCell(4+ i)).trim();
+                        if (!optContent.isEmpty()) {
+                            boolean correct = optContent.equalsIgnoreCase(correctAnswer);
+
+                            question.getOptions().add(
+                                    AnswerOption.builder()
+                                            .content(optContent)
+                                            .correct(correct)
+                                            .build()
+                            );
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-package com.yourapp.exam.dto;
+package hcmuaf.edu.vn.fit.course_service.dto.request;
 
 import hcmuaf.edu.vn.fit.course_service.dto.StudentAnswerDto;
 import jakarta.validation.Valid;
