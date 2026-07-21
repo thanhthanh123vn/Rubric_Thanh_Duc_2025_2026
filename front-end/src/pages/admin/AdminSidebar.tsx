@@ -1,10 +1,10 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {
     LayoutDashboard, Users, BookOpen, Settings, LogOut, ChevronRight,
     GraduationCap, UserCheck, ShieldCheck, Key, List, FileText,
     Calendar, ClipboardList, CheckCircle, TableProperties, Settings2,
-    BarChartBig, Table, Building2, Building, Network, Bell, PieChart, Shield, Library
+    BarChartBig, Table, Building2, Building, Network, Bell, PieChart, Shield, Library, FileSpreadsheet
 } from 'lucide-react';
 import {
     Sidebar,
@@ -112,13 +112,15 @@ const menuGroups = [
         items: [
             { title: 'Báo cáo & Thống kê', url: '/admin/reports', icon: PieChart },
             { title: 'Cài đặt hệ thống', url: '/admin/settings', icon: Settings },
-            { title: 'Bảo mật & Logs', url: '/admin/security', icon: Shield },
+            { title: 'Logs', url: '/admin/logs', icon: Shield },
+            // { title: 'In Bảng Điểm', url: '/admin/grading', icon: FileSpreadsheet },
         ]
     }
 ];
 
 export const AdminSidebar: React.FC = () => {
     const location = useLocation();
+    const navigate = useNavigate();
 
     return (
         <Sidebar variant="sidebar" collapsible="icon" className="border-r border-slate-200/60 shadow-sm bg-white hidden md:flex">
@@ -132,6 +134,8 @@ export const AdminSidebar: React.FC = () => {
                         Rubric Admin
                     </span>
                 </Link>
+
+
             </SidebarHeader>
 
             {/* Menu chính */}
@@ -220,7 +224,18 @@ export const AdminSidebar: React.FC = () => {
             <SidebarFooter className="border-t border-slate-200/60 p-4 bg-slate-50/50">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton className="h-11 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors" tooltip="Đăng xuất">
+                        <SidebarMenuButton
+                            className="h-11 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                            tooltip="Đăng xuất"
+                            onClick={() => {
+
+
+
+                              sessionStorage.clear();
+
+                                navigate("/login", { replace: true });
+                            }}
+                        >
                             <LogOut className="w-5 h-5" />
                             <span className="font-medium">Đăng xuất</span>
                         </SidebarMenuButton>

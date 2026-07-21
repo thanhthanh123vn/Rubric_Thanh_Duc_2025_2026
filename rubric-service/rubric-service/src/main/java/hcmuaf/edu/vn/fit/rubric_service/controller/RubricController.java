@@ -1,8 +1,11 @@
 package hcmuaf.edu.vn.fit.rubric_service.controller;
 
+import hcmuaf.edu.vn.fit.rubric_service.client.ClientIpUtil;
+import hcmuaf.edu.vn.fit.rubric_service.client.CourseClient;
 import hcmuaf.edu.vn.fit.rubric_service.client.UserClient;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricApprovalRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricRequest;
+import hcmuaf.edu.vn.fit.rubric_service.dto.request.SystemLogRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.RubricMatrixResponse;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.RubricResponse;
@@ -11,6 +14,7 @@ import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.entity.enums.RubricStatus;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import hcmuaf.edu.vn.fit.rubric_service.service.RubricService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +30,7 @@ public class RubricController {
 
     @Autowired
     private RubricService rubricService;
-
+    private final CourseClient courseClient;
     @GetMapping
     public List<RubricResponse> getAll() {
         return rubricService.getAllRubrics();
@@ -55,9 +59,20 @@ public class RubricController {
     @PostMapping
     public ResponseEntity<?> createRubric(
             @RequestHeader("X-User-Id") String lecturerId,
-            @RequestBody RubricRequest request
+            @RequestHeader("X-User-Username") String userName,
+            @RequestBody RubricRequest request,
+            HttpServletRequest httpServletRequest
     ) {
         try {
+
+            String  ip = ClientIpUtil.getClientIp(httpServletRequest);
+            SystemLogRequest log = new SystemLogRequest();
+            log.setLevel("INFO");
+            log.setAction("CREATE_Rubric");
+            log.setMessage("Tạo Rubric thành công");
+            log.setUsername(userName);
+            log.setIp(ip);
+            courseClient.writeLog(log);
             Rubric createdRubric = rubricService.createRubric(lecturerId, request);
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -72,7 +87,26 @@ public class RubricController {
         }
     }
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
+    public void delete(@RequestHeader("X_User-Id") String userId,@PathVariable String id,
+                       HttpServletRequest httpServletRequest) {
+
+        if(userId==null)
+            throw new RuntimeException("userId is null");
+        try{
+            String userName = httpServletRequest.getHeader("X-User-Username");
+            String  ip = ClientIpUtil.getClientIp(httpServletRequest);
+            SystemLogRequest log = new SystemLogRequest();
+            log.setLevel("INFO");
+            log.setAction("CREATE_Rubric");
+            log.setMessage("Tạo Rubric thành công");
+            log.setUsername(userName);
+            log.setIp(ip);
+            courseClient.writeLog(log);
+
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         rubricService.delete(id);
     }
 
@@ -88,11 +122,24 @@ public class RubricController {
     // API thực hiện phê duyệt / từ chối
     @PutMapping("/{rubricId}/review")
     public ResponseEntity<?> reviewRubric(
+            @RequestHeader("X-User-UserName") String userName,
             @PathVariable String rubricId,
             @RequestHeader("X-User-Id") String reviewerId,
-            @RequestBody RubricApprovalRequest request
+            @RequestBody RubricApprovalRequest request,
+            HttpServletRequest httpServletRequest
     ) {
+        if(userName==null) return ResponseEntity.badRequest().body("userId is null");
         try {
+            String  ip = ClientIpUtil.getClientIp(httpServletRequest);
+            courseClient.writeLog(
+                    SystemLogRequest.builder()
+                            .level("INFO")
+                            .action("REVIEW_RUBRIC")
+                            .message("Phê duyệt rubric")
+                            .username(userName)
+                            .ip(ip)
+                            .build()
+            );
             Rubric updatedRubric = rubricService.reviewRubric(rubricId, reviewerId, request);
             return ResponseEntity.ok(Map.of(
                     "success", true,

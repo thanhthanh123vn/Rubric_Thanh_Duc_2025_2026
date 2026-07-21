@@ -22,8 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GradingController {
 
-    @Autowired
-    private GradingService service;
+
+    private final GradingService service;
     private final NotificationClient notificationClient;
 
 
@@ -84,7 +84,7 @@ public class GradingController {
     public ResponseEntity<String> saveGrades(@RequestBody SaveGradesRequest request) {
         service.saveGrades(request);
         return ResponseEntity.ok("Lưu bảng điểm thành công!");
-
+    }
 
     @GetMapping("/feedback-templates")
     public ResponseEntity<?> getFeedbackTemplates(@RequestParam String userId) {
@@ -118,4 +118,9 @@ public class GradingController {
         }
 
     }
+    @PostMapping("/by-assessments")
+    public ResponseEntity<List<Grade>> getGradesByAssessments(@RequestBody List<String> assessmentIds) {
+        return ResponseEntity.ok(service.findByAssessmentIdIn(assessmentIds));
+    }
+
 }

@@ -4,12 +4,11 @@ import hcmuaf.edu.vn.fit.grading_service.RubricClient;
 import hcmuaf.edu.vn.fit.grading_service.client.CourseClient;
 import hcmuaf.edu.vn.fit.grading_service.client.NotificationClient;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.FeedbackTemplateRequest;
-import hcmuaf.edu.vn.fit.grading_service.dto.response.FeedbackTemplateResponse;
+import hcmuaf.edu.vn.fit.grading_service.dto.response.*;
 import hcmuaf.edu.vn.fit.grading_service.entity.FeedbackTemplate;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.GradeRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.SaveGradesRequest;
 import hcmuaf.edu.vn.fit.grading_service.dto.request.StudentGradeDto;
-import hcmuaf.edu.vn.fit.grading_service.dto.response.StudentCourseResponse;
 import hcmuaf.edu.vn.fit.grading_service.entity.Grade;
 import hcmuaf.edu.vn.fit.grading_service.repository.FeedbackTemplateRepository;
 import hcmuaf.edu.vn.fit.grading_service.repository.GradeRepository;
@@ -17,12 +16,14 @@ import hcmuaf.edu.vn.fit.grading_service.entity.RubricResult;
 import hcmuaf.edu.vn.fit.grading_service.repository.RubricResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import java.time.LocalDateTime;
@@ -37,9 +38,13 @@ import java.util.UUID;
 public class GradingService {
 
 
-    private final GradeRepository repository;
+
+
+    @Autowired
+    private GradeRepository repository;
+    private final FeedbackTemplateRepository feedbackTemplateRepository;
+    private final RubricResultRepository rubricResultRepository;
     private final NotificationClient notificationClient;
-    private final RubricClient rubricClient;
     private final CourseClient courseClient;
 
     private static final List<String> DEFAULT_FEEDBACK_TEMPLATES = List.of(
@@ -50,13 +55,9 @@ public class GradingService {
             "Trình bày rõ ràng, dễ theo dõi."
     );
 
-    @Autowired
-    private GradeRepository repository;
-    private final FeedbackTemplateRepository feedbackTemplateRepository;
-    private final RubricResultRepository rubricResultRepository;
-    private final NotificationClient notificationClient;
 
-    private Logger log;
+
+
     @Autowired
     private RubricClient rubricClient;
 
@@ -161,7 +162,7 @@ public class GradingService {
 
         log.info("Lưu điểm thành công!");
     }
-}
+
 
     @Transactional
     public List<FeedbackTemplateResponse> getFeedbackTemplates(String userId) {
@@ -278,5 +279,91 @@ public class GradingService {
             rubricResultRepository.saveAll(rubricResults);
         }
     }
+    public List<Grade> findByAssessmentIdIn(List<String> assessmentIds) {
+        return repository.findByAssessmentIdIn(assessmentIds);
+    }
+
+//    public GradebookResponse getGradebookForOffering(String offeringId) {
+//
+//
+//        CourseOfferingInfoResponse offeringInfo = courseClient.getCourseOfferingInfo(offeringId);
+//
+//        Double attendanceWeight = offeringInfo.getAttendanceWeight() != null ? offeringInfo.getAttendanceWeight() : 10.0;
+//        Double assignmentWeight = offeringInfo.getAssignmentWeight() != null ? offeringInfo.getAssignmentWeight() : 40.0;
+//        Double examWeight = 100.0 - (attendanceWeight + assignmentWeight);
+//
+//        // 2. Phân loại các assessmentId theo loại (ATTENDANCE, ASSIGNMENT, EXAM)
+//        Map<String, String> assessmentTypeMap = offeringInfo.getAssessments().stream()
+//                .collect(Collectors.toMap(AssessmentDto::getId, AssessmentDto::getType));
+//
+//        List<String> assessmentIds = offeringInfo.getAssessments().stream()
+//                .map(AssessmentDto::getId)
+//                .collect(Collectors.toList());
+//
+//        // 3. Lấy tất cả Grade liên quan đến các assessment của lớp này
+//        List<Grade> grades = gradeRepository.findByAssessmentIdIn(assessmentIds);
+//
+//        // Gom nhóm Grade theo studentId. Một sinh viên có thể có nhiều điểm cho nhiều bài đánh giá khác nhau.
+//        Map<String, List<Grade>> gradesByStudent = grades.stream()
+//                .collect(Collectors.groupingBy(Grade::getStudentId));
+//
+//        // 4. Map điểm của từng sinh viên
+//        List<StudentScoreDto> studentScores = offeringInfo.getStudents().stream().map(student -> {
+//            String studentId = student.getStudentId();
+//            List<Grade> studentGrades = gradesByStudent.getOrDefault(studentId, List.of());
+//
+//            Double attendanceScore = null;
+//            Double assignmentScore = null;
+//            Double examScore = null;
+//
+//            // Phân bổ totalScore vào đúng loại điểm dựa trên assessmentId
+//            for (Grade grade : studentGrades) {
+//                String type = assessmentTypeMap.get(grade.getAssessmentId());
+//                if ("ATTENDANCE".equalsIgnoreCase(type)) {
+//                    attendanceScore = grade.getTotalScore();
+//                } else if ("ASSIGNMENT".equalsIgnoreCase(type)) {
+//                    assignmentScore = grade.getTotalScore();
+//                } else if ("EXAM".equalsIgnoreCase(type)) {
+//                    examScore = grade.getTotalScore();
+//                }
+//            }
+//
+//            // Tính điểm chữ
+//            String letterGrade = calculateLetterGrade(
+//                    attendanceScore, assignmentScore, examScore,
+//                    attendanceWeight, assignmentWeight, examWeight
+//            );
+//
+//            return new StudentScoreDto(
+//                    studentId,
+//                    student.getFullName(),
+//                    attendanceScore,
+//                    assignmentScore,
+//                    examScore,
+//                    letterGrade
+//            );
+//        }).collect(Collectors.toList());
+//
+//        return new GradebookResponse(attendanceWeight, assignmentWeight, studentScores);
+//    }
+//
+//    private String calculateLetterGrade(Double attendance, Double assignment, Double exam,
+//                                        Double wAttendance, Double wAssignment, Double wExam) {
+//        if (attendance == null || assignment == null || exam == null) {
+//            return null;
+//        }
+//
+//        double total = (attendance * wAttendance + assignment * wAssignment + exam * wExam) / 100.0;
+//
+//        if (total >= 9.0) return "A+";
+//        if (total >= 8.5) return "A";
+//        if (total >= 8.0) return "B+";
+//        if (total >= 7.0) return "B";
+//        if (total >= 6.5) return "C+";
+//        if (total >= 5.5) return "C";
+//        if (total >= 5.0) return "D+";
+//        if (total >= 4.0) return "D";
+//        return "F";
+//    }
 }
 

@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.course_service.repository.jpa;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.dto.response.StudentCourseProjection;
 import hcmuaf.edu.vn.fit.course_service.entity.Enrollment;
+import hcmuaf.edu.vn.fit.course_service.entity.enums.EnrollmentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,4 +51,18 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
             "AND e.status = 'ACTIVE' COLLATE utf8mb4_unicode_520_ci",
             nativeQuery = true)
     List<String> findStudentIdsByOfferingId(@Param("offeringId") String offeringId);
+
+    List<Enrollment> findByStudentIdAndStatusAndTotalScoreIsNotNull(
+            String studentId,
+            EnrollmentStatus status
+    );
+
+    // Cách 2 (nếu muốn chặt hơn): đã có đủ cột thành phần
+    List<Enrollment> findByStudentIdAndStatusAndAttendanceScoreIsNotNullOrAssignmentScoreIsNotNullOrMidtermScoreIsNotNullOrFinalScoreIsNotNull(
+            String studentId,
+            EnrollmentStatus status
+    );
+
+
+
 }

@@ -77,7 +77,7 @@ export const teacherCourseMenu = [
       { key: 'exam-list', label: 'Danh sách đề thi', path: 'exam-list' },
 
       { key: 'grading-final', label: 'Nhập điểm cuối kỳ', path: 'grading-final' }
-    ]
+
 
     ],
 

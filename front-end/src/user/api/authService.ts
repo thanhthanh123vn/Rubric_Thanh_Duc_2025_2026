@@ -30,11 +30,11 @@ const authService = {
 };
 export const getProfile = async () => {
 
-    const response = await api.get(`/sinhvien/profile/me`);
+    const response = await api.get(`/student/profile/me`);
     return response.data;
 };
 export const updateProfile = async (data: any) => {
-    const response = await api.put(`/sinhvien/profile/me`, data);
+    const response = await api.put(`/student/profile/me`, data);
     return response.data;
 };
 export const forgotPassword = async (email: string) => {

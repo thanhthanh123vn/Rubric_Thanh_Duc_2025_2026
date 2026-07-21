@@ -182,3 +182,38 @@
     border-right-color: var(--border);
   }
 }
+@media print {
+  /* Ẩn toàn bộ các phần tử mặc định của trang admin khi ở chế độ in */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Chỉ cho phép hiển thị vùng chứa bảng điểm và các phần tử bên trong nó */
+  #printable-transcript, #printable-transcript * {
+    visibility: visible;
+  }
+
+  /* Đưa khung bảng điểm về góc trên cùng của trang giấy in */
+  #printable-transcript {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ép trình duyệt giữ nguyên màu sắc (nền xám nhẹ của bảng, viền, v.v.) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Định dạng khổ giấy A4 */
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+}

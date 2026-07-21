@@ -23,7 +23,7 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
 
     List<SubmissionEntity> findByAssessmentId(String assessmentId);
 
-
+    List<SubmissionEntity> findTop5ByOrderBySubmittedAtDesc();
     Optional<SubmissionEntity> findTopByAssessmentIdAndStudentIdOrderBySubmittedAtDesc(String assessmentId, String studentId);
     Long countByAssessmentId(String assessmentId);
 }

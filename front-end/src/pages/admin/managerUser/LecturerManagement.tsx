@@ -109,9 +109,9 @@ export default function LecturerManagement() {
                     <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Quản lý Giảng viên</h2>
                     <p className="text-sm text-slate-500 mt-1 hidden md:block">Quản lý danh sách và hồ sơ Giảng viên.</p>
                 </div>
-                <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 h-11 md:h-10 rounded-xl md:rounded-lg shadow-sm text-white">
-                    <Plus className="w-5 h-5 md:w-4 md:h-4 mr-2" /> Thêm giảng viên
-                </Button>
+                {/*<Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 h-11 md:h-10 rounded-xl md:rounded-lg shadow-sm text-white">*/}
+                {/*    <Plus className="w-5 h-5 md:w-4 md:h-4 mr-2" /> Thêm giảng viên*/}
+                {/*</Button>*/}
             </div>
 
             {/* --- SEARCH BAR --- */}

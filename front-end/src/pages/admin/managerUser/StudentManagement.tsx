@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, Edit, Trash2, GraduationCap, X, AlertCircle, Loader2, Phone } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, GraduationCap, X, AlertCircle, Loader2, Phone, Printer, ArrowLeft } from 'lucide-react';
 import { Button } from '../../../components/ui/button.tsx';
 import { Input } from '../../../components/ui/input.tsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table.tsx';
@@ -10,6 +10,7 @@ import {
 
 import sinhVienService from "@/pages/admin/api/sinhVienService.ts";
 import type { StudentProfile } from "@/pages/admin/api/type.ts";
+import {enrollmentService} from "@/api/enrollmentApi.ts";
 
 export default function StudentManagement() {
     // === STATES DANH SÁCH ===
@@ -28,6 +29,9 @@ export default function StudentManagement() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
+    // STATE CHO CHỨC NĂNG IN BẢNG ĐIỂM
+    const [viewingTranscriptStudent, setViewingTranscriptStudent] = useState<StudentProfile | null>(null);
+
     // Dữ liệu Form
     const [formData, setFormData] = useState<Partial<StudentProfile>>({
         studentId: '',
@@ -39,27 +43,27 @@ export default function StudentManagement() {
         address: ''
     });
 
-    // === FETCH API ===
-    useEffect(() => {
-        const fetchStudents = async () => {
-            setIsLoading(true);
-            try {
-                const data = await sinhVienService.getAllSinhVien(currentPage, 10, searchQuery);
-                setStudents(data.content);
-                setTotalPages(data.totalPages);
-            } catch (err) {
-                console.error("Lỗi:", err);
-                setError("Không thể tải danh sách sinh viên.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchStudents = async () => {
+        setIsLoading(true);
+        try {
+            const data = await sinhVienService.getAllSinhVien(
+                currentPage,
+                10,
+                searchQuery
+            );
+            setStudents(data.content);
+            setTotalPages(data.totalPages);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-        const debounceTimer = setTimeout(() => fetchStudents(), 500);
-        return () => clearTimeout(debounceTimer);
+    useEffect(() => {
+        fetchStudents();
     }, [currentPage, searchQuery, refreshTrigger]);
 
-    // === HANDLERS UI FORM ===
     const resetForm = () => {
         setFormData({ studentId: '', fullName: '', className: '', gender: 'Nam', dateOfBirth: '', phoneNumber: '', address: '' });
         setFormError(null);
@@ -70,11 +74,6 @@ export default function StudentManagement() {
         setEditingStudent(null);
         setDeletingStudent(null);
         resetForm();
-    };
-
-    const handleOpenCreate = () => {
-        resetForm();
-        setIsCreateModalOpen(true);
     };
 
     const handleOpenEdit = (student: StudentProfile) => {
@@ -96,7 +95,6 @@ export default function StudentManagement() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // === LƯU SINH VIÊN (THÊM / SỬA) ===
     const handleSaveStudent = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -104,17 +102,16 @@ export default function StudentManagement() {
 
         try {
             if (editingStudent) {
-                // Sửa hồ sơ
-                await sinhVienService.updateProfile(editingStudent.studentId, formData);
+                await sinhVienService.updateProfile(formData);
+                await fetchStudents();
                 alert("Cập nhật hồ sơ thành công!");
             } else {
-                // Thêm hồ sơ (Nếu API Backend cho phép tạo mới qua service này)
-                // Lưu ý: Thường Sinh Viên phải có tài khoản User trước. Nếu backend bạn hỗ trợ tạo trực tiếp thì dùng dòng dưới:
-                await sinhVienService.updateProfile(formData.studentId as string, formData);
+                await sinhVienService.createStudent(formData);
+                await fetchStudents();
                 alert("Thêm hồ sơ thành công!");
             }
             closeAllModals();
-            setRefreshTrigger(prev => prev + 1); // Load lại danh sách
+            setRefreshTrigger(prev => prev + 1);
         } catch (err: any) {
             setFormError(err.response?.data?.message || "Có lỗi xảy ra. Vui lòng kiểm tra lại thông tin!");
         } finally {
@@ -122,7 +119,6 @@ export default function StudentManagement() {
         }
     };
 
-    // === XÓA SINH VIÊN ===
     const confirmDelete = async () => {
         if (!deletingStudent) return;
         setIsSubmitting(true);
@@ -137,6 +133,147 @@ export default function StudentManagement() {
         }
     };
 
+    const handlePrintTrigger = () => {
+        window.print();
+    };
+
+
+    const [transcriptData, setTranscriptData] = useState<any[]>([]);
+    const [isTranscriptLoading, setIsTranscriptLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchStudentTranscript = async () => {
+            if (!viewingTranscriptStudent) return;
+            setIsTranscriptLoading(true);
+            try {
+
+                const data = await enrollmentService.getStudentGrading(viewingTranscriptStudent.studentId);
+                setTranscriptData(data);
+            } catch (error) {
+                console.error("Lỗi khi tải bảng điểm:", error);
+                setTranscriptData([]);
+            } finally {
+                setIsTranscriptLoading(false);
+            }
+        };
+
+        fetchStudentTranscript();
+    }, [viewingTranscriptStudent]);
+
+
+    if (viewingTranscriptStudent) {
+        const totalCredits = transcriptData.reduce((sum, item) => sum + (item.credits || 3), 0);
+        const avgScore = totalCredits > 0
+            ? (transcriptData.reduce((sum, item) => sum + (item.totalScore * (item.credits || 3)), 0) / totalCredits).toFixed(2)
+            : "0.00";
+
+        return (
+            <div className="space-y-6 animate-in fade-in duration-300">
+                {/* Thanh công cụ - Sẽ tự động biến mất khi in nhờ class print:hidden */}
+                <div className="flex justify-between items-center print:hidden bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <Button variant="outline" onClick={() => setViewingTranscriptStudent(null)}>
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Quay lại danh sách
+                    </Button>
+                    <Button
+                        onClick={() => window.print()}
+                        disabled={isTranscriptLoading || transcriptData.length === 0}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                        <Printer className="w-4 h-4 mr-2" /> In ngay
+                    </Button>
+                </div>
+
+                {/* KHUNG BẢN IN: Chỉ vùng này được in ra nhờ id="printable-transcript" */}
+                <div id="printable-transcript" className="bg-white p-8 md:p-12 rounded-xl shadow-sm border border-slate-200 max-w-4xl mx-auto relative">
+                    {isTranscriptLoading && (
+                        <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center print:hidden">
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        </div>
+                    )}
+
+                    {/* Nội dung bảng điểm A4 */}
+                    <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-6">
+                        <div className="text-center">
+                            <p className="text-sm font-semibold uppercase">Bộ Giáo dục và Đào tạo</p>
+                            <p className="text-base font-bold uppercase mt-1">Trường Đại học Nông Lâm TP.HCM</p>
+                            <div className="w-24 h-[1px] bg-slate-800 mx-auto mt-2"></div>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm font-semibold uppercase">Cộng hòa xã hội chủ nghĩa Việt Nam</p>
+                            <p className="text-sm font-bold mt-1">Độc lập - Tự do - Hạnh phúc</p>
+                            <div className="w-32 h-[1px] bg-slate-800 mx-auto mt-2"></div>
+                        </div>
+                    </div>
+
+                    <div className="text-center mb-8">
+                        <h1 className="text-2xl font-bold uppercase text-slate-800">Bảng điểm học tập sinh viên</h1>
+                        <p className="text-sm text-slate-600 mt-2">Năm học: 2025 - 2026</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-8 mb-8 text-sm">
+                        <div className="flex"><span className="w-32 font-semibold">Họ và tên:</span> <span className="font-bold uppercase">{viewingTranscriptStudent.fullName}</span></div>
+                        <div className="flex"><span className="w-32 font-semibold">Mã sinh viên:</span> <span>{viewingTranscriptStudent.studentId}</span></div>
+                        <div className="flex"><span className="w-32 font-semibold">Lớp:</span> <span>{viewingTranscriptStudent.className || '---'}</span></div>
+                        <div className="flex"><span className="w-32 font-semibold">Số điện thoại:</span> <span>{viewingTranscriptStudent.phoneNumber || '---'}</span></div>
+                    </div>
+
+                    <table className="w-full text-sm border-collapse mb-8 border border-slate-800">
+                        <thead>
+                        <tr className="bg-slate-100">
+                            <th className="border border-slate-800 py-2 px-3 text-center w-12">STT</th>
+                            <th className="border border-slate-800 py-2 px-3 text-left">Tên học phần</th>
+                            <th className="border border-slate-800 py-2 px-3 text-center w-20">Tín chỉ</th>
+                            <th className="border border-slate-800 py-2 px-3 text-center w-24">Tổng kết (H10)</th>
+                            <th className="border border-slate-800 py-2 px-3 text-center w-24">Điểm chữ</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {transcriptData.length > 0 ? (
+                            transcriptData.map((item, index) => (
+                                <tr key={item.enrollmentId || index}>
+                                    <td className="border border-slate-800 py-2 px-3 text-center">{index + 1}</td>
+                                    <td className="border border-slate-800 py-2 px-3 font-medium">{item.courseName}</td>
+                                    <td className="border border-slate-800 py-2 px-3 text-center">{item.credits || 3}</td>
+                                    <td className="border border-slate-800 py-2 px-3 text-center font-semibold">{item.totalScore?.toFixed(1)}</td>
+                                    <td className="border border-slate-800 py-2 px-3 text-center font-semibold">{item.letterGrade}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan={5} className="border border-slate-800 py-6 text-center text-slate-500">
+                                    Chưa có dữ liệu điểm cho sinh viên này.
+                                </td>
+                            </tr>
+                        )}
+                        </tbody>
+                        {transcriptData.length > 0 && (
+                            <tfoot>
+                            <tr className="font-bold bg-slate-50">
+                                <td colSpan={2} className="border border-slate-800 py-3 px-3 text-right">Tổng tín chỉ / ĐTB:</td>
+                                <td className="border border-slate-800 py-3 px-3 text-center">{totalCredits}</td>
+                                <td className="border border-slate-800 py-3 px-3 text-center text-blue-700">{avgScore}</td>
+                                <td className="border border-slate-800 py-3 px-3 text-center"></td>
+                            </tr>
+                            </tfoot>
+                        )}
+                    </table>
+
+                    <div className="flex justify-between text-sm mt-12 px-8">
+                        <div className="text-center">
+                            <p className="font-semibold mb-20">Người lập bảng</p>
+                            <p className="text-slate-400 italic">(Ký và ghi rõ họ tên)</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="italic mb-1">TP. Hồ Chí Minh, ngày ... tháng ... năm 2026</p>
+                            <p className="font-bold uppercase mb-20">Phòng Đào Tạo</p>
+                            <p className="text-slate-400 italic">(Ký, đóng dấu)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-4 md:space-y-6 animate-in fade-in duration-500 relative pb-20 md:pb-0">
 
@@ -146,10 +283,6 @@ export default function StudentManagement() {
                     <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight">Hồ sơ Sinh viên</h2>
                     <p className="text-sm text-slate-500 mt-1 hidden md:block">Quản lý chi tiết thông tin cá nhân của sinh viên.</p>
                 </div>
-                {/* GẮN SỰ KIỆN NÚT THÊM */}
-                <Button onClick={handleOpenCreate} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 h-11 md:h-10 rounded-xl md:rounded-lg shadow-sm text-white">
-                    <Plus className="w-5 h-5 md:w-4 md:h-4 mr-2" /> Thêm hồ sơ
-                </Button>
             </div>
 
             {/* SEARCH BAR */}
@@ -199,7 +332,16 @@ export default function StudentManagement() {
                                     <TableCell className="text-slate-500 max-w-[200px] truncate" title={sv.address}>{sv.address || "---"}</TableCell>
                                     <TableCell className="text-right pr-4">
                                         <div className="flex justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                            {/* GẮN SỰ KIỆN NÚT SỬA */}
+                                            {/* NÚT IN BẢNG ĐIỂM */}
+                                            <Button
+                                                onClick={() => setViewingTranscriptStudent(sv)}
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                                                title="In bảng điểm"
+                                            >
+                                                <Printer className="w-4 h-4" />
+                                            </Button>
                                             <Button onClick={() => handleOpenEdit(sv)} variant="ghost" size="icon" className="h-9 w-9 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></Button>
                                             <Button onClick={() => setDeletingStudent(sv)} variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></Button>
                                         </div>
@@ -219,12 +361,13 @@ export default function StudentManagement() {
                 {students.map((sv) => (
                     <div key={sv.studentId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col gap-3 relative">
                         <div className="absolute top-3 right-3 flex gap-1">
-                            {/* GẮN SỰ KIỆN NÚT SỬA */}
+                            {/* NÚT IN BẢNG ĐIỂM MOBILE */}
+                            <button onClick={() => setViewingTranscriptStudent(sv)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors bg-emerald-50/50" title="In bảng điểm"><Printer className="w-4 h-4" /></button>
                             <button onClick={() => handleOpenEdit(sv)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors bg-blue-50/50"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => setDeletingStudent(sv)} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors bg-red-50/50"><Trash2 className="w-4 h-4" /></button>
                         </div>
 
-                        <div className="flex items-center gap-3 pr-20">
+                        <div className="flex items-center gap-3 pr-28">
                             <div className="w-12 h-12 shrink-0 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner border border-slate-100">
                                 <GraduationCap className="w-6 h-6" />
                             </div>
@@ -256,10 +399,7 @@ export default function StudentManagement() {
                 </div>
             )}
 
-
-            {/* ==================================================== */}
-            {/* ======= MODAL TẠO & CẬP NHẬT HỒ SƠ SINH VIÊN ======= */}
-            {/* ==================================================== */}
+            {/* MODAL TẠO & CẬP NHẬT HỒ SƠ SINH VIÊN */}
             {(isCreateModalOpen || editingStudent) && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/60 animate-in fade-in" onClick={!isSubmitting ? closeAllModals : undefined}></div>
@@ -289,7 +429,7 @@ export default function StudentManagement() {
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Mã số sinh viên (MSSV) <span className="text-red-500">*</span></label>
                                     <Input
                                         required name="studentId" value={formData.studentId} onChange={handleInputChange}
-                                        disabled={!!editingStudent} // Không cho sửa MSSV khi Edit
+                                        disabled={!!editingStudent}
                                         placeholder="Ví dụ: 21130001"
                                         className={`h-11 rounded-xl ${editingStudent ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50 focus:bg-white'}`}
                                     />

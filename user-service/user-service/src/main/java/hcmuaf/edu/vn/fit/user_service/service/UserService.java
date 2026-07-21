@@ -52,6 +52,9 @@ public class UserService {
         }
         return users.map(userMapper::toUserResponse);
     }
+    public long countUsers(){
+        return userRepository.count();
+    }
     public Page<UserResponse> getAllAdmins(String keyword, Pageable pageable) {
         Page<User> users;
 

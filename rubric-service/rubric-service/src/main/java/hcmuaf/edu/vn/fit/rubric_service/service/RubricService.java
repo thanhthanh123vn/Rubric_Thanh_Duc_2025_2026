@@ -2,10 +2,7 @@ package hcmuaf.edu.vn.fit.rubric_service.service;
 
 import hcmuaf.edu.vn.fit.rubric_service.client.CourseClient;
 import hcmuaf.edu.vn.fit.rubric_service.client.UserClient;
-import hcmuaf.edu.vn.fit.rubric_service.dto.request.CriterionRequest;
-import hcmuaf.edu.vn.fit.rubric_service.dto.request.LevelRequest;
-import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricApprovalRequest;
-import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricRequest;
+import hcmuaf.edu.vn.fit.rubric_service.dto.request.*;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.*;
 import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricCriteria;
@@ -16,6 +13,7 @@ import hcmuaf.edu.vn.fit.rubric_service.repository.RubricCriteriaRepository;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricLevelRepository;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RubricService {
@@ -154,6 +152,7 @@ public class RubricService {
     }
 
     public Rubric create(Rubric rubric) {
+
         return rubricRepository.save(rubric);
     }
     @Transactional

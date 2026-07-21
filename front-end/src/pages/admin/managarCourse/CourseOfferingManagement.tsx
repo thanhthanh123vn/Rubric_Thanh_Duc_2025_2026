@@ -25,6 +25,7 @@ export default function CourseOfferingManagement() {
 
     const isDean = userRole === 'DEAN';
     const isHOD = userRole === 'HEAD_OF_DEPARTMENT';
+    const isAdmin = userRole === 'ADMIN';
 
 
     const [offerings, setOfferings] = useState<CourseOfferingResponse[]>([]);
@@ -240,7 +241,7 @@ export default function CourseOfferingManagement() {
                         </tr>
                     ) : (
                         filteredOfferings.map((offering) => {
-                            const canAssign = isDean || (isHOD && offering.course.department === userDept);
+                            const canAssign = isDean || isAdmin || (isHOD && offering.course.department === userDept);
                             const hasLecturers = offering.lecturers && offering.lecturers.length > 0;
 
                             return (

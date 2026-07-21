@@ -22,9 +22,10 @@ public class JwtUtils {
     }
 
 
-    public String generateToken(String userId, String role) {
+    public String generateToken(String userId, String role,String userName) {
         return Jwts.builder()
-                .setSubject(userId)
+                .setSubject(userName)
+                .claim("userId", userId)
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
@@ -33,12 +34,13 @@ public class JwtUtils {
                 compact();
     }
 
-    public String generateRefreshToken(String userId, String role) {
-        return buildToken(userId, role, REFRESH_TOKEN_EXPIRATION);
+    public String generateRefreshToken(String userId,String userName, String role) {
+        return buildToken(userId, role,userName ,REFRESH_TOKEN_EXPIRATION);
     }
-    private String buildToken(String userId, String role, long expiration) {
+    private String buildToken(String userId,String userName, String role, long expiration) {
         return Jwts.builder()
-                .setSubject(userId)
+                .setSubject(userName)
+                .claim("userId", userId)
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
@@ -60,6 +62,9 @@ public class JwtUtils {
 
         }
         return false;
+    }
+    public String extractUserId(String token) {
+        return extractAllClaims(token).get("userId", String.class);
     }
     public boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date());

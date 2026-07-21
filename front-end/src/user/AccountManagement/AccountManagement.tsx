@@ -5,7 +5,7 @@ import {
     User, Settings, BookOpen, MessageSquare, Calendar,
     LogOut, Search, Bell, MapPin, Edit, Menu
 } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import {Link, useNavigate } from "react-router-dom";
 
 
 export default function ProfilePage() {
@@ -153,10 +153,13 @@ export default function ProfilePage() {
                         <Settings className="w-5 h-5" />
                         <span className="font-medium">Cài đặt tài khoản</span>
                     </a>
-                    <a href="#" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                    <Link
+                        to={`/profile/${userInfo.studentId}/result-grading`}
+                        className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors"
+                    >
                         <BookOpen className="w-5 h-5" />
                         <span className="font-medium">Kết quả học tập</span>
-                    </a>
+                    </Link>
                     <a href="#" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                         <Calendar className="w-5 h-5" />
                         <span className="font-medium">Lịch học</span>

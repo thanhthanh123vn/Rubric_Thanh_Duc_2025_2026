@@ -28,6 +28,8 @@ public class SinhVienService {
     private final UserMapper userMapper;
     private final LecturerRepository lecturerRepository;
     private final UserRepository userRepository;
+    private final SinhVienMapper sinhVienMapper;
+
 
     public Page<ProfileResponse> getAllSinhVien(String keyword, Pageable pageable) {
         Page<SinhVien> sinhVienPage;
@@ -41,12 +43,47 @@ public class SinhVienService {
 
         return sinhVienPage.map(this::mapToProfileResponse);
     }
+    public SinhVien createStudent(UpdateProfileRequest request) {
+
+        if (sinhVienRepository.existsById(request.getStudentId())) {
+            throw new RuntimeException("Sinh viên đã tồn tại với mã: " + request.getStudentId());
+        }
+
+
+
+
+
+
+
+        return sinhVienRepository.save(SinhVien.builder()
+                        .studentId(request.getStudentId())
+                        .fullName(request.getFullName())
+                        .address(request.getAddress())
+                        .gender(request.getGender())
+                        .className(request.getClass().getName())
+                        .dateOfBirth(request.getDateOfBirth())
+                        .className(request.getClassName())
+                        .cccd(request.getCccd())
+                        .phoneNumber(request.getPhoneNumber())
+
+                        .nationality(request.getNationality())
+                .build());
+    }
 
 
     @Transactional
     public SinhVien updateProfile(String studentId, UpdateProfileRequest request) {
         SinhVien sv = sinhVienRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sinh viên với mã: " + studentId));
+//        request.setAvatarUrl(sv.getUser().getAvatarUrl());
+        svMapper.updateSinhVienFromRequest(request, sv);
+        return sinhVienRepository.save(sv);
+    }
+
+    @Transactional
+    public SinhVien updateProfileSinhVien(String userId, UpdateProfileRequest request) {
+        SinhVien sv = sinhVienRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sinh viên với mã: " + request.getStudentId()));
 //        request.setAvatarUrl(sv.getUser().getAvatarUrl());
         svMapper.updateSinhVienFromRequest(request, sv);
         return sinhVienRepository.save(sv);
