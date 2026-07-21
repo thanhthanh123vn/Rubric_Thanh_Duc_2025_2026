@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/user-service/sinhvien")
+@RequestMapping("/api/v1/user-service/student")
 @RequiredArgsConstructor
 
 public class SinhVienController {
@@ -37,6 +37,7 @@ public class SinhVienController {
 
     @GetMapping
     public ResponseEntity<Page<ProfileResponse>> getAllSinhVien(
+
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

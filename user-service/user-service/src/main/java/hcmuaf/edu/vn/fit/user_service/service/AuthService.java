@@ -103,8 +103,8 @@ public class AuthService {
             }
         }
 
-        String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
-        String refreshToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
+        String token = jwtUtils.generateToken(user.getUserId(), user.getRole(),user.getUsername());
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole(),user.getUsername());
 
         return new LoginResponse(
                 token,
@@ -137,8 +137,8 @@ public class AuthService {
                     return userRepository.save(newUser);
                 });
 
-        String token = jwtUtils.generateToken(user.getUserId(), user.getRole());
-        String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole());
+        String token = jwtUtils.generateToken(user.getUserId(), user.getRole(),user.getUsername());
+        String refershToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole(),user.getUsername());
         StudentProfileResponse studentProfile = null;
         LecturerProfileResponse lecturerProfile = null;
 
@@ -200,11 +200,12 @@ public class AuthService {
         // 1. Trích xuất thông tin từ token cũ
         String userId = jwtUtils.extractUsername(refreshToken);
         String role = jwtUtils.extractRole(refreshToken);
+        String username = jwtUtils.extractUsername(refreshToken);
 
         // 2. Kiểm tra tính hợp lệ và hết hạn
         if (jwtUtils.isTokenValid(refreshToken) && !jwtUtils.isTokenExpired(refreshToken)) {
             // 3. Tạo cặp token mới
-            String newAccessToken = jwtUtils.generateToken(userId, role);
+            String newAccessToken = jwtUtils.generateToken(userId, role,username);
             return new TokenResponse(newAccessToken, refreshToken);
         }
 

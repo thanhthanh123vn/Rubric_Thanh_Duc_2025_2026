@@ -2,6 +2,7 @@ import { CheckCircle2, Edit3, Layers3, Target } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getAllClo, getAllRubric } from '@/features/rubric/rubricApi';
 import {useNavigate} from "react-router-dom";
+import {useAppSelector} from "@/hooks/useAppSelector.ts";
 
 
 interface Clo {
@@ -24,6 +25,15 @@ export default function TeacherRubric() {
   const [rubricTemplates, setRubricTemplates] = useState<RubricDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+  const { user:reduxUser } = useAppSelector((state) => state.auth);
+
+  let user = reduxUser;
+  if (!user) {
+    const localUser = localStorage.getItem("user");
+    if (localUser) {
+      user = JSON.parse(localUser);
+    }
+  }
   useEffect(() => {
     const fetchRubricData = async () => {
       try {
@@ -107,7 +117,13 @@ export default function TeacherRubric() {
                   <div className="text-center text-slate-500 py-4">Đang tải Rubrics...</div>
               ) : rubricTemplates.length > 0 ? (
                   rubricTemplates.map((template) => (
-                      <div key={template.id || template.name} onClick={() => navigate(`/teacher/rubric/${template.id}`)}  className="rounded-2xl border border-slate-200 p-4 hover:border-emerald-200 transition-colors">
+                      <div key={template.id || template.name}  onClick={() =>
+                          navigate(
+                              user?.role === "ADMIN"
+                                  ? `/admin/rubrics/list/${template.id}`
+                                  : `/teacher/rubric/${template.id}`
+                          )
+                      }  className="rounded-2xl border border-slate-200 p-4 hover:border-emerald-200 transition-colors">
                         <div className="flex items-center justify-between gap-4">
                           <div>
                             <p className="font-semibold text-slate-900">{template.name}</p>

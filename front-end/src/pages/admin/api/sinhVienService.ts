@@ -10,7 +10,7 @@ class ScheduleResponse {
 const sinhVienService = {
 
     getAllSinhVien: async (page: number = 0, size: number = 10, keyword: string = ""): Promise<PageResponse<StudentProfile>> => {
-        const response = await api.get<PageResponse<StudentProfile>>('/sinhvien', {
+        const response = await api.get<PageResponse<StudentProfile>>('/student', {
             params: { page, size, keyword }
         });
         return response.data;
@@ -18,19 +18,24 @@ const sinhVienService = {
 
 
     getProfile: async (): Promise<StudentProfile> => {
-        const response = await api.get<StudentProfile>('/sinhvien/profile/me');
+        const response = await api.get<StudentProfile>('/student/profile/me');
         return response.data;
     },
 
 
     deleteSinhVien: async (formData: Partial<StudentProfile>): Promise<StudentProfile> => {
-        const response = await api.put<StudentProfile>('/sinhvien/profile/me', formData);
+        const response = await api.put<StudentProfile>('/admin/student', formData);
         return response.data;
     },
 
     updateProfile: async (formData: Partial<StudentProfile>): Promise<StudentProfile> => {
 
-        const response = await api.put<StudentProfile>('/sinhvien/profile/me', formData);
+        const response = await api.put<StudentProfile>('/admin/student/profile/me', formData);
+        return response.data;
+    },
+    createStudent: async (formData: Partial<StudentProfile>): Promise<StudentProfile> => {
+
+        const response = await api.post<StudentProfile>('/admin/student', formData);
         return response.data;
     },
     getSchedules: async (): Promise<ScheduleResponse[]> => {

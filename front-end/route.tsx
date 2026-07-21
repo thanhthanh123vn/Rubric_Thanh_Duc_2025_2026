@@ -85,6 +85,17 @@ import LecturerExamDetailPage from "@/pages/teacher/LecturerExamDetailPage.tsx";
 import StudentTakeExamPage from "@/features/course/student/components/StudentTakeExamPage.tsx";
 import StudentExamResultPage from "@/features/course/student/components/StudentExamResultPage.tsx";
 import TeacherGradingFinal from "@/pages/teacher/TeacherGradingFinal.tsx";
+import AdminGradeManagement from "@/pages/admin/grade/AdminGradeManagement.tsx";
+import CourseGradeDetail from "@/pages/admin/grade/CourseGradeDetail.tsx";
+import AdminRubricGradeEntry from "@/pages/admin/grade/AdminRubricGradeEntry.tsx";
+import RubricPoint from "@/pages/admin/grade/RubricPoint.tsx";
+import ReportDashboard from "@/pages/admin/system/ReportDashboard.tsx";
+import SystemSettings from "@/pages/admin/system/SystemSettings.tsx";
+import AssignmentGradingManager from "@/pages/admin/managarCourse/AssignmentGradingManager.tsx";
+import AdminNotifications from "@/pages/admin/system/AdminNotifications.tsx";
+import SystemLogPage from "@/pages/admin/system/SystemLogPage.tsx";
+import StudentTranscript from "@/pages/admin/system/StudentTranscript.tsx";
+import StudentTranscriptView from "@/features/course/student/components/StudentTranscriptView.tsx";
 
 export const router = createBrowserRouter([
 
@@ -171,6 +182,10 @@ export const router = createBrowserRouter([
     {
         path: "/profile",
         Component: AccountManagement,
+    },
+    {
+        path: "/profile/:studentId/result-grading",
+        Component: StudentTranscriptView,
     },
     {
         path: "/teacher",
@@ -296,22 +311,39 @@ export const router = createBrowserRouter([
                         Component: UserManagement,
                     },
                     {path: "users/create-user", Component: AdminCreateUser},
+                    {path: "reports", Component: ReportDashboard},
+                    {path: "settings", Component: SystemSettings},
                     {path: "users/list-students", Component: ListStudent},
                     {path: "users/list-lecturers", Component: LecturerManagement},
 
                     { path: "departments/list", Component: FacultyManagement },
                     { path: "departments/subjects", Component: SubjectManagement },
 
-                    {path: "rubrics/list", Component: TeacherCourseRubric},
+                    {path: "rubrics/list", Component: TeacherRubric},
                     {path: "rubrics/list/:id", Component: TeacherRubricDetail},
                     {path: "rubrics-matrix", Component: RubricMatrix},
                     {path: "users/list-admins", Component: AdminManagement},
                     {path: "syllabus", Component: SyllabusManager},
 
                     {path: "assignments/list", Component: CourseContentManager},
+                    { path: "assignments/grading", Component: AssignmentGradingManager },
+                    { path: "assignments/grading/:id", Component: TeacherAssessmentList },
                     {path: "assignments/list/:id/courseOffering-assignment", Component: CourseAssignmentsManager},
                     {path: "courses/list", Component: CourseManagement},
 
+                    {
+                        path: "grades",
+                        children :[
+                            {  path:"board" ,Component:AdminGradeManagement },
+                            { path:"board/:offeringId" ,Component:CourseGradeDetail },
+                            { path:"rubric-grading" ,Component:RubricPoint },
+                            { path:"rubric-grading/:offeringId" ,Component:AdminRubricGradeEntry },
+
+                        ]
+                    },
+                    {path:"/admin/announcements" ,Component:AdminNotifications } ,
+                    {path:"/admin/logs" ,Component:SystemLogPage } ,
+                    {path:"/admin/grading" ,Component:StudentTranscript } ,
                     {path: "courses/assessments", Component: AssessmentManagement},
 
                     {path: "classes/list", Component: CourseOfferingManagement},

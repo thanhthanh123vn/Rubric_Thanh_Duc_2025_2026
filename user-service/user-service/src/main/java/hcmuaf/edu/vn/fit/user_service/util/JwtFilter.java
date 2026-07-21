@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.user_service.util;
 
+import hcmuaf.edu.vn.fit.user_service.config.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -35,11 +37,18 @@ public class JwtFilter extends OncePerRequestFilter {
             if(jwtUtils.isTokenValid(token)){
                 String username = jwtUtils.extractUsername(token);
                 String role = jwtUtils.extractRole(token);
+                String userId = jwtUtils.extractUserId(token);
 
+                UserPrincipal principal = new UserPrincipal(userId, username, role);
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken
-                                (username, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-
+                        new UsernamePasswordAuthenticationToken(
+                                principal,
+                                null,
+                                List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                        );
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
 

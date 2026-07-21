@@ -16,9 +16,10 @@ public interface SinhVienMapper {
     @Mapping(target = "fullName", source = "fullName")
     SinhVien toEntity(RegisterRequest request);
 
+
     @Mapping(target = "studentId", ignore = true)
     @Mapping(target = "user", ignore = true)
-    @Mapping(target = "className", ignore = true)
+
     @Mapping(target = "major", ignore = true)
     void updateSinhVienFromRequest(UpdateProfileRequest request, @MappingTarget SinhVien sinhVien);
 }

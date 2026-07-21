@@ -14,7 +14,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @EnableConfigurationProperties
 @EnableDiscoveryClient
 @EnableJpaAuditing
-
+@EnableFeignClients
 public class UserServiceApplication {
 
     public static void main(String[] args) {

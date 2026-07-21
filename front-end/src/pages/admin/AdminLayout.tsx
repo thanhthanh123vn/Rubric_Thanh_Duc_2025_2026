@@ -19,7 +19,7 @@ export default function AdminLayout() {
 
         },
 
-        { title: 'Khóa học', url: '/admin/courses', icon: BookOpen },
+        { title: 'Khóa học', url: '/admin/courses/list', icon: BookOpen },
         { title: 'Rubrics', url: '/admin/rubrics', icon: FileText },
         { title: 'Cài đặt', url: '/admin/settings', icon: Settings },
     ];

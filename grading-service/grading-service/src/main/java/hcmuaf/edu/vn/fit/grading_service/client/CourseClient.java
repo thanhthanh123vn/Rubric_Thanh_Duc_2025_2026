@@ -14,4 +14,7 @@ public interface CourseClient {
     @GetMapping("/offering/{offeringId}/students")
 
     List<StudentCourseResponse> getStudentsByOffering(@PathVariable("offeringId") String offeringId);
+
+
+
 }

@@ -39,7 +39,10 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
         return ResponseEntity.ok(userService.getAllUsers(keyword, pageable));
     }
-
+    @GetMapping("/count")
+    public ResponseEntity<Long> countUsers() {
+        return ResponseEntity.ok(userService.countUsers());
+    }
 
     @GetMapping("/batch")
     public Map<String, UserResponse> getUsers(@RequestParam List<String> ids) {

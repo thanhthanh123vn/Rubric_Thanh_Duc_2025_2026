@@ -31,8 +31,10 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
+
             ServerHttpRequest request = exchange.getRequest();
             String path = request.getURI().getPath();
+            log.info("Request: {}", request.getURI());
             if (request.getMethod().matches("OPTIONS")) {
                 return chain.filter(exchange);
             }
@@ -53,25 +55,49 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 return onError(exchange, "Invalid Authorization Header Format", HttpStatus.UNAUTHORIZED);
             }
 
+            log.info("Authorization = {}", authHeader);
+
             String token = authHeader.substring(7);
 
             try {
 
                 Claims claims = jwtUtils.validateAndExtractClaims(token);
-                String userId = claims.getSubject();
+                String userId = claims.get("userId", String.class);
 
 
-                String roles = claims.get("roles", String.class);
+                String roles = claims.get("role", String.class);
+                String userName = claims.getSubject();
+
+                String ip = request.getHeaders().getFirst("X-Forwarded-For");
+
+                if (ip == null || ip.isBlank()) {
+                    if (request.getRemoteAddress() != null) {
+                        ip = request.getRemoteAddress().getAddress().getHostAddress();
+                    } else {
+                        ip = "unknown";
+                    }
+                }
 
 
+
+                log.info("Subject = {}", claims.getSubject());
+                log.info("UserId = {}", claims.get("userId", String.class));
+                log.info("Role = {}", claims.get("role", String.class));
                 ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
                         .header("X-User-Id", userId)
-                        .header("X-User-Roles", roles != null ? roles : "")
+                        .header("X-User-Role", roles != null ? roles : "")
+                        .header("X-User-Username",userName)
+                        .header("X-User-IP", ip)
                         .build();
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
 
             } catch (Exception e) {
+
+
+                Claims claims = jwtUtils.validateAndExtractClaims(token);
+
+                log.info("Subject = {}", claims.getSubject());
                 log.error("Authentication Failed: {}", e.getMessage());
                 return onError(exchange, e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
