@@ -17,7 +17,7 @@ export default function ProfilePage() {
         role: 'STUDENT',
         avatarUrl: ''
     });
-
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     // 1. Thêm các State quản lý form cập nhật
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -149,21 +149,21 @@ export default function ProfilePage() {
                         <User className="w-5 h-5" />
                         <span className="font-medium">Hồ sơ cá nhân</span>
                     </a>
-                    <a href="#" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                    <a href="/profile/settings" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                         <Settings className="w-5 h-5" />
                         <span className="font-medium">Cài đặt tài khoản</span>
                     </a>
                     <Link
-                        to={`/profile/${userInfo.studentId}/result-grading`}
+                        to={`/profile/result-grading`}
                         className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors"
                     >
                         <BookOpen className="w-5 h-5" />
                         <span className="font-medium">Kết quả học tập</span>
                     </Link>
-                    <a href="#" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
-                        <Calendar className="w-5 h-5" />
-                        <span className="font-medium">Lịch học</span>
-                    </a>
+                    {/*<a href="/profile/calendar" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">*/}
+                    {/*    <Calendar className="w-5 h-5" />*/}
+                    {/*    <span className="font-medium">Lịch học</span>*/}
+                    {/*</a>*/}
                 </nav>
                 <div className="p-6 border-t border-emerald-50">
                     <button onClick={handleLogout} className="flex items-center gap-4 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 w-full rounded-xl transition-colors">

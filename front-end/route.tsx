@@ -96,6 +96,11 @@ import AdminNotifications from "@/pages/admin/system/AdminNotifications.tsx";
 import SystemLogPage from "@/pages/admin/system/SystemLogPage.tsx";
 import StudentTranscript from "@/pages/admin/system/StudentTranscript.tsx";
 import StudentTranscriptView from "@/features/course/student/components/StudentTranscriptView.tsx";
+import StudentRubric from "@/features/course/student/components/StudentRubric.tsx";
+import StudentRubricDetail from "@/features/course/student/components/StudentRubricDetail.tsx";
+import StudentOBE from "@/features/course/student/components/StudentOBE.tsx";
+import AccountSettings from "@/features/course/student/components/AccountSettings.tsx";
+import StudentCalendarPage from "@/features/course/student/components/CalendarPage.tsx";
 
 export const router = createBrowserRouter([
 
@@ -116,6 +121,9 @@ export const router = createBrowserRouter([
         path: "/course/:id",
         Component: CourseDetail,
     },
+    {path: "rubrics", Component: StudentRubric},
+    {path: "rubric/:id", Component: StudentRubricDetail},
+    {path: "obe-reports", Component: StudentOBE},
     {
         path: "/course/:id/students",
         Component: CourseStudentList,
@@ -179,13 +187,19 @@ export const router = createBrowserRouter([
         path: "/forgot-password",
         Component: ForgotPasswordPage,
     },
+
     {
         path: "/profile",
         Component: AccountManagement,
     },
     {
-        path: "/profile/:studentId/result-grading",
+        path: "/profile/result-grading",
         Component: StudentTranscriptView,
+    },
+
+    {
+        path: "/profile/settings",
+        Component: AccountSettings,
     },
     {
         path: "/teacher",

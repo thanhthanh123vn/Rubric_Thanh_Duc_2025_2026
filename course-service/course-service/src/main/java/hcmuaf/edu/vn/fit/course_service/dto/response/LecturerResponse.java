@@ -12,3 +12,4 @@ public class LecturerResponse {
     private String department;
     private String academicTitle;
 }
+

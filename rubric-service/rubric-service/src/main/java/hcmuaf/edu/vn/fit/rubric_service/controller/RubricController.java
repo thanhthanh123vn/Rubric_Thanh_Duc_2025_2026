@@ -35,6 +35,10 @@ public class RubricController {
     public List<RubricResponse> getAll() {
         return rubricService.getAllRubrics();
     }
+    @GetMapping("/count")
+    public long getCount() {
+        return rubricService.getAllRubrics().size();
+    }
     @GetMapping("/matrix")
     public ResponseEntity<List<RubricMatrixResponse>> getRubricMatrices() {
         return ResponseEntity.ok(rubricService.getRubricMatrices());

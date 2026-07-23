@@ -77,7 +77,10 @@ public class CourseService {
         if (offering.getLecturerIds() != null && !offering.getLecturerIds().isEmpty()) {
             for (String lId : offering.getLecturerIds()) {
                 try {
+                    System.out.println("ID của giảng viên"+lId);
+
                     LecturerResponse lecturer = userClient.getLecturer(lId);
+
                     lecturerInfos.add(new LecturerInfo(lId, lecturer.getFullName()));
                 } catch (Exception e) {
                     lecturerInfos.add(new LecturerInfo(lId, "Unknown Lecturer"));

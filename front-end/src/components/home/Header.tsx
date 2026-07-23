@@ -269,7 +269,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                             </h2>
 
                             <button
-                                onClick={() => router('/profile')}
+                                onClick={() => window.open("/profile", "_blank")}
                                 className="mt-4 px-4 sm:px-6 py-2 border border-gray-400 rounded-full text-xs sm:text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
                             >
                                 Quản lý Tài khoản

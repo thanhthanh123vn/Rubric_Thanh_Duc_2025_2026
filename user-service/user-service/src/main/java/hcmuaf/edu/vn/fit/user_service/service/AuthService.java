@@ -1,10 +1,7 @@
 package hcmuaf.edu.vn.fit.user_service.service;
 
 
-import hcmuaf.edu.vn.fit.user_service.dto.request.ForgotPasswordRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.LoginRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.ResetPasswordRequest;
+import hcmuaf.edu.vn.fit.user_service.dto.request.*;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerProfileResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.StudentProfileResponse;
@@ -175,25 +172,27 @@ public class AuthService {
 
     // 2. Hàm xác nhận OTP và lưu mật khẩu mới
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        User user = userRepository.findByEmail(request.email())
+    public void changePassword(String userId, ChangePasswordRequest request) {
+
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản!"));
 
 
-        if (user.getResetOtp() == null || !user.getResetOtp().equals(request.otp())) {
-            throw new RuntimeException("Mã OTP không hợp lệ!");
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu hiện tại không đúng!");
         }
 
-        if (user.getResetOtpExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Mã OTP đã hết hạn!");
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new RuntimeException("Xác nhận mật khẩu không khớp!");
         }
 
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu mới phải khác mật khẩu hiện tại!");
+        }
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-
-
-        user.setResetOtp(null);
-        user.setResetOtpExpiry(null);
         userRepository.save(user);
     }
     public TokenResponse refreshToken(String refreshToken) {

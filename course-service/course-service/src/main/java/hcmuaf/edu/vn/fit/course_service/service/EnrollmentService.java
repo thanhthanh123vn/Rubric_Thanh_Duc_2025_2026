@@ -33,6 +33,10 @@ public class EnrollmentService {
                 .offeringId(offering != null ? offering.getOfferingId() : null)
                 .courseId(offering != null && offering.getCourse() != null ? offering.getCourse().getCourseId() : null)
                 .courseName(offering != null && offering.getCourse() != null ? offering.getCourse().getCourseName() : null)
+
+                .semester(offering != null ? offering.getSemester() : "N/A")
+                .academicYear(offering != null ? offering.getAcademicYear() : "N/A")
+                .credits(offering != null && offering.getCourse() != null ? offering.getCourse().getCredits() : 3) // Lấy tín chỉ từ Course
                 .attendanceScore(e.getAttendanceScore())
                 .assignmentScore(e.getAssignmentScore())
                 .midtermScore(e.getMidtermScore())
