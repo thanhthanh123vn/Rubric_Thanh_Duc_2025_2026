@@ -11,6 +11,10 @@ public class StudentTranscriptItemResponse {
     private String courseName;
     private String offeringId;
 
+    private String semester;
+    private String academicYear;
+    private Integer credits;
+
     private Float attendanceScore;
     private Float assignmentScore;
     private Float midtermScore;

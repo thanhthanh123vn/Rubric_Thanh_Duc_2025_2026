@@ -185,7 +185,7 @@ const Sidebar = ({ isOpen, onClose }: any) => {
         </nav>
 
         <div className="p-4 border-t border-gray-200/50 shrink-0">
-          <NavLink to="/settings" className={({isActive}) => `
+          <NavLink to="/profile/settings" className={({isActive}) => `
           flex items-center gap-3 px-3 py-3 rounded-xl transition-all relative overflow-hidden
           ${isActive ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm' : 'text-gray-600 hover:bg-white/60 hover:shadow-sm'}
           ${isCollapsed ? 'justify-center' : ''}

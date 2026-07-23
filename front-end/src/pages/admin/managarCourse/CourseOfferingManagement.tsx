@@ -9,24 +9,24 @@ import { courseOfferingService } from "@/features/course/student/api/courseOffer
 import courseService from "@/pages/admin/api/courseService.ts";
 import type { CourseOfferingResponse } from "@/pages/admin/api/type.ts";
 import type { LecturerOption } from "@/features/course/student/api/type.ts";
-import {type Department, getAllDepartments} from "@/api/lecturerApi.ts";
-import {getLecturerByUser} from "@/api/userApi.ts";
+import { getLecturerByUser } from "@/api/userApi.ts";
 
-const DEPARTMENTS = ["Hệ Thống Thông Tin", "Công Nghệ Phần Mềm", "Khoa Học Máy Tính", "An Toàn Thông Tin"];
+// Import API lấy phòng ban mới theo yêu cầu
+import { subjectService } from "@/api/subjectService.ts";
 
 export default function CourseOfferingManagement() {
     const { user: reduxUser } = useAppSelector((state) => state.auth);
     const user = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
     const userRole = user?.role || "HEAD_OF_DEPARTMENT";
-    const [departments, setDepartments] = useState<Department[]>([]);
-    const [userDept, setUserDept] = useState<string>("");
 
+    // Sử dụng state với mảng bất kỳ thay vì kiểu cũ để phù hợp với API subjectService
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [userDept, setUserDept] = useState<string>("");
 
     const isDean = userRole === 'DEAN';
     const isHOD = userRole === 'HEAD_OF_DEPARTMENT';
     const isAdmin = userRole === 'ADMIN';
-
 
     const [offerings, setOfferings] = useState<CourseOfferingResponse[]>([]);
     const [filteredOfferings, setFilteredOfferings] = useState<CourseOfferingResponse[]>([]);
@@ -36,44 +36,44 @@ export default function CourseOfferingManagement() {
 
     const [selectedDept, setSelectedDept] = useState<string>("ALL");
 
-
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedOffering, setSelectedOffering] = useState<CourseOfferingResponse | null>(null);
     const [submitting, setSubmitting] = useState<boolean>(false);
 
-
     const [selectedLecturerIds, setSelectedLecturerIds] = useState<string[]>([]);
+
+    // FIX ADMIN: Admin và Dean đều không bị gán cứng vào một bộ môn cụ thể
     useEffect(() => {
-        if (!isDean && userDept) {
+        if (!isDean && !isAdmin && userDept) {
             setSelectedDept(userDept);
         }
-    }, [isDean, userDept]);
-    useEffect(() => {
+    }, [isDean, isAdmin, userDept]);
 
+    useEffect(() => {
         const fetchUserDep = async () => {
             if (!user?.userId) return;
             try {
                 const res = await getLecturerByUser(user.userId);
-
                 setUserDept(res.department?.departmentName || res.department);
             } catch (err) {
                 console.error("Lỗi khi lấy thông tin khoa của user:", err);
             }
         };
 
-
         const fetchAllDepartments = async () => {
             try {
-                const res = await getAllDepartments();
-                setDepartments(res);
+                // Gọi API lấy dữ liệu phòng ban từ subjectService
+                const data = await subjectService.getAll();
+                setDepartments(data);
             } catch (err) {
-                console.error("Lỗi khi lấy danh sách khoa:", err);
+                console.error("Lỗi khi lấy danh sách phòng ban:", err);
             }
         };
 
         fetchUserDep();
         fetchAllDepartments();
     }, [user?.userId]);
+
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
@@ -125,7 +125,6 @@ export default function CourseOfferingManagement() {
         setIsModalOpen(true);
     };
 
-
     const toggleLecturer = (lecturerId: string) => {
         setSelectedLecturerIds(prev =>
             prev.includes(lecturerId)
@@ -145,16 +144,11 @@ export default function CourseOfferingManagement() {
 
         try {
             setSubmitting(true);
-            console.log(selectedOffering.course.courseId);
-            console.log(selectedLecturerIds);
-
             await courseService.assignLecturers(selectedOffering.offeringId, selectedLecturerIds);
-
 
             const updatedLecturers = lecturers
                 .filter(l => selectedLecturerIds.includes(l.lecturerId))
                 .map(l => ({ lecturerId: l.lecturerId, lecturerName: l.fullName }));
-
 
             setOfferings(prev => prev.map(o =>
                 o.offeringId === selectedOffering.offeringId
@@ -183,7 +177,7 @@ export default function CourseOfferingManagement() {
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-700 text-xs font-semibold">
                     <UserCheck className="w-4 h-4" />
-                    <span>Quyền hiện tại: {isDean ? "Trưởng Khoa" : `Trưởng Bộ Môn (${userDept})`}</span>
+                    <span>Quyền hiện tại: {isAdmin ? "Quản trị viên" : isDean ? "Trưởng Khoa" : `Trưởng Bộ Môn (${userDept})`}</span>
                 </div>
             </div>
 
@@ -205,15 +199,15 @@ export default function CourseOfferingManagement() {
                     <select
                         value={selectedDept}
                         onChange={(e) => setSelectedDept(e.target.value)}
-                        disabled={!isDean}
+                        disabled={!isDean && !isAdmin} // Admin và Dean đều được phép lọc Khoa
                         className="w-full pl-9 h-11 bg-slate-50 border border-slate-200 text-sm rounded-xl focus:border-emerald-500 outline-none transition-all appearance-none disabled:opacity-70 disabled:cursor-not-allowed text-slate-700 font-medium"
                     >
-                        {isDean && <option value="ALL">Tất cả Bộ môn trong khoa</option>}
-                        {DEPARTMENTS.map((dept, i) => (
-                            <option key={i} value={dept}>{dept}</option>
+                        {(isDean || isAdmin) && <option value="ALL">Tất cả Bộ môn trong khoa</option>}
+                        {departments.map((dept, i) => (
+                            <option key={i} value={dept.departmentName}>{dept.departmentName}</option>
                         ))}
                     </select>
-                    {!isDean && <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-400" />}
+                    {(!isDean && !isAdmin) && <Lock className="absolute right-3 top-3.5 w-4 h-4 text-slate-400" />}
                 </div>
             </div>
 
@@ -261,7 +255,6 @@ export default function CourseOfferingManagement() {
                                         <div className="text-xs text-slate-400">Max: {offering.maxStudents} SV</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        {/* CẬP NHẬT: Hiển thị mảng nhiều Giảng viên */}
                                         {hasLecturers ? (
                                             <div className="flex flex-wrap gap-1.5">
                                                 {offering.lecturers.map((l: any) => (
@@ -314,7 +307,7 @@ export default function CourseOfferingManagement() {
                             {lecturers
                                 .filter(lecturer => {
                                     if (isHOD) return lecturer.department === userDept;
-                                    return true;
+                                    return true; // Admin và Dean thấy tất cả GV để gán môn học
                                 })
                                 .map((lecturer) => {
                                     const isSelected = selectedLecturerIds.includes(lecturer.lecturerId);
@@ -349,7 +342,7 @@ export default function CourseOfferingManagement() {
                                 })}
                         </div>
 
-                        {/* THÊM MỚI: Modal Footer để Lưu danh sách chọn nhiều */}
+                        {/* Modal Footer */}
                         <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
                             <Button variant="outline" disabled={submitting} onClick={() => setIsModalOpen(false)} className="rounded-xl">
                                 Hủy bỏ

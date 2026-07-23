@@ -1,35 +1,64 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { cn } from "@/components/ui/utils";
+import type { StudentScheduleResponse } from "@/api/courseScheduleApi";
 
-// Mock Data
-const mockClasses = [
-    { id: 1, title: "Lập trình Java", room: "RD306-Khu Rạng Đông", type: "LT", day: 0, startHour: 7.5, duration: 2, color: "bg-emerald-50 border-emerald-500 text-emerald-800" },
-    { id: 2, title: "Cơ sở dữ liệu", room: "PV322-Nhà C", type: "LT", day: 1, startHour: 13, duration: 2, color: "bg-blue-50 border-blue-500 text-blue-800" },
-    { id: 3, title: "Thương mại điện tử", room: "Lab 02-Khu D", type: "TH", day: 3, startHour: 9.5, duration: 2, color: "bg-orange-50 border-orange-500 text-orange-800" },
-];
+interface WeeklyCalendarProps {
+    schedules?: StudentScheduleResponse[];
+}
 
-const timeSlots = ["06:00","07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+const timeSlots = ["06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
 
-const daysOfWeek = [
-    { name: "Thứ 2", date: "(20/04)" }, { name: "Thứ 3", date: "(21/04)" },
-    { name: "Thứ 4", date: "(22/04)" }, { name: "Thứ 5", date: "(23/04)", isToday: true },
-    { name: "Thứ 6", date: "(24/04)" }, { name: "Thứ 7", date: "(25/04)" },
-    { name: "Chủ nhật", date: "(26/04)" },
-];
+// HÀM TẠO DỮ LIỆU TUẦN HIỆN TẠI
+const generateCurrentWeek = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-export default function WeeklyCalendar() {
-    // Đã giảm từ 85 xuống 60 để khung lịch ngắn lại, vừa vặn màn hình hơn
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() + distanceToMonday);
+
+    const days = [];
+    const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+
+    for (let i = 0; i < 7; i++) {
+        const currentDay = new Date(startOfWeek);
+        currentDay.setDate(startOfWeek.getDate() + i);
+        const dd = String(currentDay.getDate()).padStart(2, '0');
+        const mm = String(currentDay.getMonth() + 1).padStart(2, '0');
+
+        days.push({
+            name: dayNames[i],
+            date: `(${dd}/${mm})`,
+            isToday: currentDay.toDateString() === today.toDateString()
+        });
+    }
+
+    return days;
+};
+
+export default function WeeklyCalendar({ schedules = [] }: WeeklyCalendarProps) {
     const PIXELS_PER_HOUR = 50;
-    const START_HOUR_OF_DAY = 7;
+    const START_HOUR_OF_DAY = 6;
+
+    const daysOfWeek = useMemo(() => generateCurrentWeek(), []);
+
+    const parseTimeToDecimal = (timeStr: string) => {
+        if (!timeStr) return 0;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours + (minutes / 60);
+    };
+
+
+    const getColumnIndex = (dayOfWeek: number) => {
+
+        return dayOfWeek;
+    };
 
     return (
-        // Thêm overflow-auto để khung lịch tự cuộn cả ngang lẫn dọc nếu tràn
         <div className="flex flex-col h-full bg-white font-sans w-full overflow-auto custom-scrollbar">
-
-            {/* Vẫn giữ min-w-[750px] để không bị bóp méo chữ trên điện thoại */}
             <div className="min-w-[750px] flex flex-col h-full relative">
 
-                {/* Header Lịch (Dòng hiển thị Thứ/Ngày) */}
+                {/* Header Lịch */}
                 <div className="flex border-b border-gray-200 shrink-0 bg-[#f9fafb] sticky top-0 z-40 shadow-sm">
                     <div className="w-[60px] md:w-[70px] shrink-0 border-r border-gray-200 bg-[#f9fafb] sticky left-0 z-50"></div>
                     <div className="flex flex-1 grid grid-cols-7">
@@ -47,7 +76,7 @@ export default function WeeklyCalendar() {
                     </div>
                 </div>
 
-                {/* Khung Body Lưới (Không còn ép cứng min-h nữa) */}
+                {/* Khung Body Lưới */}
                 <div className="flex-1 relative bg-white">
                     <div className="flex h-full relative">
                         {/* Cột thời gian bên trái */}
@@ -63,14 +92,12 @@ export default function WeeklyCalendar() {
 
                         {/* Vùng Lưới và Sự Kiện */}
                         <div className="flex-1 relative">
-                            {/* Đường kẻ ngang */}
                             <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
                                 {timeSlots.map((_, idx) => (
                                     <div key={idx} className="border-b border-gray-100 w-full" style={{ height: `${PIXELS_PER_HOUR}px` }}></div>
                                 ))}
                             </div>
 
-                            {/* Đường kẻ dọc */}
                             <div className="absolute inset-0 grid grid-cols-7 pointer-events-none z-0 h-full">
                                 {daysOfWeek.map((_, idx) => (
                                     <div key={idx} className="border-r border-gray-100 h-full w-full last:border-r-0 border-dashed" />
@@ -81,30 +108,51 @@ export default function WeeklyCalendar() {
                             <div className="absolute inset-0 grid grid-cols-7 h-full z-10 pointer-events-none">
                                 {daysOfWeek.map((_, colIdx) => (
                                     <div key={colIdx} className="relative w-full h-full">
-                                        {mockClasses.filter(c => c.day === colIdx).map(cls => {
-                                            const top = (cls.startHour - START_HOUR_OF_DAY) * PIXELS_PER_HOUR;
-                                            const height = cls.duration * PIXELS_PER_HOUR;
-                                            return (
-                                                <div
-                                                    key={cls.id}
-                                                    className={cn(
-                                                        "absolute left-1 right-1 rounded-md border-l-4 p-1.5 shadow-sm cursor-pointer pointer-events-auto transition-all hover:shadow-md hover:scale-[1.01] z-20 flex flex-col overflow-hidden",
-                                                        cls.color
-                                                    )}
-                                                    style={{ top: `${top + 1}px`, height: `${height - 2}px` }}
-                                                >
-                                                    <span className="font-bold text-[10px] md:text-xs leading-tight mb-1 text-gray-900 line-clamp-2">
-                                                        {cls.title}
-                                                    </span>
-                                                    <span className="text-[9px] md:text-[10px] font-medium text-gray-700 leading-tight line-clamp-2">
-                                                        {cls.room}
-                                                    </span>
-                                                    <span className="text-[8px] md:text-[9px] font-bold opacity-80 mt-auto uppercase w-fit bg-white/50 px-1 rounded">
-                                                        {cls.type}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
+                                        {schedules
+                                            .filter(c => getColumnIndex(c.dayOfWeek) === colIdx)
+                                            .map(cls => {
+                                                const startHour = parseTimeToDecimal(cls.startTime);
+                                                const endHour = parseTimeToDecimal(cls.endTime);
+                                                const duration = endHour - startHour;
+
+                                                const top = (startHour - START_HOUR_OF_DAY) * PIXELS_PER_HOUR;
+                                                const height = duration * PIXELS_PER_HOUR;
+
+                                                const themeColor = cls.colorTheme || "bg-emerald-50 border-emerald-500 text-emerald-800";
+
+                                                return (
+                                                    <div
+                                                        key={cls.scheduleId}
+                                                        className={cn(
+                                                            "absolute left-1 right-1 rounded-md border-l-4 p-1.5 shadow-sm cursor-pointer pointer-events-auto transition-all hover:shadow-md hover:scale-[1.01] z-20 flex flex-col overflow-hidden",
+                                                            themeColor
+                                                        )}
+                                                        style={{top: `${top + 1}px`, height: `${height - 2}px`}}
+                                                    >
+                                                        <span
+                                                            className="font-bold text-[10px] md:text-xs leading-tight mb-1 text-gray-900 line-clamp-2"
+                                                            title={cls.courseName || cls.offeringName}>
+                                                            {cls.courseName || cls.offeringName}
+                                                        </span>
+                                                        <span
+                                                            className="text-[9px] md:text-[10px] font-medium text-gray-700 leading-tight line-clamp-2">
+                                                            {cls.room}
+                                                        </span>
+                                                        <span
+                                                            className="text-[9px] md:text-[10px] font-medium text-gray-700 leading-tight line-clamp-2">
+                                                                giờ bắt đầu {cls.startTime ? cls.startTime.slice(0, 5) : ''}h
+                                                            </span>
+                                                        <span
+                                                            className="text-[9px] md:text-[10px] font-medium text-gray-700 leading-tight line-clamp-2">
+                                                                giờ kết thúc {cls.endTime ? cls.endTime.slice(0, 5) : ''}h
+                                                            </span>
+                                                        <span
+                                                            className="text-[8px] md:text-[9px] font-bold opacity-80 mt-auto uppercase w-fit bg-white/50 px-1 rounded">
+                                                            {cls.classType}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
                                     </div>
                                 ))}
                             </div>

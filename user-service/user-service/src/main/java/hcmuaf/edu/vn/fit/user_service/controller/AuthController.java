@@ -2,11 +2,13 @@ package hcmuaf.edu.vn.fit.user_service.controller;
 
 import hcmuaf.edu.vn.fit.user_service.client.ClientIpUtil;
 import hcmuaf.edu.vn.fit.user_service.client.CourseClient;
+import hcmuaf.edu.vn.fit.user_service.config.UserPrincipal;
 import hcmuaf.edu.vn.fit.user_service.dto.request.*;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.TokenResponse;
 import hcmuaf.edu.vn.fit.user_service.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
@@ -133,10 +135,15 @@ public class AuthController {
         return ResponseEntity.ok("Mã OTP đã được gửi đến email của bạn.");
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request);
-        return ResponseEntity.ok("Đổi mật khẩu thành công. Vui lòng đăng nhập lại!");
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+
+        authService.changePassword(principal.getUserId(), request);
+
+        return ResponseEntity.ok("Đổi mật khẩu thành công!");
     }
 
 }

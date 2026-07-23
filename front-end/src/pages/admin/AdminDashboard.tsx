@@ -88,7 +88,7 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 md:p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-lg text-slate-800">Tình trạng phân bổ khóa học</h3>
-                        <Link to="/admin/courses" className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center transition-colors">
+                        <Link to="/admin/classes/list" className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center transition-colors">
                             Xem chi tiết <ArrowRight className="w-4 h-4 ml-1" />
                         </Link>
                     </div>

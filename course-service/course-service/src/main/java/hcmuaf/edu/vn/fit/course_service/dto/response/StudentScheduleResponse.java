@@ -6,9 +6,11 @@ import java.time.LocalTime;
 
 @Data
 @Builder
-public class ScheduleResponse {
+public class StudentScheduleResponse {
     private String scheduleId;
     private String offeringId;
+    private String offeringName;
+    private String courseName;
     private String room;
     private String classType;
     private Integer dayOfWeek;
