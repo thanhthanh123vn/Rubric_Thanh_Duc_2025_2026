@@ -100,7 +100,7 @@ import StudentRubric from "@/features/course/student/components/StudentRubric.ts
 import StudentRubricDetail from "@/features/course/student/components/StudentRubricDetail.tsx";
 import StudentOBE from "@/features/course/student/components/StudentOBE.tsx";
 import AccountSettings from "@/features/course/student/components/AccountSettings.tsx";
-import StudentCalendarPage from "@/features/course/student/components/CalendarPage.tsx";
+
 
 export const router = createBrowserRouter([
 
@@ -110,70 +110,84 @@ export const router = createBrowserRouter([
         loader: () => redirect("/login"),
     },
     {
-        path: "/dashboard",
-        Component: Dashboard,
-    },
-    {
-        path: "/calendar",
-        Component: CalendarPage,
-    },
-    {
-        path: "/course/:id",
-        Component: CourseDetail,
-    },
-    {path: "rubrics", Component: StudentRubric},
-    {path: "rubric/:id", Component: StudentRubricDetail},
-    {path: "obe-reports", Component: StudentOBE},
-    {
-        path: "/course/:id/students",
-        Component: CourseStudentList,
-    },
-    {
-        path: "/course/:id/obe",
-        Component: CourseOBE,
-    },
-    {
-        path: "/course/:id/assignments",
-        Component: CourseAssignments,
-    },
-    {
-        path: "/course/:id/document",
-        Component: StudentCourseMaterials,
-    },
-    {
-
-
-        path: "/course/:id/my-exams",
-        Component: StudentExamListPage,
-    },
-    {
-        path: "/course/:id/document/materials/:postId",
-        Component: MaterialDetail,
-    },
-    {
-        path: "/course/:id/evaluations",
-        Component: CourseEvaluations,
-    },
-    {
-        path: "/course/:id/groups",
-        Component: CourseGroups,
-    },
-
-    {
-        path: "/course/:id/assignments/:assignmentId",
-        Component: AssignmentDetailPost,
-    },
-    {
-        path: "/course/:id/createGroup",
-        Component: CreateGroup
-    },
-    {
-        path: "/course/:id/my-exams/:examId",
-        Component: StudentTakeExamPage,
-    },
-    {
-        path: "/course/:id/my-exams/:examId/result",
-        Component: StudentExamResultPage,
+        element: <RoleProtectedRoute allowedRoles={["STUDENT"]} />,
+        children: [
+            {
+                path: "/dashboard",
+                Component: Dashboard,
+            },
+            {
+                path: "/calendar",
+                Component: CalendarPage,
+            },
+            {
+                path: "/course/:id",
+                Component: CourseDetail,
+            },
+            {path: "rubrics", Component: StudentRubric},
+            {path: "rubric/:id", Component: StudentRubricDetail},
+            {path: "obe-reports", Component: StudentOBE},
+            {
+                path: "/course/:id/students",
+                Component: CourseStudentList,
+            },
+            {
+                path: "/course/:id/obe",
+                Component: CourseOBE,
+            },
+            {
+                path: "/course/:id/assignments",
+                Component: CourseAssignments,
+            },
+            {
+                path: "/course/:id/document",
+                Component: StudentCourseMaterials,
+            },
+            {
+                path: "/course/:id/my-exams",
+                Component: StudentExamListPage,
+            },
+            {
+                path: "/course/:id/document/materials/:postId",
+                Component: MaterialDetail,
+            },
+            {
+                path: "/course/:id/evaluations",
+                Component: CourseEvaluations,
+            },
+            {
+                path: "/course/:id/groups",
+                Component: CourseGroups,
+            },
+            {
+                path: "/course/:id/assignments/:assignmentId",
+                Component: AssignmentDetailPost,
+            },
+            {
+                path: "/course/:id/createGroup",
+                Component: CreateGroup
+            },
+            {
+                path: "/course/:id/my-exams/:examId",
+                Component: StudentTakeExamPage,
+            },
+            {
+                path: "/course/:id/my-exams/:examId/result",
+                Component: StudentExamResultPage,
+            },
+            {
+                path: "/profile",
+                Component: AccountManagement,
+            },
+            {
+                path: "/profile/result-grading",
+                Component: StudentTranscriptView,
+            },
+            {
+                path: "/profile/settings",
+                Component: AccountSettings,
+            },
+        ],
     },
     {
         path: "/login",
@@ -189,22 +203,12 @@ export const router = createBrowserRouter([
     },
 
     {
-        path: "/profile",
-        Component: AccountManagement,
-    },
-    {
-        path: "/profile/result-grading",
-        Component: StudentTranscriptView,
-    },
-
-    {
-        path: "/profile/settings",
-        Component: AccountSettings,
-    },
-    {
         path: "/teacher",
-        Component: TeacherLayout,
+        element: <RoleProtectedRoute allowedRoles={["TEACHER", "LECTURER"]} />,
         children: [
+            {
+                element: <TeacherLayout />,
+                children: [
             { index: true, Component: TeacherOverview },
             { path: "courses", loader: () => redirect("/teacher") },
             {
@@ -293,12 +297,17 @@ export const router = createBrowserRouter([
             {path: "rubric", Component: TeacherRubric},
             {path: "rubric/:id", Component: TeacherRubricDetail},
 
+                ],
+            },
         ],
     },
     {
         path: "/mainlecturer",
-        Component: MainLecturerLayout,
+        element: <RoleProtectedRoute allowedRoles={["MAIN_LECTURER"]} />,
         children: [
+            {
+                element: <MainLecturerLayout />,
+                children: [
             {index: true, Component: MainLecturerOverview},
             {path: "clo", Component: CLOManagement},
             {path: "clo/:cloId", Component: CLODetail},
@@ -308,6 +317,8 @@ export const router = createBrowserRouter([
             {path: "rubric-matrix", Component: RubricMatrix},
             {path: "semester", Component: SemesterManagement},
             {path: "assign", Component: CourseAssignment},
+                ],
+            },
         ],
     },
 
@@ -368,19 +379,27 @@ export const router = createBrowserRouter([
     },
     {
         path: "/dean",
-        Component: DeanLayout,
+        element: <RoleProtectedRoute allowedRoles={["DEAN"]} />,
         children: [
-            {index: true, Component: DeanDashboard},
-            {path: "rubrics", Component: RubricApproval},
-            {path: "reports", Component: FacultyReport},
-            {path: "courses", Component: CourseManagement},
+            {
+                element: <DeanLayout />,
+                children: [
+                    {index: true, Component: DeanDashboard},
+                    {path: "rubrics", Component: RubricApproval},
+                    {path: "reports", Component: FacultyReport},
+                    {path: "courses", Component: CourseManagement},
+                ],
+            },
         ],
     },
 
     {
         path: "/department",
-        Component: DepartmentHeadLayout,
+        element: <RoleProtectedRoute allowedRoles={["HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD"]} />,
         children: [
+            {
+                element: <DepartmentHeadLayout />,
+                children: [
             {index: true, Component: DepartmentDashboard},
             {path: "rubrics", Component: RubricApproval},
             {path: "clo", Component: CLOManagement},
@@ -392,6 +411,8 @@ export const router = createBrowserRouter([
             {path: "assessments", Component: AssessmentManagement},
             {path: "assessments/:id", Component: AssessmentDetailAdmin},
             {path: "offerings", Component: CourseOfferingManagement},
+                ],
+            },
         ],
     },
 ]);

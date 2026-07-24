@@ -31,7 +31,10 @@ spring:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
-
+app:
+  jwt:
+    secret: ${SECRET_KEY}
+    expiration: 86400000
 eureka:
   client:
     service-url:

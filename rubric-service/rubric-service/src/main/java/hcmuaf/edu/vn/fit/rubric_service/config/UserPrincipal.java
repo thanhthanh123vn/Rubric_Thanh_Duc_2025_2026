@@ -1,11 +1,11 @@
-package hcmuaf.edu.vn.fit.course_service.config;
+package hcmuaf.edu.vn.fit.rubric_service.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Data
 public class UserPrincipal {
     private String userId;

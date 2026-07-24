@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.user_service.util.JwtFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -31,11 +32,20 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        .requestMatchers(
+                                "/api/v1/user-service/auth/login",
+                                "/api/v1/user-service/auth/refresh",
+                                "/api/auth/forgot-password"
+                        ).permitAll()
 
-                        .requestMatchers("/api/v1/user-service/auth/**", "/api/v1/user-service/departments/**").permitAll()
-                        .anyRequest().authenticated());
+                        .requestMatchers("/api/users/admin/**").hasRole("ADMIN")
+
+                        .requestMatchers("/api/users/me").authenticated()
+
+                        .anyRequest().authenticated()
+                );
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

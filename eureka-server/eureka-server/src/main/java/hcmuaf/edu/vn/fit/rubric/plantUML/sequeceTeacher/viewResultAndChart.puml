@@ -1,0 +1,15 @@
+@startuml
+autonumber
+actor "Sinh Viên" as Student
+participant "Front-End\n(React)" as UI
+participant "Course Service" as Service
+database "MySQL Database" as DB
+
+Student -> UI: Truy cập trang "Đánh giá năng lực OBE"
+UI -> Service: GET /api/courses/{offeringId}/student-obe-progress
+Service -> DB: Truy vấn mức đạt CLOvà điểm Rubric
+DB --> Service: Trả về tập dữ liệu điểm số
+Service -> Service: Tổng hợp dữ liệu hiển thị biểu đồ
+Service --> UI: Trả về JSON dữ liệu biểu đồ năng lực
+UI --> Student: Render Spider Chart và bảng điểm chi tiết
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+
+actor "Trưởng Bộ Môn" as HeadOfDept
+actor "Lãnh Đạo Khoa" as Dean
+
+package "Quản Lý Chất Lượng (OBE)" {
+  usecase "16. Phê duyệt & Quản lý Đề cương/Rubric" as UC_Approve
+  usecase "17. Theo dõi tiến độ giảng dạy" as UC_Track
+  usecase "18. Xem báo cáo OBE cấp bộ môn" as UC_ReportDept
+
+  usecase "19. Xem Dashboard thống kê tổng quan" as UC_Dash
+  usecase "20. Xem báo cáo chất lượng OBE toàn khoa" as UC_ReportFac
+}
+
+HeadOfDept --> UC_Approve
+HeadOfDept --> UC_Track
+HeadOfDept --> UC_ReportDept
+
+Dean --> UC_Dash
+Dean --> UC_ReportFac
+@enduml

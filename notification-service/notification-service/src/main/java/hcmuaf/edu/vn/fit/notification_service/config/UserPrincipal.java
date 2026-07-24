@@ -1,12 +1,12 @@
-package hcmuaf.edu.vn.fit.course_service.config;
+package hcmuaf.edu.vn.fit.notification_service.config;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
 public class UserPrincipal {
     private String userId;
     private String username;
