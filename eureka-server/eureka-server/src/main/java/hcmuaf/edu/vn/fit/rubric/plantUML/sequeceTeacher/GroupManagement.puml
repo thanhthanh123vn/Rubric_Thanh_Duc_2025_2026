@@ -1,0 +1,24 @@
+@startuml
+autonumber
+actor "Sinh Viên" as Student
+participant "Front-End" as UI
+participant "Course Service" as CourseSvc
+database "MySQL Database" as DB
+
+Student -> UI: Quét QR & Nhấn "Điểm danh"
+UI -> UI: navigator.geolocation.getCurrentPosition()
+UI -> CourseSvc: POST /api/attendance/check-in (QR_Token, Lat, Lng, Browser_ID)
+CourseSvc -> DB: Kiểm tra QR_Token & AttendanceSession
+DB --> CourseSvc: Trả về Session Info (Status, Tâm GPS, Radius)
+CourseSvc -> CourseSvc: Tính toán Haversine Formula (Khoảng cách GPS)
+alt Distance <= Radius
+    CourseSvc -> DB: Insert vào bảng `attendance` (Status: PRESENT)
+    DB --> CourseSvc: OK
+    CourseSvc --> UI: 200 OK - Điểm danh thành công
+    UI --> Student: Hiển thị trạng thái "Có mặt"
+else Distance > Radius
+    CourseSvc -> DB: Insert `attendance` (Status: INVALID_LOCATION, Distance)
+    CourseSvc --> UI: 400 Bad Request - Sai vị trí
+    UI --> Student: Cảnh báo "Bạn không ở trong phạm vi lớp học"
+end
+@enduml

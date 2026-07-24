@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/grading/gradebook")
+@RequestMapping("/api/v1/grading-service/gradebook")
 @RequiredArgsConstructor
 public class GradebookController {
     private final GradingService gradingService;

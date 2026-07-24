@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.config.EnableMongoAuditing;
 @EnableFeignClients(basePackages = "hcmuaf.edu.vn.fit.course_service.client")
 @EnableDiscoveryClient
 @EnableConfigurationProperties
+
 public class CourseServiceApplication {
 	public static void main(String[] args) {
 

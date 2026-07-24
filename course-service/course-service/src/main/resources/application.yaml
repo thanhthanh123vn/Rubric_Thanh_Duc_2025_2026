@@ -80,7 +80,7 @@ management:
         include: "*"
 app:
   jwt:
-    secret: your_very_long_and_secret_key_22130260_thanh_nlu
+    secret: ${SECRET_KEY}
     expiration: 86400000
 
 cloudinary:

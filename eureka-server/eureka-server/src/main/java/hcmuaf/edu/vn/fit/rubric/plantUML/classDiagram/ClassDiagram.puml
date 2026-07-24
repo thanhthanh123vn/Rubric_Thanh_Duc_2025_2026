@@ -1,0 +1,154 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2c3e50
+    BorderColor #2c3e50
+}
+
+package "1. Module Quản Lý Người Dùng & Tổ Chức" {
+    class User {
+        + user_id: String
+        + username: String
+        + email: String
+        + role: String
+        + full_name: String
+    }
+    class Student {
+        + student_id: String
+        + full_name: String
+        + class_name: String
+    }
+    class Lecturer {
+        + lecturer_id: String
+        + full_name: String
+        + academic_title: String
+    }
+    class Faculty {
+        + faculty_id: String
+        + faculty_name: String
+        + dean_name: String
+    }
+    class Department {
+        + department_id: String
+        + department_name: String
+    }
+
+    User "1" -- "0..1" Student : maps >
+    User "1" -- "0..1" Lecturer : maps >
+    Faculty "1" *-- "0..*" Department : has >
+    Department "1" o-- "0..*" Lecturer : manages >
+}
+
+package "2. Module Khóa Học & Lớp Học Phần" {
+    class Course {
+        + course_id: String
+        + course_code: String
+        + course_name: String
+        + credits: Integer
+    }
+    class CourseOffering {
+        + offering_id: String
+        + semester: String
+        + academic_year: String
+        + status: String
+    }
+    class Enrollment {
+        + enrollment_id: String
+        + status: String
+        + total_score: Float
+    }
+
+    Course "1" *-- "0..*" CourseOffering : offers >
+    CourseOffering "1" *-- "0..*" Enrollment : includes >
+    Student "1" -- "0..*" Enrollment : registers >
+}
+
+package "3. Module OBE, Rubric & Chuẩn Đầu Ra" {
+    class CourseCLO {
+        + clo_id: String
+        + clo_code: String
+        + description: Text
+    }
+    class ProgramPLO {
+        + plo_id: String
+        + plo_code: String
+    }
+    class Rubric {
+        + rubric_id: String
+        + rubric_name: String
+        + status: String
+    }
+    class RubricCriteria {
+        + criteria_id: String
+        + criteria_name: String
+        + weight: Float
+    }
+    class RubricLevel {
+        + level_id: String
+        + level_name: String
+        + score: Float
+    }
+
+    Course "1" *-- "0..*" CourseCLO : defines >
+    CourseCLO "0..*" -- "0..*" ProgramPLO : maps >
+    Rubric "1" *-- "0..*" RubricCriteria : has >
+    RubricCriteria "1" *-- "0..*" RubricLevel : contains >
+}
+
+package "4. Module Kiểm Tra, Bài Nộp & Chấm Điểm" {
+    class Assessment {
+        + assessment_id: String
+        + assessment_name: String
+        + assessment_type: String
+        + weight: Float
+    }
+    class Submission {
+        + submission_id: String
+        + file_url: Text
+        + status: String
+        + total_score: Double
+    }
+    class RubricResult {
+        + result_id: String
+        + calculated_score: Float
+    }
+
+    CourseOffering "1" *-- "0..*" Assessment : contains >
+    Assessment --> Rubric : uses >
+    Assessment "1" *-- "0..*" Submission : receives >
+    Student "1" -- "0..*" Submission : makes >
+    Submission "1" *-- "0..*" RubricResult : graded by >
+    RubricCriteria "1" -- "0..*" RubricResult : applies to >
+    RubricLevel "1" -- "0..*" RubricResult : grades with >
+}
+
+package "5. Module Ngân Hàng Câu Hỏi & Điểm Danh" {
+    class QuestionBank {
+        + id: String
+        + name: String
+    }
+    class Question {
+        + id: String
+        + content: Text
+        + difficulty: String
+    }
+    class AttendanceSession {
+        + session_id: String
+        + attendance_date: Date
+        + status: String
+    }
+    class Attendance {
+        + attendance_id: String
+        + status: String
+    }
+
+    CourseOffering "1" *-- "0..*" QuestionBank : owns >
+    QuestionBank "1" *-- "0..*" Question : stores >
+    CourseOffering "1" *-- "0..*" AttendanceSession : conducts >
+    AttendanceSession "1" *-- "0..*" Attendance : records >
+    Student "1" -- "0..*" Attendance : checks in >
+}
+
+@enduml

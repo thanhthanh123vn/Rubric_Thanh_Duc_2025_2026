@@ -1,0 +1,48 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+
+actor "Sinh Viên" as Student
+
+package "Học Tập & Kiểm Tra" {
+  usecase "2. Tham gia lớp học" as UC_Join
+  usecase "2.1 Xem đánh giá môn học" as UC_ViewEval
+  usecase "2.2 Xem đánh giá Rubric" as UC_ViewRubric
+
+  usecase "3. Xem bài đăng & DS Lớp" as UC_ViewPost
+
+  usecase "4. Điểm danh (QR + GPS)" as UC_Attend
+  usecase "4.1 Xác định thời gian & GPS" as UC_GPS
+
+  usecase "5. Kiểm tra trực tuyến" as UC_Test
+  usecase "5.1 Làm bài thi trắc nghiệm" as UC_Quiz
+  usecase "5.2 Làm Bài tập/Dự án" as UC_Project
+  usecase "5.3 Xem kết quả & Phản hồi" as UC_Result
+  usecase "5.3.1 Xem biểu đồ năng lực (Spider Chart)" as UC_Chart
+
+  usecase "6. Quản lý Nhóm & Task" as UC_Group
+}
+
+Student --> UC_Join
+UC_Join .> UC_ViewEval : <<include>>
+UC_Join .> UC_ViewRubric : <<include>>
+
+Student --> UC_ViewPost
+
+Student --> UC_Attend
+UC_Attend .> UC_GPS : <<include>>
+
+Student --> UC_Test
+UC_Test .> UC_Quiz : <<include>>
+UC_Test .> UC_Project : <<include>>
+
+UC_Quiz .> UC_Result : <<include>>
+UC_Project .> UC_Result : <<include>>
+UC_Result <.. UC_Chart : <<extend>>
+
+Student --> UC_Group
+@enduml

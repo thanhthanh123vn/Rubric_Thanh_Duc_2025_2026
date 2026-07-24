@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+
+actor "Giảng Viên" as Teacher
+
+package "Giảng Dạy & Chấm Điểm" {
+  usecase "Quản lý & Thêm môn học" as UC_Subject
+
+  usecase "8. Tạo điểm danh môn học" as UC_Attend
+
+  usecase "9. Quản lý lớp học" as UC_Class
+  usecase "9.3 Giao bài tập" as UC_Assign
+  usecase "9.3.1 Cấu hình Ma trận đề thi" as UC_Matrix
+  usecase "9.3.1.1.1 Chấm điểm bài tập" as UC_Grade
+  usecase "Sử dụng thư viện nhận xét mẫu" as UC_Comment
+
+  usecase "10. Quản lý câu hỏi ra đề" as UC_Ques
+  usecase "11. Tạo & Quản lý kho câu hỏi" as UC_Bank
+  usecase "12. Nhập điểm cuối kỳ" as UC_Final
+}
+
+Teacher --> UC_Subject
+Teacher --> UC_Attend
+Teacher --> UC_Class
+
+UC_Class .> UC_Assign : <<include>>
+UC_Assign .> UC_Matrix : <<include>>
+UC_Matrix .> UC_Grade : <<include>>
+UC_Grade <.. UC_Comment : <<extend>>
+
+Teacher --> UC_Ques
+Teacher --> UC_Bank
+Teacher --> UC_Final
+@enduml

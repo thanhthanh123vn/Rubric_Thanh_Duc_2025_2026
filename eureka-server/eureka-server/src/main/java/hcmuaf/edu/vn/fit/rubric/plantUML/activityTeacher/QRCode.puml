@@ -1,0 +1,31 @@
+@startuml
+skinparam defaultTextAlignment center
+|Giảng Viên|
+start
+:Tạo phiên điểm danh;
+:Hệ thống lấy GPS GV và sinh QR Code;
+|Sinh Viên|
+:Dùng điện thoại quét QR Code;
+:Trình duyệt yêu cầu quyền truy cập GPS;
+if (Cho phép GPS?) then (Có)
+  :Gửi thông tin điểm danh (Token QR + GPS SV);
+  |Hệ Thống|
+  :Xác thực Token QR (Còn hạn không?);
+  if (Hợp lệ?) then (Đúng)
+    :Tính toán khoảng cách GPS SV và GV;
+    if (Khoảng cách <= Bán kính cấu hình?) then (Đúng)
+      :Lưu trạng thái "Có mặt";
+      :Ghi log IP & Browser ID (chống gian lận);
+    else (Sai)
+      :Từ chối: "Bạn không ở trong phạm vi lớp học";
+    endif
+  else (Sai)
+    :Từ chối: "Mã QR không hợp lệ hoặc hết hạn";
+  endif
+else (Không)
+  |Sinh Viên|
+  :Báo lỗi "Cần quyền GPS để điểm danh";
+  detach
+endif
+stop
+@enduml

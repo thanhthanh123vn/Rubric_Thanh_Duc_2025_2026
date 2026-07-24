@@ -1,0 +1,29 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+
+actor "Admin" as Admin
+
+package "Quản Trị Hệ Thống" {
+  usecase "Tổng Quan (Dashboard Admin)" as UC_Dash
+
+  usecase "14. Quản lý Người Dùng" as UC_Users
+  usecase "14.5 Phân quyền User" as UC_Role
+  usecase "14.6 Phân công Giảng viên dạy môn học" as UC_Assign
+
+  usecase "15. Quản lý Ra đề Môn học" as UC_Exam
+  usecase "15.5 Lấy đề thi ngẫu nhiên từ kho" as UC_Rand
+}
+
+Admin --> UC_Dash
+Admin --> UC_Users
+UC_Users .> UC_Role : <<include>>
+UC_Users .> UC_Assign : <<include>>
+
+Admin --> UC_Exam
+UC_Exam .> UC_Rand : <<include>>
+@enduml

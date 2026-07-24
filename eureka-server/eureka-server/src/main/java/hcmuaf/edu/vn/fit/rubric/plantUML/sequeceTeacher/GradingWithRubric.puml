@@ -1,0 +1,18 @@
+@startuml
+autonumber
+actor "Giảng Viên" as Teacher
+participant "Front-End\n(React)" as UI
+participant "Grading Service" as GradingSvc
+participant "Course Service" as CourseSvc
+database "MySQL Database" as DB
+
+Teacher -> UI: Chọn mức Rubric cho bài nộp của sinh viên
+UI -> GradingSvc: POST /api/grades/save (SubmissionId, Selected Levels)
+GradingSvc -> CourseSvc: Lấy thông tin trọng số Rubric (Feign Client)
+CourseSvc --> GradingSvc: Trả về danh sách tiêu chí và trọng số ($w_i$)
+GradingSvc -> GradingSvc: Tính toán điểm chuẩn hóa & Điểm tổng
+GradingSvc -> DB: Lưu kết quả vào bảng rubric_results & grades
+DB --> GradingSvc: Xác nhận lưu thành công
+GradingSvc --> UI: Trả về kết quả điểm tổng & chi tiết
+UI --> Teacher: Hiển thị điểm số đã tính toán hoàn tất
+@enduml

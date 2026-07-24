@@ -1,0 +1,223 @@
+@startuml
+left to right direction
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2c3e50
+    BorderColor #2c3e50
+}
+skinparam packageStyle rectangle
+
+package "User & Organization" {
+    class User {
+        + user_id: String
+        + username: String
+        + email: String
+        + role: String
+        + full_name: String
+        + avatar_url: String
+    }
+
+    class Student {
+        + student_id: String
+        + full_name: String
+        + class_name: String
+        + major: String
+        + address: String
+        + phone_number: String
+    }
+
+    class Lecturer {
+        + lecturer_id: String
+        + full_name: String
+        + academic_title: String
+        + department: String
+    }
+
+    class Faculty {
+        + faculty_id: String
+        + faculty_name: String
+        + dean_name: String
+    }
+
+    class Department {
+        + department_id: String
+        + department_name: String
+    }
+}
+
+package "Course & Offering" {
+    class Course {
+        + course_id: String
+        + course_code: String
+        + course_name: String
+        + credits: Integer
+        + department_id: String
+    }
+
+    class CourseOffering {
+        + offering_id: String
+        + semester: String
+        + academic_year: String
+        + status: String
+        + offering_name: String
+    }
+
+    class CourseSchedule {
+        + schedule_id: String
+        + day_of_week: Integer
+        + start_time: Time
+        + end_time: Time
+        + room: String
+    }
+
+    class Enrollment {
+        + enrollment_id: String
+        + role: String
+        + status: String
+        + total_score: Float
+    }
+}
+
+package "OBE & Rubric" {
+    class CourseCLO {
+        + clo_id: String
+        + clo_code: String
+        + clo_name: String
+        + description: Text
+        + bloom_level: String
+    }
+
+    class ProgramPLO {
+        + plo_id: String
+        + plo_code: String
+        + description: Text
+    }
+
+    class Rubric {
+        + rubric_id: String
+        + rubric_name: String
+        + description: Text
+        + status: String
+    }
+
+    class RubricCriteria {
+        + criteria_id: String
+        + criteria_name: String
+        + weight: Float
+    }
+
+    class RubricLevel {
+        + level_id: String
+        + level_name: String
+        + score: Float
+    }
+}
+
+package "Assessment & Submission" {
+    class Assessment {
+        + assessment_id: String
+        + assessment_name: String
+        + assessment_type: String
+        + weight: Float
+        + start_time: Timestamp
+        + end_time: Timestamp
+    }
+
+    class Submission {
+        + submission_id: String
+        + submitted_at: Timestamp
+        + status: String
+        + grade_core: Double
+    }
+
+    class RubricResult {
+        + result_id: String
+        + calculated_score: Float
+    }
+}
+
+package "Question Bank" {
+    class QuestionBank {
+        + id: String
+        + name: String
+    }
+
+    class Question {
+        + id: String
+        + content: Text
+        + difficulty: String
+        + type: String
+    }
+
+    class AnswerOption {
+        + id: String
+        + content: Text
+        + is_correct: Bit
+    }
+}
+
+package "Attendance & Interaction" {
+    class AttendanceSession {
+        + session_id: String
+        + attendance_date: Date
+        + type: String
+        + status: String
+    }
+
+    class Attendance {
+        + attendance_id: String
+        + study_date: Date
+        + status: String
+        + latitude: Double
+        + longitude: Double
+    }
+
+    class Post {
+        + post_id: String
+        + post_type: String
+        + content: Text
+    }
+
+    class Comment {
+        + comment_id: String
+        + content: Text
+    }
+}
+
+' --- MỐI QUAN HỆ (RELATIONSHIPS) ---
+User "1" -- "0..1" Student : maps >
+User "1" -- "0..1" Lecturer : maps >
+Faculty "1" *-- "0..*" Department : contains >
+Department "1" o-- "0..*" Lecturer : manages >
+
+Course "1" *-- "0..*" CourseCLO : defines >
+Course "1" *-- "0..*" CourseOffering : offers >
+CourseOffering "1" *-- "0..*" CourseSchedule : has >
+CourseOffering "1" *-- "0..*" Enrollment : includes >
+Student "1" -- "0..*" Enrollment : enrolls >
+
+CourseCLO "0..*" -- "0..*" ProgramPLO : maps (clo_plo_map) >
+CourseOffering "1" *-- "0..*" Assessment : contains >
+Rubric "1" *-- "0..*" RubricCriteria : has >
+RubricCriteria "1" *-- "0..*" RubricLevel : contains >
+Assessment --> Rubric : uses >
+
+Assessment "1" *-- "0..*" Submission : receives >
+Student "1" -- "0..*" Submission : submits >
+Submission "1" *-- "0..*" RubricResult : evaluated by >
+RubricCriteria "1" -- "0..*" RubricResult : applies to >
+RubricLevel "1" -- "0..*" RubricResult : grades with >
+
+CourseOffering "1" *-- "0..*" QuestionBank : owns >
+QuestionBank "1" *-- "0..*" Question : stores >
+Question "1" *-- "1..*" AnswerOption : has >
+
+CourseOffering "1" *-- "0..*" AttendanceSession : opens >
+AttendanceSession "1" *-- "0..*" Attendance : records >
+Student "1" -- "0..*" Attendance : checks in >
+
+CourseOffering "1" *-- "0..*" Post : has >
+Post "1" *-- "0..*" Comment : receives >
+User "1" -- "0..*" Post : authors >
+
+@enduml
