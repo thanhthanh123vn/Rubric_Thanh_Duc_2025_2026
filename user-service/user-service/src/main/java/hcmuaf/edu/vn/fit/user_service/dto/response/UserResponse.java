@@ -8,6 +8,7 @@ public record UserResponse(
         String role,
         String avatarUrl,
         String authProvider,
-        String fullName
+        String fullName,
+        Boolean locked
 ) {
 }

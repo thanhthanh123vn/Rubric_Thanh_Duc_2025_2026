@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -145,5 +146,25 @@ public class AuthController {
 
         return ResponseEntity.ok("Đổi mật khẩu thành công!");
     }
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            HttpServletRequest request) {
 
+        if (userId == null) {
+            return ResponseEntity.status(403).body("Không tìm thấy thông tin người dùng từ Gateway");
+        }
+
+        System.out.println("Đang đăng xuất cho User: " + userId);
+
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+
+            // Gọi service xử lý đăng xuất (xóa Redis)
+            authService.logout(userId, token);
+        }
+
+        return ResponseEntity.ok("Đăng xuất thành công!");
+    }
 }

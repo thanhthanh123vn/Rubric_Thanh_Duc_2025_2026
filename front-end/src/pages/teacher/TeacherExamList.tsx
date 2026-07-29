@@ -192,7 +192,7 @@ export default function TeacherExamList() {
         try {
             setSubmitting(true);
 
-            await assessmentPaperServiceApi.updatGeExam(editingExam.id, {
+            await assessmentPaperServiceApi.updateExam(editingExam.id, {
                 examTitle: editForm.examTitle.trim(),
                 durationMinutes: editForm.durationMinutes
                     ? Number(editForm.durationMinutes)

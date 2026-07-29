@@ -1,0 +1,23 @@
+@startuml
+autonumber
+participant "Nghiệp vụ Service\n(Course/Grading)" as Svc
+participant "Notification Service" as Notify
+database "MySQL Database" as DB
+participant "WebSocket Server" as WS
+participant "Front-End\n(React)" as UI
+actor "Người Nhận" as User
+
+Svc -> Notify: Kích hoạt sự kiện (Tạo bài mới / Có điểm)
+Notify -> DB: Lọc danh sách UserID cần nhận thông báo
+Notify -> DB: Insert nhiều bản ghi vào `notifications`
+DB --> Notify: OK
+Notify -> WS: Publish Event (Payload: Notification Data)
+WS -> UI: Emit data tới các Client đang kết nối
+UI -> User: Hiển thị chuông thông báo (Bell Icon) / Popup
+
+User -> UI: Click xem thông báo
+UI -> Notify: PUT /api/v1/notication-service/notifications/{id}/read
+Notify -> DB: Update `is_read` = 1z
+DB --> Notify: OK
+UI -> User: Điều hướng tới URL chi tiết
+@enduml

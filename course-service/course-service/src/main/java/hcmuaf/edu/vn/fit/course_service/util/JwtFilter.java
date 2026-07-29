@@ -24,15 +24,24 @@ public class JwtFilter extends OncePerRequestFilter {
     private JwtUtils jwtUtils;
 
     @Override
+
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        String token = null;
 
-
+        // 1. Tìm Token trong Header trước (Dành cho REST API thông thường)
         String header = request.getHeader("Authorization");
         if(header != null && header.startsWith("Bearer ")){
-            String token = header.substring(7);
+            token = header.substring(7);
+        }
+        // 2. Nếu không có Header, tìm trong tham số URL (Dành cho WebSocket Native)
+        else if (request.getParameter("token") != null) {
+            token = request.getParameter("token");
+        }
 
+        // 3. Nếu tìm thấy token (từ Header hoặc URL), tiến hành giải mã
+        if(token != null) {
             if(jwtUtils.isTokenValid(token)){
                 String username = jwtUtils.extractUsername(token);
                 String role = jwtUtils.extractRole(token);
@@ -49,11 +58,14 @@ public class JwtFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // Giữ nguyên dòng log để bạn dễ debug
                 System.out.println("Authorities = " + authentication.getAuthorities());
                 System.out.println("Principal = " + authentication.getPrincipal());
             }
-
         }
+
         filterChain.doFilter(request,response);
     }
+
 }

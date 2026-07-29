@@ -1,0 +1,26 @@
+@startuml
+autonumber
+actor "Người Dùng (GV/SV)" as User
+participant "Front-End" as UI
+participant "Course Service" as CourseSvc
+participant "Notification Service" as NotifySvc
+database "MySQL Database" as DB
+
+== Đăng bài viết (Create Post) ==
+User -> UI: Nhập nội dung & Nhấn "Đăng bài"
+UI -> CourseSvc: POST /api/v1/course-service/courses/posts
+CourseSvc -> DB: Insert vào bảng `posts`
+DB --> CourseSvc: Trả về PostID
+CourseSvc -> NotifySvc: Kích hoạt sự kiện COURSE_ANNOUNCEMENT
+NotifySvc -> User: Push Notification tới các thành viên lớp
+CourseSvc --> UI: 200 OK & Dữ liệu Post
+UI --> User: Hiển thị bài viết mới lên bảng tin
+
+== Thêm bình luận (Create Comment) ==
+User -> UI: Nhập bình luận & Nhấn "Gửi"
+UI -> CourseSvc: POST /api/v1/course-service/courses/comments
+CourseSvc -> DB: Insert vào bảng `comments` (liên kết PostID)
+DB --> CourseSvc: OK
+CourseSvc --> UI: 200 OK & Dữ liệu Comment
+UI --> User: Cập nhật danh sách bình luận trên UI
+@enduml

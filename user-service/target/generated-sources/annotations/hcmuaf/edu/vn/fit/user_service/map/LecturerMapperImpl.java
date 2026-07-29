@@ -4,12 +4,13 @@ import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.Department;
 import hcmuaf.edu.vn.fit.user_service.entity.Lecturer;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
+import java.time.LocalDate;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-23T20:34:12+0700",
+    date = "2026-07-29T19:04:11+0700",
     comments = "version: 1.6.3, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
@@ -27,6 +28,11 @@ public class LecturerMapperImpl implements LecturerMapper {
         String lecturerId = null;
         String fullName = null;
         String academicTitle = null;
+        LocalDate dateOfBirth = null;
+        String gender = null;
+        String cccd = null;
+        String phoneNumber = null;
+        String address = null;
 
         userId = lecturerUserUserId( lecturer );
         email = lecturerUserEmail( lecturer );
@@ -34,8 +40,13 @@ public class LecturerMapperImpl implements LecturerMapper {
         lecturerId = lecturer.getLecturerId();
         fullName = lecturer.getFullName();
         academicTitle = lecturer.getAcademicTitle();
+        dateOfBirth = lecturer.getDateOfBirth();
+        gender = lecturer.getGender();
+        cccd = lecturer.getCccd();
+        phoneNumber = lecturer.getPhoneNumber();
+        address = lecturer.getAddress();
 
-        LecturerResponse lecturerResponse = new LecturerResponse( lecturerId, userId, fullName, email, department, academicTitle );
+        LecturerResponse lecturerResponse = new LecturerResponse( lecturerId, userId, fullName, email, department, academicTitle, dateOfBirth, gender, cccd, phoneNumber, address );
 
         return lecturerResponse;
     }
@@ -52,6 +63,11 @@ public class LecturerMapperImpl implements LecturerMapper {
         lecturer.lecturerId( response.lecturerId() );
         lecturer.fullName( response.fullName() );
         lecturer.academicTitle( response.academicTitle() );
+        lecturer.dateOfBirth( response.dateOfBirth() );
+        lecturer.gender( response.gender() );
+        lecturer.cccd( response.cccd() );
+        lecturer.phoneNumber( response.phoneNumber() );
+        lecturer.address( response.address() );
 
         return lecturer.build();
     }

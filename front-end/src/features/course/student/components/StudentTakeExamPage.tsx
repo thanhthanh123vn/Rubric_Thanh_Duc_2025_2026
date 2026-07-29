@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {useNavigate, useParams} from 'react-router-dom';
+import {Card, CardContent, CardHeader, CardTitle, CardFooter} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Progress} from '@/components/ui/progress';
+import {toast} from 'sonner';
 import {
     ArrowLeft,
     Clock3,
@@ -17,8 +17,11 @@ import {
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
-import { assessmentPaperApi } from "@/api/assessmentApi.ts";
-import { assessmentPaperServiceApi } from "@/api/assementPaperApi.ts";
+import {assessmentPaperApi} from "@/api/assessmentApi.ts";
+import {assessmentPaperServiceApi} from "@/api/assementPaperApi.ts";
+import {getBrowserToken} from "@/utils/browserId.ts";
+import {useAppSelector} from "@/hooks/useAppSelector.ts";
+
 
 type ExamQuestionDetail = {
     id: string;
@@ -48,7 +51,7 @@ type AnswerState = {
 };
 
 export default function StudentTakeExamPage() {
-    const { id,examId } = useParams();
+    const {id, examId} = useParams();
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(false);
@@ -58,25 +61,153 @@ export default function StudentTakeExamPage() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
     const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
-
+    const getDraftKey = () => `draft_exam_${examId}_${studentId}`;
+    const isRestoredRef = useRef(false);
     const currentQuestion = examData?.questions[currentIndex];
 
     // Kiểm tra thời gian sắp hết (< 5 phút)
     const isTimeRunningOut = remainingSeconds > 0 && remainingSeconds <= 300;
 
+    const {user: reduxUser} = useAppSelector((state) => state.auth);
+
+    let user = reduxUser;
+    if (!user) {
+        const localUser = localStorage.getItem("user");
+        if (localUser) {
+            user = JSON.parse(localUser);
+        }
+    }
+    const studentId = user?.studentId || user?.userId;
+
+
+    useEffect(() => {
+        // 1. Chặn nút Back (Quay lại) của trình duyệt
+        window.history.pushState(null, "", window.location.href);
+        const handlePopState = () => {
+            window.history.pushState(null, "", window.location.href);
+            toast.error("Hành động bị chặn", {
+                description: "Bạn không thể quay lại trang trước khi đang làm bài.",
+            });
+        };
+        window.addEventListener("popstate", handlePopState);
+
+        // 2. Chặn phím tắt (F5, Ctrl+R, Command+R)
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Chặn F5
+            if (e.key === 'F5') {
+                e.preventDefault();
+                toast.warning("Hành động bị chặn", {description: "Bạn không được phép tải lại trang!"});
+            }
+            // Chặn Ctrl+R (Windows) hoặc Cmd+R (Mac)
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
+                e.preventDefault();
+                toast.warning("Hành động bị chặn", {description: "Bạn không được phép tải lại trang!"});
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+
+        // 3. Hiển thị cảnh báo xác nhận khi người dùng cố tình tải lại (Reload/Close Tab)
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            // Hiển thị hộp thoại mặc định của trình duyệt cảnh báo mất dữ liệu
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        const currentDeviceToken = getBrowserToken();
+        console.log(currentDeviceToken);
+
+
+        return () => {
+            window.removeEventListener("popstate", handlePopState);
+            window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("beforeunload", handleBeforeUnload);
+
+        };
+    }, [examId, id]);
     const loadExam = async () => {
         try {
             setLoading(true);
             const data = await assessmentPaperApi.getLecturerExamDetail(examId);
             setExamData(data);
-            const total = data.durationMinutes * 60;
-            setRemainingSeconds(total);
+
+            const defaultTotalSeconds = data.durationMinutes * 60;
+
+            // --- 2. KHÔI PHỤC TIẾN TRÌNH LÀM BÀI ---
+            const savedDraft = localStorage.getItem(getDraftKey());
+            if (savedDraft) {
+                try {
+                    const parsedDraft = JSON.parse(savedDraft);
+                    // Khôi phục câu trả lời
+                    if (parsedDraft.answers) {
+                        setAnswers(parsedDraft.answers);
+                    }
+                    // Khôi phục thời gian (Nếu thời gian lưu < thời gian mặc định thì dùng thời gian lưu)
+                    if (parsedDraft.remainingSeconds && parsedDraft.remainingSeconds > 0 && parsedDraft.remainingSeconds < defaultTotalSeconds) {
+                        setRemainingSeconds(parsedDraft.remainingSeconds);
+                    } else {
+                        setRemainingSeconds(defaultTotalSeconds);
+                    }
+                    toast.info("Đã khôi phục tiến trình làm bài trước đó.");
+                } catch (error) {
+                    console.error("Lỗi khi khôi phục tiến trình:", error);
+                    setRemainingSeconds(defaultTotalSeconds);
+                }
+            } else {
+                // Nếu chưa có draft, set thời gian mặc định
+                setRemainingSeconds(defaultTotalSeconds);
+            }
+
+            // Đánh dấu đã khôi phục xong
+            isRestoredRef.current = true;
+
         } catch (e) {
             toast.error('Không thể tải đề thi');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadExam();
+    }, [examId]);
+
+
+    useEffect(() => {
+
+        if (!examData || !isRestoredRef.current) return;
+
+
+        if (remainingSeconds <= 0 || submitting) return;
+
+        const draftData = {
+            examId,
+            studentId,
+            answers,
+            remainingSeconds,
+            lastSaved: new Date().toISOString()
+        };
+
+        localStorage.setItem(getDraftKey(), JSON.stringify(draftData));
+    }, [answers, remainingSeconds, examData, submitting]);
+
+
+    useEffect(() => {
+        if (!examData || remainingSeconds <= 0) return;
+
+        const timer = setInterval(() => {
+            setRemainingSeconds((prev) => prev - 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [examData, remainingSeconds]);
+
+    useEffect(() => {
+        if (!examData) return;
+        if (remainingSeconds === 0 && isRestoredRef.current) {
+            toast.warning('Đã hết thời gian làm bài. Hệ thống đang tự động nộp...');
+            handleSubmitExam(true);
+        }
+    }, [remainingSeconds, examData]);
 
     useEffect(() => {
         loadExam();
@@ -174,7 +305,7 @@ export default function StudentTakeExamPage() {
             toast.success(autoSubmit ? 'Đã tự động nộp bài.' : 'Nộp bài thành công!');
 
 
-            navigate(`/course/${id}/my-exams/${examData.examId}/result`);
+            navigate(`/course/${id}/my-exams/${examData.examId}/submit`);
 
         } catch (e) {
             toast.error('Nộp bài thất bại. Vui lòng thử lại.');
@@ -182,12 +313,35 @@ export default function StudentTakeExamPage() {
             setSubmitting(false);
         }
     };
+    const handleExitExam = async () => {
+
+        const ok = window.confirm(
+            "Bạn có chắc muốn thoát bài thi? Tiến trình làm bài sẽ được lưu nhưng bạn sẽ phải vào lại để tiếp tục."
+        );
+
+        if (!ok) return;
+
+        try {
+
+            await assessmentPaperApi.exit(examId);
+
+            toast.success("Đã thoát bài thi.");
+
+            navigate(`/course/${id}/my-exams`);
+
+        } catch (error) {
+
+            toast.error("Không thể thoát bài thi.");
+
+        }
+    };
 
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div
+                        className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-slate-500 font-medium">Đang chuẩn bị đề thi...</p>
                 </div>
             </div>
@@ -199,11 +353,11 @@ export default function StudentTakeExamPage() {
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <Card className="max-w-md w-full shadow-lg">
                     <CardContent className="text-center py-10 space-y-4">
-                        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+                        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto"/>
                         <h2 className="text-xl font-semibold text-slate-800">Không tìm thấy đề thi</h2>
                         <p className="text-slate-500">Đề thi này không tồn tại hoặc chưa đến thời gian làm bài.</p>
                         <Button onClick={() => navigate(-1)} variant="outline" className="mt-4">
-                            <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại trang trước
+                            <ArrowLeft className="mr-2 h-4 w-4"/> Quay lại trang trước
                         </Button>
                     </CardContent>
                 </Card>
@@ -220,7 +374,7 @@ export default function StudentTakeExamPage() {
                         <div className="hidden sm:block">
                             <h1 className="text-lg font-bold text-slate-800 line-clamp-1">{examData.examTitle}</h1>
                             <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                                <BookOpen className="h-3 w-3" />
+                                <BookOpen className="h-3 w-3"/>
                                 {examData.courseCode} - {examData.courseName}
                             </p>
                         </div>
@@ -231,26 +385,47 @@ export default function StudentTakeExamPage() {
 
                     <div className="flex items-center gap-3 md:gap-4">
                         {/* Timer Card */}
-                        <div className={`flex items-center gap-2 px-4 py-1.5 rounded-md border font-mono text-lg transition-colors ${
-                            isTimeRunningOut
-                                ? 'bg-red-50 border-red-200 text-red-600 animate-pulse'
-                                : 'bg-slate-100 border-slate-200 text-slate-700'
-                        }`}>
-                            <Clock3 className={`h-4 w-4 ${isTimeRunningOut ? 'text-red-500' : 'text-slate-500'}`} />
+                        <div
+                            className={`flex items-center gap-2 px-4 py-1.5 rounded-md border font-mono text-lg transition-colors ${
+                                isTimeRunningOut
+                                    ? 'bg-red-50 border-red-200 text-red-600 animate-pulse'
+                                    : 'bg-slate-100 border-slate-200 text-slate-700'
+                            }`}>
+                            <Clock3 className={`h-4 w-4 ${isTimeRunningOut ? 'text-red-500' : 'text-slate-500'}`}/>
                             {formatTime(remainingSeconds)}
                         </div>
 
-                        <Button
-                            onClick={() => handleSubmitExam(false)}
-                            disabled={submitting}
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all"
-                        >
-                            {submitting ? (
-                                <span className="flex items-center"><div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Đang nộp...</span>
-                            ) : (
-                                <span className="flex items-center"><CheckCircle2 className="mr-2 h-4 w-4" /> Nộp bài</span>
-                            )}
-                        </Button>
+                        <div className="flex items-center gap-3">
+
+                            <Button
+                                variant="outline"
+                                disabled={submitting}
+                                onClick={handleExitExam}
+                                className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                                Thoát bài
+                            </Button>
+
+                            <Button
+                                onClick={() => handleSubmitExam(false)}
+                                disabled={submitting}
+                                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all"
+                            >
+                                {submitting ? (
+                                    <span className="flex items-center">
+                                    <div
+                                            className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Đang nộp...
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center">
+                                    <CheckCircle2 className="mr-2 h-4 w-4"/>
+                                    Nộp bài
+                                </span>
+                                )}
+                            </Button>
+
+                        </div>
                     </div>
                 </div>
             </header>
@@ -269,7 +444,7 @@ export default function StudentTakeExamPage() {
                                         {answeredCount} / {examData.questions.length}
                                     </span>
                                 </div>
-                                <Progress value={progress} className="h-2 bg-slate-100" />
+                                <Progress value={progress} className="h-2 bg-slate-100"/>
                             </CardContent>
                         </Card>
 
@@ -277,7 +452,7 @@ export default function StudentTakeExamPage() {
                         <Card className="shadow-sm border-slate-200">
                             <CardHeader className="py-3 px-4 border-b bg-slate-50/50">
                                 <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-700">
-                                    <FileText className="h-4 w-4" /> Danh sách câu hỏi
+                                    <FileText className="h-4 w-4"/> Danh sách câu hỏi
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4">
@@ -307,9 +482,19 @@ export default function StudentTakeExamPage() {
                                     })}
                                 </div>
                                 <div className="mt-6 flex flex-col gap-2 text-xs text-slate-500">
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-600"></div> Đang xem</div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-200"></div> Đã trả lời</div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-white border border-slate-200"></div> Chưa trả lời</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-blue-600"></div>
+                                        Đang xem
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-200"></div>
+                                        Đã trả lời
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-white border border-slate-200"></div>
+                                        Chưa trả lời
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -321,14 +506,16 @@ export default function StudentTakeExamPage() {
                             <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                 Câu hỏi {currentIndex + 1}
                             </CardTitle>
-                            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 font-medium px-3 py-1">
+                            <Badge variant="outline"
+                                   className="bg-slate-50 text-slate-600 border-slate-200 font-medium px-3 py-1">
                                 {currentQuestion?.points} điểm
                             </Badge>
                         </CardHeader>
 
                         <CardContent className="p-6 sm:p-8 space-y-8 bg-white min-h-[400px]">
                             {/* Nội dung đề */}
-                            <div className="text-slate-800 text-base sm:text-lg leading-relaxed whitespace-pre-line font-medium">
+                            <div
+                                className="text-slate-800 text-base sm:text-lg leading-relaxed whitespace-pre-line font-medium">
                                 {currentQuestion?.content}
                             </div>
 
@@ -351,15 +538,18 @@ export default function StudentTakeExamPage() {
                                                 {/* Giả lập Radio button */}
                                                 <div className="flex-shrink-0 mt-0.5">
                                                     {selected ? (
-                                                        <CheckCircle className="h-5 w-5 text-blue-600" />
+                                                        <CheckCircle className="h-5 w-5 text-blue-600"/>
                                                     ) : (
-                                                        <Circle className="h-5 w-5 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                                        <Circle
+                                                            className="h-5 w-5 text-slate-300 group-hover:text-blue-400 transition-colors"/>
                                                     )}
                                                 </div>
 
                                                 <div className="flex-1 text-slate-700">
-                                                    <span className="font-bold text-slate-900 mr-2">{String.fromCharCode(65 + idx)}.</span>
-                                                    <span className={`${selected ? 'text-blue-900 font-medium' : ''}`}>{opt.content}</span>
+                                                    <span
+                                                        className="font-bold text-slate-900 mr-2">{String.fromCharCode(65 + idx)}.</span>
+                                                    <span
+                                                        className={`${selected ? 'text-blue-900 font-medium' : ''}`}>{opt.content}</span>
                                                 </div>
                                             </div>
                                         );
@@ -370,7 +560,8 @@ export default function StudentTakeExamPage() {
                             {/* Khu vực trả lời Tự luận / Điền khuyết */}
                             {(currentQuestion?.type === 'ESSAY' || currentQuestion?.type === 'SHORT_ANSWER') && (
                                 <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Bài làm của bạn:</label>
+                                    <label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Bài
+                                        làm của bạn:</label>
                                     <textarea
                                         className="w-full min-h-[250px] rounded-xl border border-slate-300 p-4 text-base text-slate-800 outline-none transition-shadow focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 resize-y shadow-inner"
                                         placeholder="Nhập câu trả lời chi tiết vào đây..."
@@ -389,7 +580,7 @@ export default function StudentTakeExamPage() {
                                 disabled={currentIndex === 0}
                                 onClick={() => setCurrentIndex((p) => p - 1)}
                             >
-                                <ChevronLeft className="mr-1 h-4 w-4" /> Quay lại
+                                <ChevronLeft className="mr-1 h-4 w-4"/> Quay lại
                             </Button>
 
                             <Button
@@ -397,7 +588,7 @@ export default function StudentTakeExamPage() {
                                 disabled={currentIndex === examData.questions.length - 1}
                                 onClick={() => setCurrentIndex((p) => p + 1)}
                             >
-                                Câu tiếp theo <ChevronRight className="ml-1 h-4 w-4" />
+                                Câu tiếp theo <ChevronRight className="ml-1 h-4 w-4"/>
                             </Button>
                         </CardFooter>
                     </Card>

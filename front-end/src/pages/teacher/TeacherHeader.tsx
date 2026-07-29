@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, LogOut, Menu, UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-
+import authService from "@/user/api/authService.ts";
 interface TeacherInfo {
   fullName?: string;
   role?: string;
@@ -36,10 +36,18 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
+  const handleLogout = async() => {
+    try {
+      await authService.logout();
+
+
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất backend:", error);
+      // Xem chi tiết lỗi API báo về là gì
+    }
   };
 
   const getInitial = (name?: string) => {
@@ -120,7 +128,8 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
                   {teacherEmail}
                 </span>
 
-                <div className="mb-2 mt-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-3xl font-normal text-white sm:h-20 sm:w-20 sm:text-4xl">
+                <div
+                    className="mb-2 mt-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-3xl font-normal text-white sm:h-20 sm:w-20 sm:text-4xl">
                   {getInitial(teacherName)}
                 </div>
 
@@ -129,15 +138,16 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
                 </h2>
 
                 <button
-                  onClick={() => navigate('/profile')}
-                  className="mt-4 rounded-full border border-emerald-300 px-4 py-2 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50 sm:px-6 sm:text-sm"
+                    onClick={() => window.open('/teacher/profile', '_blank')}
+                    className="mt-4 rounded-full border border-emerald-300 px-4 py-2 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50 sm:px-6 sm:text-sm"
                 >
-                  Quan ly tai khoan
+                  Quản lý tài khoản
                 </button>
               </div>
 
               <div className="mt-2 flex flex-col gap-1">
-                <button className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6">
+                <button
+                    className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6">
                   <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
                   Them mot tai khoan khac
                 </button>

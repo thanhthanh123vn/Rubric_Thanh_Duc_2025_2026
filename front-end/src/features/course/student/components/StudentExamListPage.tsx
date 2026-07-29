@@ -7,7 +7,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { assessmentPaperApi } from '@/api/assessmentApi.ts';
 import Sidebar from '@/features/course/student/components/Sidebar.tsx';
 import Header from '@/components/home/Header.tsx';
-import { Clock, FileText, Calendar, Search, PlayCircle, Lock } from 'lucide-react'; // Thêm icon
+import { Clock, FileText, Calendar, Search, PlayCircle, Lock, Eye, BellRing } from 'lucide-react';
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
+// Import thư viện WebSocket
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 export type StudentAssignedExamResponse = {
     assignmentId: string;
@@ -19,6 +23,7 @@ export type StudentAssignedExamResponse = {
     endTime: string;
     status: string;
 };
+
 const cardColors = [
     "from-blue-400 to-blue-600",
     "from-emerald-400 to-emerald-600",
@@ -27,12 +32,21 @@ const cardColors = [
     "from-violet-400 to-violet-600",
     "from-cyan-400 to-cyan-600",
 ];
+
 export default function StudentExamListPage() {
     const { id } = useParams();
     const [rows, setRows] = useState<StudentAssignedExamResponse[]>([]);
     const [loading, setLoading] = useState(false);
     const [keyword, setKeyword] = useState('');
+
+    // THÊM: Biến lưu thời gian hiện tại để tự động render lại giao diện mỗi giây
+    const [currentTime, setCurrentTime] = useState(Date.now());
+
     const navigate = useNavigate();
+
+    // Lấy thông tin sinh viên từ Redux để kết nối WebSocket
+    const { user: reduxUser } = useAppSelector((state) => state.auth);
+    const studentId = reduxUser?.studentId || reduxUser?.userId || JSON.parse(localStorage.getItem("user") || '{}').studentId;
 
     const loadData = async () => {
         try {
@@ -47,6 +61,64 @@ export default function StudentExamListPage() {
         }
     };
 
+
+    useEffect(() => {
+        // Cập nhật currentTime mỗi 1 giây (1000ms)
+        const timer = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
+
+
+    useEffect(() => {
+        if (!studentId || !id) return;
+
+        const token = localStorage.getItem('token');
+        const wsBaseUrl = (import.meta.env.VITE_WS_URL || 'ws://localhost:8080').replace(/^http/, 'ws')
+        const socketUrl = `${wsBaseUrl}/api/v1/course-service/ws?token=${token}`;
+
+        const stompClient = new Client({
+
+            brokerURL: socketUrl,
+            reconnectDelay: 5000,
+
+            onConnect: () => {
+                console.log('Đã kết nối Native WebSocket thành công');
+
+                const topicUrl = `/topic/course/${id}/student/${studentId}/exams`;
+                stompClient.subscribe(topicUrl, (message) => {
+                    if (message.body) {
+                        const newExam: StudentAssignedExamResponse = JSON.parse(message.body);
+
+
+                        setRows((prevRows) => [newExam, ...prevRows]);
+
+
+                        toast.info("Có bài thi mới!", {
+                            icon: <BellRing className="w-5 h-5 text-blue-500" />,
+                            description: `Giảng viên vừa giao bài: ${newExam.examTitle}`,
+                            duration: 6000
+                        });
+                    }
+                });
+            },
+            onStompError: (frame) => {
+                console.error('Lỗi STOMP: ' + frame.headers['message']);
+            }
+        });
+
+        stompClient.activate();
+
+
+        return () => {
+            if (stompClient.active) {
+                stompClient.deactivate();
+            }
+        };
+    }, [id, studentId]);
+
     useEffect(() => {
         loadData();
     }, [id]);
@@ -59,20 +131,65 @@ export default function StudentExamListPage() {
     const fmt = (iso?: string) =>
         iso ? new Date(iso).toLocaleString('vi-VN', { hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }) : '--';
 
+
     const canStart = (x: StudentAssignedExamResponse) => {
-        const now = Date.now();
         const st = new Date(x.startTime).getTime();
         const et = new Date(x.endTime).getTime();
-        return now >= st && now <= et && (x.status === 'NOT_STARTED' || x.status === 'IN_PROGRESS');
+        return currentTime >= st && currentTime <= et && (x.status === 'NOT_STARTED' || x.status === 'IN_PROGRESS');
     };
-const takeExam =( paperId:string)=>{
-    navigate(`/course/${id}/my-exams/${paperId}`);
-}
-    const handleNavigate = (x: StudentAssignedExamResponse) => {
-        if (canStart(x)) {
-            navigate(`/course/${id}/my-exams/${x.assessmentPaperId}`);
+
+    const isExpired = (x: StudentAssignedExamResponse) => {
+        return currentTime > new Date(x.endTime).getTime();
+    };
+
+    const canViewResult = (x: StudentAssignedExamResponse) => {
+        const hasSubmitted = x.status === "COMPLETED" || x.status === "GRADED";
+        const isTimeOver = currentTime > new Date(x.endTime).getTime();
+        return hasSubmitted && isTimeOver;
+    };
+
+    const takeExam = async (paperId: string) => {
+        try {
+            await assessmentPaperApi.getStudentExamToTake(paperId);
+            navigate(`/course/${id}/my-exams/${paperId}`);
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || error.message;
+            if (errorMessage.includes('Tài khoản của bạn đang làm bài thi này')) {
+                toast.error("Cảnh báo bảo mật", {
+                    description: "Tài khoản của bạn đang làm bài thi trên một thiết bị hoặc trình duyệt khác!",
+                    duration: 5000,
+                });
+            } else {
+                toast.error("Không thể tải đề thi: " + errorMessage);
+            }
         }
     };
+
+    const viewAnswers = (paperId: string) => {
+        navigate(`/course/${id}/my-exams/${paperId}/result`);
+    };
+
+    const handleNavigate = (x: StudentAssignedExamResponse) => {
+        if (canStart(x)) {
+            takeExam(x.assessmentPaperId);
+            return;
+        }
+
+        if (canViewResult(x)) {
+            navigate(`/course/${id}/my-exams/${x.assessmentPaperId}/result`);
+            return;
+        }
+
+        if ((x.status === "COMPLETED" || x.status === "GRADED") && !isExpired(x)) {
+            toast.info("Vui lòng đợi đến khi kỳ thi kết thúc để xem đáp án.");
+            return;
+        }
+
+        if (isExpired(x)) {
+            toast.error("Đã hết thời gian làm bài hoặc chưa hoàn thành.");
+        }
+    };
+
     const getCardColor = (id: string) => {
         let hash = 0;
         for (let i = 0; i < id.length; i++) {
@@ -81,14 +198,27 @@ const takeExam =( paperId:string)=>{
         const index = Math.abs(hash) % cardColors.length;
         return cardColors[index];
     };
-    // Hàm phụ để render trạng thái đẹp hơn
-    const renderStatusBadge = (status: string, isAvailable: boolean) => {
-        if (status === 'COMPLETED') return <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold">Đã nộp bài</span>;
-        if (status === 'IN_PROGRESS') return <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold">Đang làm</span>;
-        if (!isAvailable) return <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs font-semibold">Chưa mở / Đã đóng</span>;
-        return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">Sẵn sàng</span>;
-    };
 
+    const renderStatusBadge = (
+        status: string,
+        isAvailable: boolean,
+        expired: boolean
+    ) => {
+        if (status === "COMPLETED" || status === "GRADED") {
+            if (!expired) {
+                return <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">Đã nộp bài (Đang chờ)</span>;
+            }
+            return <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">Đã hoàn thành</span>;
+        }
+
+        if (status === "IN_PROGRESS") return <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">Đang làm</span>;
+
+        if (expired) return <span className="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">Chưa làm bài</span>;
+
+        if (!isAvailable) return <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">Chưa mở</span>;
+
+        return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold shadow-sm">Sẵn sàng</span>;
+    };
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
             <aside className="hidden md:block w-64 shrink-0 border-r bg-white h-screen sticky top-0 overflow-y-auto">
@@ -99,7 +229,6 @@ const takeExam =( paperId:string)=>{
                 <Header />
 
                 <div className="p-4 md:p-6 space-y-6 flex-1 max-w-7xl mx-auto w-full">
-                    {/* Header Section */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Bài thi của tôi</h1>
@@ -134,24 +263,29 @@ const takeExam =( paperId:string)=>{
                                     <p className="text-slate-500 text-sm mt-1">Bạn hiện không có bài thi nào hoặc không tìm thấy kết quả phù hợp.</p>
                                 </div>
                             ) : (
-                                /* GIAO DIỆN GRID CARDS MỚI */
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {filtered.map((x) => {
                                         const isAvailable = canStart(x);
+                                        const expired = isExpired(x);
+                                        const isViewable = canViewResult(x);
+                                        const hasSubmittedButWaiting = (x.status === "COMPLETED" || x.status === "GRADED") && !expired;
+
                                         return (
                                             <div
                                                 key={x.assignmentId}
-                                                className={`group flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all duration-300 ${isAvailable ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1.5 hover:border-blue-300' : 'opacity-80 cursor-not-allowed grayscale-[15%]'}`}
+                                                // Điều kiện chuôt: Cho click khi Available hoặc Viewable hoặc Đang chờ
+                                                className={`group flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-all duration-300 ${isAvailable || isViewable || hasSubmittedButWaiting ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1.5 hover:border-blue-300' : 'opacity-80 cursor-not-allowed grayscale-[15%]'}`}
                                                 onClick={() => handleNavigate(x)}
                                             >
-                                                {/* Header Card (Dải màu trang trí) */}
-                                                {/* Header Card (Dải màu random) */}
                                                 <div className={`h-24 w-full p-4 flex items-start justify-between bg-gradient-to-br ${getCardColor(x.assignmentId)}`}>
-                                                    {renderStatusBadge(x.status, isAvailable)}
-                                                    {isAvailable ? <PlayCircle className="text-white/80 h-6 w-6" /> : <Lock className="text-white/80 h-5 w-5" />}
+                                                    {renderStatusBadge(x.status, isAvailable, expired)}
+
+                                                    {isAvailable ? <PlayCircle className="text-white/80 h-6 w-6" />
+                                                        : isViewable ? <Eye className="text-white/80 h-5 w-5" />
+                                                            : hasSubmittedButWaiting ? <Clock className="text-white/80 h-5 w-5" />
+                                                                : <Lock className="text-white/80 h-5 w-5" />}
                                                 </div>
 
-                                                {/* Nội dung Card */}
                                                 <div className="p-5 flex-1 flex flex-col">
                                                     <h3 className="font-bold text-lg text-slate-800 line-clamp-2 mb-4 group-hover:text-blue-600 transition-colors" title={x.examTitle}>
                                                         {x.examTitle}
@@ -177,13 +311,44 @@ const takeExam =( paperId:string)=>{
 
                                                     <div className="mt-5 pt-4 border-t border-slate-100">
                                                         <Button
-                                                            className={`w-full font-medium pointer-events-none ${isAvailable ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                                                            variant={isAvailable ? "default" : "secondary"}
-                                                            onClick={() => takeExam(x.assessmentPaperId)}
+                                                            className={`w-full font-medium
+                                                                ${
+                                                                isAvailable
+                                                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                                                    : isViewable
+                                                                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                                        : hasSubmittedButWaiting
+                                                                            ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                                                            : expired
+                                                                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                                                                : "bg-gray-300 text-gray-500 pointer-events-none"
+                                                            }`}
+                                                            variant="default"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
 
-
+                                                                if (isAvailable) {
+                                                                    takeExam(x.assessmentPaperId);
+                                                                } else if (isViewable) {
+                                                                    viewAnswers(x.assessmentPaperId);
+                                                                } else if (hasSubmittedButWaiting) {
+                                                                    toast.info("Vui lòng đợi đến khi kỳ thi kết thúc để xem đáp án.");
+                                                                } else if (expired) {
+                                                                    toast.error("Bạn đã bỏ lỡ bài thi.");
+                                                                }
+                                                            }}
                                                         >
-                                                            {isAvailable ? 'Vào làm bài' : 'Chưa thể làm bài'}
+                                                            {
+                                                                isAvailable
+                                                                    ? "Vào làm bài"
+                                                                    : isViewable
+                                                                        ? "Xem đáp án"
+                                                                        : hasSubmittedButWaiting
+                                                                            ? "Đang chờ kết thúc..."
+                                                                            : expired
+                                                                                ? "Chưa làm bài"
+                                                                                : "Chưa thể làm bài"
+                                                            }
                                                         </Button>
                                                     </div>
                                                 </div>

@@ -2,6 +2,7 @@ package hcmuaf.edu.vn.fit.user_service.service;
 
 
 import com.cloudinary.provisioning.Account;
+import hcmuaf.edu.vn.fit.user_service.dto.request.UpdateLecturerProfileRequest;
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.CreateUserRequest;
 
 import hcmuaf.edu.vn.fit.user_service.dto.request.admin.UpdateUserRequest;
@@ -54,6 +55,9 @@ public class UserService {
     }
     public long countUsers(){
         return userRepository.count();
+    }
+    public long countLecturers(){
+        return lecturerRepository.count();
     }
     public Page<UserResponse> getAllAdmins(String keyword, Pageable pageable) {
         Page<User> users;
@@ -118,7 +122,8 @@ public class UserService {
                 user.getRole(),
                 avatarUrl,
                 user.getAuthProvider(),
-                fullName
+                fullName,
+                user.isLocked()
         );
     }
 
@@ -164,6 +169,9 @@ public class UserService {
         }
         if (request.role() != null) {
             user.setRole(request.role().toUpperCase());
+        }
+        if (request.locked() != null) {
+            user.setLocked(request.locked());
         }
 
         User updatedUser = userRepository.save(user);
@@ -213,7 +221,46 @@ public class UserService {
                 fullName,
                 email,
                 lecturer.getDepartment().getDepartmentName(),
-                lecturer.getAcademicTitle()
+                lecturer.getAcademicTitle(),
+                lecturer.getDateOfBirth(),
+                lecturer.getGender(),
+                lecturer.getCccd(),
+                lecturer.getPhoneNumber(),
+                lecturer.getAddress()
+        );
+    }
+    public LecturerResponse getProfile(String userId) {
+
+
+        String finalUserId = userId;
+        Lecturer lecturer = lecturerRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên với ID: " + finalUserId));
+
+
+
+        String fullName = null;
+        String email = null;
+
+        if (lecturer.getUser() != null) {
+            userId = lecturer.getUser().getUserId();
+            fullName = lecturer.getFullName();
+            email = lecturer.getUser().getEmail();
+        }
+
+
+        return new LecturerResponse(
+                lecturer.getLecturerId(),
+                userId,
+                fullName,
+                email,
+                lecturer.getDepartment().getDepartmentName(),
+                lecturer.getAcademicTitle(),
+
+                lecturer.getDateOfBirth(),
+                lecturer.getGender(),
+                lecturer.getCccd(),
+                lecturer.getPhoneNumber(),
+                lecturer.getAddress()
         );
     }
     public LecturerResponse getLecturerByUserId(String userId) {
@@ -255,5 +302,60 @@ public class UserService {
 
 
         return lecturers.map(lecturerMapper::toResponse);
+    }
+    @Transactional
+    public LecturerResponse updateProfile(String userId, UpdateLecturerProfileRequest request) {
+
+        // 1. Tìm giảng viên dựa trên userId
+        Lecturer lecturer = lecturerRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giảng viên với ID: " + userId));
+
+        // 2. Cập nhật các trường thông tin (kiểm tra null để tránh đè mất dữ liệu cũ)
+        if (request.fullName() != null && !request.fullName().isBlank()) {
+            lecturer.setFullName(request.fullName());
+        }
+        if (request.dateOfBirth() != null) {
+            lecturer.setDateOfBirth(request.dateOfBirth());
+        }
+        if (request.gender() != null) {
+            lecturer.setGender(request.gender());
+        }
+        if (request.cccd() != null) {
+            lecturer.setCccd(request.cccd());
+        }
+        if (request.phoneNumber() != null) {
+            lecturer.setPhoneNumber(request.phoneNumber());
+        }
+        if (request.address() != null) {
+            lecturer.setAddress(request.address());
+        }
+
+        // 3. Lưu xuống Database
+        Lecturer updatedLecturer = lecturerRepository.save(lecturer);
+
+        // 4. Lấy các thông tin từ User (nếu cần)
+        String email = null;
+        if (updatedLecturer.getUser() != null) {
+            email = updatedLecturer.getUser().getEmail();
+        }
+
+        String departmentName = updatedLecturer.getDepartment() != null
+                ? updatedLecturer.getDepartment().getDepartmentName()
+                : null;
+
+        // 5. Trả về kết quả sau khi cập nhật thành công
+        return new LecturerResponse(
+                updatedLecturer.getLecturerId(),
+                userId,
+                updatedLecturer.getFullName(),
+                email,
+                departmentName,
+                updatedLecturer.getAcademicTitle(),
+                updatedLecturer.getDateOfBirth(),
+                updatedLecturer.getGender(),
+                updatedLecturer.getCccd(),
+                updatedLecturer.getPhoneNumber(),
+                updatedLecturer.getAddress()
+        );
     }
 }

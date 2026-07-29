@@ -1,4 +1,5 @@
 import axios, {type AxiosInstance, type InternalAxiosRequestConfig} from 'axios';
+import {getBrowserToken} from "@/utils/browserId.ts";
 const BASE = import.meta.env.VITE_API_BASE;
 
 const attachToken = (config : InternalAxiosRequestConfig) => {
@@ -7,7 +8,7 @@ const attachToken = (config : InternalAxiosRequestConfig) => {
     if (token && config.headers) {
         config.headers.set('Authorization', `Bearer ${token}`);
     }
-
+    config.headers['X-Device-Token'] = getBrowserToken();
     return config;
 }
 //user-service
