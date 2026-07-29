@@ -1,0 +1,19 @@
+@startuml
+skinparam defaultTextAlignment center
+start
+:Sinh viên chọn bài đánh giá (Assessment);
+if (Còn hạn nộp bài?) then (Có)
+  :Chọn tệp tin cần nộp;
+  :Hệ thống tải tệp lên Cloud Storage (S3/Cloudinary);
+  :Nhận URL trả về từ Cloud;
+  :Nhập nội dung văn bản bổ sung (Submission Text);
+  :Sinh viên bấm "Nộp bài";
+  :Hệ thống lưu thông tin Submission và Attachments;
+  :Cập nhật trạng thái "Đã nộp";
+  :Gửi thông báo (Notification) cho Giảng viên;
+else (Không)
+  :Hệ thống vô hiệu hóa nút "Nộp bài";
+  :Hiển thị thông báo "Đã quá hạn nộp";
+endif
+stop
+@enduml

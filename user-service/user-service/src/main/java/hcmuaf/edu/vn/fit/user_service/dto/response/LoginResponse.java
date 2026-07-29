@@ -9,6 +9,7 @@ public record LoginResponse(
         String role,
         String userId,
         String avatarUrl,
+        String email,
         StudentProfileResponse student,
         LecturerProfileResponse lecturer,
         String refreshToken

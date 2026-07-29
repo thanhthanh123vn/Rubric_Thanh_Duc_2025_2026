@@ -1,24 +1,25 @@
 "use client"
 import React, { useState } from 'react';
 import {
-    User, Settings, BookOpen, MessageSquare, Calendar,
-    LogOut, Search, Bell, Menu, Lock, Save, Loader2
+    User, Settings, BookOpen, MessageSquare,
+    LogOut, Search, Bell, Menu, Lock, Save, Loader2, Shield, Briefcase
 } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {userService} from "@/api/userApi.ts";
+import { userService } from "@/api/userApi.ts";
 
 export default function AccountSettings() {
     const router = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
 
-    // Lấy thông tin user từ localStorage để hiển thị Avatar trên header giống ProfilePage
+    // Lấy thông tin user từ localStorage, dùng username thay cho studentId để tổng quát
     const storedUser = localStorage.getItem('user');
     const userInfo = storedUser ? JSON.parse(storedUser) : {
-        studentId: '22130260',
+        username: '22130260',
         fullName: 'Nguyễn Văn Thạnh',
+        role: 'STUDENT',
         avatarUrl: ''
     };
 
@@ -77,8 +78,9 @@ export default function AccountSettings() {
             });
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Đổi mật khẩu thất bại!");
+        } finally {
+            setIsLoading(false);
         }
-
     };
 
     const handleSaveGeneralSettings = () => {
@@ -87,7 +89,7 @@ export default function AccountSettings() {
 
     return (
         <div className="flex flex-col lg:flex-row min-h-screen bg-[#f3f9f5] font-sans pb-20 lg:pb-0">
-            {/* SIDEBAR */}
+            {/* SIDEBAR TỰ ĐỘNG THÍCH ỨNG THEO ROLE */}
             <aside className="hidden lg:flex w-72 bg-white border-r border-emerald-100 flex-col shadow-sm z-20 sticky top-0 h-screen">
                 <div className="h-20 flex items-center px-6 border-b border-emerald-50">
                     <div className="text-emerald-700 font-extrabold text-3xl mr-3 tracking-tighter">NLU Rubric</div>
@@ -100,21 +102,31 @@ export default function AccountSettings() {
                         <User className="w-5 h-5" />
                         <span className="font-medium">Hồ sơ cá nhân</span>
                     </Link>
+
                     <a href="/profile/settings" className="flex items-center gap-4 px-4 py-3.5 bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-700/20">
                         <Settings className="w-5 h-5" />
                         <span className="font-medium">Cài đặt tài khoản</span>
                     </a>
-                    <Link
-                        to={`/profile/result-grading`}
-                        className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors"
-                    >
-                        <BookOpen className="w-5 h-5" />
-                        <span className="font-medium">Kết quả học tập</span>
-                    </Link>
-                    {/*<a href="#" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">*/}
-                    {/*    <Calendar className="w-5 h-5" />*/}
-                    {/*    <span className="font-medium">Lịch học</span>*/}
-                    {/*</a>*/}
+
+                    {/* MENU RENDER THEO ROLE */}
+                    {userInfo.role === 'STUDENT' && (
+                        <Link to="/profile/result-grading" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <BookOpen className="w-5 h-5" />
+                            <span className="font-medium">Kết quả học tập</span>
+                        </Link>
+                    )}
+                    {userInfo.role === 'ADMIN' && (
+                        <Link to="/admin/dashboard" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <Shield className="w-5 h-5" />
+                            <span className="font-medium">Quản lý hệ thống</span>
+                        </Link>
+                    )}
+                    {(userInfo.role !== 'STUDENT' && userInfo.role !== 'ADMIN') && (
+                        <Link to="/teacher/dashboard" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <Briefcase className="w-5 h-5" />
+                            <span className="font-medium">Quản lý giảng dạy</span>
+                        </Link>
+                    )}
                 </nav>
                 <div className="p-6 border-t border-emerald-50">
                     <button onClick={handleLogout} className="flex items-center gap-4 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 w-full rounded-xl transition-colors">
@@ -263,7 +275,7 @@ export default function AccountSettings() {
                                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-100">
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">Công khai hồ sơ cá nhân</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">Cho phép các sinh viên khác tìm thấy bạn</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">Cho phép người khác tìm thấy bạn</p>
                                         </div>
                                         <input
                                             type="checkbox"
@@ -288,16 +300,31 @@ export default function AccountSettings() {
                 </div>
             </main>
 
-            {/* NAVBAR MOBILE */}
+            {/* NAVBAR MOBILE TỰ ĐỘNG THÍCH ỨNG */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-2 z-40 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
                 <Link to="/profile" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
                     <User className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-medium">Hồ sơ</span>
                 </Link>
-                <a href="#" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                    <BookOpen className="w-5 h-5 mb-1" />
-                    <span className="text-[10px] font-medium">Học tập</span>
-                </a>
+
+                {/* MENU MOBILE THEO ROLE */}
+                {userInfo.role === 'STUDENT' ? (
+                    <Link to="/profile/result-grading" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
+                        <BookOpen className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-medium">Học tập</span>
+                    </Link>
+                ) : userInfo.role === 'ADMIN' ? (
+                    <Link to="/admin/dashboard" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
+                        <Shield className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-medium">Quản trị</span>
+                    </Link>
+                ) : (
+                    <Link to="/teacher/dashboard" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
+                        <Briefcase className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-medium">Quản lý</span>
+                    </Link>
+                )}
+
                 <a href="#" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
                     <MessageSquare className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-medium">Tin nhắn</span>

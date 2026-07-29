@@ -18,3 +18,17 @@ export function getBrowserId() {
   localStorage.setItem(BROWSER_ID_STORAGE_KEY, nextBrowserId);
   return nextBrowserId;
 }
+let isTokenInitializedInThisTab = false;
+
+export const getBrowserToken = (): string => {
+  let token = sessionStorage.getItem('tab_device_token');
+
+
+  if (!token || !isTokenInitializedInThisTab) {
+    token = 'tab_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    sessionStorage.setItem('tab_device_token', token);
+    isTokenInitializedInThisTab = true;
+  }
+
+  return token;
+}

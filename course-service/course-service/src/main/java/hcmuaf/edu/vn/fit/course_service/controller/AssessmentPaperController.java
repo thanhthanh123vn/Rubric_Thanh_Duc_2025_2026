@@ -1,14 +1,20 @@
 package hcmuaf.edu.vn.fit.course_service.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hcmuaf.edu.vn.fit.course_service.dto.request.GenerateExamRequest;
+import hcmuaf.edu.vn.fit.course_service.dto.request.UnlockExamRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.request.UpdateAssessmentPaperRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.ExamQuestionDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerExamDetailResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.AssessmentPaper;
 import hcmuaf.edu.vn.fit.course_service.exception.ResourceNotFoundException;
 import hcmuaf.edu.vn.fit.course_service.service.AssessmentPaperService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +28,8 @@ import java.util.Map;
 public class AssessmentPaperController {
 
     private final AssessmentPaperService assessmentPaperService;
+
+
 
 
     @PostMapping("/generate")
@@ -71,7 +79,7 @@ public class AssessmentPaperController {
     @GetMapping("/{id}/detail")
     public ResponseEntity<?> getLecturerExamDetail(
             @PathVariable("id") String paperId,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            @RequestHeader(value = "X-User-Id", required = false) String userId,       HttpServletRequest request ) {
 
         if (userId == null || userId.trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thiếu thông tin người dùng");
@@ -79,11 +87,82 @@ public class AssessmentPaperController {
 
         try {
 
-            LecturerExamDetailResponse response = assessmentPaperService.getLecturerExamDetail(paperId);
+            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+            String currentToken = "";
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+             currentToken= authHeader.substring(7);
+
+
+
+            }
+
+            LecturerExamDetailResponse response = assessmentPaperService.getStudentExamToTake(paperId,userId,currentToken);
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+    @PostMapping("/student/exams/unlock")
+    public ResponseEntity<?> unlockExamSession(
+
+            @RequestBody UnlockExamRequest request) {
+
+        assessmentPaperService.unlockExamSession(
+                request.getExamId(),
+               request.getStudentId(),
+                request.getDeviceToken()
+        );
+
+        return ResponseEntity.ok("Đã mở khóa phiên làm bài.");
+    }
+    @PostMapping("/{examId}/exit")
+    public ResponseEntity<?> exitExam(
+            @PathVariable String examId,
+            @RequestHeader("X-User-Id") String studentId,
+            HttpServletRequest request) {
+
+        String token = "";
+        System.out.println("Đã Vào Exit"+examId);
+
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        assessmentPaperService.exitExam(examId, studentId, token);
+
+        return ResponseEntity.ok("Đã thoát bài thi.");
+    }
+    @GetMapping("/{id}/take")
+    public ResponseEntity<?> getStudentExamToTake(
+            @PathVariable("id") String paperId,
+            @RequestHeader(value = "X-User-Id", required = false) String studentId,
+            HttpServletRequest request) {
+
+        if (studentId == null || studentId.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Thiếu thông tin sinh viên"));
+        }
+
+        try {
+
+            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+            String currentToken = "";
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                currentToken = authHeader.substring(7);
+            }
+
+            // Gọi service dành riêng cho sinh viên (CÓ REDIS LOCK & GIẤU ĐÁP ÁN)
+            LecturerExamDetailResponse response = assessmentPaperService.getStudentExamToTake(paperId, studentId, currentToken);
             return ResponseEntity.ok(response);
 
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }

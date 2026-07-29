@@ -1,0 +1,21 @@
+@startuml
+skinparam defaultTextAlignment center
+start
+:Lãnh đạo truy cập Dashboard Thống kê OBE;
+:Chọn các bộ lọc (Học kỳ, Bộ môn, Môn học);
+:Hệ thống lấy danh sách sinh viên và điểm tổng kết;
+:Tra cứu bảng ánh xạ clo_plo_map;
+note right
+  Tính toán tỷ lệ hoàn thành
+  từ Điểm Rubric -> CLO -> PLO
+end note
+:Tính trung bình và tỷ lệ % đạt chuẩn;
+:Tổng hợp dữ liệu theo định dạng JSON;
+if (Hành động của người dùng?) then ([Xem trực tiếp])
+  :Frontend render biểu đồ thống kê;
+else ([Xuất báo cáo])
+  :Hệ thống xuất dữ liệu ra file Excel/PDF;
+  :Tải file về máy;
+endif
+stop
+@enduml

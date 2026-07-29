@@ -35,4 +35,9 @@ public class User {
 
     private String resetOtp;
     private LocalDateTime resetOtpExpiry;
+
+    @Column(name = "is_locked")
+    @Builder.Default
+    private boolean locked = false;
+
 }

@@ -38,5 +38,7 @@ public interface UserClient {
     LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
     @GetMapping("/api/v1/user-service/users/count")
     Long countUsers();
+    @GetMapping("/api/v1/user-service/lecturer/count")
+    Long countLecturers();
 }
 

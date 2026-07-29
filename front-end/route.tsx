@@ -100,6 +100,9 @@ import StudentRubric from "@/features/course/student/components/StudentRubric.ts
 import StudentRubricDetail from "@/features/course/student/components/StudentRubricDetail.tsx";
 import StudentOBE from "@/features/course/student/components/StudentOBE.tsx";
 import AccountSettings from "@/features/course/student/components/AccountSettings.tsx";
+import StudentExamSubmittedPage from "@/features/course/student/components/StudentExamSubmittedPage.tsx";
+import StaffAccountManagementPage from "@/pages/StaffAccountManagementPage.tsx";
+import StaffProfilePage from "@/pages/StaffProfilePage.tsx";
 
 
 export const router = createBrowserRouter([
@@ -146,6 +149,10 @@ export const router = createBrowserRouter([
             {
                 path: "/course/:id/my-exams",
                 Component: StudentExamListPage,
+            },
+            {
+                path: "/course/:id/my-exams/:examId/submit",
+                Component: StudentExamSubmittedPage,
             },
             {
                 path: "/course/:id/document/materials/:postId",
@@ -201,7 +208,11 @@ export const router = createBrowserRouter([
         path: "/forgot-password",
         Component: ForgotPasswordPage,
     },
-
+    { path: "/teacher/profile", Component: StaffProfilePage },
+    {
+        path: "/teacher/profile/forgot-password",
+        Component: AccountSettings,
+    },
     {
         path: "/teacher",
         element: <RoleProtectedRoute allowedRoles={["TEACHER", "LECTURER"]} />,
@@ -210,6 +221,7 @@ export const router = createBrowserRouter([
                 element: <TeacherLayout />,
                 children: [
             { index: true, Component: TeacherOverview },
+
             { path: "courses", loader: () => redirect("/teacher") },
             {
                 path: "course/:id",
@@ -336,6 +348,7 @@ export const router = createBrowserRouter([
                         Component: UserManagement,
                     },
                     {path: "users/create-user", Component: AdminCreateUser},
+                    {path: "users/account-management", Component: StaffAccountManagementPage},
                     {path: "reports", Component: ReportDashboard},
                     {path: "settings", Component: SystemSettings},
                     {path: "users/list-students", Component: ListStudent},

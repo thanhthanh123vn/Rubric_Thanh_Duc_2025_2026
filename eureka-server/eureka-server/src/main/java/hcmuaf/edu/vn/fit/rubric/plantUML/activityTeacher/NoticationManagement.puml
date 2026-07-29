@@ -1,0 +1,42 @@
+@startuml
+skinparam defaultTextAlignment center
+
+|Hệ Thống|
+start
+
+:Sự kiện kích hoạt
+(Ví dụ: Đăng bài, Chấm điểm);
+
+:Xác định loại thông báo;
+
+:Xác định danh sách người nhận;
+
+:Khởi tạo nội dung
+(Title, Message, Redirect URL);
+
+:Lưu thông báo
+(is_read = false);
+
+if (Người dùng đang Online?) then (Có)
+    :Đẩy thông báo
+qua WebSocket;
+    :Frontend hiển thị
+Popup thông báo;
+else (Không)
+    :Lưu thông báo
+để hiển thị sau;
+endif
+
+|Người dùng|
+
+:Nhấn vào thông báo;
+
+|Hệ Thống|
+
+:Cập nhật is_read = true;
+
+:Điều hướng đến
+trang liên quan;
+
+stop
+@enduml

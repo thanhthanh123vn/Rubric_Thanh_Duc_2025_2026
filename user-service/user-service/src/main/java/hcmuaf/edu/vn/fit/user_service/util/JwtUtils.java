@@ -34,8 +34,8 @@ public class JwtUtils {
                 compact();
     }
 
-    public String generateRefreshToken(String userId,String userName, String role) {
-        return buildToken(userId, role,userName ,REFRESH_TOKEN_EXPIRATION);
+    public String generateRefreshToken(String userId, String userName, String role) {
+        return buildToken(userId, userName, role, REFRESH_TOKEN_EXPIRATION);
     }
     private String buildToken(String userId,String userName, String role, long expiration) {
         return Jwts.builder()
@@ -46,6 +46,13 @@ public class JwtUtils {
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
+    }
+    public long getExpirationTime(String token) {
+        try {
+            return extractAllClaims(token).getExpiration().getTime();
+        } catch (Exception e) {
+            return 0;
+        }
     }
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();

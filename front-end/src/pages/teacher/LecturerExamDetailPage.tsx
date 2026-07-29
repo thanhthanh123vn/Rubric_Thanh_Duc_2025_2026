@@ -254,12 +254,28 @@ export default function LecturerExamDetailPage() {
         printWindow.document.write(htmlContent);
         printWindow.document.close();
     };
-    // Tính toán một số thống kê nhanh
-    const totalStudents = examData.submissions.length;
-    const gradedStudents = examData.submissions.filter(s => s.status === 'GRADED').length;
-    const avgScore = gradedStudents > 0
-        ? (examData.submissions.filter(s => s.status === 'GRADED').reduce((acc, curr) => acc + curr.score, 0) / gradedStudents).toFixed(2)
-        : '--';
+
+
+    const submissions = examData?.submissions || [];
+
+    const totalStudents = submissions.length || 0;
+
+    const gradedSubmissions = submissions.filter(s => s?.status === "GRADED") || [];
+
+    const gradedStudents = gradedSubmissions.length || 0;
+
+    const avgScore =
+        gradedStudents > 0
+            ? (
+                gradedSubmissions.reduce(
+                    (sum, s) => sum + (s?.score || 0),
+                    0
+                ) / gradedStudents
+            ).toFixed(2)
+            : "--";
+
+    // THÊM BIẾN NÀY ĐỂ DÙNG BÊN DƯỚI
+    const submittedStudents = submissions.filter(s => s?.status !== 'NOT_SUBMITTED').length || 0;
 
     return (
         <div id="exam-content" className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
@@ -330,7 +346,8 @@ export default function LecturerExamDetailPage() {
                                 <div>
                                     <p className="text-xs font-medium text-slate-400 uppercase">Đã nộp / Tổng số</p>
                                     <p className="text-xl font-bold text-slate-800">
-                                        {examData.submissions.filter(s => s.status !== 'NOT_SUBMITTED').length} / {totalStudents} SV
+
+                                        {submittedStudents} / {totalStudents} SV
                                     </p>
                                 </div>
                             </CardContent>
@@ -482,7 +499,7 @@ export default function LecturerExamDetailPage() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {examData.submissions.map((student) => (
+                                                {examData.submissions?.map((student) => (
                                                     <TableRow key={student.studentId} className="hover:bg-slate-50/80">
                                                         <TableCell className="font-semibold text-slate-700">{student.studentCode}</TableCell>
                                                         <TableCell className="font-medium text-slate-800">{student.studentName}</TableCell>

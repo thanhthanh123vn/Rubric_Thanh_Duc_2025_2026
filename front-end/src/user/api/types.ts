@@ -4,6 +4,7 @@ export interface StudentProfile {
     className?: string;
     major?: string;
     cohort?: string;
+    email?:string;
 }
 
 export interface LecturerProfile {
@@ -11,6 +12,7 @@ export interface LecturerProfile {
     fullName: string;
     department?: string;
     academicTitle?: string;
+    email?:string;
 }
 
 export interface LoginResponse {
@@ -19,6 +21,8 @@ export interface LoginResponse {
     role: "STUDENT" | "TEACHER" | "ADMIN" | "MAIN_LECTURER"| "HEAD_OF_DEPARTMENT"|"DEAN";
     userId: string;
     student?: StudentProfile;
+    email?:string;
+
     lecturer?: LecturerProfile;
     avatarUrl?: string;
     refreshToken: string;

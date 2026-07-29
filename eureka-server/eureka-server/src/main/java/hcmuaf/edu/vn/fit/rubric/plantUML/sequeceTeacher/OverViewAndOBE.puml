@@ -1,0 +1,16 @@
+@startuml
+autonumber
+actor "Trưởng Khoa" as Dean
+participant "Front-End" as UI
+participant "Report Service" as ReportSvc
+database "MySQL Database" as DB
+
+Dean -> UI: Truy cập trang Báo cáo PLO & Chọn bộ lọc
+UI -> ReportSvc: GET /api/v1/course-service/reports/overview
+ReportSvc -> DB: Query JOIN (`program_plo` - `clo_plo_map` - `course_clo` - `rubric_results`)
+Note over DB: Chạy Aggregation phức tạp \nđể tổng hợp điểm
+DB --> ReportSvc: Trả về tập dữ liệu thống kê (Thô)
+ReportSvc -> ReportSvc: Xử lý, phân nhóm dữ liệu theo từng PLO
+ReportSvc --> UI: Trả về JSON (Tỷ lệ đạt, Trượt, Điểm TB)
+UI -> Dean: Vẽ biểu đồ trực quan lên Dashboard
+@enduml

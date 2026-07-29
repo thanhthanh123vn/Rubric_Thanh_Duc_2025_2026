@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,6 +25,10 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
     @Autowired
     private JwtUtils jwtUtils;
 
+    // THÊM REDIS TEMPLATE ĐỂ KIỂM TRA SESSION VÀ BLACKLIST
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
     public JwtAuthenticationFilter() {
         super(Config.class);
     }
@@ -40,33 +45,54 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             }
             if (path.contains("/auth/login") ||
                     path.contains("/auth/register") ||
+
                     path.contains("/oauth2-success")) {
 
                 return chain.filter(exchange);
             }
-            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                log.warn("Missing Authorization Header for URI: {}", request.getURI());
-                return onError(exchange, "Missing Authorization Header", HttpStatus.UNAUTHORIZED);
-            }
-
+            String token = null;
             String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                log.warn("Invalid Authorization Header Format");
-                return onError(exchange, "Invalid Authorization Header Format", HttpStatus.UNAUTHORIZED);
+
+
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
             }
 
-            log.info("Authorization = {}", authHeader);
+            else {
+                token = request.getQueryParams().getFirst("token");
+            }
 
-            String token = authHeader.substring(7);
+
+            if (token == null || token.isBlank()) {
+                log.warn("Missing Authorization Token for URI: {}", request.getURI());
+                return onError(exchange, "Missing Authorization Token", HttpStatus.UNAUTHORIZED);
+            }
+
+            log.info("Token extracted successfully for URI: {}", request.getURI());
 
             try {
+                // KIỂM TRA REDIS: TOKEN CÓ BỊ ĐƯA VÀO BLACKLIST KHÔNG?
+                String blacklistKey = "blacklist:token:" + token;
+                Boolean isBlacklisted = redisTemplate.hasKey(blacklistKey);
+                if (Boolean.TRUE.equals(isBlacklisted)) {
+                    log.warn("Token is blacklisted (User already logged out)");
+                    return onError(exchange, "Token đã bị vô hiệu hóa (Đăng xuất). Vui lòng đăng nhập lại.", HttpStatus.UNAUTHORIZED);
+                }
 
+                // parse token
                 Claims claims = jwtUtils.validateAndExtractClaims(token);
                 String userId = claims.get("userId", String.class);
-
-
                 String roles = claims.get("role", String.class);
                 String userName = claims.getSubject();
+
+                // KIỂM TRA REDIS: SESSION CỦA USER NÀY CÒN TỒN TẠI KHÔNG?
+
+                String sessionKey = "session:user:" + userId;
+                Boolean hasSession = redisTemplate.hasKey(sessionKey);
+                if (Boolean.FALSE.equals(hasSession)) {
+                    log.warn("User session expired or cleared in Redis for UserId: {}", userId);
+                    return onError(exchange, "Phiên đăng nhập đã hết hạn hoặc bạn đã đăng nhập ở nơi khác.", HttpStatus.UNAUTHORIZED);
+                }
 
                 String ip = request.getHeaders().getFirst("X-Forwarded-For");
 
@@ -78,11 +104,10 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                     }
                 }
 
+                log.info("Subject = {}", userName);
+                log.info("UserId = {}", userId);
+                log.info("Role = {}", roles);
 
-
-                log.info("Subject = {}", claims.getSubject());
-                log.info("UserId = {}", claims.get("userId", String.class));
-                log.info("Role = {}", claims.get("role", String.class));
                 ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
                         .header("X-User-Id", userId)
                         .header("X-User-Role", roles != null ? roles : "")
@@ -93,13 +118,11 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
 
             } catch (Exception e) {
+                // Bỏ qua dòng lấy lại claims nếu token đã lỗi, nó sẽ lại văng exception
+//                 Claims claims = jwtUtils.validateAndExtractClaims(token);
 
-
-                Claims claims = jwtUtils.validateAndExtractClaims(token);
-
-                log.info("Subject = {}", claims.getSubject());
                 log.error("Authentication Failed: {}", e.getMessage());
-                return onError(exchange, e.getMessage(), HttpStatus.UNAUTHORIZED);
+                return onError(exchange, "Token không hợp lệ hoặc đã hết hạn: " + e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
         };
     }

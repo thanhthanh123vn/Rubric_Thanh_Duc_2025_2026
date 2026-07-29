@@ -2,6 +2,7 @@ package hcmuaf.edu.vn.fit.course_service.repository.jpa;
 
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseAdmin;
 import hcmuaf.edu.vn.fit.course_service.dto.response.DashboardCourseProjection;
+import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

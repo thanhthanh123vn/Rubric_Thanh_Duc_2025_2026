@@ -2,14 +2,24 @@ package hcmuaf.edu.vn.fit.course_service.dto.response;
 
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class LecturerResponse {
-    private String lecturerId;
-    private String title;
-    private String userId;
-    private String fullName;
-    private String email;
-    private String department;
-    private String academicTitle;
-}
+
+
+            String lecturerId;
+            String userId;
+            String fullName;
+            String email;
+            String department;
+            String academicTitle;
+            LocalDate dateOfBirth;
+            String gender;
+            String cccd;
+            String phoneNumber;
+            String address;
+
+    }
+
 

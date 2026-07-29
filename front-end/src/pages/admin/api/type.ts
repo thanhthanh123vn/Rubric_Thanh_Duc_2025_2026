@@ -8,6 +8,7 @@ export interface User {
     email?: string;
     role: string;
     authProvider?: string;
+    locked: boolean;
 }
 export interface PageResponse<T> {
     content: T[];

@@ -29,7 +29,7 @@ public class SecurityConfig {
 
                         // WebSockets
                         .requestMatchers("/api/v1/course-service/ws/**").permitAll()
-
+                        .requestMatchers("/ws/**").permitAll()
 
                         // Quyền ADMIN
 
@@ -40,13 +40,12 @@ public class SecurityConfig {
                         ).hasRole("ADMIN")
 
 
-
                         .requestMatchers("/api/v1/course-service/assessments/**")
                         .permitAll()
                         // Quyền GIẢNG VIÊN (Teacher / Main Lecturer)
                         .requestMatchers(
 
-                                "/api/v1/course-service/assessment-papers/**",
+
                                 "/api/v1/course-service/question-banks/**",
                                 "/api/v1/course-service/questions/**",
                                 "/api/v1/course-service/obe/**",

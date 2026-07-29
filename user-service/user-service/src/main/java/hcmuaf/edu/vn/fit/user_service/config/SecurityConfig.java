@@ -36,13 +36,23 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/v1/user-service/auth/login",
+                                "/api/v1/user-service/auth/logout",
                                 "/api/v1/user-service/auth/refresh",
-                                "/api/auth/forgot-password"
+                                "/api/v1/user-service/auth/forgot-password"
                         ).permitAll()
 
-                        .requestMatchers("/api/users/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/user-service/users/admin/**").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.GET,
+                                        "/api/v1/user-service/lecturer/**")
+                                .authenticated()
+                                .requestMatchers(HttpMethod.PUT,
+                                        "/api/v1/user-service/lecturer/profile/me")
+                                .authenticated()
 
-                        .requestMatchers("/api/users/me").authenticated()
+//
+//
+//                        .requestMatchers("/api/v1/user-service/lecturer/**").hasAnyRole("ADMIN","TEACHER","DEAN","HEAD_OF_DEPARTMENT","MAIN_LECTURER")
+                        .requestMatchers("/api/v1/user-service/users/me").authenticated()
 
                         .anyRequest().authenticated()
                 );

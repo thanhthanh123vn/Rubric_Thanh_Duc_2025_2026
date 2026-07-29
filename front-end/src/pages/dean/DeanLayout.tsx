@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Library, Sparkles, LayoutDashboard, ClipboardCheck, BarChart3, BookOpen } from 'lucide-react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Library, Sparkles, LayoutDashboard, ClipboardCheck, BarChart3, BookOpen, LogOut } from 'lucide-react';
+import authService from "@/user/api/authService.ts"; // Điều chỉnh đường dẫn import authService nếu cần
 
 const deanModuleLinks = [
     { path: '/dean', label: 'Tổng quan Khoa', icon: LayoutDashboard },
@@ -11,8 +12,24 @@ const deanModuleLinks = [
 
 export default function DeanLayout() {
     const location = useLocation();
+    const router = useNavigate();
 
     const inDetailView = location.pathname.includes('/detail/');
+
+    const handleLogout = async () => {
+        try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            // Gọi thêm API logout của hệ thống nếu có
+            if (authService && typeof authService.logout === 'function') {
+                await authService.logout();
+            }
+        } catch (error) {
+            console.error("Lỗi khi đăng xuất:", error);
+        } finally {
+            router('/login');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(79,70,229,0.12),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(99,102,241,0.08),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] font-sans antialiased text-slate-900">
@@ -68,14 +85,22 @@ export default function DeanLayout() {
                                 </NavLink>
                             ))}
                         </nav>
+
+                        {/* --- NÚT ĐĂNG XUẤT Ở DƯỚI CÙNG SIDEBAR --- */}
+                        <div className="mt-auto pt-4 border-t border-slate-200">
+                            <button
+                                onClick={handleLogout}
+                                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition-all hover:bg-red-50 hover:text-red-600"
+                            >
+                                <LogOut className="h-5 w-5" />
+                                <span>Đăng xuất</span>
+                            </button>
+                        </div>
                     </aside>
                 )}
 
                 {/* --- MAIN CONTENT AREA --- */}
                 <div className="flex min-w-0 flex-1 flex-col">
-
-                    {/* Header: Giả định bạn dùng chung hoặc tạo DeanHeader */}
-                    {/* {!inDetailView ? <DeanHeader /> : null} */}
 
                     {/* --- MOBILE NAVIGATION (Chỉ hiện trên màn hình nhỏ) --- */}
                     {!inDetailView && (
@@ -97,6 +122,14 @@ export default function DeanLayout() {
                                     {item.label}
                                 </NavLink>
                             ))}
+                            {/* Nút đăng xuất phụ cho màn hình mobile */}
+                            <button
+                                onClick={handleLogout}
+                                className="inline-flex shrink-0 items-center gap-2 rounded-full border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition-all hover:bg-red-50"
+                            >
+                                <LogOut className="h-4 w-4" />
+                                Đăng xuất
+                            </button>
                         </div>
                     )}
 
