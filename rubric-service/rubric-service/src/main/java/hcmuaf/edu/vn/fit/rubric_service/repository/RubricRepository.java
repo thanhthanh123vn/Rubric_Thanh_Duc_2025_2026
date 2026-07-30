@@ -25,7 +25,7 @@ public interface RubricRepository extends JpaRepository<Rubric, String> {
     Optional<Rubric> findWithCriteriaAndLevelsByRubricId(String rubricId);
 
     List<Rubric> findByStatus(RubricStatus status);
-
+    List<Rubric> findTop20ByOrderByCreatedAtDesc();
     @Query("SELECT r FROM Rubric r WHERE r.status = :status AND r.courseId IN :courseIds")
     List<Rubric> findByStatusAndCourseIdsIn(@Param("status") RubricStatus status, @Param("courseIds") List<String> courseIds);
 }

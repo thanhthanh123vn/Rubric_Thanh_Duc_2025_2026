@@ -1,22 +1,38 @@
 @startuml
 skinparam defaultTextAlignment center
+
+|Giảng viên|
 start
-:Giảng viên chọn lớp học phần;
+:Chọn lớp học phần;
 :Truy cập module "Ngân hàng câu hỏi";
-if (Hành động?) then ([Thêm câu hỏi])
+
+if (Hành động?) then (Thêm câu hỏi)
+
   :Import từ tệp Excel hoặc nhập tay;
   :Cấu hình đáp án, mức độ khó và gắn CLO;
+
+  |Hệ thống|
   :Lưu vào kho câu hỏi;
-else ([Tạo đề thi])
-  :Nhập cấu hình Ma trận đề thi (Số lượng, Mức độ, CLO);
-  :Hệ thống lấy ngẫu nhiên câu hỏi từ kho;
-  if (Đủ câu hỏi theo ma trận?) then (Thiếu)
+
+else (Tạo đề thi)
+
+  |Giảng viên|
+  :Nhập cấu hình Ma trận đề thi\n(Số lượng, Mức độ, CLO);
+
+  |Hệ thống|
+  :Lấy ngẫu nhiên câu hỏi từ kho;
+
+  if (Đủ câu hỏi theo ma trận?) then (Không)
     :Cảnh báo không đủ câu hỏi trong kho;
-    detach
-  else (Đủ)
-    :Hệ thống sinh đề thi;
-    :Giảng viên lưu & xuất bản đề thi;
+    stop
+  else (Có)
+    :Sinh đề thi;
+
+    |Giảng viên|
+    :Lưu & xuất bản đề thi;
   endif
+
 endif
+
 stop
 @enduml

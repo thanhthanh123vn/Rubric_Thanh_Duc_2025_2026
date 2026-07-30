@@ -5,7 +5,7 @@ import authService from "@/user/api/authService.ts"; // Điều chỉnh đườn
 const deanModuleLinks = [
     { path: '/dean', label: 'Tổng quan Khoa', icon: LayoutDashboard },
     { path: '/dean/rubrics', label: 'Phê duyệt Rubric', icon: ClipboardCheck },
-    { path: '/dean/analytics', label: 'Phân Tích OBE', icon: ClipboardCheck },
+    { path: '/dean/obe', label: 'Phân Tích OBE', icon: ClipboardCheck },
     { path: '/dean/reports', label: 'Báo cáo chất lượng', icon: BarChart3 },
     { path: '/dean/courses', label: 'Quản lý Môn học', icon: BookOpen },
 ];

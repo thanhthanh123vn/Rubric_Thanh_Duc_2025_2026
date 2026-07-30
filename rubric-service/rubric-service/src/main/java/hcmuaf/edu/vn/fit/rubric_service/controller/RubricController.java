@@ -6,10 +6,7 @@ import hcmuaf.edu.vn.fit.rubric_service.client.UserClient;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricApprovalRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.SystemLogRequest;
-import hcmuaf.edu.vn.fit.rubric_service.dto.response.LecturerResponse;
-import hcmuaf.edu.vn.fit.rubric_service.dto.response.RubricMatrixResponse;
-import hcmuaf.edu.vn.fit.rubric_service.dto.response.RubricResponse;
-import hcmuaf.edu.vn.fit.rubric_service.dto.response.UserResponse;
+import hcmuaf.edu.vn.fit.rubric_service.dto.response.*;
 import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.entity.enums.RubricStatus;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
@@ -155,6 +152,18 @@ public class RubricController {
                     "success", false,
                     "message", e.getMessage()
             ));
+        }
+    }
+    @GetMapping("/department/{departmentId}/activities")
+    public ResponseEntity<List<ActivityResponse>> getDepartmentActivities(
+            @PathVariable String departmentId,
+            @RequestParam(defaultValue = "5") int limit
+    ) {
+        try {
+            List<ActivityResponse> activities = rubricService.getRecentActivities(departmentId, limit);
+            return ResponseEntity.ok(activities);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 }

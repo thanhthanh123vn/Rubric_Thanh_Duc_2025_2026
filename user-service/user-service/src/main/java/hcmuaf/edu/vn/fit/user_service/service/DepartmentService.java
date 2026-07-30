@@ -1,6 +1,7 @@
 package hcmuaf.edu.vn.fit.user_service.service;
 
 import hcmuaf.edu.vn.fit.user_service.dto.response.DepartmentResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.FacultyResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.Department;
 import hcmuaf.edu.vn.fit.user_service.entity.Faculty;
 import hcmuaf.edu.vn.fit.user_service.repository.DepartmentRepository;
@@ -70,5 +71,30 @@ public class DepartmentService {
                 d.getFaculty() != null ? d.getFaculty().getFacultyId() : null,
                 d.getFaculty() != null ? d.getFaculty().getFacultyName() : null
         );
+    }
+    public FacultyResponse getFacultyByDepartmentName(String departmentName) {
+        // 1. Tìm Bộ môn theo tên
+        Department department = departmentRepository.findByDepartmentName(departmentName)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ môn: " + departmentName));
+
+        // 2. Lấy Khoa từ Bộ môn
+        Faculty faculty = department.getFaculty();
+
+        if (faculty == null) {
+            throw new RuntimeException("Bộ môn này chưa được cấu hình Khoa chủ quản");
+        }
+
+
+        return FacultyResponse.builder()
+                .facultyId(faculty.getFacultyId())
+                .facultyName(faculty.getFacultyName())
+                .deanName(faculty.getDeanName())
+                .email(faculty.getEmail())
+                .deanUserId(faculty.getDeanUser().getUserId())
+
+                .build();
+    }
+    public List<String> getDepartmentNamesByFaculty(String facultyName) {
+        return departmentRepository.findDepartmentNamesByFacultyName(facultyName);
     }
 }

@@ -66,4 +66,16 @@ public class CourseOfferingController {
         return ResponseEntity.ok(courseOfferingService.getOfferings());
     }
 
+    @GetMapping("/faculty/{facultyName}")
+    public ResponseEntity<List<CourseOfferingResponse>> getOfferingsByFaculty(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String facultyName) {
+
+        if(userId == null || facultyName == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        return ResponseEntity.ok(courseOfferingService.getOfferingsByFaculty(userId, facultyName));
+    }
+
 }

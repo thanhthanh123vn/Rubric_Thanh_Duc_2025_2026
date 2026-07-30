@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.client;
 
+import hcmuaf.edu.vn.fit.course_service.dto.response.FacultyResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
 
 import hcmuaf.edu.vn.fit.course_service.dto.response.SinhVienResponse;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -36,9 +38,21 @@ public interface UserClient {
 
     @GetMapping("/lecturer/lecturers/by-user/{userId}")
     LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
-    @GetMapping("/api/v1/user-service/users/count")
+    @GetMapping("/users/count")
     Long countUsers();
-    @GetMapping("/api/v1/user-service/lecturer/count")
-    Long countLecturers();
+    @GetMapping("/lecturer/count/{departmentName}")
+    Long countLecturers(
+            @RequestHeader("X-User-ID") String userId,
+            @PathVariable("departmentName") String departmentName
+    );
+    @GetMapping("/faculties/{facultyName}/departments")
+    List<String> getDepartmentNamesByFaculty(@RequestHeader("X-User-ID") String userId,@PathVariable("facultyName") String facultyName);
+
+
+    @GetMapping("/faculties/department/{departmentName}")
+    FacultyResponse getFacultyByDepartmentName(@RequestHeader("X-User-ID") String userId,@PathVariable("departmentName") String departmentName);
+
+    @GetMapping("/faculties/{facultyName}")
+    List<LecturerResponse>getLecturersByFaculty(@RequestHeader("X-User-ID") String userId,@PathVariable("facultyName") String facultyName);
 }
 

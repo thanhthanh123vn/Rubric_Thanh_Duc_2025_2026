@@ -10,12 +10,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/course-service/dean")
+@RequestMapping("/api/v1/course-service/faculty")
 @RequiredArgsConstructor
-public class DeanContrller {
+public class FacultyContrller {
     private final DeanService deanService;
-    @GetMapping("'/overview")
-    public ResponseEntity<DeanDashboardResponse> getOverview(@RequestHeader("X-User-Id")String userId) {
+    @GetMapping("/head-department/overview")
+    public ResponseEntity<DeanDashboardResponse> getOverviewHeadDepartment(@RequestHeader("X-User-Id")String userId) {
+        if(userId==null){
+            return ResponseEntity.badRequest().build();
+        }
+
+        DeanDashboardResponse deanDashboardResponse = deanService.getHeadDeapDashboardData(userId);
+        return ResponseEntity.ok(deanDashboardResponse);
+
+    }
+    @GetMapping("/dean/overview")
+    public ResponseEntity<DeanDashboardResponse> getOverviewDeam(@RequestHeader("X-User-Id")String userId) {
         if(userId==null){
             return ResponseEntity.badRequest().build();
         }

@@ -56,8 +56,8 @@ public class UserService {
     public long countUsers(){
         return userRepository.count();
     }
-    public long countLecturers(){
-        return lecturerRepository.count();
+    public long countLecturers(String departmentName){
+        return lecturerRepository.countLecturerByDepartment_departmentName(departmentName);
     }
     public Page<UserResponse> getAllAdmins(String keyword, Pageable pageable) {
         Page<User> users;
@@ -357,5 +357,20 @@ public class UserService {
                 updatedLecturer.getPhoneNumber(),
                 updatedLecturer.getAddress()
         );
+
+
+    }
+    public List<LecturerResponse> getLecturersByDepartment(String departmentName) {
+        List<Lecturer> lecturers = lecturerRepository.findByDepartment_DepartmentName(departmentName);
+
+
+        return lecturers.stream()
+                .map(lecturer -> LecturerResponse.builder()
+                        .lecturerId(lecturer.getLecturerId())
+                        .fullName(lecturer.getUser().getFullName())
+                        .department(lecturer.getDepartment().getDepartmentName())
+
+                        .build())
+                .collect(Collectors.toList());
     }
 }

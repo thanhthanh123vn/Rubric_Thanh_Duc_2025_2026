@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -285,5 +286,51 @@ public class RubricService {
         // notificationClient.notifyRubricReviewed(rubric.getCreatedBy(), rubricId, request.getAction());
 
         return rubricRepository.save(rubric);
+    }
+    public List<ActivityResponse> getRecentActivities(String departmentId,int limit) {
+        // Lấy danh sách Rubric mới nhất từ DB
+        List<Rubric> recentRubrics = rubricRepository.findTop20ByOrderByCreatedAtDesc();
+
+        return recentRubrics.stream()
+                .limit(limit)
+                .map(rubric -> {
+                    
+                    String actionText = switch (rubric.getStatus()) {
+                        case APPROVED -> "đã được phê duyệt.";
+                        case PENDING -> "vừa được trình duyệt.";
+                        case REJECTED -> "bị từ chối phê duyệt.";
+                        default -> "vừa được tạo/cập nhật nháp.";
+                    };
+
+                    return ActivityResponse.builder()
+
+                            .id(Math.abs(rubric.getRubricId().hashCode()))
+                            .type("rubric")
+                            .description("Rubric [" + rubric.getRubricName() + "] của học phần " + rubric.getCourseId() + " " + actionText)
+                            .timeAgo(calculateTimeAgo(rubric.getCreatedAt()))
+                            .isNew(rubric.getStatus() == RubricStatus.PENDING) // Đánh dấu 'mới' nếu đang chờ duyệt
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    // Hàm phụ trợ tính toán khoảng thời gian (10 phút trước, 2 giờ trước...)
+    private String calculateTimeAgo(LocalDateTime pastTime) {
+        if (pastTime == null) return "Gần đây";
+
+        LocalDateTime now = LocalDateTime.now();
+        long minutes = ChronoUnit.MINUTES.between(pastTime, now);
+
+        if (minutes < 60) {
+            return (minutes <= 0 ? 1 : minutes) + " phút trước";
+        }
+
+        long hours = ChronoUnit.HOURS.between(pastTime, now);
+        if (hours < 24) {
+            return hours + " giờ trước";
+        }
+
+        long days = ChronoUnit.DAYS.between(pastTime, now);
+        return days + " ngày trước";
     }
 }

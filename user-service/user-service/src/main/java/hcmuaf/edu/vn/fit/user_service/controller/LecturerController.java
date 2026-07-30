@@ -40,14 +40,14 @@ public class LecturerController {
         String userId = userService.findUserIdByLecturerId(lecturerId);
         return ResponseEntity.ok(userId);
     }
-    @GetMapping("/count")
-    public ResponseEntity<Long> getLecturerCount(@RequestHeader("X-User-ID") String userId) {
+    @GetMapping("/count/{departmentName}")
+    public ResponseEntity<Long> getLecturerCount(@RequestHeader("X-User-ID") String userId,@PathVariable String departmentName) {
         if(userId==null){
             return ResponseEntity.badRequest().body(0L);
         }
 
 
-       Long totalLecturer = userService.countLecturers();
+       Long totalLecturer = userService.countLecturers(departmentName);
 
         return ResponseEntity.ok(totalLecturer);
 
@@ -78,5 +78,17 @@ public class LecturerController {
 
         LecturerResponse updatedProfile = userService.updateProfile(userId, request);
         return ResponseEntity.ok(updatedProfile);
+    }
+    @GetMapping("/department/{departmentName}")
+    public ResponseEntity<List<LecturerResponse>> getLecturersByDepartment(
+            @RequestHeader("X-User-ID") String userId,
+            @PathVariable String departmentName) {
+
+        if(userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<LecturerResponse> lecturers = userService.getLecturersByDepartment(departmentName);
+        return ResponseEntity.ok(lecturers);
     }
 }

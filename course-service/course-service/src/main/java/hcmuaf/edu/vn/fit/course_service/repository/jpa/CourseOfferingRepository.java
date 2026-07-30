@@ -38,5 +38,6 @@ public interface CourseOfferingRepository extends JpaRepository<CourseOffering, 
 """)
     List<DashboardCourseAdmin> getCourseAllocations(Pageable pageable);
 
-
+    @Query("SELECT co FROM CourseOffering co WHERE co.course.department IN :departments")
+    List<CourseOffering> findByCourseDepartmentIn(@Param("departments") List<String> departments);
 }

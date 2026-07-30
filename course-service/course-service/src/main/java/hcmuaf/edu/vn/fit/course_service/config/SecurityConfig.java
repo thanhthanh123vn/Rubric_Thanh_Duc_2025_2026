@@ -50,7 +50,7 @@ public class SecurityConfig {
                                 "/api/v1/course-service/questions/**",
                                 "/api/v1/course-service/obe/**",
                                 "/api/v1/course-service/syllabus/**"
-                        ).hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER")
+                        ).hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER","DEAN","HEAD_OF_DEPARTMENT")
 
 
 
