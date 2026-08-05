@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,6 +31,7 @@ public class CourseOfferingService {
     private final CourseRepository courseRepository;
     private final CourseMapper courseMapper;
     private final UserClient userClient;
+
 
 
     private static final Logger log = LoggerFactory.getLogger(CourseOfferingService.class);
@@ -135,5 +137,22 @@ public class CourseOfferingService {
         return offerings.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+    public List<CourseOfferingResponse> getOfferingsByFaculty(String userId, String facultyName) {
+
+        List<String> departmentNames = userClient.getDepartmentNamesByFaculty(userId, facultyName);
+
+
+        if (departmentNames == null || departmentNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+
+        List<CourseOffering> offerings = courseOfferingRepository.findByCourseDepartmentIn(departmentNames);
+
+
+        return offerings.stream()
+                 .map(courseMapper::toOfferingResponse)
+                .toList();
     }
 }

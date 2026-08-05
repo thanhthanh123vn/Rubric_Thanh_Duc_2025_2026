@@ -1,19 +1,61 @@
 @startuml
 skinparam defaultTextAlignment center
+
+|Sinh viên|
 start
-:Sinh viên chọn bài đánh giá (Assessment);
-if (Còn hạn nộp bài?) then (Có)
-  :Chọn tệp tin cần nộp;
-  :Hệ thống tải tệp lên Cloud Storage (S3/Cloudinary);
-  :Nhận URL trả về từ Cloud;
-  :Nhập nội dung văn bản bổ sung (Submission Text);
-  :Sinh viên bấm "Nộp bài";
-  :Hệ thống lưu thông tin Submission và Attachments;
-  :Cập nhật trạng thái "Đã nộp";
-  :Gửi thông báo (Notification) cho Giảng viên;
+:Chọn học phần;
+:Chọn bài đánh giá (Assessment);
+:Nhấn "Nộp bài";
+
+|Hệ thống|
+:Kiểm tra thời hạn nộp bài;
+
+if (Còn hạn nộp?) then (Có)
+
+|Sinh viên|
+:Chọn tệp tin cần nộp;
+:Nhập nội dung bài làm\n(Submission Text);
+:Nhấn "Xác nhận nộp";
+
+|Hệ thống|
+:Kiểm tra định dạng và kích thước tệp;
+
+if (Tệp hợp lệ?) then (Có)
+
+|Cloud Storage|
+:Nhận tệp;
+:Lưu tệp lên Cloud (S3/Cloudinary);
+:Trả về URL tệp;
+
+|Hệ thống|
+:Tạo Submission;
+:Lưu URL Attachment;
+:Cập nhật trạng thái = Đã nộp;
+:Ghi thời gian nộp bài;
+
+|Notification Service|
+:Gửi thông báo đến Giảng viên;
+
+|Hệ thống|
+:Thông báo nộp bài thành công;
+
+|Sinh viên|
+:Xem kết quả nộp bài;
+
 else (Không)
-  :Hệ thống vô hiệu hóa nút "Nộp bài";
-  :Hiển thị thông báo "Đã quá hạn nộp";
+
+|Hệ thống|
+:Thông báo tệp không hợp lệ;
+
 endif
+
+else (Không)
+
+|Hệ thống|
+:Vô hiệu hóa nút "Nộp bài";
+:Hiển thị thông báo\n"Đã quá hạn nộp";
+
+endif
+
 stop
 @enduml

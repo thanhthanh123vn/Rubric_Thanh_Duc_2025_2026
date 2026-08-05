@@ -401,6 +401,8 @@ export const router = createBrowserRouter([
                     {path: "rubrics", Component: RubricApproval},
                     {path: "reports", Component: FacultyReport},
                     {path: "courses", Component: CourseManagement},
+                    {path: "obe", Component: DepartmentOBE},
+                    {path: "obe/:id/analytics", Component: TeacherOBEAnalytics},
                 ],
             },
         ],

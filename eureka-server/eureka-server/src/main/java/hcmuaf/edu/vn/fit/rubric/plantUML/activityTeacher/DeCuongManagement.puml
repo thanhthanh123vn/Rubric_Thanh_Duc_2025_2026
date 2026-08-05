@@ -1,22 +1,39 @@
 @startuml
 skinparam defaultTextAlignment center
+
+|Giảng viên|
 start
-:Giảng viên chọn học phần;
+:Chọn học phần;
 :Truy cập module Quản lý Đề cương & Rubric;
-if (Thực hiện hành động?) then ([Tạo/Sửa CLO])
+
+if (Thực hiện hành động?) then (Tạo/Sửa CLO)
+
   :Nhập mã CLO, mô tả và mức độ Bloom;
-  :Hệ thống lưu thông tin CLO;
-else ([Tạo/Cấu hình Rubric])
+
+  |Hệ thống|
+  :Lưu thông tin CLO;
+
+  |Giảng viên|
+
+else (Tạo/Cấu hình Rubric)
+
   :Nhập tên Rubric và danh sách tiêu chí;
   :Gắn tiêu chí với CLO và nhập trọng số (w_i);
   :Thiết lập các mức thể hiện và điểm số;
-  if (Tổng trọng số == 100%?) then (Sai)
-    :Hệ thống hiển thị lỗi cấu hình trọng số;
-    detach
-  else (Đúng)
-    :Hệ thống lưu cấu trúc Rubric;
+
+  |Hệ thống|
+  if (Tổng trọng số == 100%?) then (Không)
+    :Hiển thị lỗi cấu hình trọng số;
+    stop
+  else (Có)
+    :Lưu cấu trúc Rubric;
   endif
+
+  |Giảng viên|
 endif
+
+|Hệ thống|
 :Hiển thị thông báo thành công;
+
 stop
 @enduml

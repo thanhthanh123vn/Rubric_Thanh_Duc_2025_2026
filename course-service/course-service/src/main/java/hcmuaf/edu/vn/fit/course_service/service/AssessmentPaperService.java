@@ -342,12 +342,14 @@ public class AssessmentPaperService {
             redisTemplate.delete(key);
         }
     }
+    @Transactional
     public LecturerExamDetailResponse getStudentExamToTake(String paperId, String studentId, String currentToken) {
 
         AssessmentPaper paper = assessmentPaperRepository.findById(paperId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi với ID: " + paperId));
-
-        // 1. LOGIC REDIS LOCK
+        CourseOffering offering = courseOfferingRepository
+                .findById(paper.getSourceQuestionBankId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học phần"));
         String lockKey = "exam_lock:" + paperId + ":" + studentId;
         String lockedToken = redisTemplate.opsForValue().get(lockKey);
 
@@ -391,9 +393,10 @@ public class AssessmentPaperService {
                     .id(q.getId())
                     .content(q.getContent())
                     .difficulty(q.getDifficulty().name())
+                    .cloCode(q.getCloIds())
                     .points(questionScore)
                     .type(q.getType() != null ? q.getType().name() : "MULTIPLE_CHOICE")
-                    .options(q.getOptions()) // Chỉ trả về nội dung option
+                    .options(q.getOptions())
                     .build());
         }
 
@@ -404,6 +407,9 @@ public class AssessmentPaperService {
                 .durationMinutes(paper.getDurationMinutes())
                 .totalPoints(10.0)
                 .questions(questionDTOs)
+                .courseCode(offering.getOfferingId())
+                .courseName(offering.getOfferingName())
+                .status(paper.getStatus())
                 .build();
     }
     public AssessmentPaper updateExamPaper(String id, String userId, UpdateAssessmentPaperRequest request) {

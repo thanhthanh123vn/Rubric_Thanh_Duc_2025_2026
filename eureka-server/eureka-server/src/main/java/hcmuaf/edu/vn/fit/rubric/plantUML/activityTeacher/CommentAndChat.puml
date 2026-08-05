@@ -1,22 +1,37 @@
 @startuml
 skinparam defaultTextAlignment center
+
+|Người dùng|
 start
-:Người dùng truy cập Bảng tin lớp học;
-if (Thực hiện hành động?) then ([Đăng bài mới])
+:Truy cập Bảng tin lớp học;
+
+if (Thực hiện hành động?) then (Đăng bài mới)
+
   :Nhập nội dung bài đăng;
-  :Chọn loại bài đăng (Thông báo/Câu hỏi);
+  :Chọn loại bài đăng\n(Thông báo/Câu hỏi);
+
   if (Là Giảng viên?) then (Có)
-    :Có quyền thiết lập Ghim bài (is_pinned);
+    :Thiết lập Ghim bài (is_pinned);
   else (Không)
   endif
-  :Hệ thống lưu bài đăng (Post);
+
+  |Hệ thống|
+  :Lưu bài đăng (Post);
   :Gửi thông báo (Notification) cho cả lớp;
-else ([Bình luận])
+
+else (Bình luận)
+
+  |Người dùng|
   :Chọn bài đăng muốn tương tác;
   :Nhập nội dung bình luận;
-  :Hệ thống lưu bình luận (Comment);
+
+  |Hệ thống|
+  :Lưu bình luận (Comment);
   :Gửi thông báo cho chủ bài đăng;
+
 endif
+
 :Cập nhật giao diện Bảng tin;
+
 stop
 @enduml

@@ -36,7 +36,14 @@ public class Rubric {
     private LocalDateTime reviewedAt;
     @Column(columnDefinition = "TEXT")
     private String feedback;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
     @OneToMany(mappedBy = "rubric", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<RubricCriteria> criteria;
 }

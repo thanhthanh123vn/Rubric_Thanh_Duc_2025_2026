@@ -1,0 +1,88 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam usecase {
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
+}
+
+' Khai báo Actor
+actor "Giảng Viên" as Teacher
+actor "Trưởng Bộ Môn" as HeadDept
+
+' Trưởng Bộ Môn kế thừa Giảng Viên
+HeadDept -|> Teacher
+
+package "Hệ Thống E-Learning - Department Portal" {
+
+    ' 29. Tổng quan
+    usecase "29. Tổng quan Bộ môn" as UC_29
+        usecase "29.1 Xem thống kê tổng quan" as UC_29_1
+        usecase "29.2 Xem tiến độ thiết lập Rubric" as UC_29_2
+        usecase "29.3 Xem hoạt động bộ môn (Log)" as UC_29_3
+
+    ' 30. Phê duyệt Rubric
+    usecase "30. Phê duyệt Rubric" as UC_30
+        usecase "30.1 Phê duyệt Rubric" as UC_30_1
+        usecase "30.2 Yêu cầu chỉnh sửa" as UC_30_2
+
+    ' 31. Quản lý Đánh giá
+    usecase "31. Quản lý Đánh giá\n(Đề thi / Bài tập)" as UC_31
+        usecase "31.1 Tạo đề thi/bài tập mới" as UC_31_1
+        usecase "31.2 Xem, Sửa, Xóa đề thi" as UC_31_2
+
+    ' 32. Phân công Học phần
+    usecase "32. Phân công Học phần" as UC_32
+        usecase "32.1 Xem danh sách lớp/môn học" as UC_32_1
+        usecase "32.2 Thay đổi / Phân công GV" as UC_32_2
+
+    ' 33. Quản lý Chuẩn CLO
+    usecase "33. Quản lý Chuẩn CLO" as UC_33
+        usecase "33.1 Tạo CLO mới" as UC_33_1
+        usecase "33.2 Xem, Sửa, Xóa CLO" as UC_33_2
+
+    ' 34. Phân tích OBE
+    usecase "34. Phân tích chuẩn đầu ra OBE" as UC_34
+        usecase "34.1 Xem tiến độ phân tích OBE" as UC_34_1
+
+    ' 35. Ngân hàng Câu hỏi
+    usecase "35. Quản lý Ngân hàng Câu hỏi" as UC_35
+        usecase "35.1 Xem kho câu hỏi" as UC_35_1
+}
+
+'========================
+' Liên kết Actor với các Use Case chính
+'========================
+HeadDept --> UC_29
+HeadDept --> UC_30
+HeadDept --> UC_31
+HeadDept --> UC_32
+HeadDept --> UC_33
+HeadDept --> UC_34
+HeadDept --> UC_35
+
+'========================
+' Các Use Case con
+'========================
+UC_29 ..> UC_29_1 : <<include>>
+UC_29 ..> UC_29_2 : <<include>>
+UC_29 ..> UC_29_3 : <<include>>
+
+UC_30 ..> UC_30_1 : <<include>>
+UC_30 ..> UC_30_2 : <<include>>
+
+UC_31 ..> UC_31_1 : <<include>>
+UC_31 ..> UC_31_2 : <<include>>
+
+UC_32 ..> UC_32_1 : <<include>>
+UC_32 ..> UC_32_2 : <<include>>
+
+UC_33 ..> UC_33_1 : <<include>>
+UC_33 ..> UC_33_2 : <<include>>
+
+UC_34 ..> UC_34_1 : <<include>>
+
+UC_35 ..> UC_35_1 : <<include>>
+
+@enduml

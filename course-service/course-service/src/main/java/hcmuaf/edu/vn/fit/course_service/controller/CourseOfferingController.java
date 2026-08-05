@@ -66,4 +66,70 @@ public class CourseOfferingController {
         return ResponseEntity.ok(courseOfferingService.getOfferings());
     }
 
+    @GetMapping("/faculty/{facultyName}")
+    public ResponseEntity<List<CourseOfferingResponse>> getOfferingsByFaculty(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String facultyName) {
+
+        if(userId == null || facultyName == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        return ResponseEntity.ok(courseOfferingService.getOfferingsByFaculty(userId, facultyName));
+    }
+    @PutMapping("/{offeringId}")
+    public ResponseEntity<CourseOfferingResponse> updateCourseOffering(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String offeringId,
+            @RequestBody CourseOfferingRequest request,
+            HttpServletRequest httpServletRequest) {
+
+        if (userId == null || offeringId == null || request == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            CourseOfferingResponse updatedOffering = courseOfferingService.updateOffering(offeringId, request);
+
+            String ip = ClientIpUtil.getClientIp(httpServletRequest);
+            String userName = httpServletRequest.getHeader("X-User-Username");
+            systemLogService.writeLog("INFO", "Update CourseOffering", "Cập nhật Học Phần thành công: " + offeringId, userName, ip);
+
+            return ResponseEntity.ok(updatedOffering);
+        } catch (Exception e) {
+            String ip = ClientIpUtil.getClientIp(httpServletRequest);
+            String userName = httpServletRequest.getHeader("X-User-Username");
+            systemLogService.writeLog("ERROR", "Update CourseOffering", "Lỗi khi Cập nhật Học Phần: " + e.getMessage(), userName, ip);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    @DeleteMapping("/{offeringId}")
+    public ResponseEntity<Void> deleteCourseOffering(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String offeringId,
+            HttpServletRequest httpServletRequest) {
+
+        if (userId == null || offeringId == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            courseOfferingService.deleteOffering(offeringId);
+
+            String ip = ClientIpUtil.getClientIp(httpServletRequest);
+            String userName = httpServletRequest.getHeader("X-User-Username");
+            systemLogService.writeLog("INFO", "Delete CourseOffering", "Xóa Học Phần thành công: " + offeringId, userName, ip);
+
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            String ip = ClientIpUtil.getClientIp(httpServletRequest);
+            String userName = httpServletRequest.getHeader("X-User-Username");
+            systemLogService.writeLog("ERROR", "Delete CourseOffering", "Lỗi khi Xóa Học Phần: " + e.getMessage(), userName, ip);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
+
+

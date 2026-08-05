@@ -1,16 +1,22 @@
 @startuml
 skinparam defaultTextAlignment center
+
+|Sinh viên|
 start
-:Sinh viên đăng nhập và chọn học phần;
+:Đăng nhập và chọn học phần;
 :Truy cập tab "Kết quả & Chuẩn đầu ra (OBE)";
-:Hệ thống truy vấn dữ liệu điểm từ CSDL;
+
+|Hệ thống|
+:Truy vấn dữ liệu điểm từ CSDL;
 :Tính toán mức đạt tích lũy các CLO (P_sc);
+
 if (Có dữ liệu điểm?) then (Có)
   :Hiển thị bảng điểm chi tiết theo tiêu chí Rubric;
   :Vẽ biểu đồ năng lực (Spider Chart) trực quan;
   :Hiển thị thông tin phản hồi của giảng viên;
 else (Chưa có)
-  :Hiển thị thông báo "Chưa có kết quả đánh giá";
+  :Hiển thị thông báo\n"Chưa có kết quả đánh giá";
 endif
+
 stop
 @enduml

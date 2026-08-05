@@ -85,4 +85,5 @@ public class UserController {
         String avatarUrl = userService.updateAvatar(userId, file);
         return ResponseEntity.ok(avatarUrl);
     }
+
 }

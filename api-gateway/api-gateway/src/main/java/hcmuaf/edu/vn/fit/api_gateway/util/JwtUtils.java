@@ -22,8 +22,6 @@ public class JwtUtils {
 
 
     }
-
-
     public Claims validateAndExtractClaims(String token) {
         try {
             return Jwts.parserBuilder()

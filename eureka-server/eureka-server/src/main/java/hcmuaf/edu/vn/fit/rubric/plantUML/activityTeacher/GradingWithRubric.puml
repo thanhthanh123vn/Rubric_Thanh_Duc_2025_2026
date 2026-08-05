@@ -1,17 +1,34 @@
 @startuml
 skinparam defaultTextAlignment center
+
+|Giảng viên|
 start
-:Giảng viên chọn bài đánh giá cần chấm;
-:Hệ thống tải danh sách bài nộp của sinh viên;
-:Giảng viên chọn bài nộp của 1 sinh viên;
-:Hệ thống hiển thị bài làm và bảng Rubric;
+:Chọn bài đánh giá cần chấm;
+
+|Hệ thống|
+:Tải danh sách bài nộp của sinh viên;
+
+|Giảng viên|
+:Chọn bài nộp của 1 sinh viên;
+
+|Hệ thống|
+:Hiển thị bài làm và bảng Rubric;
+
+|Giảng viên|
 repeat
-  :Giảng viên chọn mức thể hiện cho tiêu chí;
+  :Chọn mức thể hiện cho tiêu chí;
   :Nhập nhận xét (nếu có);
 repeat while (Còn tiêu chí chưa chấm?)
-:Hệ thống tự động tính điểm tổng theo trọng số;
-:Giảng viên bấm Xác nhận/Lưu điểm;
-:Hệ thống lưu kết quả chấm vào CSDL;
+
+|Hệ thống|
+:Tự động tính điểm tổng theo trọng số;
+
+|Giảng viên|
+:Bấm Xác nhận/Lưu điểm;
+
+|Hệ thống|
+:Lưu kết quả chấm vào CSDL;
 :Gửi thông báo kết quả cho sinh viên;
+
 stop
 @enduml
