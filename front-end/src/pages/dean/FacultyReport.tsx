@@ -22,8 +22,8 @@ interface DepartmentReport {
 // 2. Định nghĩa kiểu dữ liệu cho CLO trả về từ API
 export interface CloData {
     id: string | number;
-    name: string;        // Ví dụ: "CLO1: Kiến thức nền tảng"
-    value: number;       // Ví dụ: 85 (Tỷ lệ đạt %)
+    name: string;
+    value: number;
 }
 
 export default function FacultyReport() {

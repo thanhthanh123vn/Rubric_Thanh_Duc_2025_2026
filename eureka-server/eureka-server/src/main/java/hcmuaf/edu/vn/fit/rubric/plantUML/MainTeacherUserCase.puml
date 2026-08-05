@@ -7,14 +7,15 @@ skinparam usecase {
 }
 
 actor "Giảng Viên Chính" as MainTeacher
-
+actor "Giảng Viên" as Teacher
+MainTeacher -|> Teacher
 package "Quản Lý Đề Cương & Chuẩn Đầu Ra" {
-  usecase "13. Quản lý đề cương" as UC_Syllabus
-  usecase "13.1 Tạo CLO + Rubric trọng số" as UC_CreateRubric
-  usecase "13.2 Xóa CLO + Rubric trọng số" as UC_DelRubric
-  usecase "13.3 Sửa CLO + Rubric trọng số" as UC_EditRubric
-  usecase "13.4 Xem CLO + Rubric trọng số" as UC_ViewRubric
-  usecase "13.5 Xem Ma trận Rubric" as UC_Matrix
+  usecase "14. Quản lý đề cương" as UC_Syllabus
+  usecase "14.1 Tạo CLO + Rubric trọng số" as UC_CreateRubric
+  usecase "14.2 Xóa CLO + Rubric trọng số" as UC_DelRubric
+  usecase "14.3 Sửa CLO + Rubric trọng số" as UC_EditRubric
+  usecase "14.4 Xem CLO + Rubric trọng số" as UC_ViewRubric
+  usecase "14.5 Xem Ma trận Rubric" as UC_Matrix
 }
 
 MainTeacher --> UC_Syllabus

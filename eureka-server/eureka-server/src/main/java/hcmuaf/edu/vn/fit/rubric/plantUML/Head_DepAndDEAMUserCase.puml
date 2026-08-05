@@ -1,27 +1,75 @@
 @startuml
 left to right direction
+
 skinparam packageStyle rectangle
 skinparam usecase {
-  BackgroundColor LightCyan
-  BorderColor DarkCyan
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
 }
 
-actor "Trưởng Bộ Môn" as HeadOfDept
-actor "Lãnh Đạo Khoa" as Dean
+' Khai báo Actor
+actor "Lãnh Đạo Khoa\n(Trưởng/Phó Khoa)" as DeanFaculty
+actor "Giảng Viên" as Teacher
+DeanFaculty -|> Teacher
+package "Hệ Thống E-Learning - Cấp Khoa (Dean Portal)" {
 
-package "Quản Lý Chất Lượng (OBE)" {
-  usecase "16. Phê duyệt & Quản lý Đề cương/Rubric" as UC_Approve
-  usecase "17. Theo dõi tiến độ giảng dạy" as UC_Track
-  usecase "18. Xem báo cáo OBE cấp bộ môn" as UC_ReportDept
+    ' 19. Dashboard Cấp Khoa
+    usecase "19. Tổng Quan Khoa\n(Dashboard)" as UC_Dashboard
+    usecase "19.1 Xem thống kê số lượng\nlớp học, môn học, sinh viên" as UC_Stats
 
-  usecase "19. Xem Dashboard thống kê tổng quan" as UC_Dash
-  usecase "20. Xem báo cáo chất lượng OBE toàn khoa" as UC_ReportFac
+    ' 20. Báo Cáo OBE & Chất lượng
+    usecase "20. Phân Tích OBE &\nBáo Cáo Chất Lượng" as UC_ObeReport
+    usecase "20.1 Tổng hợp mức đạt chuẩn\nđầu ra (CLO/PLO) toàn khoa" as UC_TotalCloPlo
+    usecase "20.2 Đánh giá tỷ lệ đạt/trượt\ntheo từng bộ môn" as UC_DeptEvaluate
+    usecase "20.3 Trực quan hóa dữ liệu\nbằng biểu đồ cấp khoa" as UC_Visualize
+    usecase "20.4 Xuất báo cáo chất lượng" as UC_ExportQA
+
+    ' 21. Phê Duyệt Rubric
+    usecase "21. Phê Duyệt Rubric" as UC_Rubric
+    usecase "21.1 Xem danh sách đệ trình\n(Cần duyệt/Đã duyệt/Từ chối)" as UC_RubricList
+    usecase "21.2 Xem xét & Ra quyết định\n(Duyệt/Từ chối)" as UC_RubricAction
+
+    ' 22. Quản Lý Môn Học
+    usecase "22. Quản Lý Môn Học" as UC_ManageCourse
+    usecase "22.1 Xem danh sách khóa học" as UC_ViewCourse
+    usecase "22.2 Tạo khóa học mới" as UC_AddCourse
+    usecase "22.3 Chỉnh sửa khóa học" as UC_EditCourse
+    usecase "22.4 Xóa khóa học" as UC_DeleteCourse
 }
 
-HeadOfDept --> UC_Approve
-HeadOfDept --> UC_Track
-HeadOfDept --> UC_ReportDept
+'========================
+' Liên kết Actor với các Use Case chính (Cấp 1)
+'========================
+DeanFaculty --> UC_Dashboard
+DeanFaculty --> UC_Rubric
+DeanFaculty --> UC_ObeReport
+DeanFaculty --> UC_ManageCourse
 
-Dean --> UC_Dash
-Dean --> UC_ReportFac
+'========================
+' 19. Xem Thống Kê Tổng Quan
+'========================
+UC_Dashboard ..> UC_Stats : <<include>>
+
+'========================
+' 20. Phân Tích OBE & Báo Cáo Chất Lượng
+'========================
+UC_ObeReport ..> UC_TotalCloPlo : <<include>>
+UC_ObeReport ..> UC_DeptEvaluate : <<include>>
+UC_ObeReport ..> UC_Visualize : <<include>>
+UC_ObeReport ..> UC_ExportQA : <<include>>
+
+'========================
+' 21. Phê Duyệt Rubric
+'========================
+UC_Rubric ..> UC_RubricList : <<include>>
+UC_Rubric ..> UC_RubricAction : <<include>>
+
+'========================
+' 22. Quản Lý Môn Học
+'========================
+UC_ManageCourse ..> UC_ViewCourse : <<include>>
+UC_ManageCourse ..> UC_AddCourse : <<include>>
+UC_ManageCourse ..> UC_EditCourse : <<include>>
+UC_ManageCourse ..> UC_DeleteCourse : <<include>>
+
 @enduml

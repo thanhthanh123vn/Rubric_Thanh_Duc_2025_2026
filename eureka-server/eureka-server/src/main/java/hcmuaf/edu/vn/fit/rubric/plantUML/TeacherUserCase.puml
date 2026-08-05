@@ -1,39 +1,100 @@
 @startuml
 left to right direction
+
 skinparam packageStyle rectangle
 skinparam usecase {
-  BackgroundColor LightCyan
-  BorderColor DarkCyan
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
 }
 
 actor "Giảng Viên" as Teacher
 
-package "Giảng Dạy & Chấm Điểm" {
-  usecase "Quản lý & Thêm môn học" as UC_Subject
+package "Hệ Thống E-Learning - Giảng Viên" {
 
-  usecase "8. Tạo điểm danh môn học" as UC_Attend
+    usecase "Thêm Môn Học" as UC_AddCourse
+    usecase "Quản Lý Môn Học" as UC_ManageCourse
+    usecase "7. Danh Sách Phân Công Môn Học" as UC_AssignedCourses
 
-  usecase "9. Quản lý lớp học" as UC_Class
-  usecase "9.3 Giao bài tập" as UC_Assign
-  usecase "9.3.1 Cấu hình Ma trận đề thi" as UC_Matrix
-  usecase "9.3.1.1.1 Chấm điểm bài tập" as UC_Grade
-  usecase "Sử dụng thư viện nhận xét mẫu" as UC_Comment
+    ' 8. Điểm danh
+    usecase "8. Tạo Điểm Danh Môn Học" as UC_CreateAttendance
+    usecase "8.1 Danh Sách Điểm Danh Môn Học" as UC_AttendanceList
 
-  usecase "10. Quản lý câu hỏi ra đề" as UC_Ques
-  usecase "11. Tạo & Quản lý kho câu hỏi" as UC_Bank
-  usecase "12. Nhập điểm cuối kỳ" as UC_Final
+    ' 9. Quản lý lớp học
+    usecase "9. Quản Lý Lớp Học" as UC_ManageClass
+    usecase "9.1 Xem danh sách sinh viên" as UC_ViewStudents
+    usecase "9.2 Chat Trong Lớp Học" as UC_ClassChat
+    usecase "9.3 Giao Bài Tập" as UC_AssignWork
+    usecase "9.3.1 Cấu Hình Ma Trận Đề Thi" as UC_ConfigMatrix
+    usecase "9.3.1.1 Sinh đề thi tự động" as UC_AutoGenerateTest
+    usecase "9.3.1.1.1 Chấm Điểm Bài Tập" as UC_GradeWork
+    usecase "Sử dụng thư viện nhận xét mẫu" as UC_CommentLibrary
+    usecase "9.4 Tải Giáo Trình Môn Học" as UC_UploadMaterial
+    usecase "9.5 Thêm Sinh Viên Vào Lớp" as UC_AddStudent
+    usecase "9.6 Xóa Sinh Viên Ra Khỏi Lớp" as UC_RemoveStudent
+
+    ' 10. Quản lý câu hỏi
+    usecase "10. Quản Lý Câu Hỏi Ra Đề Thi" as UC_ManageExamQ
+    usecase "10.1 Xóa Câu Hỏi Đề Thi" as UC_DeleteExamQ
+    usecase "10.2 Import câu hỏi từ Word/Excel" as UC_ImportExamQ
+    usecase "10.3 Gán thẻ Bloom/LOs cho câu hỏi" as UC_TagExamQ
+    usecase "10.4 Xem Câu Hỏi Đề Thi" as UC_ViewExamQ
+    usecase "10.5 Sửa Câu Hỏi Đề Thi" as UC_EditExamQ
+
+    ' 11. Tạo kho câu hỏi
+    usecase "11. Tạo Kho Câu Hỏi Môn Học" as UC_CreateBank
+    usecase "11.1 Quản Lý Kho" as UC_ManageBank
+    usecase "11.1.1 Thêm Câu Hỏi" as UC_AddBankQ
+    usecase "11.1.2 Sửa Câu Hỏi" as UC_EditBankQ
+    usecase "11.1.3 Xóa Câu Hỏi" as UC_DeleteBankQ
+    usecase "11.1.4 Xem Danh Sách Câu Hỏi" as UC_ViewBankQ
+
+    ' 12. Nhập điểm
+    usecase "12. Nhập Điểm Cuối Kỳ Cho Môn Học" as UC_EnterFinalGrades
 }
 
-Teacher --> UC_Subject
-Teacher --> UC_Attend
-Teacher --> UC_Class
+'========================
+' Liên kết Actor với các Use Case chính (Cấp 1)
+'========================
+Teacher --> UC_AddCourse
+Teacher --> UC_ManageCourse
+Teacher --> UC_AssignedCourses
+Teacher --> UC_CreateAttendance
+Teacher --> UC_ManageClass
+Teacher --> UC_ManageExamQ
+Teacher --> UC_CreateBank
+Teacher --> UC_EnterFinalGrades
 
-UC_Class .> UC_Assign : <<include>>
-UC_Assign .> UC_Matrix : <<include>>
-UC_Matrix .> UC_Grade : <<include>>
-UC_Grade <.. UC_Comment : <<extend>>
+'========================
+' Các Use Case con (Sử dụng ..> để đẩy dần sang phải)
+'========================
+UC_CreateAttendance ..> UC_AttendanceList : <<include>>
 
-Teacher --> UC_Ques
-Teacher --> UC_Bank
-Teacher --> UC_Final
+UC_ManageClass ..> UC_ViewStudents : <<include>>
+UC_ManageClass ..> UC_ClassChat : <<include>>
+UC_ManageClass ..> UC_UploadMaterial : <<include>>
+UC_ManageClass ..> UC_AddStudent : <<include>>
+UC_ManageClass ..> UC_RemoveStudent : <<include>>
+UC_ManageClass ..> UC_AssignWork : <<include>>
+
+' Luồng Giao bài tập
+UC_AssignWork ..> UC_ConfigMatrix : <<include>>
+UC_ConfigMatrix ..> UC_AutoGenerateTest : <<include>>
+UC_AutoGenerateTest ..> UC_GradeWork : <<include>>
+' Dùng <.. cho extend để Thư viện nhận xét nằm ở bên phải của quá trình Chấm điểm
+UC_GradeWork <.. UC_CommentLibrary : <<extend>>
+
+' Quản lý câu hỏi thi
+UC_ManageExamQ ..> UC_DeleteExamQ : <<include>>
+UC_ManageExamQ ..> UC_ImportExamQ : <<include>>
+UC_ManageExamQ ..> UC_TagExamQ : <<include>>
+UC_ManageExamQ ..> UC_ViewExamQ : <<include>>
+UC_ManageExamQ ..> UC_EditExamQ : <<include>>
+
+' Quản lý kho câu hỏi
+UC_CreateBank ..> UC_ManageBank : <<include>>
+UC_ManageBank ..> UC_AddBankQ : <<include>>
+UC_ManageBank ..> UC_EditBankQ : <<include>>
+UC_ManageBank ..> UC_DeleteBankQ : <<include>>
+UC_ManageBank ..> UC_ViewBankQ : <<include>>
+
 @enduml

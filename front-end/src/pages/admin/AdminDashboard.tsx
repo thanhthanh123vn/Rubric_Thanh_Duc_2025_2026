@@ -48,7 +48,7 @@ export default function AdminDashboard() {
     const STATS_CONFIG = [
         { title: 'Tổng người dùng', data: dashboardData.stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
         { title: 'Khóa học đang mở', data: dashboardData.stats.activeCourses, icon: BookOpen, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        { title: 'Rubric đã tạo', data: dashboardData.stats.totalRubrics, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-100' },
+        { title: 'Rubric đã tạo', data: dashboardData.stats.totalRubrics, icon: FileText, color: 'text-purple-600', bg: 'bg-Tình-100' },
         { title: 'Tỷ lệ hoàn thành', data: dashboardData.stats.completionRate, icon: TrendingUp, color: 'text-orange-600', bg: 'bg-orange-100' },
     ];
 

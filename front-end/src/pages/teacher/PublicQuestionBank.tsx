@@ -74,6 +74,7 @@ export default function PublicQuestionBank() {
         questionApi.getQuestionsByBankId(bankId),
       ]);
 
+      console.log(bankData);
       setBank(bankData);
       setQuestions(questionData || []);
     } catch (error) {

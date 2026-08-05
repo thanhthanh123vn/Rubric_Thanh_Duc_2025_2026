@@ -1,48 +1,96 @@
 @startuml
 left to right direction
+
 skinparam packageStyle rectangle
 skinparam usecase {
-  BackgroundColor LightCyan
-  BorderColor DarkCyan
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
 }
 
 actor "Sinh Viên" as Student
 
-package "Học Tập & Kiểm Tra" {
-  usecase "2. Tham gia lớp học" as UC_Join
-  usecase "2.1 Xem đánh giá môn học" as UC_ViewEval
-  usecase "2.2 Xem đánh giá Rubric" as UC_ViewRubric
+package "Hệ Thống E-Learning - Sinh Viên" {
 
-  usecase "3. Xem bài đăng & DS Lớp" as UC_ViewPost
+    ' Tham gia lớp học
+    usecase "2. Tham gia lớp học" as UC_Join
+    usecase "2.1 Xem đánh giá môn học" as UC_ViewEvaluation
+    usecase "2.2 Xem đánh giá Rubric" as UC_ViewRubric
+        usecase "2.2.1 Đánh giá Chuyên cần" as UC_AttendanceRubric
+        usecase "2.2.2 Đánh giá Bài tập" as UC_AssignmentRubric
+        usecase "2.2.3 Đánh giá Dự án" as UC_ProjectRubric
+        usecase "2.2.4 Đánh giá Bài tập Cuối kỳ" as UC_FinalRubric
 
-  usecase "4. Điểm danh (QR + GPS)" as UC_Attend
-  usecase "4.1 Xác định thời gian & GPS" as UC_GPS
+    ' Bài đăng & Lớp học
+    usecase "3. Xem bài đăng" as UC_ViewPost
+    usecase "3. Danh sách lớp học" as UC_ClassList
 
-  usecase "5. Kiểm tra trực tuyến" as UC_Test
-  usecase "5.1 Làm bài thi trắc nghiệm" as UC_Quiz
-  usecase "5.2 Làm Bài tập/Dự án" as UC_Project
-  usecase "5.3 Xem kết quả & Phản hồi" as UC_Result
-  usecase "5.3.1 Xem biểu đồ năng lực (Spider Chart)" as UC_Chart
+    ' Điểm danh
+    usecase "4. Điểm danh (QR + GPS)" as UC_Attendance
+    usecase "4.1 Xác định thời gian và GPS và điểm danh" as UC_GPS
 
-  usecase "6. Quản lý Nhóm & Task" as UC_Group
+    ' Kiểm tra trực tuyến
+    usecase "5. Kiểm tra trực tuyến" as UC_OnlineExam
+    usecase "5.1 Làm bài thi trắc nghiệm" as UC_Quiz
+    usecase "5.2 Làm bài tập / Dự án" as UC_Project
+    usecase "5.3 Xem kết quả & Phản hồi chi tiết" as UC_Result
+    usecase "5.3.1 Xem biểu đồ năng lực\n(Spider Chart)" as UC_Chart
+
+    ' Quản lý nhóm & Task
+    usecase "6. Quản lý nhóm & Task" as UC_Group
+    usecase "6.1 Thêm Thành Viên" as UC_AddMember
+    usecase "6.2 Xóa Thành Viên" as UC_RemoveMember
+    usecase "6.3 Sửa Quyền Thành Viên" as UC_EditRole
+    usecase "6.4 Giao Nhiệm Vụ" as UC_AssignTask
+    usecase "6.5 Xem Thành Viên" as UC_ViewMember
+    usecase "6.6 Chat nhóm" as UC_Chat
 }
 
+'========================
+' Actor Connections
+'========================
 Student --> UC_Join
-UC_Join .> UC_ViewEval : <<include>>
-UC_Join .> UC_ViewRubric : <<include>>
-
 Student --> UC_ViewPost
+Student --> UC_ClassList
+Student --> UC_Attendance
+Student --> UC_OnlineExam
+Student --> UC_Group
 
-Student --> UC_Attend
-UC_Attend .> UC_GPS : <<include>>
+'========================
+' 2. Tham Gia Lớp Học
+'========================
+UC_Join ..> UC_ViewEvaluation : <<include>>
+UC_Join ..> UC_ViewRubric : <<include>>
 
-Student --> UC_Test
-UC_Test .> UC_Quiz : <<include>>
-UC_Test .> UC_Project : <<include>>
+UC_ViewRubric ..> UC_AttendanceRubric : <<include>>
+UC_ViewRubric ..> UC_AssignmentRubric : <<include>>
+UC_ViewRubric ..> UC_ProjectRubric : <<include>>
+UC_ViewRubric ..> UC_FinalRubric : <<include>>
 
-UC_Quiz .> UC_Result : <<include>>
-UC_Project .> UC_Result : <<include>>
+'========================
+' 4. Điểm danh
+'========================
+UC_Attendance ..> UC_GPS : <<include>>
+
+'========================
+' 5. Kiểm tra trực tuyến
+'========================
+UC_OnlineExam ..> UC_Quiz : <<include>>
+UC_OnlineExam ..> UC_Project : <<include>>
+
+UC_Quiz ..> UC_Result : <<include>>
+UC_Project ..> UC_Result : <<include>>
+
+' Biểu đồ năng lực mở rộng từ việc xem kết quả
 UC_Result <.. UC_Chart : <<extend>>
 
-Student --> UC_Group
+'========================
+' 6. Quản lý nhóm & Task
+'========================
+UC_Group ..> UC_AddMember : <<include>>
+UC_Group ..> UC_RemoveMember : <<include>>
+UC_Group ..> UC_EditRole : <<include>>
+UC_Group ..> UC_AssignTask : <<include>>
+UC_Group ..> UC_ViewMember : <<include>>
+UC_Group ..> UC_Chat : <<include>>
+
 @enduml
