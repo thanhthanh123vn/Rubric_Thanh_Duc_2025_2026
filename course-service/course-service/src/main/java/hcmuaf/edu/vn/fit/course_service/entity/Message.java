@@ -1,43 +1,40 @@
 package hcmuaf.edu.vn.fit.course_service.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import java.sql.Timestamp;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
 
-import jakarta.persistence.*;
-import lombok.*;
-import java.sql.Timestamp;
-
-@Entity
-@Table(name = "messages")
+@Document(collection = "messages")
+@CompoundIndex(name = "offering_time_idx", def = "{'offeringId': 1, 'createdAt': -1}")
+@CompoundIndex(name = "conversation_time_idx", def = "{'conversationId': 1, 'createdAt': -1}")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Message {
 
 	@Id
-	@Column(name = "message_id", length = 50)
-	private String messageId;
+	private String id; // ID tự động của MongoDB
 
+	@Indexed
+	private String offeringId;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "offering_id", nullable = true)
-	private CourseOffering courseOffering;
+	@Indexed
+	private String conversationId;
 
-
-	@Column(name = "sender_id", length = 50, nullable = false)
 	private String senderId;
 
-	@Column(name = "content", columnDefinition = "TEXT")
 	private String content;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
-	@Builder.Default
-	private Timestamp createdAt = new Timestamp(System.currentTimeMillis());
-	@ManyToOne
-	@JoinColumn(name = "conversation_id")
-	private Conversation conversation;
-
+	// BẮT BUỘC PHẢI CÓ TRƯỜNG NÀY ĐỂ REPOSITORY KHÔNG BÁO LỖI
+	@CreatedDate
+	private Date createdAt;
 }

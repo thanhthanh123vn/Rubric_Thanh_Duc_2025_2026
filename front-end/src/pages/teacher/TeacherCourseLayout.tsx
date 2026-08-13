@@ -180,9 +180,9 @@ export default function TeacherCourseLayout() {
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
-                <div className="relative cursor-pointer rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100">
-                  <NotificationBell />
-                </div>
+                {/*<div className="relative cursor-pointer rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100">*/}
+                {/*  <NotificationBell />*/}
+                {/*</div>*/}
 
                 <div className="hidden items-center gap-3 md:flex">
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">

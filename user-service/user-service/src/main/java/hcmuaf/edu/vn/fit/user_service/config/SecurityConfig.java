@@ -40,7 +40,8 @@ public class SecurityConfig {
                                 "/api/v1/user-service/auth/refresh",
                                 "/api/v1/user-service/auth/forgot-password"
                         ).permitAll()
-
+                                .requestMatchers("/ws/**").permitAll()
+                                .requestMatchers("/ws-notifications/**").permitAll()
                         .requestMatchers("/api/v1/user-service/users/admin/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET,
                                         "/api/v1/user-service/lecturer/**")

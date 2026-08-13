@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from "react";
-import { useParams,useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
-import {courseService}  from "../../courseApi.ts";
-import {useAppSelector} from "@/hooks/useAppSelector.ts";
+import { courseService } from "../../courseApi.ts";
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
 import SockJS from "sockjs-client";
-import { Stomp } from "@stomp/stompjs";
+import { Client } from "@stomp/stompjs";
 import { toast } from "sonner";
 import postService from "@/api/postService.ts";
+import { X, Send, MessageSquare } from "lucide-react";
+
 const getInitial = (name?: string) => {
     if (!name) return "U";
     const words = name.trim().split(' ');
     const lastName = words[words.length - 1];
     return lastName.charAt(0).toUpperCase();
 };
+
 const Banner = ({ title, description }: any) => {
     return (
         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl p-6 mb-4 md:mb-6 shadow-sm">
@@ -24,8 +27,7 @@ const Banner = ({ title, description }: any) => {
     );
 };
 
-const CreatePostBox = ({onPostSuccess, fullName,avatarUrl}: { onPostSuccess: () => void, fullName?: string,avatarUrl?:string }) => {
-
+const CreatePostBox = ({ onPostSuccess, fullName, avatarUrl }: { onPostSuccess: () => void, fullName?: string, avatarUrl?: string }) => {
     const { id } = useParams<{ id: string }>();
     const offeringId = id || "";
 
@@ -41,7 +43,7 @@ const CreatePostBox = ({onPostSuccess, fullName,avatarUrl}: { onPostSuccess: () 
             onPostSuccess();
         } catch (error) {
             console.error("Lỗi khi đăng bài:", error);
-            alert("Có lỗi xảy ra, không thể đăng bài!");
+            toast.error("Có lỗi xảy ra, không thể đăng bài!");
         } finally {
             setLoading(false);
         }
@@ -58,14 +60,10 @@ const CreatePostBox = ({onPostSuccess, fullName,avatarUrl}: { onPostSuccess: () 
                             alt="avatar"
                             className="w-full h-full object-cover absolute inset-0"
                             onError={(e) => {
-
                                 e.currentTarget.style.display = 'none';
                             }}
                         />
                     ) : getInitial(fullName)}
-
-
-
                 </div>
                 <input
                     value={content}
@@ -101,7 +99,7 @@ const UpcomingBox = () => {
         </div>
     );
 };
-// Thêm lecturerName vào danh sách props
+
 const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offeringId, lecturerName }: any) => {
     const navigate = useNavigate();
     const dateToFormat = createdAt || new Date().toISOString();
@@ -126,7 +124,6 @@ const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offe
                 </svg>
             </div>
             <div className="flex-1">
-                {/* HIỂN THỊ TÊN GIẢNG VIÊN Ở ĐÂY */}
                 <p className="font-semibold text-gray-900 text-sm md:text-base">
                     {lecturerName || "Giảng viên"} đã đăng một bài tập mới: {assessmentName}
                 </p>
@@ -139,7 +136,8 @@ const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offe
         </div>
     );
 };
-const AnnouncementPost = ({ id: postId,title,content, createdAt, offeringId, lecturerName }: any) => {
+
+const AnnouncementPost = ({ id: postId, title, content, createdAt, offeringId, lecturerName }: any) => {
     const navigate = useNavigate();
     const formattedDate = new Date(createdAt).toLocaleDateString("vi-VN", {
         day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
@@ -147,7 +145,6 @@ const AnnouncementPost = ({ id: postId,title,content, createdAt, offeringId, lec
 
     return (
         <div
-
             onClick={() => navigate(`/course/${offeringId}/document/materials/${postId}`)}
             className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4 hover:shadow-md transition cursor-pointer flex items-start p-4 md:p-5 gap-4"
         >
@@ -170,12 +167,20 @@ const AnnouncementPost = ({ id: postId,title,content, createdAt, offeringId, lec
         </div>
     );
 };
-const Post = ({ postId, username, fullName,avatarUrl, createdAt, content, comments: initialComments = [] ,avatarUrlMe }: any) => {
 
+
+
+// COMPONENT POST DÀNH CHO SINH VIÊN (ĐÃ FIX LỖI REALTIME)
+
+const Post = ({ postId, id, username, fullName, avatarUrl, createdAt, content, comments: initialComments = [], avatarUrlMe }: any) => {
     const formattedDate = new Date(createdAt).toLocaleDateString("vi-VN", {
         day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
     });
-    const { user:reduxUser } = useAppSelector((state) => state.auth);
+
+    // Lấy đúng ID của bài đăng (bảo vệ trường hợp backend trả về `id` thay vì `postId`)
+    const currentPostId = postId || id;
+
+    const { user: reduxUser } = useAppSelector((state) => state.auth);
     let user = reduxUser;
     if (!user) {
         const localUser = localStorage.getItem("user");
@@ -183,76 +188,231 @@ const Post = ({ postId, username, fullName,avatarUrl, createdAt, content, commen
             user = JSON.parse(localUser);
         }
     }
-    const studentId  = user?.studentId || user?.userId;
     const displayName = fullName || username || "Ẩn danh";
 
-    console.log(avatarUrlMe);
-
-
-    const [showComments, setShowComments] = useState(false);
+    const [showComments, setShowComments] = useState(true);
     const [commentInput, setCommentInput] = useState("");
     const [loading, setLoading] = useState(false);
-
     const [localComments, setLocalComments] = useState<any[]>(initialComments);
+    const [replyingTo, setReplyingTo] = useState<{ id: string, name: string } | null>(null);
+
+    const stompClientRef = useRef<any>(null);
+
     const fetchComments = async () => {
+        if (!currentPostId) return;
+
         try {
-            const data = await courseService.getCommentsByPostId(postId);
-            setLocalComments(data);
+            const data = await courseService.getCommentsByPostId(currentPostId);
+
+            const safeData = Array.isArray(data)
+                ? data
+                : (data?.content || data?.data || []);
+
+            setLocalComments(safeData);
         } catch (error) {
             console.error("Lỗi lấy comment:", error);
         }
     };
+
+
     useEffect(() => {
+        if (!currentPostId) {
+            console.error(" Không tìm thấy ID bài đăng.");
+            return;
+        }
 
-            fetchComments();
+        const token = localStorage.getItem("token");
+        if (!token) return;
 
-    }, [showComments]);
+        const wsUrl =
+            import.meta.env.VITE_WS_URL_COURSE ||
+            import.meta.env.VITE_WS_URL ||
+            "http://localhost:8080";
+
+        const stompClient = new Client({
+            webSocketFactory: () => new SockJS(`${wsUrl}/ws?token=${token}`),
+
+
+            reconnectDelay: 5000,
+
+            // Tắt log STOMP
+            debug: () => {},
+
+            connectHeaders: {
+                Authorization: `Bearer ${token}`,
+            },
+
+            onConnect: () => {
+                console.log(
+                    ` [WebSocket] Đã kết nối comment bài viết: ${currentPostId}`
+                );
+
+                stompClient.subscribe(
+                    `/topic/posts/${currentPostId}/comments`,
+                    (payload) => {
+                        try {
+                            const newComment = JSON.parse(payload.body);
+
+                            setLocalComments((prev) => {
+                                const exists = prev.some(
+                                    c => (c.commentId || c.id) === newComment.commentId
+                                );
+
+                                if (exists) return prev;
+
+                                return [...prev, newComment];
+                            });
+                        } catch (error) {
+                            console.error(
+                                " Không thể parse comment:",
+                                error
+                            );
+                        }
+                    }
+                );
+            },
+
+            onStompError: (frame) => {
+                console.error(
+                    " STOMP Error:",
+                    frame.headers["message"],
+                    frame.body
+                );
+            },
+
+            onWebSocketError: (error) => {
+                console.error(" WebSocket Error:", error);
+            },
+
+            onWebSocketClose: () => {
+                console.log(" WebSocket đã đóng.");
+            },
+        });
+
+        stompClientRef.current = stompClient;
+
+        // Bắt đầu kết nối
+        stompClient.activate();
+
+        return () => {
+            console.log(
+                `🔌 [WebSocket] Đóng kết nối comment bài viết: ${currentPostId}`
+            );
+
+            stompClient.deactivate();
+        };
+    }, [currentPostId]);
+
+    useEffect(() => {
+        fetchComments();
+    }, [currentPostId]);
+
     const handleAddComment = async () => {
-        if (!commentInput.trim() || !postId) return;
+        if (!commentInput.trim() || !currentPostId) return;
         try {
             setLoading(true);
 
+            // Gửi API tạo comment. (Backend sẽ tự động broadcast qua socket)
+            await courseService.createComment(currentPostId, commentInput, replyingTo?.id);
 
-             await courseService.createComment(postId, commentInput);
-
-
-            // const newComment = {
-            //     commentId: Date.now().toString(),
-            //     username: user.username,
-            //     fullName : fullName,
-            //     content: commentInput,
-            //     createdAt: new Date().toISOString(),
-            // };
-
-            // setLocalComments([...localComments, newComment]);
             setCommentInput("");
+            setReplyingTo(null);
             setShowComments(true);
-            await fetchComments();
+
+
         } catch (error) {
             console.error("Lỗi khi gửi bình luận:", error);
+            toast.error("Lỗi khi gửi bình luận");
         } finally {
             setLoading(false);
         }
     };
 
+    // Xây dựng cây bình luận (Nesting Tree) an toàn
+    const commentTree = useMemo(() => {
+        const map = new Map();
+        const roots: any[] = [];
+
+        const safeComments = Array.isArray(localComments) ? localComments : [];
+
+        safeComments.forEach((c) => {
+            const cId = c.commentId || c.id;
+            if (cId) map.set(cId, { ...c, replies: [] });
+        });
+
+        safeComments.forEach((c) => {
+            const cId = c.commentId || c.id;
+            const pId = c.parentId || c.parentCommentId; // Bắt 2 trường hợp tên biến backend
+            const node = map.get(cId);
+
+            if (node) {
+                if (pId && map.has(pId)) {
+                    map.get(pId).replies.push(node);
+                } else {
+                    roots.push(node);
+                }
+            }
+        });
+
+        return roots;
+    }, [localComments]);
+
+    // Hàm đệ quy render Comment
+    const renderComment = (cmt: any, isChild = false) => {
+        const cmtDisplayName = cmt.fullName || cmt.username || "Ẩn danh";
+        const replies = cmt.replies || [];
+        const currentId = cmt.commentId || cmt.id;
+
+        return (
+            <div key={currentId} className={`flex gap-3 ${isChild ? "mt-3 border-l-2 border-emerald-100 pl-3" : "mt-4"}`}>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white overflow-hidden relative">
+                    {cmt.avatarUrl && cmt.avatarUrl.trim() !== "" ? (
+                        <img src={cmt.avatarUrl} alt="avatar" className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                        getInitial(cmtDisplayName)
+                    )}
+                </div>
+                <div className="flex-1">
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-sm font-semibold text-slate-900">{cmtDisplayName}</p>
+                        <p className="text-xs text-slate-500">
+                            {new Date(cmt.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                    </div>
+                    <p className="mt-0.5 whitespace-pre-line text-sm text-slate-700">{cmt.content}</p>
+
+                    <button
+                        onClick={() => setReplyingTo({ id: currentId, name: cmtDisplayName })}
+                        className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-800 transition-colors mt-1"
+                    >
+                        Phản hồi
+                    </button>
+
+                    {replies.length > 0 && (
+                        <div className="mt-2 space-y-2">
+                            {replies.map((reply: any) => renderComment(reply, true))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-4 hover:shadow-md transition overflow-hidden">
             {/* NỘI DUNG BÀI ĐĂNG */}
             <div className="p-4 md:p-5">
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-sm md:text-base">
-                        {avatarUrl && avatarUrl.trim() !== "" ?(
+                    <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-semibold text-sm md:text-base relative">
+                        {avatarUrl && avatarUrl.trim() !== "" ? (
                             <img
                                 src={avatarUrl}
                                 alt="avatar"
-                                className="w-full h-full object-cover rounded-full"
+                                className="w-full h-full object-cover absolute inset-0"
                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
-                        ):getInitial(fullName)}
-
+                        ) : getInitial(fullName)}
                     </div>
-
                     <div>
                         <p className="font-semibold text-gray-900">{fullName}</p>
                         <p className="text-xs text-gray-500">{formattedDate}</p>
@@ -263,98 +423,68 @@ const Post = ({ postId, username, fullName,avatarUrl, createdAt, content, commen
                 </p>
             </div>
 
-
             <div className="border-t border-gray-100"></div>
 
-
+            {/* KHU VỰC BÌNH LUẬN */}
             <div className="p-4 bg-gray-50">
-
                 {localComments.length > 0 && (
                     <div
                         className="text-sm text-emerald-600 font-medium cursor-pointer hover:underline mb-4 flex items-center gap-1"
                         onClick={() => setShowComments(!showComments)}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2}
-                             stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
-                        </svg>
+                        <MessageSquare className="w-4 h-4" />
                         {showComments ? "Ẩn nhận xét lớp học" : `${localComments.length} nhận xét của lớp học`}
                     </div>
                 )}
 
-
                 {showComments && (
-                    <div className="space-y-4 mb-4">
-                        {localComments.map((cmt: any) => {
-                            const displayName = cmt.fullName || cmt.username || "Ẩn danh";
-
-                            return (
-                                <div key={cmt.commentId} className="flex gap-3">
-                                    <div className="w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center text-xs font-semibold shrink-0">
-
-                                        {cmt.avatarUrl && cmt.avatarUrl.trim() !== "" ? (
-                                            <img
-                                                src={cmt.avatarUrl}
-                                                alt="avatar"
-                                                className="w-full h-full object-cover rounded-full"
-                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                            />
-                                        ):getInitial(displayName)}
-                                        {/*<span className="relative z-0">{getInitial(displayName)}</span>*/}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-baseline gap-2">
-
-                                            <p className="font-semibold text-gray-900 text-sm">{displayName}</p>
-                                            <p className="text-xs text-gray-500">
-                                                {new Date(cmt.createdAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                        <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-line">{cmt.content}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                    <div className="space-y-2 mb-4">
+                        {commentTree.map((cmt: any) => renderComment(cmt, false))}
                     </div>
                 )}
 
-
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-semibold text-xs shrink-0">
-                        {avatarUrlMe && avatarUrlMe.trim() !== "" ? (
-                            <img
-                                src={avatarUrlMe}
-                                alt="avatar"
-                                className="w-full h-full object-cover rounded-full"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                }}
-                            />
-                        ) : getInitial(user.fullName)}
-                    </div>
-                    <div
-                        className="flex-1 flex items-center bg-white border border-gray-200 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
-                        <input
-                            value={commentInput}
-                            onChange={(e) => setCommentInput(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(); }}
-                            disabled={loading}
-                            placeholder="Thêm nhận xét cho lớp học..."
-                            className="flex-1 bg-transparent text-sm focus:outline-none py-1"
-                        />
-                        {/* Nút Gửi (Chỉ hiện khi có nhập chữ) */}
-                        {commentInput.trim() && (
-                            <button
-                                onClick={handleAddComment}
-
-                                disabled={loading}
-                                className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-full transition-colors ml-1"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                    <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
-                                </svg>
+                <div className="flex flex-col gap-2">
+                    {replyingTo && (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 text-xs rounded-lg w-fit ml-11 transition-all">
+                            <span>Đang phản hồi <strong>{replyingTo.name}</strong></span>
+                            <button onClick={() => setReplyingTo(null)} className="hover:text-rose-600 transition-colors">
+                                <X className="w-3 h-3" />
                             </button>
-                        )}
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-xs font-semibold text-white">
+                            {avatarUrlMe && avatarUrlMe.trim() !== "" ? (
+                                <img
+                                    src={avatarUrlMe}
+                                    alt="avatar"
+                                    className="absolute inset-0 h-full w-full object-cover"
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                    }}
+                                />
+                            ) : getInitial(user?.fullName)}
+                        </div>
+                        <div className="flex-1 flex items-center bg-white border border-gray-200 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-emerald-500 transition-all">
+                            <input
+                                value={commentInput}
+                                onChange={(e) => setCommentInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handleAddComment(); }}
+                                disabled={loading}
+                                placeholder={replyingTo ? "Nhập phản hồi..." : "Thêm nhận xét cho lớp học..."}
+                                className="flex-1 bg-transparent text-sm focus:outline-none py-1"
+                            />
+                            {commentInput.trim() && (
+                                <button
+                                    onClick={handleAddComment}
+                                    disabled={loading}
+                                    className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded-full transition-colors ml-1"
+                                >
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -362,7 +492,7 @@ const Post = ({ postId, username, fullName,avatarUrl, createdAt, content, commen
     );
 };
 const ClassroomContent = () => {
-    const { user: reduxUser } = useAppSelector((state) => state.auth);
+    const { user: reduxUser } = useAppSelector((state: any) => state.auth);
     let user = reduxUser;
     if (!user) {
         const localUser = localStorage.getItem("user");
@@ -379,17 +509,26 @@ const ClassroomContent = () => {
     const [feed, setFeed] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [postPage, setPostPage] = useState(0);
+    const [hasMorePosts, setHasMorePosts] = useState(true);
+    const POST_SIZE = 10;
+
     const fetchData = async () => {
         if (!offeringId) return;
         try {
             setLoading(true);
-            const [courseData, postsData, assignmentsData, announcementsData] = await Promise.all([
+            setPostPage(0);
+
+            const [courseData, topicsData, assignmentsData, postsPageData] = await Promise.all([
                 courseService.getCourseById(offeringId),
                 courseService.getTopicsByOfferingId(offeringId),
                 assessmentService.getAssessmentsByOffering(offeringId),
-                postService.getPostsByOffering(offeringId).catch(() => [])
+                postService.getPostsByOffering(offeringId, 0, POST_SIZE).catch(() => ({ content: [], last: true }))
             ]);
+
             setCourse(courseData);
+            const rawPosts = postsPageData.content ? postsPageData.content : postsPageData;
+            setHasMorePosts(rawPosts.length === POST_SIZE);
 
             const formattedAssignments = (assignmentsData || []).map((a: any) => ({
                 ...a,
@@ -397,19 +536,21 @@ const ClassroomContent = () => {
                 sortTime: new Date(a.createdAt || a.endTime || new Date()).getTime()
             }));
 
-            const formattedPosts = (postsData || []).map((p: any) => ({
+            const formattedTopics = (topicsData || []).map((p: any) => ({
                 ...p,
                 feedType: 'POST',
                 sortTime: new Date(p.createdAt).getTime()
             }));
-            const formattedAnnouncements = (announcementsData || []).map((ann: any) => ({
+
+            const formattedAnnouncements = (rawPosts || []).map((ann: any) => ({
                 ...ann,
                 feedType: 'ANNOUNCEMENT',
                 sortTime: new Date(ann.createdAt).getTime()
             }));
-            console.log(formattedAnnouncements);
-            const combinedFeed = [...formattedAssignments, ...formattedPosts, ...formattedAnnouncements]
+
+            const combinedFeed = [...formattedAssignments, ...formattedTopics, ...formattedAnnouncements]
                 .sort((a, b) => b.sortTime - a.sortTime);
+
             setFeed(combinedFeed);
         } catch (error) {
             console.error("Lỗi tải dữ liệu trang:", error);
@@ -418,51 +559,67 @@ const ClassroomContent = () => {
         }
     };
 
+    const loadMorePosts = async () => {
+        if (!hasMorePosts || !offeringId) return;
+        try {
+            const nextPage = postPage + 1;
+            const postsPageData = await postService.getPostsByOffering(offeringId, nextPage, POST_SIZE);
+            const rawPosts = postsPageData.content ? postsPageData.content : postsPageData;
+
+            if (rawPosts.length > 0) {
+                const formattedAnnouncements = rawPosts.map((ann: any) => ({
+                    ...ann,
+                    feedType: 'ANNOUNCEMENT',
+                    sortTime: new Date(ann.createdAt).getTime()
+                }));
+
+                setFeed(prevFeed => {
+                    const updatedFeed = [...prevFeed, ...formattedAnnouncements];
+                    return updatedFeed.sort((a, b) => b.sortTime - a.sortTime);
+                });
+                setPostPage(nextPage);
+            }
+            setHasMorePosts(rawPosts.length === POST_SIZE);
+        } catch (error) {
+            console.error("Lỗi tải thêm bài viết:", error);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, [offeringId, refreshKey]);
 
-
-
-
-    useEffect(() => {
-        if (!user || !user.userId) return;
-
-
-        const socket = new SockJS(import.meta.env.VITE_WS_URL + '/ws-notifications');
-        const stompClient = Stomp.over(socket);
-
-
-        stompClient.debug = () => {};
-
-        stompClient.connect({}, () => {
-
-            stompClient.subscribe(`/topic/user/${user.userId}`, (payload) => {
-                const notification = JSON.parse(payload.body);
-
-
-                if (toast) {
-                    toast.info(notification.message);
-                } else {
-                    alert(notification.message);
-                }
-
-
-                fetchData();
-            });
-        }, (error: any) => {
-            console.error("Lỗi kết nối WebSocket:", error);
-        });
-
-
-        return () => {
-            if (stompClient.connected) {
-                stompClient.disconnect(() => {
-                    console.log("Đã ngắt kết nối WebSocket");
-                });
-            }
-        };
-    }, [user, offeringId]);
+    // useEffect(() => {
+    //     if (!user || !user.userId) return;
+    //
+    //     const token = localStorage.getItem("token");
+    //     const wsUrl = import.meta.env.VITE_WS_URL_NOTICATION || import.meta.env.VITE_WS_URL || "http://localhost:8080";
+    //     const socket = new SockJS(`${wsUrl}/ws-notifications?token=${token}`);
+    //     const stompClient = Stomp.over(socket);
+    //     stompClient.debug = () => {};
+    //
+    //     stompClient.connect({ Authorization: `Bearer ${token}` }, () => {
+    //         stompClient.subscribe(`/topic/user/${user.userId}`, (payload) => {
+    //             const notification = JSON.parse(payload.body);
+    //             if (toast) {
+    //                 toast.info(notification.message);
+    //             } else {
+    //                 alert(notification.message);
+    //             }
+    //             fetchData();
+    //         });
+    //     }, (error: any) => {
+    //         console.error("Lỗi kết nối WebSocket Notification:", error);
+    //     });
+    //
+    //     return () => {
+    //         if (stompClient.connected) {
+    //             stompClient.disconnect(() => {
+    //                 console.log("Đã ngắt kết nối WebSocket Notification");
+    //             });
+    //         }
+    //     };
+    // }, [user, offeringId]);
 
     if (loading && !course) {
         return (
@@ -475,11 +632,11 @@ const ClassroomContent = () => {
 
     return (
         <div className="bg-gray-50 min-h-screen flex flex-col">
-
             <Header
                 onMenuClick={() => setIsMobileMenuOpen(true)}
                 onEnrollSuccess={() => setRefreshKey(prev => prev + 1)}
             />
+
             <div className="flex flex-1 flex-col md:flex-row">
                 <div className="w-full md:w-64 shrink-0">
                     <Sidebar
@@ -487,6 +644,7 @@ const ClassroomContent = () => {
                         onClose={() => setIsMobileMenuOpen(false)}
                     />
                 </div>
+
                 <div className="flex-1 p-3 sm:p-4 md:p-6 w-full">
                     <div className="max-w-3xl mx-auto w-full">
                         <Banner
@@ -500,7 +658,7 @@ const ClassroomContent = () => {
 
                         <CreatePostBox onPostSuccess={fetchData} fullName={user.fullName} avatarUrl={user.avatarUrl} />
 
-                        <div className="hidden md:block">
+                        <div className="hidden md:block mb-4">
                             <UpcomingBox />
                         </div>
 
@@ -510,38 +668,35 @@ const ClassroomContent = () => {
                                     Chưa có thông báo và bài tập nào.
                                 </div>
                             ) : (
-                                feed.map((item: any, idx: number) => {
-                                    if (item.feedType === 'ASSIGNMENT') {
-                                        return (
-                                            <AssignmentPost
-                                                key={`assign-${item.assessmentId || idx}`}
-                                                {...item}
-                                                lecturerName={course?.lecturerName}
-                                            />
-                                        );
-                                    }
-                                    if (item.feedType === 'ANNOUNCEMENT') {
-                                        return (
-                                            <AnnouncementPost
-                                                key={`ann-${item.id || idx}`}
-                                                {...item}
-                                                lecturerName={course?.lecturerName}
+                                <>
+                                    {feed.map((item: any, idx: number) => {
+                                        if (item.feedType === 'ASSIGNMENT') {
+                                            return <AssignmentPost key={`assign-${item.assessmentId || idx}`} {...item} lecturerName={course?.lecturerName} />;
+                                        }
+                                        if (item.feedType === 'ANNOUNCEMENT') {
+                                            return <AnnouncementPost key={`ann-${item.id || idx}`} {...item} lecturerName={course?.lecturerName} />;
+                                        }
+                                        return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user?.avatarUrl} />;
+                                    })}
 
-                                            />
-                                        );
-                                    }
-                                    return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user.avatarUrl} />;
-                                })
+                                    {hasMorePosts && (
+                                        <div className="flex justify-center mt-6">
+                                            <button
+                                                onClick={loadMorePosts}
+                                                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-full shadow-sm hover:bg-gray-50 hover:text-emerald-600 transition-colors"
+                                            >
+                                                Tải thêm bài đăng cũ...
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
     );
 };
-
-
 
 export default ClassroomContent;

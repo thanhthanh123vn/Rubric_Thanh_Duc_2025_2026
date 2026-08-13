@@ -1,14 +1,19 @@
 package hcmuaf.edu.vn.fit.notification_service.controller;
 
+import hcmuaf.edu.vn.fit.notification_service.config.UserPrincipal;
+import hcmuaf.edu.vn.fit.notification_service.dto.request.NotificationRequest;
 import hcmuaf.edu.vn.fit.notification_service.dto.response.NotificationResponse;
 import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
 import hcmuaf.edu.vn.fit.notification_service.service.NotificationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
-
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/notification-service")
 public class NotificationController {
@@ -43,6 +48,7 @@ public class NotificationController {
 
     @GetMapping("/getNotification/me")
     public List<NotificationResponse> getUserNotifications(@RequestHeader("X-User-Id") String userId) {
+
         return service.getUserNotifications(userId); // Gọi hàm đã được update ở Bước 2
     }
 
@@ -92,8 +98,8 @@ public class NotificationController {
     }
 
     // Đánh dấu TẤT CẢ thông báo của user là đã đọc
-    @PutMapping("/user/{userId}/read-all")
-    public ResponseEntity<?> markAllAsRead(@PathVariable String userId) {
+    @PutMapping("/user/read-all")
+    public ResponseEntity<?> markAllAsRead(@RequestHeader("X-User-Id") String userId) {
         try {
             service.markAllAsRead(userId);
             return ResponseEntity.ok("Đã đánh dấu tất cả là đã đọc");
@@ -142,6 +148,19 @@ public class NotificationController {
             Notification notif = service.notifyHomeworkSubmitted(
                     studentId, lecturerId, courseId, submissionId, studentName, assignmentTitle);
             return ResponseEntity.ok(notif);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi gửi thông báo: " + e.getMessage());
+        }
+    }
+    @PostMapping("/notifications/broadcast")
+    public ResponseEntity<?> broadcastNotification(@RequestBody NotificationRequest request, @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        try {
+            String adminId = userPrincipal.getUserId();
+            System.out.println(adminId);
+            System.out.println(request);
+            service.sendBroadcastNotification(adminId, request.getTitle(), request.getMessage(), request.getRecipientRole());
+
+            return ResponseEntity.ok("Đã gửi thông báo thành công!");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi khi gửi thông báo: " + e.getMessage());
         }

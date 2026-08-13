@@ -11,6 +11,7 @@ import hcmuaf.edu.vn.fit.course_service.repository.jpa.CommentRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -28,7 +29,7 @@ public class CommentService {
     private final TopicRepository topicRepository;
     private final UserClient userClient;
     private final CommentMapper commentMapper; // Tiêm CommentMapper vào đây
-
+    private final SimpMessagingTemplate messagingTemplate;
 
     public CommentResponse addComment(String postId, String userId, CommentRequest request) {
         Topic topic = topicRepository.findById(postId)
@@ -40,11 +41,17 @@ public class CommentService {
         comment.setUserId(userId);
         comment.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
+        if (request.getParentId() != null && !request.getParentId().trim().isEmpty()) {
+            comment.setParentId(request.getParentId());
+        }
+
         Comment savedComment = commentRepository.save(comment);
         CommentResponse response = commentMapper.toResponse(savedComment);
 
-        try {
 
+        response.setParentId(savedComment.getParentId());
+
+        try {
             UserResponse user = userClient.getUser(comment.getUserId());
 
             if (user != null) {
@@ -54,7 +61,8 @@ public class CommentService {
                 response.setFullName(displayName);
                 response.setUsername(displayName);
 
-
+//                 Nếu bạn có trường avatarUrl trong CommentResponse, set ở đây
+                 response.setAvatarUrl(user.getAvatarUrl());
             } else {
                 response.setFullName("Unknown");
                 response.setUsername("Unknown");
@@ -65,10 +73,15 @@ public class CommentService {
             response.setUsername("Unknown");
         }
 
+
+        try {
+            messagingTemplate.convertAndSend("/topic/posts/" + postId + "/comments", response);
+        } catch (Exception e) {
+            log.error("Lỗi khi phát sóng comment mới: {}", e.getMessage());
+        }
+
         return response;
     }
-
-
     public List<CommentResponse> getCommentsByPostId(String currentUserId, String postId) {
         List<Comment> comments = commentRepository.findByTopic_PostIdOrderByCreatedAtAsc(postId);
 
@@ -78,6 +91,7 @@ public class CommentService {
             try {
 
                 UserResponse user = userClient.getUser(comment.getUserId());
+
 
                 if (user != null) {
                     String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
@@ -95,8 +109,8 @@ public class CommentService {
                 res.setFullName("Unknown");
                 res.setUsername("Unknown");
             }
-
             res.setMine(comment.getUserId().equals(currentUserId));
+
             return res;
         }).collect(Collectors.toList());
     }

@@ -2,6 +2,8 @@ package hcmuaf.edu.vn.fit.course_service.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
@@ -12,6 +14,16 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@CompoundIndexes({
+
+        @CompoundIndex(name = "offering_public_idx", def = "{'offeringId': 1, 'isPublic': 1}"),
+
+
+        @CompoundIndex(name = "lecturer_public_idx", def = "{'lecturerId': 1, 'isPublic': 1}"),
+
+
+        @CompoundIndex(name = "course_public_idx", def = "{'courseId': 1, 'isPublic': 1}")
+})
 public class QuestionBank {
 
     @Id

@@ -1,86 +1,76 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
-import hcmuaf.edu.vn.fit.course_service.dto.request.MessageRequest; // Bạn cần tạo DTO này
+import hcmuaf.edu.vn.fit.course_service.dto.request.MessageRequest;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
-import hcmuaf.edu.vn.fit.course_service.entity.Message;
+import hcmuaf.edu.vn.fit.course_service.entity.Message; // Entity này giờ là @Document MongoDB
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.CourseOfferingRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.EnrollmentRepository;
-import hcmuaf.edu.vn.fit.course_service.repository.jpa.MessageRepository;
+import hcmuaf.edu.vn.fit.course_service.repository.mongo.MessageRepository; // Đã đổi sang MongoRepository
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class MessageService {
 
+    // Kho lưu trữ Mongo
     private final MessageRepository messageRepository;
+
+    // Kho lưu trữ SQL
     private final CourseOfferingRepository offeringRepository;
-    private final EnrollmentRepository enrollmentRepository; // Dùng để lấy list sinh viên
+    private final EnrollmentRepository enrollmentRepository;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
-
-    @Transactional
+    /**
+     * Xóa @Transactional: Vì chúng ta đang dùng 2 DB khác nhau (MySQL để đọc Offering, MongoDB để ghi Message).
+     * @Transactional mặc định của Spring chỉ bao phủ MySQL, nên không còn tác dụng với Mongo.
+     */
     public void createMessageText(MessageRequest request, String senderId) {
+        // 1. Vẫn kiểm tra lớp học bên SQL để đảm bảo tính toàn vẹn dữ liệu
         CourseOffering offering = getValidOffering(request.getOfferingId());
 
-        // 1. Lưu tin nhắn
+        // 2. Lưu tin nhắn vào MongoDB
         Message message = Message.builder()
-                .messageId(UUID.randomUUID().toString())
-                .courseOffering(offering)
+                // Chỉ lưu ID thay vì truyền nguyên Object SQL sang MongoDB
+                .offeringId(offering.getOfferingId())
                 .senderId(senderId)
                 .content(request.getContent())
-                // .messageType("TEXT") // Thêm trường này vào Entity nếu cần
+                // Không cần UUID.randomUUID(), Mongo sẽ tự tạo _id
                 .build();
 
         Message savedMessage = messageRepository.save(message);
 
-        // 2. Gửi qua WebSocket tới Kênh của Lớp học (Room)
+        // 3. Gửi qua WebSocket tới Kênh của Lớp học (Room)
         sendToWebSocket(savedMessage, offering.getOfferingId());
-
-        // 3. Tạo thông báo cho các thành viên trong lớp (Offline)
-        // sendNotificationToClass(savedMessage, offering, senderId);
     }
 
-    @Transactional
     public void createMessageFile(String offeringId, MultipartFile file, String senderId) {
         CourseOffering offering = getValidOffering(offeringId);
 
         try {
-
-//            String fileName = file.getOriginalFilename() + "_" + UUID.randomUUID().toString();
-//            // Map params = ObjectUtils.asMap("folder", "lms_messages", "public_id", fileName, "resource_type", "auto");
-//            // Map result = cloudinary.uploader().upload(file.getBytes(), params);
-//            String mockFileUrl = "https://cloudinary.com/..."; // Thay bằng result.get("url")
+            // Giả lập upload file
+            // String mockFileUrl = "https://cloudinary.com/...";
 
             Message message = Message.builder()
-                    .messageId(UUID.randomUUID().toString())
-                    .courseOffering(offering)
+                    // Gắn khóa ngoại dưới dạng String
+                    .offeringId(offering.getOfferingId())
                     .senderId(senderId)
                     // .content("Đã gửi một tệp đính kèm: " + file.getOriginalFilename())
                     // .fileUrl(mockFileUrl)
-                    // .messageType("FILE")
                     .build();
 
             Message savedMessage = messageRepository.save(message);
 
             sendToWebSocket(savedMessage, offeringId);
-            // sendNotificationToClass(savedMessage, offering, senderId);
 
         } catch (Exception e) {
             throw new RuntimeException("Lỗi upload file", e);
         }
     }
 
-
-
     private void sendToWebSocket(Message message, String offeringId) {
-
         simpMessagingTemplate.convertAndSend("/topic/course/" + offeringId, message);
     }
 
@@ -88,25 +78,4 @@ public class MessageService {
         return offeringRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Lớp học phần không tồn tại"));
     }
-
-    /* // LUỒNG TẠO THÔNG BÁO CHO LỚP HỌC
-    private void sendNotificationToClass(Message message, CourseOffering offering, String senderId) {
-        // Lấy danh sách sinh viên
-        List<String> participantIds = enrollmentRepository.findByCourseOffering(offering)
-                .stream()
-                .map(Enrollment::getStudentId)
-                .collect(Collectors.toList());
-
-        // Thêm giảng viên vào danh sách nhận
-        participantIds.add(offering.getLecturerId());
-
-        // Gửi thông báo cho mọi người
-        for (String recipientId : participantIds) {
-            if (!recipientId.equals(senderId)) {
-                // Kiểm tra xem user có đang mở khung chat lớp này không (Dùng WebSocketEventListener)
-                // Nếu không mở -> Gọi NotificationService tạo thông báo
-            }
-        }
-    }
-    */
 }

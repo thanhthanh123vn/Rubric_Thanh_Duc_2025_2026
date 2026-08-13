@@ -25,17 +25,32 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
+        System.out.println("Notification JwtFilter: " + request.getRequestURI());
         String path = request.getRequestURI();
-        if(path.startsWith("/api/v1/user-service/auth")){
-            filterChain.doFilter(request,response);
+//        if(path.startsWith("/api/v1/user-service/auth")){
+//            filterChain.doFilter(request,response);
+//            return;
+//        }
+        String token = null;
+        if (path.startsWith("/api/v1/notification-service/ws-notifications") || path.startsWith("/ws-notifications")) {
+            filterChain.doFilter(request, response);
             return;
         }
 
-        String header = request.getHeader("Authorization");
-        if(header != null && header.startsWith("Bearer ")){
-            String token = header.substring(7);
 
+        String header = request.getHeader("Authorization");
+
+
+        if(header != null && header.startsWith("Bearer ")){
+            token = header.substring(7);
+        }
+
+        else if (request.getParameter("token") != null) {
+            token = request.getParameter("token");
+        }
+
+        // 3. Nếu tìm thấy token (từ Header hoặc URL), tiến hành giải mã
+        if(token != null) {
             if(jwtUtils.isTokenValid(token)){
                 String username = jwtUtils.extractUsername(token);
                 String role = jwtUtils.extractRole(token);
@@ -52,9 +67,12 @@ public class JwtFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
 
+//                // Giữ nguyên dòng log để bạn dễ debug
+
+            }
         }
+
         filterChain.doFilter(request,response);
     }
 }

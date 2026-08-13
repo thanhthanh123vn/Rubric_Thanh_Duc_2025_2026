@@ -14,5 +14,6 @@ public class CommentResponse {
     private boolean isMine;
     private String content;
     private Timestamp createdAt;
+    private String parentId;
 
 }

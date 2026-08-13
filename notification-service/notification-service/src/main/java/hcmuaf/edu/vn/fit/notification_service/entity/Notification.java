@@ -1,46 +1,44 @@
 package hcmuaf.edu.vn.fit.notification_service.entity;
 
 import hcmuaf.edu.vn.fit.notification_service.entity.enums.NotificationType;
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-@Entity
-@Table(name = "notifications")
+@Document(collection = "notifications")
 @Getter
 @Setter
 public class Notification extends AbstractEntity<Notification> {
 
-    @Column(name="sender_id")
+    @Field("sender_id")
     private String senderId;
 
-    @Column(name="owner_id")
+    @Field("owner_id")
     private String ownerId;
 
-    @Column(name="course_id")
+    @Field("course_id")
     private String courseId;
 
-    @Column(name="title")
+    @Field("title")
     private String title;
 
-    @Column(name="content", columnDefinition = "TEXT")
+    @Field("content")
     private String content;
 
-    @Column(name="is_read")
+    @Field("is_read")
     private boolean isRead = false;
 
-    @Column(name="notification_type", length = 30)
-    @Enumerated(EnumType.STRING)
+    @Field("notification_type")
     private NotificationType notificationType;
-    @Column(name = "avatar_url")
+
+    @Field("avatar_url")
     private String avatarUrl;
 
-
-    @Column(name="linked_resource_id")
+    @Field("linked_resource_id")
     private String linkedResourceId;
 
-
-    @Column(name="reference_url")
+    @Field("reference_url")
     private String referenceUrl;
 
 }

@@ -11,14 +11,5 @@ import org.springframework.stereotype.Repository;
 public interface SystemLogRepository extends MongoRepository<SystemLog, String> {
 
 
-    @Query("{ $and: [ " +
-            "?#{ [0] == null || [0] == '' ? {} : { 'level': [0] } }, " +
-            "?#{ [1] == null || [1] == '' ? {} : { $or: [ " +
-            "{ 'message': { $regex: [1], $options: 'i' } }, " +
-            "{ 'action': { $regex: [1], $options: 'i' } }, " +
-            "{ 'username': { $regex: [1], $options: 'i' } }, " +
-            "{ 'ipAddress': { $regex: [1], $options: 'i' } } " +
-            "] } } " +
-            "] }")
-    Page<SystemLog> searchSystemLogs(String level, String keyword, Pageable pageable);
+
 }

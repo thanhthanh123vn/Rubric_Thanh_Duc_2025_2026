@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.course_service.entity;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -14,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@CompoundIndex(name = "offering_created_idx", def = "{'offeringId': 1, 'createdAt': -1}")
 public class Post {
 
     @Id
