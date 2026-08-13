@@ -49,20 +49,22 @@ export function NotificationBell() {
     }
 
     useEffect(() => {
-        fetchNotifications();
-    }, [user?.userId]);
-
-    const fetchNotifications = async () => {
-        try {
-            const response = await notificationApi.getNotifications();
-            const sortedNotifs = response.data.sort((a: any, b: any) =>
+        let active = true;
+        notificationApi.getNotifications()
+          .then((response) => {
+            if (!active) return;
+            const sortedNotifs = response.sort((a: any, b: any) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setNotifications(sortedNotifs);
-        } catch (error) {
+          })
+          .catch((error) => {
             console.error("Lỗi lấy thông báo:", error);
-        }
-    };
+          });
+        return () => {
+            active = false;
+        };
+    }, [user?.userId]);
 
     useEffect(() => {
         if (user?.userId) {

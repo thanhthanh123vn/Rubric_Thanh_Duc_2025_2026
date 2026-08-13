@@ -102,6 +102,13 @@ public class NotificationController {
         }
     }
 
+    @PutMapping("/me/read-all")
+    public ResponseEntity<?> markAllMyNotificationsAsRead(
+            @RequestHeader("X-User-Id") String userId) {
+        service.markAllAsRead(userId);
+        return ResponseEntity.ok("Đã đánh dấu tất cả là đã đọc");
+    }
+
     // Xóa thông báo
     @DeleteMapping("/{notificationId}")
     public ResponseEntity<?> deleteNotification(@PathVariable String notificationId) {

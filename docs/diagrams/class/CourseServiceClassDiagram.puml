@@ -1,0 +1,366 @@
+  @startuml CourseServiceClassDiagram
+  left to right direction
+  skinparam backgroundColor white
+  skinparam shadowing false
+  skinparam packageStyle rectangle
+  skinparam linetype ortho
+  skinparam classAttributeIconSize 0
+
+  title SƠ ĐỒ LỚP TỔNG QUAN COURSE SERVICE
+
+  package "controller" {
+    class CourseController <<RestController>> {
+      -courseService: CourseService
+      -gradebookService: GradebookService
+      -obeService: OBEService
+      +getStudentDashboardCourses(studentId: String): List
+      +getStudentsByOffering(offeringId: String): ResponseEntity
+      +getMyGradebook(offeringId: String, studentId: String): ResponseEntity
+      +getOBEProgress(offeringId: String, studentId: String): ResponseEntity
+    }
+    class AssessmentController <<RestController>> {
+      -assessmentService: AssessmentService
+      +getAssignments(offeringId: String, studentId: String): List
+      +getAssignmentDetail(assessmentId: String, studentId: String): AssessmentDetailResponse
+      +submitAssignment(assessmentId: String, studentId: String, files: List, links: List): ResponseEntity
+      +unsubmit(assessmentId: String, studentId: String): ResponseEntity
+      +getDetail(assessmentId: String, studentId: String): ResponseEntity
+    }
+    class StudentExamController <<RestController>> {
+      -studentExamService: StudentExamService
+      +submitExam(userId: String, request: SubmitStudentExamRequest): ResponseEntity
+      +getExamResult(userId: String, examId: String): ResponseEntity
+    }
+    class StudentAttendanceController <<RestController>> {
+      -studentAttendanceService: StudentAttendanceService
+      +checkIn(studentId: String, request: StudentAttendanceCheckInRequest): ResponseEntity
+      +getMyAttendanceHistory(offeringId: String, studentId: String): ResponseEntity
+    }
+    class GroupController <<RestController>> {
+      -groupService: GroupService
+      +createGroup(request: GroupRequest): ResponseEntity
+      +getMyGroups(offeringId: String, userId: String): ResponseEntity
+      +addMember(groupId: String, memberId: String, userId: String): ResponseEntity
+      +removeMember(groupId: String, memberId: String, userId: String): ResponseEntity
+      +changeRole(groupId: String, memberId: String, role: ParticipantRole): ResponseEntity
+    }
+    class GroupTaskController <<RestController>> {
+      -groupTaskService: GroupTaskService
+      +createTask(request: GroupTaskRequest, userId: String): ResponseEntity
+      +getTasks(groupId: String, userId: String): ResponseEntity
+      +updateStatus(taskId: String, status: TaskStatus): ResponseEntity
+      +deleteTask(taskId: String, userId: String): ResponseEntity
+    }
+    class ChatController <<RestController>> {
+      -messageService: MessageService
+      +sendMessage(conversationId: String, request: MessageRequest): void
+      +getChatHistory(conversationId: String): ResponseEntity
+      +handleTyping(conversationId: String, event: TypingEvent): void
+    }
+  }
+
+  package "service" {
+    class CourseService <<Service>> {
+      -courseRepo: CourseRepository
+      -enrollmentRepo: EnrollmentRepository
+      -courseOfferingRepo: CourseOfferingRepository
+      -userClient: UserClient
+      +getCourseByOfferingId(offeringId: String): CourseResponse
+      +getDashboardCoursesForStudent(studentId: String): List
+      +enroll(studentId: String, offeringId: String): Enrollment
+      +unenroll(studentId: String, offeringId: String): void
+      +getStudentsByOfferingId(offeringId: String): List
+    }
+    class AssessmentService <<Service>> {
+      -assessmentRepository: AssessmentRepository
+      -submissionRepository: SubmissionRepository
+      -attachmentRepository: SubmissionAttachmentRepository
+      -gradingClient: GradingClient
+      -s3Service: S3Service
+      +getAssByCourseOffering(offeringId: String, studentId: String): List
+      +getAssById(assessmentId: String, studentId: String): AssessmentDetailResponse
+      +submitAssignment(assessmentId: String, studentId: String, files: List, links: List): SubmissionEntity
+      +getAssessmentDetail(assessmentId: String, studentId: String): AssessmentDetailResponse
+      +unsubmitAssignment(assessmentId: String, studentId: String): void
+    }
+    class StudentExamService <<Service>> {
+      -assignmentRepository: StudentExamAssignmentRepository
+      -assessmentPaperRepository: AssessmentPaperRepository
+      -submissionRepository: SubmissionRepository
+      -questionRepository: QuestionRepository
+      +submitExam(studentId: String, request: SubmitStudentExamRequest): SubmitStudentExamResponse
+      +getExamResult(studentId: String, examId: String): StudentExamResultResponse
+    }
+    class StudentAttendanceService <<Service>> {
+      -attendanceRepository: AttendanceRepository
+      -sessionRepository: AttendanceSessionRepository
+      -enrollmentRepository: EnrollmentRepository
+      +checkIn(studentId: String, request: StudentAttendanceCheckInRequest): AttendanceCheckInResponse
+      +getMyAttendanceHistory(studentId: String, offeringId: String): List
+    }
+    class GroupService <<Service>> {
+      -groupRepository: GroupRepository
+      -participantRepository: ParticipantRepository
+      -conversationRepository: ConversationRepository
+      -groupTaskRepository: GroupTaskRepository
+      +createGroup(request: GroupRequest): GroupResponse
+      +getMyGroups(offeringId: String, userId: String): List
+      +addMember(groupId: String, memberId: String, requesterId: String): GroupResponse
+      +removeMember(groupId: String, memberId: String, requesterId: String): GroupResponse
+      +changeMemberRole(groupId: String, memberId: String, role: ParticipantRole, requesterId: String): GroupResponse
+      +dissolveGroup(groupId: String, requesterId: String): void
+    }
+    class GroupTaskService <<Service>> {
+      -groupTaskRepository: GroupTaskRepository
+      -groupRepository: GroupRepository
+      -participantRepository: ParticipantRepository
+      -s3Service: S3Service
+      +createTask(request: GroupTaskRequest, assignerId: String): GroupTaskResponse
+      +getTasksByGroup(groupId: String, userId: String): List
+      +updateTaskStatus(taskId: String, status: TaskStatus, userId: String): GroupTaskResponse
+      +deleteTask(taskId: String, userId: String): void
+    }
+    class MessageService <<Service>> {
+      -messageRepository: MessageRepository
+      -offeringRepository: CourseOfferingRepository
+      -messagingTemplate: SimpMessagingTemplate
+      +createMessageText(request: MessageRequest, senderId: String): void
+      +createMessageFile(offeringId: String, file: MultipartFile, senderId: String): void
+    }
+    class GradebookService <<Service>> {
+      -offeringRepository: CourseOfferingRepository
+      -enrollmentRepository: EnrollmentRepository
+      -userClient: UserClient
+      +getGradebook(offeringId: String): CourseGradebookResponse
+      +getStudentGradebook(offeringId: String, studentId: String): CourseGradebookResponse
+      +updateScores(offeringId: String, requests: List): CourseGradebookResponse
+    }
+    class OBEService <<Service>> {
+      -courseRepo: CourseRepository
+      -enrollmentRepo: EnrollmentRepository
+      +getOBEProgressByStudentId(offeringId: String, studentId: String): List
+      +getCloDetail(offeringId: String, cloId: String): OBECloDetailResponse
+    }
+  }
+
+  package "repository" {
+    interface CourseRepository <<Repository>> {
+      +existsByCourseCode(courseCode: String): boolean
+      +findByDepartment(department: String): List
+    }
+    interface CourseOfferingRepository <<Repository>> {
+      +findByCourse_CourseId(courseId: String): List
+    }
+    interface EnrollmentRepository <<Repository>> {
+      +findByStudentId(studentId: String): List
+      +findByStudentIdAndCourseOffering_OfferingId(studentId: String, offeringId: String): Optional
+      +findStudentIdsByOfferingId(offeringId: String): List
+    }
+    interface AssessmentRepository <<Repository>> {
+      +findByCourseOffering_OfferingIdOrderByStartTimeDesc(offeringId: String): List
+    }
+    interface SubmissionRepository <<Repository>> {
+      +findByAssessmentIdAndStudentId(assessmentId: String, studentId: String): Optional
+      +findByAssessmentId(assessmentId: String): List
+      +deleteByAssessmentId(assessmentId: String): void
+    }
+    interface AttendanceSessionRepository <<Repository>> {
+      +findByOfferingIdOrderByCreatedAtDesc(offeringId: String): List
+    }
+    interface AttendanceRepository <<Repository>> {
+      +findBySessionIdAndStudentId(sessionId: String, studentId: String): Optional
+      +findByStudentIdAndOfferingIdOrderByCheckinTimeDesc(studentId: String, offeringId: String): List
+    }
+    interface GroupRepository <<Repository>> {
+      +findMyGroups(offeringId: String, userId: String): List
+      +findByOfferingId(offeringId: String): List
+    }
+    interface GroupTaskRepository <<Repository>> {
+      +findByGroup_IdOrderByCreatedAtDesc(groupId: String): List
+      +deleteByGroup_Id(groupId: String): void
+    }
+    interface ParticipantRepository <<Repository>> {
+      +findByConversation_IdAndUserId(conversationId: String, userId: String): Optional
+    }
+    interface MessageRepository <<Repository>> {
+      +findByConversation_IdOrderByCreatedAtAsc(conversationId: String): List
+      +countNewMessages(offeringId: String, userId: String, lastAccessTime: Timestamp): Long
+    }
+    interface QuestionRepository <<Repository>> {
+      +findByOfferingId(offeringId: String): List
+      +findByIdInAndType(ids: List, type: QuestionType): List
+    }
+    interface AssessmentPaperRepository <<Repository>> {
+      +findByAssessmentId(assessmentId: String): Optional
+    }
+    interface StudentExamAssignmentRepository <<Repository>> {
+      +findByStudentId(studentId: String): List
+      +findByAssessmentPaperIdAndStudentId(examId: String, studentId: String): Optional
+    }
+  }
+
+  package "entity" {
+    class Course <<Entity>> {
+      +courseId: String
+      +courseCode: String
+      +courseName: String
+      +credits: Integer
+      +description: String
+    }
+    class CourseOffering <<Entity>> {
+      +offeringId: String
+      +offeringName: String
+      +semester: String
+      +academicYear: String
+      +startDate: LocalDate
+      +endDate: LocalDate
+      +status: String
+    }
+    class Enrollment <<Entity>> {
+      +enrollmentId: String
+      +studentId: String
+      +status: EnrollmentStatus
+      +attendanceScore: Float
+      +assignmentScore: Float
+      +finalScore: Float
+      +totalScore: Float
+      +letterGrade: String
+    }
+    class Assessment <<Entity>> {
+      +assessmentId: String
+      +rubricId: String
+      +assessmentName: String
+      +assessmentType: String
+      +weight: Float
+      +startTime: Timestamp
+      +endTime: Timestamp
+    }
+    class SubmissionEntity <<Entity>> {
+      +id: String
+      +assessmentId: String
+      +studentId: String
+      +rubricId: String
+      +gradeCore: Double
+      +submittedLink: String
+      +submittedAt: LocalDateTime
+      +status: String
+    }
+    class AttendanceSession <<Entity>> {
+      +sessionId: String
+      +offeringId: String
+      +startTime: LocalDateTime
+      +endTime: LocalDateTime
+      +latitude: Double
+      +longitude: Double
+      +radius: Double
+      +qrToken: String
+    }
+    class Attendance <<Entity>> {
+      +attendanceId: String
+      +studentId: String
+      +status: AttendanceStatus
+      +checkinTime: LocalDateTime
+      +distance: Double
+      +method: AttendanceMethod
+    }
+    class AssessmentPaper <<Document>> {
+      +id: String
+      +assessmentId: String
+      +examTitle: String
+      +questionIds: List
+      +durationMinutes: Integer
+    }
+    class StudentExamAssignment <<Document>> {
+      +id: String
+      +assessmentPaperId: String
+      +studentId: String
+      +status: StudentExamStatus
+      +startedAt: Instant
+      +submittedAt: Instant
+      +score: Double
+    }
+    class Question <<Document>> {
+      +id: String
+      +content: String
+      +type: QuestionType
+      +score: Double
+      +expectedAnswer: String
+    }
+    class Group <<Entity>> {
+      +id: String
+      +createdById: String
+      +groupName: String
+      +topic: String
+    }
+    class Participant <<Entity>> {
+      +id: String
+      +userId: String
+      +participantRole: ParticipantRole
+    }
+    class Conversation <<Entity>> {
+      +id: String
+      +conversationType: ConversationType
+      +conversationName: String
+      +lastMessage: String
+    }
+    class Message <<Entity>> {
+      +messageId: String
+      +senderId: String
+      +content: String
+      +createdAt: Timestamp
+    }
+    class GroupTask <<Entity>> {
+      +id: String
+      +title: String
+      +description: String
+      +assigneeId: String
+      +assignerId: String
+      +status: TaskStatus
+      +deadline: LocalDateTime
+      +resultNote: String
+      +resultLink: String
+      +resultFileUrl: String
+    }
+  }
+
+  CourseController --> CourseService
+  CourseController --> GradebookService
+  CourseController --> OBEService
+  AssessmentController --> AssessmentService
+  StudentExamController --> StudentExamService
+  StudentAttendanceController --> StudentAttendanceService
+  GroupController --> GroupService
+  GroupTaskController --> GroupTaskService
+  ChatController --> MessageService
+
+  CourseService --> CourseRepository
+  CourseService --> CourseOfferingRepository
+  CourseService --> EnrollmentRepository
+  AssessmentService --> AssessmentRepository
+  AssessmentService --> SubmissionRepository
+  StudentExamService --> AssessmentPaperRepository
+  StudentExamService --> StudentExamAssignmentRepository
+  StudentExamService --> QuestionRepository
+  StudentAttendanceService --> AttendanceSessionRepository
+  StudentAttendanceService --> AttendanceRepository
+  GroupService --> GroupRepository
+  GroupService --> ParticipantRepository
+  GroupTaskService --> GroupTaskRepository
+  MessageService --> MessageRepository
+
+  Course "1" *-- "0..*" CourseOffering
+  CourseOffering "1" *-- "0..*" Enrollment
+  CourseOffering "1" *-- "0..*" Assessment
+  Assessment "1" o-- "0..*" SubmissionEntity
+  CourseOffering "1" *-- "0..*" AttendanceSession
+  AttendanceSession "1" *-- "0..*" Attendance
+  Assessment "1" .. "0..1" AssessmentPaper
+  AssessmentPaper "1" o-- "1..*" Question
+  AssessmentPaper "1" o-- "0..*" StudentExamAssignment
+  CourseOffering "1" *-- "0..*" Group
+  Group "1" -- "1" Conversation
+  Conversation "1" *-- "1..*" Participant
+  Conversation "1" *-- "0..*" Message
+  Group "1" *-- "0..*" GroupTask
+
+  @enduml

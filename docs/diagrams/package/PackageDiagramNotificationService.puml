@@ -1,0 +1,61 @@
+@startuml PackageDiagramNotificationService
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+title NOTIFICATION SERVICE
+
+package "root" as RootPackage {
+  class NotificationServiceApplication <<Application>>
+}
+
+package "config" as ConfigPackage {
+  class RedisConfig <<Configuration>>
+  class WebSocketConfig <<Configuration>>
+}
+
+package "controller" as ControllerPackage {
+  class NotificationController <<RestController>>
+}
+
+package "service" as ServicePackage {
+  class NotificationService <<Service>>
+  class RedisNotificationSubscriber <<Subscriber>>
+}
+
+package "repository" as RepositoryPackage {
+  class NotificationRepository <<Repository>>
+}
+
+package "entity" as EntityPackage {
+  class AbstractEntity <<MappedSuperclass>>
+  class Notification <<Entity>>
+  enum NotificationType
+}
+
+package "dto" as DtoPackage {
+  class NotificationResponse <<Response>>
+  class UserResponse <<Response>>
+  class SinhVienResponse <<Response>>
+  class LecturerResponse <<Response>>
+}
+
+package "client" as ClientPackage {
+  class FeignConfig <<Configuration>>
+  class FeignClientInterceptor <<Interceptor>>
+  class UserClient <<FeignClient>>
+}
+
+RootPackage --> ConfigPackage : khởi tạo
+ConfigPackage ..> ServicePackage : cấu hình Redis và WebSocket
+ClientPackage ..> ConfigPackage : sử dụng cấu hình
+ControllerPackage --> ServicePackage : sử dụng
+ControllerPackage ..> DtoPackage : trả dữ liệu
+ServicePackage --> RepositoryPackage : truy cập dữ liệu
+ServicePackage ..> ClientPackage : gọi dịch vụ
+RepositoryPackage --> EntityPackage : quản lý
+
+@enduml

@@ -1,0 +1,44 @@
+@startuml NotificationServiceSchema
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+hide methods
+
+title NOTIFICATION SERVICE SCHEMA
+
+database "notification_db" {
+  entity "notifications" as notifications {
+    * id: varchar <<PK>>
+    --
+    sender_id: varchar <<REF>>
+    * owner_id: varchar <<REF>>
+    course_id: varchar <<REF>>
+    * title: varchar
+    * content: text
+    * is_read: boolean
+    * notification_type: varchar
+    avatar_url: varchar
+    linked_resource_id: varchar <<REF>>
+    reference_url: varchar
+    created_at: datetime
+    updated_at: datetime
+  }
+}
+
+database "Redis" as redis {
+  entity "notification_channel" as notification_channel {
+    * channel: string
+    --
+    notification_payload: json
+    ttl: integer
+  }
+}
+
+notifications ..> notification_channel : phát sau khi lưu
+
+note bottom of notification_channel
+  Redis dùng để phát thông báo thời gian thực.
+  notification_db vẫn là nguồn dữ liệu chính.
+end note
+
+@enduml

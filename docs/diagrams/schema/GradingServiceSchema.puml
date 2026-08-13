@@ -1,0 +1,52 @@
+@startuml GradingServiceSchema
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+hide methods
+
+title GRADING SERVICE SCHEMA
+
+database "grading_db" {
+  entity "grades" as grades {
+    * id: bigint <<PK>>
+    --
+    * submission_id: varchar <<REF>>
+    * assessment_id: varchar <<REF>>
+    * student_id: varchar <<REF>>
+    rubric_id: varchar <<REF>>
+    total_score: double
+    letter_grade: varchar
+    comment: text
+    status: varchar
+  }
+
+  entity "rubric_results" as rubric_results {
+    * result_id: varchar <<PK>>
+    --
+    * submission_id: varchar <<REF>>
+    * criteria_id: varchar <<REF>>
+    * level_id: varchar <<REF>>
+    calculated_score: double
+    lecturer_comment: text
+    graded_at: datetime
+  }
+
+  entity "feedback_templates" as feedback_templates {
+    * id: bigint <<PK>>
+    --
+    * user_id: varchar <<REF>>
+    * content: text
+    created_at: datetime
+    updated_at: datetime
+  }
+}
+
+grades ||--o{ rubric_results : submission_id
+
+legend bottom
+  Các cột REF tham chiếu logic đến service khác.
+  Grading Service xác thực chúng thông qua API hoặc sự kiện.
+endlegend
+
+@enduml

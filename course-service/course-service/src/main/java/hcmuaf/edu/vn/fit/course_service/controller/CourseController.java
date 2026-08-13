@@ -242,6 +242,13 @@ public class CourseController {
         return ResponseEntity.ok(gradebookService.getGradebook(offeringId));
     }
 
+    @GetMapping("/offering/{offeringId}/gradebook/me")
+    public ResponseEntity<CourseGradebookResponse> getMyGradebook(
+            @PathVariable String offeringId,
+            @RequestHeader("X-User-Id") String studentId) {
+        return ResponseEntity.ok(gradebookService.getStudentGradebook(offeringId, studentId));
+    }
+
     @PutMapping("/offering/{offeringId}/gradebook/config")
     public ResponseEntity<CourseGradebookResponse> updateGradebookConfig(
             @PathVariable String offeringId,

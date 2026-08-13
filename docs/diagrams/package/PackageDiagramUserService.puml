@@ -1,0 +1,99 @@
+@startuml PackageDiagramUserService
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+
+title USER SERVICE
+
+package "root" as RootPackage {
+  class UserServiceApplication <<Application>>
+}
+
+package "config" as ConfigPackage {
+  class SecurityConfig <<Configuration>>
+  class CloudinaryConfig <<Configuration>>
+  class UserPrincipal <<Security>>
+}
+
+package "controller" as ControllerPackage {
+  class AuthController <<RestController>>
+  class UserController <<RestController>>
+  class SinhVienController <<RestController>>
+  class LecturerController <<RestController>>
+  class FacultyController <<RestController>>
+  class DepartmentController <<RestController>>
+  class AdminUserController <<RestController>>
+  class AdminStudentController <<RestController>>
+}
+
+package "service" as ServicePackage {
+  class AuthService <<Service>>
+  class UserService <<Service>>
+  class SinhVienService <<Service>>
+  class FacultyService <<Service>>
+  class DepartmentService <<Service>>
+  class EmailService <<Service>>
+  class CloudinaryService <<Service>>
+}
+
+package "repository" as RepositoryPackage {
+  class UserRepository <<Repository>>
+  class SinhVienRepository <<Repository>>
+  class LecturerRepository <<Repository>>
+  class FacultyRepository <<Repository>>
+  class DepartmentRepository <<Repository>>
+  class HeadOfDepartmentRepository <<Repository>>
+}
+
+package "entity" as EntityPackage {
+  class User <<Entity>>
+  class SinhVien <<Entity>>
+  class Lecturer <<Entity>>
+  class Faculty <<Entity>>
+  class Department <<Entity>>
+  class HeadOfDepartment <<Entity>>
+  enum Role
+}
+
+package "dto" as DtoPackage {
+  class LoginRequest <<Request>>
+  class RegisterRequest <<Request>>
+  class UpdateProfileRequest <<Request>>
+  class LoginResponse <<Response>>
+  class TokenResponse <<Response>>
+  class UserResponse <<Response>>
+  class StudentProfileResponse <<Response>>
+}
+
+package "mapper" as MapperPackage {
+  class UserMapper <<Mapper>>
+  class SinhVienMapper <<Mapper>>
+  class LecturerMapper <<Mapper>>
+}
+
+package "client" as ClientPackage {
+  class CourseClient <<FeignClient>>
+}
+
+package "util" as UtilPackage {
+  class JwtUtils <<Utility>>
+  class JwtFilter <<Filter>>
+}
+
+ConfigPackage ..> ControllerPackage : cấu hình bảo mật
+RootPackage --> ConfigPackage : khởi tạo
+ControllerPackage --> ServicePackage : sử dụng
+ControllerPackage ..> DtoPackage : nhận và trả dữ liệu
+ServicePackage --> RepositoryPackage : truy cập dữ liệu
+ServicePackage --> MapperPackage : chuyển đổi
+ServicePackage ..> ClientPackage : gọi dịch vụ
+RepositoryPackage --> EntityPackage : quản lý
+MapperPackage --> EntityPackage : ánh xạ
+MapperPackage ..> DtoPackage : ánh xạ
+ConfigPackage --> UtilPackage : sử dụng
+
+@enduml

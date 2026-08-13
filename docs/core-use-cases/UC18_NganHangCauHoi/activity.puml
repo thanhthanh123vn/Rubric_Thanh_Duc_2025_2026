@@ -1,0 +1,19 @@
+@startuml
+title UC-18 Quản lý ngân hàng câu hỏi
+|Giảng viên / Trưởng bộ môn|
+start
+:Mở hoặc tạo kho câu hỏi;
+:Thêm câu hỏi hoặc chọn Import Excel;
+|Hệ thống|
+:Kiểm tra cấu trúc, nội dung và đáp án;
+if (Câu hỏi hợp lệ?) then (Có)
+  :Lưu kho và câu hỏi;
+  |Giảng viên / Trưởng bộ môn|
+  :Sửa, xóa hoặc thay đổi chia sẻ;
+  |Hệ thống|
+  :Kiểm tra quyền và cập nhật;
+else (Không)
+  :Hiển thị danh sách lỗi;
+endif
+stop
+@enduml

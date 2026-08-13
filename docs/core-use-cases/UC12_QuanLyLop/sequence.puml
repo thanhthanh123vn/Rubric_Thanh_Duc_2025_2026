@@ -1,0 +1,25 @@
+@startuml
+autonumber
+title UC-12 Quản lý lớp học
+actor "Giảng viên" as GV
+boundary "CourseManagementPage" as UI
+control "CourseController" as CC
+control "CourseService" as CS
+control "SyllabusController" as SC
+control "PostController" as PC
+database "CourseRepository" as DB
+GV -> UI : Chọn lớp học phần
+UI -> CC : getStudentsByOffering(offeringId)
+CC -> CS : getStudentsByOfferingId(offeringId)
+CS -> DB : findEnrollments(offeringId)
+DB --> UI : Danh sách sinh viên
+GV -> UI : Thêm sinh viên
+UI -> CC : enroll(studentId, offeringId)
+CC -> CS : enroll(studentId, offeringId)
+CS -> DB : save(enrollment)
+GV -> UI : Tải giáo trình hoặc tạo bài đăng
+UI -> SC : uploadSyllabus(courseId, files)
+UI -> PC : createPost(request, authorId)
+PC -> DB : save(post)
+DB --> UI : Cập nhật thành công
+@enduml

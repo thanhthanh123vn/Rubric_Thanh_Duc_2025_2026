@@ -1,0 +1,200 @@
+@startuml RubricServiceClassDiagram
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+title SƠ ĐỒ LỚP TỔNG QUAN RUBRIC SERVICE
+
+package "frontend.boundary" {
+  class CLOManagement <<Boundary>> {
+    -selectedCourseIds: List
+    -editingClo: CloResponse
+    +loadData(): Promise
+    +handleSubmit(event: FormEvent): Promise
+  }
+  class CreateRubricModal <<Boundary>> {
+    -selectedCourseId: String
+    -rubricName: String
+    -criteria: List
+    -totalWeight: Number
+    +handleSubmit(submitForApproval: boolean): Promise
+  }
+  class RubricMatrixEditor <<Boundary>> {
+    -draft: RubricMatrixDraft
+    -totalWeight: Number
+    -validationItems: List
+    +handleSave(): Promise
+  }
+  class RubricApi <<ApiClient>> {
+    +getCourseOptions(): Promise
+    +getAllClo(): Promise
+    +createClo(data: CloPayload): Promise
+    +updateClo(cloId: String, data: CloPayload): Promise
+    +getAllRubric(): Promise
+    +createRubric(data: RubricRequest): Promise
+    +getRubricMatrix(): Promise
+    +updateRubricMatrix(payload: RubricMatrixRequest): Promise
+  }
+}
+
+package "controller" {
+  class RubricController <<RestController>> {
+    -rubricService: RubricService
+    +getAll(): List
+    +getById(id: String): Rubric
+    +createRubric(userId: String, request: RubricRequest): ResponseEntity
+    +delete(userId: String, id: String): void
+    +getRubricsForApproval(userId: String, status: String): ResponseEntity
+    +reviewRubric(id: String, request: RubricApprovalRequest): ResponseEntity
+  }
+  class RubricMatrixController <<RestController>> {
+    -rubricMatrixService: RubricMatrixService
+    +rubricMatrix(request: RubricMatrixRequest): boolean
+  }
+  class CourseCloController <<RestController>> {
+    -courseCloService: CourseCloService
+    +getAll(): List
+    +createCourseClo(request: CloRequest): ResponseEntity
+    +updateCourseClo(cloId: String, request: CloRequest): ResponseEntity
+  }
+}
+
+package "service" {
+  class RubricService <<Service>> {
+    -rubricRepository: RubricRepository
+    -criteriaRepository: RubricCriteriaRepository
+    -levelRepository: RubricLevelRepository
+    -userClient: UserClient
+    -courseClient: CourseClient
+    +getAllRubrics(): List
+    +getRubricMatrices(): List
+    +getRubricMatrixDetail(rubricId: String): RubricMatrixResponse
+    +getById(id: String): Rubric
+    +createRubric(lecturerId: String, request: RubricRequest): Rubric
+    +delete(id: String): void
+    +getRubricsForApproval(userId: String, status: String): List
+    +reviewRubric(id: String, reviewerId: String, request: RubricApprovalRequest): Rubric
+  }
+  class RubricMatrixService <<Service>> {
+    -rubricRepository: RubricRepository
+    -criteriaRepository: RubricCriteriaRepository
+    -levelRepository: RubricLevelRepository
+    +updateMatrix(request: RubricMatrixRequest): boolean
+  }
+  class CourseCloService <<Service>> {
+    -courseCloRepository: CourseCloRepository
+    -courseCloMapRepository: CourseCloMapRepository
+    +getAll(): List
+    +createClo(request: CloRequest): CourseCloEntity
+    +updateClo(cloId: String, request: CloRequest): CourseCloEntity
+  }
+  class RubricValidator <<DomainService, Proposed>> {
+    +validateClo(request: CloRequest): void
+    +validateRubric(request: RubricRequest): void
+    +validateMatrix(request: RubricMatrixRequest): void
+  }
+}
+
+package "repository" {
+  interface RubricRepository <<Repository>> {
+    +findAll(): List
+    +findById(id: String): Optional
+    +save(rubric: Rubric): Rubric
+  }
+  interface RubricCriteriaRepository <<Repository>> {
+    +findById(id: String): Optional
+    +save(criteria: RubricCriteria): RubricCriteria
+  }
+  interface RubricLevelRepository <<Repository>> {
+    +saveAll(levels: List): List
+  }
+  interface CourseCloRepository <<Repository>> {
+    +findAll(): List
+    +findByCloCode(code: String): Optional
+    +findByCloCodeAndCloIdNot(code: String, id: String): Optional
+    +save(clo: CourseCloEntity): CourseCloEntity
+  }
+  interface CourseCloMapRepository <<Repository>> {
+    +deleteByClo_CloId(cloId: String): void
+    +saveAll(mappings: List): List
+  }
+}
+
+package "entity" {
+  class Rubric <<Entity>> {
+    +rubricId: String
+    +lecturerId: String
+    +courseId: String
+    +rubricName: String
+    +status: RubricStatus
+    +description: String
+    +feedback: String
+  }
+  class RubricCriteria <<Entity>> {
+    +criteriaId: String
+    +cloId: String
+    +criteriaName: String
+    +weight: Float
+  }
+  class RubricLevel <<Entity>> {
+    +levelId: String
+    +levelName: String
+    +description: String
+    +score: Float
+  }
+  class CourseCloEntity <<Entity>> {
+    +cloId: String
+    +cloCode: String
+    +cloName: String
+    +description: String
+    +bloomLevel: String
+  }
+  class CourseCloMapEntity <<Entity>> {
+    +id: Long
+    +courseId: String
+  }
+}
+
+package "client" {
+  interface UserClient <<FeignClient>> {
+    +getLecturerByUserId(userId: String): LecturerResponse
+  }
+  interface CourseClient <<FeignClient>> {
+    +writeLog(request: SystemLogRequest): void
+  }
+  interface NotificationClient <<FeignClient>>
+}
+
+RubricController --> RubricService
+RubricMatrixController --> RubricMatrixService
+CourseCloController --> CourseCloService
+RubricService --> RubricValidator
+RubricMatrixService --> RubricValidator
+CourseCloService --> RubricValidator
+RubricService --> RubricRepository
+RubricService ..> UserClient
+RubricController ..> CourseClient
+RubricService --> RubricCriteriaRepository
+RubricService --> RubricLevelRepository
+CourseCloService --> CourseCloRepository
+CourseCloService --> CourseCloMapRepository
+Rubric "1" *-- "1..*" RubricCriteria
+RubricCriteria "1" *-- "1..*" RubricLevel
+CourseCloEntity "1" *-- "0..*" CourseCloMapEntity
+RubricCriteria "0..*" ..> "0..1" CourseCloEntity : cloId
+CLOManagement --> RubricApi
+CreateRubricModal --> RubricApi
+RubricMatrixEditor --> RubricApi
+RubricApi ..> CourseCloController
+RubricApi ..> RubricController
+RubricApi ..> RubricMatrixController
+
+note right of RubricValidator
+  Lớp đề xuất để backend thực thi tập trung
+  các ràng buộc E1, E2 và E3 của UC-14.
+end note
+
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+autonumber
+title UC-34 Phân tích chuẩn đầu ra OBE
+actor "Trưởng bộ môn" as TBM
+boundary "OBEDashboard" as UI
+control "OBEController" as C
+control "OBEService" as S
+participant "GradingClient" as GC
+participant "RubricClient" as RC
+database "CourseRepository" as DB
+TBM -> UI : Chọn học kỳ và lớp học phần
+UI -> C : getOBEForLecturer(offeringId)
+C -> S : getOBEForLecturer(offeringId)
+S -> GC : getGradesByAssessments(assessmentIds)
+S -> RC : getRubricMatrices()
+S -> S : aggregateCloAttainment(...)
+alt Chưa đủ dữ liệu hoặc ánh xạ
+  S --> UI : Trạng thái chưa đủ dữ liệu
+else Đủ dữ liệu
+  S --> UI : OBELecturerProcessResponse
+  TBM -> UI : Chọn một CLO
+  UI -> C : getCloDetail(offeringId, cloId)
+  C -> S : getCloDetail(offeringId, cloId)
+  S -> DB : loadCloEvidence(...)
+  DB --> UI : OBECloDetailResponse
+end
+@enduml

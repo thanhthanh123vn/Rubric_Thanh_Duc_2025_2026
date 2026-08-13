@@ -1,0 +1,24 @@
+@startuml
+title UC-07 Điểm danh bằng QR và GPS
+|Giảng viên|
+start
+:Nhập thời gian, tọa độ và bán kính;
+|Hệ thống|
+:Tạo phiên, token và mã QR;
+|Sinh viên|
+:Quét QR và cho phép GPS;
+|Hệ thống|
+:Kiểm tra lớp, token và thời gian;
+if (Phiên hợp lệ?) then (Có)
+  :Kiểm tra lượt trùng và khoảng cách;
+  if (Đủ điều kiện?) then (Có)
+    :Lưu trạng thái có mặt;
+    :Thông báo thành công;
+  else (Không)
+    :Từ chối và hiển thị lý do;
+  endif
+else (Không)
+  :Thông báo QR hết hạn;
+endif
+stop
+@enduml

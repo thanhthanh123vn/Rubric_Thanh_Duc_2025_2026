@@ -1,9 +1,24 @@
 import {notificationServiceApi} from "@/services/axiosConfig";
 
+export type NotificationItem = {
+    id: string;
+    title: string;
+    content: string;
+    isRead: boolean;
+    createdAt: string;
+    referenceUrl?: string | null;
+    courseId?: string | null;
+    notificationType?: string | null;
+    senderId?: string | null;
+    senderName?: string | null;
+    senderAvatar?: string | null;
+};
+
 export const notificationApi = {
 
-    getNotifications: () => {
-        return notificationServiceApi.get(`/getNotification/me`);
+    getNotifications: async () => {
+        const response = await notificationServiceApi.get<NotificationItem[]>(`/getNotification/me`);
+        return response.data;
     },
 
 

@@ -1,0 +1,38 @@
+@startuml ApiGatewayClassDiagram
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+title SƠ ĐỒ LỚP TỔNG QUAN API GATEWAY
+
+package "root" {
+  class ApiGatewayApplication <<Application>> {
+    +main(args: String[]): void
+  }
+}
+
+package "filter" {
+  class JwtAuthenticationFilter <<GatewayFilter>> {
+    -jwtUtils: JwtUtils
+    +JwtAuthenticationFilter()
+    +apply(config: Config): GatewayFilter
+    -onError(exchange: ServerWebExchange, error: String, status: HttpStatus): Mono
+  }
+  class Config <<Configuration>>
+}
+
+package "util" {
+  class JwtUtils <<Utility>> {
+    -secretKey: String
+    -getSignKey(): Key
+    +validateAndExtractClaims(token: String): Claims
+  }
+}
+
+JwtAuthenticationFilter --> JwtUtils
+JwtAuthenticationFilter *-- Config
+
+@enduml

@@ -1,0 +1,21 @@
+@startuml EurekaServerClassDiagram
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+
+title SƠ ĐỒ LỚP TỔNG QUAN EUREKA SERVER
+
+package "root" {
+  class EurekaServerApplication <<Application>> {
+    +main(args: String[]): void
+  }
+}
+
+note right of EurekaServerApplication
+  Lớp khởi động kích hoạt Eureka Server
+  bằng EnableEurekaServer.
+end note
+
+@enduml

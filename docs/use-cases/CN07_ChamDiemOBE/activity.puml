@@ -1,0 +1,27 @@
+@startuml
+title UC-15 Chấm điểm, phản hồi và xem kết quả OBE
+|Giảng viên|
+start
+:Mở bài nộp và Rubric;
+|Hệ thống|
+:Tải đúng phiên bản Rubric;
+|Giảng viên|
+:Chọn mức cho từng tiêu chí;
+:Nhập phản hồi và nhấn Lưu;
+|Hệ thống|
+:Kiểm tra các mức đã chọn;
+if (Đã chấm đủ và hợp lệ?) then (Có)
+  :Tính lại điểm tại máy chủ;
+  :Lưu Grade và RubricResult;
+  |Giảng viên|
+  :Công bố kết quả;
+  |Hệ thống|
+  :Tổng hợp mức đạt CLO;
+  :Thông báo cho sinh viên;
+  |Sinh viên|
+  :Xem điểm, phản hồi và biểu đồ;
+else (Không)
+  :Hiển thị tiêu chí cần sửa;
+endif
+stop
+@enduml

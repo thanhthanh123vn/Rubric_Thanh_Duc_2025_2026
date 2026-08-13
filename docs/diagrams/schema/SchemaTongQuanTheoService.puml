@@ -1,0 +1,57 @@
+@startuml SchemaTongQuanTheoService
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam ArrowColor #475569
+
+title ĐỀ XUẤT DATABASE PER SERVICE
+
+component "User Service" as UserService
+component "Course Service" as CourseService
+component "Rubric Service" as RubricService
+component "Grading Service" as GradingService
+component "Notification Service" as NotificationService
+component "API Gateway" as Gateway
+component "Eureka Server" as Eureka
+
+database "user_db\nMySQL" as UserDB
+database "course_db\nMySQL" as CourseDB
+database "course_document_db\nMongoDB" as CourseMongo
+database "rubric_db\nMySQL" as RubricDB
+database "grading_db\nMySQL" as GradingDB
+database "notification_db\nMySQL" as NotificationDB
+database "notification_cache\nRedis" as NotificationRedis
+cloud "S3 Object Storage" as S3
+
+UserService --> UserDB : sở hữu
+CourseService --> CourseDB : sở hữu
+CourseService --> CourseMongo : sở hữu
+CourseService --> S3 : lưu tệp
+RubricService --> RubricDB : sở hữu
+GradingService --> GradingDB : sở hữu
+NotificationService --> NotificationDB : sở hữu
+NotificationService --> NotificationRedis : phát sự kiện
+
+CourseService ..> UserService : lấy hồ sơ sinh viên
+RubricService ..> CourseService : kiểm tra môn học
+GradingService ..> CourseService : lấy bài nộp và bài đánh giá
+GradingService ..> RubricService : lấy cấu trúc Rubric
+CourseService ..> NotificationService : gửi sự kiện học tập
+RubricService ..> NotificationService : gửi sự kiện phê duyệt
+GradingService ..> NotificationService : gửi sự kiện cập nhật điểm
+
+Gateway ..> UserService
+Gateway ..> CourseService
+Gateway ..> RubricService
+Gateway ..> GradingService
+Gateway ..> NotificationService
+Gateway --> Eureka : khám phá dịch vụ
+
+note bottom of UserDB
+  Không service nào truy cập trực tiếp
+  database thuộc service khác.
+end note
+
+@enduml

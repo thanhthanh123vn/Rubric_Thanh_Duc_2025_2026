@@ -1,0 +1,24 @@
+@startuml
+autonumber
+title UC-18 Quản lý ngân hàng câu hỏi
+actor "Giảng viên" as GV
+boundary "QuestionBankPage" as UI
+control "QuestionBankController" as BC
+control "QuestionBankService" as BS
+control "QuestionController" as QC
+database "QuestionBankRepository" as DB
+GV -> UI : Tạo kho câu hỏi
+UI -> BC : createBank(request, userId)
+BC -> BS : createQuestionBank(request, userId)
+BS -> DB : save(questionBank)
+GV -> UI : Thêm hoặc import câu hỏi
+UI -> QC : createQuestionToBank(request) / importQuestionsToBank(file)
+QC -> QC : validateQuestionData(...)
+alt Dữ liệu không hợp lệ
+  QC --> UI : Danh sách lỗi
+else Hợp lệ
+  QC -> DB : saveAll(questions)
+  DB --> UI : Danh sách câu hỏi
+  UI --> GV : Cập nhật thành công
+end
+@enduml

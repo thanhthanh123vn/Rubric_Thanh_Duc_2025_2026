@@ -1,0 +1,24 @@
+@startuml
+autonumber
+title UC-10 Quản lý nhóm và nhiệm vụ
+actor "Trưởng nhóm" as Leader
+boundary "GroupPage" as UI
+control "GroupController" as GC
+control "GroupService" as GS
+control "GroupTaskController" as TC
+control "GroupTaskService" as TS
+control "ChatController" as CC
+database "GroupRepository" as DB
+Leader -> UI : Thêm thành viên
+UI -> GC : addMember(groupId, request)
+GC -> GS : addMember(groupId, memberId, requesterId)
+GS -> DB : save(groupMember)
+Leader -> UI : Giao nhiệm vụ
+UI -> TC : createTask(request, userId)
+TC -> TS : createTask(request, userId)
+TS -> DB : save(task)
+Leader -> UI : Gửi tin nhắn
+UI -> CC : sendMessage(conversationId, request)
+CC -> DB : save(message)
+DB --> UI : Cập nhật thành công
+@enduml

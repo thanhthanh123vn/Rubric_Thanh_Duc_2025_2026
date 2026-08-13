@@ -16,7 +16,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -177,8 +176,12 @@ public class NotificationService {
             dto.setTitle(notif.getTitle());
             dto.setContent(notif.getContent());
             dto.setRead(notif.isRead());
-            dto.setCreatedAt(LocalDateTime.from(notif.getCreatedAt()));
+            dto.setCreatedAt(notif.getCreatedAt());
             dto.setReferenceUrl(notif.getReferenceUrl());
+            dto.setCourseId(notif.getCourseId());
+            dto.setNotificationType(
+                    notif.getNotificationType() != null ? notif.getNotificationType().name() : null
+            );
             dto.setSenderId(notif.getSenderId());
 
 

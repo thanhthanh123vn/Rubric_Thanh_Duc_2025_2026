@@ -1,0 +1,28 @@
+@startuml PackageDiagramEurekaServer
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+title EUREKA SERVER
+
+package "root" {
+  class EurekaServerApplication <<Application>>
+}
+
+component "User Service" as UserService
+component "Course Service" as CourseService
+component "Rubric Service" as RubricService
+component "Grading Service" as GradingService
+component "Notification Service" as NotificationService
+component "API Gateway" as Gateway
+
+UserService ..> EurekaServerApplication : đăng ký dịch vụ
+CourseService ..> EurekaServerApplication : đăng ký dịch vụ
+RubricService ..> EurekaServerApplication : đăng ký dịch vụ
+GradingService ..> EurekaServerApplication : đăng ký dịch vụ
+NotificationService ..> EurekaServerApplication : đăng ký dịch vụ
+Gateway --> EurekaServerApplication : khám phá dịch vụ
+
+@enduml

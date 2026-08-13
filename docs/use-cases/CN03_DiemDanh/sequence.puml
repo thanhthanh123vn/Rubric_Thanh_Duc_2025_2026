@@ -1,0 +1,21 @@
+@startuml
+autonumber
+title UC-03 Điểm danh bằng QR và GPS
+actor "Sinh viên" as SV
+boundary "AttendancePage" as UI
+control "StudentAttendanceController" as C
+control "StudentAttendanceService" as S
+database "AttendanceRepository" as R
+SV -> UI : Quét QR và cho phép GPS
+UI -> C : checkIn(request, studentId)
+C -> S : checkIn(studentId, request)
+S -> R : findSessionByToken(token)
+S -> S : validateTimeAndDistance(location)
+alt Không hợp lệ
+  S --> UI : AttendanceException
+else Hợp lệ
+  S -> R : save(attendance)
+  R --> UI : AttendanceCheckInResponse
+  UI --> SV : Điểm danh thành công
+end
+@enduml

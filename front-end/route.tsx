@@ -96,6 +96,7 @@ import AdminNotifications from "@/pages/admin/system/AdminNotifications.tsx";
 import SystemLogPage from "@/pages/admin/system/SystemLogPage.tsx";
 import StudentTranscript from "@/pages/admin/system/StudentTranscript.tsx";
 import StudentTranscriptView from "@/features/course/student/components/StudentTranscriptView.tsx";
+import CourseNotifications from "@/features/course/student/components/CourseNotifications.tsx";
 
 export const router = createBrowserRouter([
 
@@ -145,6 +146,10 @@ export const router = createBrowserRouter([
     {
         path: "/course/:id/evaluations",
         Component: CourseEvaluations,
+    },
+    {
+        path: "/course/:id/notifications",
+        Component: CourseNotifications,
     },
     {
         path: "/course/:id/groups",

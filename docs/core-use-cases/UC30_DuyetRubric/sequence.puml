@@ -1,0 +1,26 @@
+@startuml
+autonumber
+title UC-30 Phê duyệt Rubric
+actor "Trưởng bộ môn" as TBM
+boundary "RubricApprovalPage" as UI
+control "RubricController" as C
+control "RubricService" as S
+participant "NotificationClient" as NC
+database "RubricRepository" as DB
+TBM -> UI : Mở Rubric chờ duyệt
+UI -> C : getRubricsForApproval(userId, PENDING)
+C -> S : getRubricsForApproval(userId, PENDING)
+S -> DB : findPendingByDepartment(...)
+DB --> UI : Danh sách Rubric
+TBM -> UI : Phê duyệt hoặc yêu cầu sửa
+UI -> C : reviewRubric(id, request)
+C -> S : reviewRubric(id, reviewerId, request)
+S -> DB : findById(id)
+alt Trạng thái hoặc quyền không hợp lệ
+  S --> UI : ApprovalException
+else Hợp lệ
+  S -> DB : save(rubricStatus, review)
+  S -> NC : notifyCreator(rubricId, status)
+  DB --> UI : Rubric đã cập nhật
+end
+@enduml

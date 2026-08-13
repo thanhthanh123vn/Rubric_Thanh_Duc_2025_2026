@@ -1,0 +1,21 @@
+@startuml
+title UC-16 Chấm điểm và phản hồi
+|Giảng viên|
+start
+:Chọn bài nộp;
+|Hệ thống|
+:Tải bài làm và Rubric;
+|Giảng viên|
+:Chọn mức hoặc nhập điểm;
+:Nhập nhận xét và nhấn Lưu;
+|Hệ thống|
+:Kiểm tra các tiêu chí;
+if (Kết quả hợp lệ?) then (Có)
+  :Tính lại điểm;
+  :Lưu Grade và RubricResult;
+  :Thông báo thành công;
+else (Không)
+  :Hiển thị tiêu chí cần sửa;
+endif
+stop
+@enduml

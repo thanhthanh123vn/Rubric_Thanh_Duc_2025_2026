@@ -1,0 +1,86 @@
+@startuml PackageDiagramTongQuan
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundCorner 10
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam PackageBorderColor #334155
+skinparam PackageBackgroundColor #F8FAFC
+skinparam ComponentBorderColor #0F766E
+skinparam ComponentBackgroundColor #F0FDFA
+
+title LƯỢC ĐỒ ĐÓNG GÓI TỔNG QUAN HỆ THỐNG
+
+rectangle "Frontend React" as Frontend {
+  package "pages" as FEPage
+  package "components" as FEComponent
+  package "features" as FEFeature
+  package "api" as FEApi
+  package "store" as FEStore
+
+  FEPage --> FEComponent : sử dụng
+  FEPage --> FEFeature : sử dụng
+  FEFeature --> FEApi : gọi
+  FEFeature --> FEStore : quản lý trạng thái
+}
+
+rectangle "Hạ tầng Microservices" as Infrastructure {
+  component "API Gateway" as Gateway
+  component "Eureka Server" as Eureka
+}
+
+rectangle "Backend Spring Boot" as Backend {
+  component "User Service" as UserService
+  component "Course Service" as CourseService
+  component "Rubric Service" as RubricService
+  component "Grading Service" as GradingService
+  component "Notification Service" as NotificationService
+}
+
+database "User Database" as UserDB
+database "Course Database" as CourseDB
+database "Rubric Database" as RubricDB
+database "Grading Database" as GradingDB
+database "Notification Database" as NotificationDB
+database "MongoDB" as MongoDB
+database "Redis" as Redis
+cloud "S3 Storage" as S3
+
+FEApi ..> Gateway : HTTP REST và WebSocket
+Gateway --> Eureka : tra cứu dịch vụ
+Gateway --> UserService : định tuyến
+Gateway --> CourseService : định tuyến
+Gateway --> RubricService : định tuyến
+Gateway --> GradingService : định tuyến
+Gateway --> NotificationService : định tuyến
+
+UserService ..> Eureka : đăng ký
+CourseService ..> Eureka : đăng ký
+RubricService ..> Eureka : đăng ký
+GradingService ..> Eureka : đăng ký
+NotificationService ..> Eureka : đăng ký
+
+CourseService ..> UserService : Feign Client
+CourseService ..> GradingService : Feign Client
+CourseService ..> NotificationService : Feign Client
+RubricService ..> UserService : Feign Client
+RubricService ..> CourseService : Feign Client
+RubricService ..> NotificationService : Feign Client
+GradingService ..> CourseService : Feign Client
+GradingService ..> RubricService : Feign Client
+GradingService ..> NotificationService : Feign Client
+NotificationService ..> UserService : Feign Client
+
+UserService --> UserDB
+CourseService --> CourseDB
+CourseService --> MongoDB
+CourseService --> S3
+RubricService --> RubricDB
+RubricService --> Redis
+GradingService --> GradingDB
+NotificationService --> NotificationDB
+NotificationService --> Redis
+
+@enduml

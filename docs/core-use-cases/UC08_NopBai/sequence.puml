@@ -1,0 +1,27 @@
+@startuml
+autonumber
+title UC-08 Nộp bài và xem phản hồi
+actor "Sinh viên" as SV
+boundary "AssessmentPage" as UI
+control "AssessmentController" as AC
+control "AssessmentService" as AS
+control "GradingController" as GC
+control "GradingService" as GS
+database "Submission / Grade Repository" as DB
+SV -> UI : Chọn tệp và nhấn Nộp bài
+UI -> AC : submitAssignment(assessmentId, studentId, files)
+AC -> AS : submitAssignment(...)
+AS -> AS : validateDeadlineAndFiles(...)
+alt Bài không hợp lệ
+  AS --> UI : SubmissionException
+else Hợp lệ
+  AS -> DB : save(submission)
+  DB --> UI : SubmissionResponse
+end
+SV -> UI : Xem kết quả
+UI -> GC : getGradeByStudentAndAssessment(...)
+GC -> GS : getGradeByStudentAndAssessmentId(...)
+GS -> DB : findGrade(...)
+DB --> UI : Điểm và phản hồi
+UI --> SV : Hiển thị kết quả
+@enduml

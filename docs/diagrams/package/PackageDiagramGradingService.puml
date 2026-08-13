@@ -1,0 +1,61 @@
+@startuml PackageDiagramGradingService
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+title GRADING SERVICE
+
+package "root" as RootPackage {
+  class GradingServiceApplication <<Application>>
+  class RubricClient <<FeignClient>>
+}
+
+package "controller" as ControllerPackage {
+  class GradingController <<RestController>>
+  class GradebookController <<RestController>>
+}
+
+package "service" as ServicePackage {
+  class GradingService <<Service>>
+}
+
+package "repository" as RepositoryPackage {
+  class GradeRepository <<Repository>>
+  class RubricResultRepository <<Repository>>
+  class FeedbackTemplateRepository <<Repository>>
+}
+
+package "entity" as EntityPackage {
+  class Grade <<Entity>>
+  class RubricResult <<Entity>>
+  class CriteriaGrade <<ValueObject>>
+  class FeedbackTemplate <<Entity>>
+}
+
+package "dto" as DtoPackage {
+  class GradeRequest <<Request>>
+  class SaveGradesRequest <<Request>>
+  class StudentGradeDto <<Request>>
+  class GradebookResponse <<Response>>
+  class StudentScoreDto <<Response>>
+  class AssessmentDto <<Response>>
+}
+
+package "client" as ClientPackage {
+  class CourseClient <<FeignClient>>
+  class NotificationClient <<FeignClient>>
+}
+
+RootPackage --> ControllerPackage : khởi tạo
+ServicePackage ..> RootPackage : gọi Rubric Service
+ControllerPackage --> ServicePackage : sử dụng
+ControllerPackage ..> DtoPackage : nhận và trả dữ liệu
+ServicePackage --> RepositoryPackage : truy cập dữ liệu
+ServicePackage ..> ClientPackage : gọi dịch vụ
+ServicePackage ..> DtoPackage : chuyển đổi
+RepositoryPackage --> EntityPackage : quản lý
+
+@enduml

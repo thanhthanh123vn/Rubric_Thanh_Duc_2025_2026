@@ -1,0 +1,26 @@
+@startuml
+autonumber
+title UC-03 Xem đánh giá Rubric
+actor "Sinh viên" as SV
+boundary "RubricResultPage" as UI
+control "RubricController" as RC
+control "RubricService" as RS
+control "GradingController" as GC
+control "GradingService" as GS
+database "Rubric / Grade Repository" as DB
+SV -> UI : Chọn bài đánh giá
+UI -> RC : getRubricMatrixDetail(rubricId)
+RC -> RS : getRubricMatrixDetail(rubricId)
+RS -> DB : findRubricWithCriteria(rubricId)
+DB --> UI : RubricMatrixResponse
+UI -> GC : getGradeByStudentAndAssessment(studentId, assessmentId)
+GC -> GS : getGradeByStudentAndAssessmentId(...)
+GS -> DB : findGrade(...)
+alt Đã có kết quả
+  DB --> UI : Grade và RubricResult
+  UI --> SV : Hiển thị điểm và phản hồi
+else Chưa chấm
+  DB --> UI : Không có Grade
+  UI --> SV : Hiển thị Rubric, trạng thái chờ
+end
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+title UC-30 Phê duyệt Rubric
+|Trưởng bộ môn|
+start
+:Mở danh sách Rubric chờ duyệt;
+|Hệ thống|
+:Tải Rubric theo bộ môn;
+|Trưởng bộ môn|
+:Xem CLO, tiêu chí, mức và trọng số;
+:Nhập nhận xét;
+if (Đồng ý phê duyệt?) then (Có)
+  :Chọn Phê duyệt;
+  |Hệ thống|
+  :Cập nhật trạng thái APPROVED;
+else (Không)
+  :Chọn Yêu cầu chỉnh sửa;
+  |Hệ thống|
+  :Lưu nhận xét và trạng thái trả về;
+endif
+:Ghi nhật ký và gửi thông báo;
+stop
+@enduml

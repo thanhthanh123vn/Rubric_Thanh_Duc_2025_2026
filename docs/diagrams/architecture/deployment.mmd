@@ -1,0 +1,41 @@
+flowchart TB
+    U["Browser"]
+    subgraph HOST["Ubuntu 192.168.181.134"]
+        subgraph NET["Docker network: lms-network"]
+            FE["React + Nginx :80<br/>only published container"]
+            GW["API Gateway :8080"]
+            EU["Eureka :8761"]
+            US["User :8081"]
+            CS["Course :8082"]
+            RS["Rubric :8083"]
+            NS["Notification :8084"]
+            GS["Grading :8085"]
+            DB["MariaDB :3306"]
+            MDB["MongoDB :27017"]
+            REDIS["Redis :6379"]
+
+            FE -->|"/api/**"| GW
+            FE -->|"/oauth2/**"| US
+            FE -->|"/ws"| CS
+            FE -->|"/ws-notifications"| NS
+            GW --> US
+            GW --> CS
+            GW --> RS
+            GW --> NS
+            GW --> GS
+            GW -.-> EU
+            US -.-> EU
+            CS -.-> EU
+            RS -.-> EU
+            NS -.-> EU
+            GS -.-> EU
+            US --> DB
+            CS --> DB
+            RS --> DB
+            NS --> DB
+            GS --> DB
+            CS --> MDB
+            NS --> REDIS
+        end
+    end
+    U -->|"HTTP 192.168.181.134:80"| FE

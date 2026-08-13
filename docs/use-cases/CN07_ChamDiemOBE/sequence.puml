@@ -1,0 +1,28 @@
+@startuml
+autonumber
+title UC-15 Chấm điểm, phản hồi và xem kết quả OBE
+actor "Giảng viên" as GV
+actor "Sinh viên" as SV
+boundary "GradingPage" as UI
+control "GradingController" as C
+control "GradingService" as S
+control "OBEController" as OC
+control "OBEService" as OS
+database "GradeRepository" as R
+GV -> UI : Chọn mức Rubric và nhập phản hồi
+UI -> C : submitGrade(request)
+C -> S : processGrading(request)
+S -> S : validateAndCalculate(request)
+alt Thiếu hoặc sai mức Rubric
+  S --> UI : Thông báo lỗi
+else Hợp lệ
+  S -> R : save(grade, rubricResults)
+  R --> UI : Lưu thành công
+  SV -> UI : Xem kết quả CLO
+  UI -> OC : getCloDetail(offeringId, cloId)
+  OC -> OS : getCloDetail(offeringId, cloId)
+  OS -> R : aggregateCloResults(...)
+  R --> UI : OBECloDetailResponse
+  UI --> SV : Điểm, phản hồi và biểu đồ
+end
+@enduml

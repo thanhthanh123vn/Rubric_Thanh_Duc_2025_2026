@@ -1,0 +1,23 @@
+@startuml
+title UC-12 Quản lý lớp học
+|Giảng viên|
+start
+:Chọn lớp được phân công;
+|Hệ thống|
+:Hiển thị thông tin và sinh viên;
+|Giảng viên|
+:Thêm hoặc xóa sinh viên;
+|Hệ thống|
+:Kiểm tra quyền và ghi danh;
+if (Hợp lệ?) then (Có)
+  :Cập nhật thành viên lớp;
+  |Giảng viên|
+  :Tải giáo trình hoặc tạo bài đăng;
+  |Hệ thống|
+  :Kiểm tra và lưu nội dung;
+  :Thông báo cho sinh viên;
+else (Không)
+  :Thông báo lỗi;
+endif
+stop
+@enduml

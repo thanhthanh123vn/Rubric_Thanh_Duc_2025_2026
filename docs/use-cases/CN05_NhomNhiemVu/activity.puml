@@ -1,0 +1,23 @@
+@startuml
+title UC-05 Quản lý nhóm, nhiệm vụ và trò chuyện
+|Giảng viên / Trưởng nhóm|
+start
+:Tạo hoặc chọn nhóm;
+|Hệ thống|
+:Kiểm tra lớp và quyền quản lý;
+if (Hợp lệ?) then (Có)
+  |Giảng viên / Trưởng nhóm|
+  :Thêm thành viên và giao nhiệm vụ;
+  |Hệ thống|
+  :Kiểm tra và lưu dữ liệu nhóm;
+  :Thông báo nhiệm vụ mới;
+  |Thành viên|
+  :Xem nhiệm vụ và cập nhật trạng thái;
+  :Gửi tin nhắn nhóm;
+  |Hệ thống|
+  :Lưu và phát tin nhắn;
+else (Không)
+  :Thông báo không có quyền hoặc dữ liệu sai;
+endif
+stop
+@enduml

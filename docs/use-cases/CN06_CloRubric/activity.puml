@@ -1,0 +1,31 @@
+@startuml
+title UC-14 Quản lý đề cương và thiết lập Rubric
+|Giảng viên chính|
+start
+:Chọn học phần;
+|Hệ thống|
+:Hiển thị đề cương, CLO và Rubric;
+|Giảng viên chính|
+:Thêm hoặc sửa CLO;
+|Hệ thống|
+:Kiểm tra mã CLO;
+if (Mã CLO trùng?) then (Có)
+  :Thông báo yêu cầu đổi mã;
+else (Không)
+  :Lưu CLO;
+  |Giảng viên chính|
+  :Nhập Rubric, tiêu chí và trọng số;
+  :Liên kết tiêu chí với CLO;
+  :Nhập các mức thể hiện và điểm;
+  :Nhấn Lưu;
+  |Hệ thống|
+  :Kiểm tra trọng số, CLO và số mức;
+  if (Rubric hợp lệ?) then (Có)
+    :Lưu Rubric, tiêu chí và mức;
+    :Thông báo thành công;
+  else (Không)
+    :Hiển thị các dữ liệu cần sửa;
+  endif
+endif
+stop
+@enduml

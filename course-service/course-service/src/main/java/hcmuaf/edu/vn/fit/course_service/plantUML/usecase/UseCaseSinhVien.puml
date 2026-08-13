@@ -1,0 +1,136 @@
+@startuml UseCaseSinhVien
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 18
+skinparam packageStyle rectangle
+skinparam actorStyle stickman
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam ActorBorderColor #334155
+skinparam ActorFontColor #0F172A
+skinparam UsecaseBorderColor #0E7490
+skinparam UsecaseBackgroundColor #ECFEFF
+skinparam UsecaseFontColor #164E63
+skinparam PackageBorderColor #94A3B8
+skinparam PackageFontColor #334155
+skinparam RectangleBorderColor #475569
+
+title HỆ THỐNG HỌC TẬP TRỰC TUYẾN DÀNH CHO SINH VIÊN
+
+actor "Người dùng chung" as CommonUser
+actor "Sinh viên" as Student
+actor "Trưởng nhóm" as GroupLeader
+
+Student --|> CommonUser
+GroupLeader --|> Student
+
+rectangle "Hệ thống E-learning" {
+  package "1. Lớp học" as ClassPackage {
+    usecase "1.1 Xem danh sách\nlớp học" as ViewClasses
+    usecase "1.2 Xem chi tiết\nlớp học" as ViewClassDetail
+    usecase "1.3 Xem lịch học" as ViewSchedule
+  }
+
+  package "2. Nội dung lớp học" as ContentPackage {
+    usecase "2.1 Xem bài đăng" as ViewPosts
+    usecase "2.2 Bình luận bài đăng" as CommentPosts
+    usecase "2.3 Xem tài liệu học tập" as ViewMaterials
+    usecase "2.4 Xem thông báo lớp học" as ViewNotifications
+    usecase "2.5 Xem danh sách sinh viên" as ViewStudents
+  }
+
+  package "3. Điểm danh" as AttendancePackage {
+    usecase "3.1 Điểm danh bằng\nmã QR và GPS" as CheckIn
+    usecase "3.2 Xem lịch sử điểm danh" as ViewAttendance
+  }
+
+  package "4. Bài tập và dự án" as WorkPackage {
+    usecase "4.1 Xem bài tập và dự án" as ViewWork
+    usecase "4.2 Nộp bài tập và dự án" as SubmitWork
+    usecase "4.3 Hủy nộp bài" as CancelSubmission
+  }
+
+  package "5. Thi trực tuyến" as ExamPackage {
+    usecase "5.1 Xem danh sách bài thi" as ViewExams
+    usecase "5.2 Làm bài thi" as TakeExam
+    usecase "5.3 Nộp bài thi" as SubmitExam
+    usecase "5.4 Xem kết quả bài thi" as ViewExamResult
+    usecase "5.5 Xem đáp án chi tiết" as ViewAnswers
+  }
+
+  package "6. Kết quả học tập" as ResultPackage {
+    usecase "6.1 Xem điểm thành phần" as ViewComponentScores
+    usecase "6.2 Xem kết quả học phần" as ViewCourseResult
+    usecase "6.3 Xem đánh giá theo Rubric" as ViewRubric
+    usecase "6.4 Xem biểu đồ năng lực" as ViewCompetencyChart
+    usecase "6.5 Xem tiến độ chuẩn đầu ra" as ViewOutcomes
+    usecase "6.6 Xem bảng điểm" as ViewTranscript
+  }
+
+  package "7. Nhóm và nhiệm vụ" as GroupPackage {
+    usecase "7.1 Tạo nhóm" as CreateGroup
+    usecase "7.2 Xem thành viên" as ViewMembers
+    usecase "7.3 Chat nhóm" as GroupChat
+    usecase "7.4 Xem nhiệm vụ" as ViewTasks
+    usecase "7.5 Cập nhật nhiệm vụ" as UpdateTask
+    usecase "7.6 Nộp kết quả nhiệm vụ" as SubmitTaskResult
+    usecase "7.7 Quản lý thành viên" as ManageMembers
+    usecase "7.8 Giao nhiệm vụ" as AssignTask
+  }
+}
+
+Student --> ViewClasses
+Student --> ViewClassDetail
+Student --> ViewSchedule
+
+Student --> ViewPosts
+Student --> CommentPosts
+Student --> ViewMaterials
+Student --> ViewNotifications
+Student --> ViewStudents
+
+Student --> CheckIn
+Student --> ViewAttendance
+
+Student --> ViewWork
+Student --> SubmitWork
+Student --> CancelSubmission
+
+Student --> ViewExams
+Student --> TakeExam
+Student --> SubmitExam
+Student --> ViewExamResult
+
+Student --> ViewComponentScores
+Student --> ViewCourseResult
+Student --> ViewRubric
+Student --> ViewOutcomes
+Student --> ViewTranscript
+
+Student --> CreateGroup
+Student --> ViewMembers
+Student --> GroupChat
+Student --> ViewTasks
+Student --> UpdateTask
+Student --> SubmitTaskResult
+
+GroupLeader --> ManageMembers
+GroupLeader --> AssignTask
+
+ViewAnswers ..> ViewExamResult : <<extend>>
+ViewCompetencyChart ..> ViewRubric : <<extend>>
+
+note right of CheckIn
+  Hệ thống kiểm tra mã QR,
+  thời gian và vị trí GPS.
+end note
+
+note right of GroupLeader
+  Trưởng nhóm có quyền thêm thành viên,
+  xóa thành viên, thay đổi vai trò
+  và giao nhiệm vụ.
+end note
+
+@enduml

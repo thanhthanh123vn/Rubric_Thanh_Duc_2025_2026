@@ -1,0 +1,37 @@
+@startuml PackageDiagramApiGateway
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+title API GATEWAY
+
+package "root" as Root {
+  class ApiGatewayApplication <<Application>>
+}
+
+package "filter" as Filter {
+  class JwtAuthenticationFilter <<GatewayFilter>>
+}
+
+package "util" as Util {
+  class JwtUtils <<Utility>>
+}
+
+ApiGatewayApplication --> JwtAuthenticationFilter : cấu hình
+JwtAuthenticationFilter --> JwtUtils : xác thực token
+JwtAuthenticationFilter ..> UserService : chuyển thông tin người dùng
+JwtAuthenticationFilter ..> CourseService : chuyển thông tin người dùng
+JwtAuthenticationFilter ..> RubricService : chuyển thông tin người dùng
+JwtAuthenticationFilter ..> GradingService : chuyển thông tin người dùng
+JwtAuthenticationFilter ..> NotificationService : chuyển thông tin người dùng
+
+component UserService
+component CourseService
+component RubricService
+component GradingService
+component NotificationService
+
+@enduml

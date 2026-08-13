@@ -1,0 +1,340 @@
+@startuml ClassDiagramSinhVien
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam ClassBorderColor #0F766E
+skinparam ClassBackgroundColor #F0FDFA
+skinparam ClassFontColor #134E4A
+skinparam PackageBorderColor #94A3B8
+skinparam PackageFontColor #334155
+skinparam ArrowColor #475569
+hide empty methods
+hide circle
+
+title LƯỢC ĐỒ LỚP CHO CHỨC NĂNG SINH VIÊN
+
+package "User Service" {
+  class User <<Entity>> {
+    +userId: String
+    +username: String
+    +email: String
+    +fullName: String
+    +role: String
+    +avatarUrl: String
+  }
+
+  class SinhVien <<Entity>> {
+    +studentId: String
+    +fullName: String
+    +className: String
+    +major: String
+    +dateOfBirth: LocalDate
+    +phoneNumber: String
+  }
+
+  User "1" -- "0..1" SinhVien : hồ sơ
+}
+
+package "Course Service" {
+  class Course <<Entity>> {
+    +courseId: String
+    +courseCode: String
+    +courseName: String
+    +credits: Integer
+    +description: String
+  }
+
+  class CourseOffering <<Entity>> {
+    +offeringId: String
+    +offeringName: String
+    +semester: String
+    +academicYear: String
+    +startDate: LocalDate
+    +endDate: LocalDate
+    +status: String
+  }
+
+  class Enrollment <<Entity>> {
+    +enrollmentId: String
+    +studentId: String
+    +status: EnrollmentStatus
+    +attendanceScore: Float
+    +assignmentScore: Float
+    +finalScore: Float
+    +totalScore: Float
+    +letterGrade: String
+  }
+
+  class CourseSchedule <<Entity>> {
+    +scheduleId: String
+    +room: String
+    +dayOfWeek: Integer
+    +startTime: LocalTime
+    +endTime: LocalTime
+  }
+
+  class Post <<Document>> {
+    +id: String
+    +offeringId: String
+    +authorId: String
+    +title: String
+    +content: String
+    +fileIds: List
+    +createdAt: LocalDateTime
+  }
+
+  class Comment <<Entity>> {
+    +commentId: String
+    +userId: String
+    +content: String
+    +createdAt: Timestamp
+  }
+
+  class AttendanceSession <<Entity>> {
+    +sessionId: String
+    +offeringId: String
+    +startTime: LocalDateTime
+    +endTime: LocalDateTime
+    +latitude: Double
+    +longitude: Double
+    +radius: Double
+    +qrToken: String
+    +status: AttendanceSessionStatus
+  }
+
+  class Attendance <<Entity>> {
+    +attendanceId: String
+    +studentId: String
+    +status: AttendanceStatus
+    +checkinTime: LocalDateTime
+    +latitude: Double
+    +longitude: Double
+    +distance: Double
+    +method: AttendanceMethod
+  }
+
+  class Assessment <<Entity>> {
+    +assessmentId: String
+    +rubricId: String
+    +assessmentName: String
+    +assessmentType: String
+    +weight: Float
+    +startTime: Timestamp
+    +endTime: Timestamp
+    +durationMinutes: Integer
+  }
+
+  class Submission <<Entity>> {
+    +id: String
+    +assessmentId: String
+    +studentId: String
+    +rubricId: String
+    +gradeCore: Double
+    +submittedLink: String
+    +submittedAt: LocalDateTime
+    +status: String
+  }
+
+  class SubmissionAttachment <<Entity>> {
+    +id: String
+    +attachmentType: String
+    +attachmentUrl: String
+    +originalName: String
+  }
+
+  class CourseCLO <<Entity>> {
+    +cloId: String
+    +cloCode: String
+    +description: String
+    +bloomLevel: String
+  }
+
+  class AssessmentCLO <<Entity>> {
+    +assessmentCloId: String
+    +cloWeight: Double
+  }
+
+  class AssessmentPaper <<Document>> {
+    +id: String
+    +assessmentId: String
+    +examTitle: String
+    +durationMinutes: Integer
+    +startTime: Instant
+    +endTime: Instant
+    +questionIds: List
+  }
+
+  class Question <<Document>> {
+    +id: String
+    +content: String
+    +type: QuestionType
+    +difficulty: Difficulty
+    +score: Double
+    +expectedAnswer: String
+  }
+
+  class StudentExamAssignment <<Document>> {
+    +id: String
+    +assessmentPaperId: String
+    +studentId: String
+    +status: StudentExamStatus
+    +startedAt: Instant
+    +submittedAt: Instant
+    +score: Double
+  }
+
+  class Group <<Entity>> {
+    +id: String
+    +createdById: String
+    +groupName: String
+    +topic: String
+    +createdAt: LocalDateTime
+  }
+
+  class Conversation <<Entity>> {
+    +id: String
+    +conversationType: ConversationType
+    +conversationName: String
+    +lastMessage: String
+  }
+
+  class Participant <<Entity>> {
+    +id: String
+    +userId: String
+    +participantRole: ParticipantRole
+  }
+
+  class Message <<Entity>> {
+    +messageId: String
+    +senderId: String
+    +content: String
+    +createdAt: Timestamp
+  }
+
+  class GroupTask <<Entity>> {
+    +id: String
+    +title: String
+    +description: String
+    +assigneeId: String
+    +assignerId: String
+    +status: TaskStatus
+    +deadline: LocalDateTime
+    +resultNote: String
+    +resultLink: String
+    +resultFileUrl: String
+  }
+
+  Course "1" *-- "0..*" CourseOffering : mở lớp
+  Course "1" *-- "0..*" CourseCLO : quy định
+  CourseOffering "1" *-- "0..*" Enrollment : ghi danh
+  CourseOffering "1" *-- "0..*" CourseSchedule : có lịch
+  CourseOffering "1" o-- "0..*" Post : có bài đăng
+  Post "1" o-- "0..*" Comment : có bình luận
+  CourseOffering "1" *-- "0..*" AttendanceSession : mở phiên
+  AttendanceSession "1" *-- "0..*" Attendance : ghi nhận
+  CourseOffering "1" *-- "0..*" Assessment : có bài đánh giá
+  Assessment "1" o-- "0..*" Submission : nhận bài nộp
+  Submission "1" *-- "0..*" SubmissionAttachment : đính kèm
+  Assessment "1" *-- "0..*" AssessmentCLO
+  CourseCLO "1" -- "0..*" AssessmentCLO
+  Assessment "1" .. "0..1" AssessmentPaper : tạo đề thi
+  AssessmentPaper "0..*" o-- "1..*" Question : chứa
+  AssessmentPaper "1" o-- "0..*" StudentExamAssignment : giao cho
+  CourseOffering "1" *-- "0..*" Group : có nhóm
+  Group "0..1" -- "0..*" Group : nhóm cha
+  Group "1" -- "1" Conversation : sử dụng
+  Group "1" *-- "0..*" GroupTask : có nhiệm vụ
+  Conversation "1" *-- "1..*" Participant : có thành viên
+  Conversation "1" *-- "0..*" Message : có tin nhắn
+}
+
+package "Rubric Service" {
+  class Rubric <<Entity>> {
+    +rubricId: String
+    +courseId: String
+    +rubricName: String
+    +status: RubricStatus
+    +description: String
+  }
+
+  class RubricCriteria <<Entity>> {
+    +criteriaId: String
+    +cloId: String
+    +criteriaName: String
+    +weight: Float
+  }
+
+  class RubricLevel <<Entity>> {
+    +levelId: String
+    +levelName: String
+    +description: String
+    +score: Float
+  }
+
+  Rubric "1" *-- "1..*" RubricCriteria : gồm
+  RubricCriteria "1" *-- "1..*" RubricLevel : có mức
+}
+
+package "Grading Service" {
+  class Grade <<Entity>> {
+    +id: Long
+    +submissionId: String
+    +assessmentId: String
+    +studentId: String
+    +rubricId: String
+    +totalScore: Double
+    +comment: String
+    +status: String
+  }
+
+  class RubricResult <<Entity>> {
+    +resultId: String
+    +submissionId: String
+    +criteriaId: String
+    +levelId: String
+    +calculatedScore: Double
+    +lecturerComment: String
+    +gradedAt: LocalDateTime
+  }
+}
+
+package "Notification Service" {
+  class Notification <<Entity>> {
+    +id: String
+    +senderId: String
+    +ownerId: String
+    +courseId: String
+    +title: String
+    +content: String
+    +isRead: Boolean
+    +notificationType: NotificationType
+  }
+}
+
+' Tham chiếu qua mã định danh giữa các service
+SinhVien "1" .. "0..*" Enrollment : studentId
+SinhVien "1" .. "0..*" Attendance : studentId
+SinhVien "1" .. "0..*" Submission : studentId
+SinhVien "1" .. "0..*" StudentExamAssignment : studentId
+SinhVien "1" .. "0..*" Participant : userId
+SinhVien "1" .. "0..*" Notification : ownerId
+
+Assessment "0..*" .. "0..1" Rubric : rubricId
+RubricCriteria "0..*" .. "0..1" CourseCLO : cloId
+Submission "1" .. "0..1" Grade : submissionId
+Submission "1" .. "0..*" RubricResult : submissionId
+RubricCriteria "1" .. "0..*" RubricResult : criteriaId
+RubricLevel "1" .. "0..*" RubricResult : levelId
+Course "1" .. "0..*" Notification : courseId
+
+legend bottom
+  Nét liền biểu diễn quan hệ trực tiếp trong mô hình dữ liệu.
+  Nét đứt biểu diễn tham chiếu bằng mã định danh giữa các microservice.
+endlegend
+
+@enduml

@@ -1,0 +1,77 @@
+@startuml PackageDiagramRubricService
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+title RUBRIC SERVICE
+
+package "root" as RootPackage {
+  class RubricServiceApplication <<Application>>
+}
+
+package "controller" as ControllerPackage {
+  class RubricController <<RestController>>
+  class RubricMatrixController <<RestController>>
+  class CourseCloController <<RestController>>
+}
+
+package "service" as ServicePackage {
+  class RubricService <<Service>>
+  class RubricMatrixService <<Service>>
+  class CourseCloService <<Service>>
+  class AttendanceRedisService <<Service>>
+}
+
+package "repository" as RepositoryPackage {
+  class RubricRepository <<Repository>>
+  class RubricCriteriaRepository <<Repository>>
+  class RubricLevelRepository <<Repository>>
+  class CourseCloRepository <<Repository>>
+  class CourseCloMapRepository <<Repository>>
+}
+
+package "entity" as EntityPackage {
+  class Rubric <<Entity>>
+  class RubricCriteria <<Entity>>
+  class RubricLevel <<Entity>>
+  class CourseCloEntity <<Entity>>
+  class CourseCloMapEntity <<Entity>>
+  enum RubricStatus
+}
+
+package "dto" as DtoPackage {
+  class RubricRequest <<Request>>
+  class CriterionRequest <<Request>>
+  class LevelRequest <<Request>>
+  class RubricMatrixRequest <<Request>>
+  class RubricResponse <<Response>>
+  class RubricMatrixResponse <<Response>>
+  class CriteriaResponse <<Response>>
+}
+
+package "mapper" as MapperPackage {
+  class RubricMatrixMapper <<Mapper>>
+}
+
+package "client" as ClientPackage {
+  class FeignConfig <<Configuration>>
+  class FeignClientInterceptor <<Interceptor>>
+  class UserClient <<FeignClient>>
+  class CourseClient <<FeignClient>>
+  class NotificationClient <<FeignClient>>
+}
+
+RootPackage --> ControllerPackage : khởi tạo
+ControllerPackage --> ServicePackage : sử dụng
+ControllerPackage ..> DtoPackage : nhận và trả dữ liệu
+ServicePackage --> RepositoryPackage : truy cập dữ liệu
+ServicePackage --> MapperPackage : chuyển đổi
+ServicePackage ..> ClientPackage : gọi dịch vụ
+RepositoryPackage --> EntityPackage : quản lý
+MapperPackage --> EntityPackage : ánh xạ
+MapperPackage ..> DtoPackage : ánh xạ
+
+@enduml

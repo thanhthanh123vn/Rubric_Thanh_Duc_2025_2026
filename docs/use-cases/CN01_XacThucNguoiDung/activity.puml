@@ -1,0 +1,26 @@
+@startuml
+title UC-01 Xác thực và quản lý người dùng
+|Người dùng|
+start
+:Nhập email và mật khẩu;
+:Nhấn Đăng nhập;
+|Hệ thống|
+:Kiểm tra dữ liệu bắt buộc;
+:Tìm tài khoản và kiểm tra mật khẩu;
+if (Thông tin hợp lệ?) then (Có)
+  :Tạo access token và refresh token;
+  :Xác định vai trò;
+  |Người dùng|
+  :Truy cập màn hình theo quyền;
+  if (Là quản trị viên?) then (Có)
+    :Chọn thêm, sửa hoặc xóa tài khoản;
+    |Hệ thống|
+    :Kiểm tra dữ liệu và quyền;
+    :Lưu thay đổi;
+    :Thông báo thành công;
+  endif
+else (Không)
+  :Thông báo đăng nhập thất bại;
+endif
+stop
+@enduml

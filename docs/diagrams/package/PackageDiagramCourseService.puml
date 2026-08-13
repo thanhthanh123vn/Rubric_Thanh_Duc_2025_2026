@@ -1,0 +1,204 @@
+@startuml PackageDiagramCourseService
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+
+title COURSE SERVICE
+
+package "root" as RootPackage {
+  class CourseServiceApplication <<Application>>
+}
+
+package "config" as ConfigPackage {
+  class SecurityConfig <<Configuration>>
+  class MultiDatabaseConfig <<Configuration>>
+  class WebSocketConfig <<Configuration>>
+  class S3Config <<Configuration>>
+}
+
+package "controller" as ControllerPackage {
+  class CourseController <<RestController>>
+  class CourseOfferingController <<RestController>>
+  class EnrollmentController <<RestController>>
+  class TopicController <<RestController>>
+  class PostController <<RestController>>
+  class AssessmentController <<RestController>>
+  class AssessmentPaperController <<RestController>>
+  class StudentExamController <<RestController>>
+  class AttendanceSessionController <<RestController>>
+  class StudentAttendanceController <<RestController>>
+  class GroupController <<RestController>>
+  class GroupTaskController <<RestController>>
+  class ChatController <<RestController>>
+  class GradeBookController <<RestController>>
+  class OBEController <<RestController>>
+}
+
+package "service" as ServicePackage {
+  class CourseService <<Service>>
+  class CourseOfferingService <<Service>>
+  class EnrollmentService <<Service>>
+  class ScheduleService <<Service>>
+  class TopicService <<Service>>
+  class PostService <<Service>>
+  class CommentService <<Service>>
+  class AssessmentService <<Service>>
+  class AssessmentPaperService <<Service>>
+  class StudentExamService <<Service>>
+  class AttendanceSessionService <<Service>>
+  class StudentAttendanceService <<Service>>
+  class GroupService <<Service>>
+  class GroupTaskService <<Service>>
+  class ConversationService <<Service>>
+  class MessageService <<Service>>
+  class GradebookService <<Service>>
+  class OBEService <<Service>>
+  class S3Service <<Service>>
+}
+
+package "repository.jpa" as JpaRepositoryPackage {
+  class CourseRepository <<Repository>>
+  class CourseOfferingRepository <<Repository>>
+  class EnrollmentRepository <<Repository>>
+  class CourseScheduleRepository <<Repository>>
+  class TopicRepository <<Repository>>
+  class CommentRepository <<Repository>>
+  class AssessmentRepository <<Repository>>
+  class AssessmentCLORepository <<Repository>>
+  class SubmissionRepository <<Repository>>
+  class SubmissionAttachmentRepository <<Repository>>
+  class AttendanceSessionRepository <<Repository>>
+  class AttendanceRepository <<Repository>>
+  class GroupRepository <<Repository>>
+  class GroupTaskRepository <<Repository>>
+  class ConversationRepository <<Repository>>
+  class ParticipantRepository <<Repository>>
+  class MessageRepository <<Repository>>
+  class CourseCLORepository <<Repository>>
+}
+
+package "repository.mongo" as MongoRepositoryPackage {
+  class PostRepository <<Repository>>
+  class QuestionRepository <<Repository>>
+  class QuestionBankRepository <<Repository>>
+  class AssessmentPaperRepository <<Repository>>
+  class StudentExamAssignmentRepository <<Repository>>
+}
+
+package "entity" as EntityPackage {
+  class Course <<Entity>>
+  class CourseOffering <<Entity>>
+  class Enrollment <<Entity>>
+  class CourseSchedule <<Entity>>
+  class Topic <<Entity>>
+  class Comment <<Entity>>
+  class Assessment <<Entity>>
+  class AssessmentCLO <<Entity>>
+  class SubmissionEntity <<Entity>>
+  class SubmissionAttachmentEntity <<Entity>>
+  class AttendanceSession <<Entity>>
+  class Attendance <<Entity>>
+  class Group <<Entity>>
+  class GroupTask <<Entity>>
+  class Conversation <<Entity>>
+  class Participant <<Entity>>
+  class Message <<Entity>>
+  class CourseCLO <<Entity>>
+  class SyllabusFile <<Entity>>
+  class Post <<Document>>
+  class Question <<Document>>
+  class QuestionBank <<Document>>
+  class AssessmentPaper <<Document>>
+  class StudentExamAssignment <<Document>>
+  class AnswerOption <<ValueObject>>
+}
+
+package "entity.enums" as EnumPackage {
+  enum AssessmentType
+  enum AttendanceStatus
+  enum AttendanceMethod
+  enum AttendanceSessionStatus
+  enum StudentExamStatus
+  enum QuestionType
+  enum ParticipantRole
+  enum TaskStatus
+  enum EnrollmentStatus
+}
+
+package "dto.request" as RequestPackage {
+  class CourseRequest <<Request>>
+  class CourseOfferingRequest <<Request>>
+  class AssessmentRequest <<Request>>
+  class GenerateExamRequest <<Request>>
+  class SubmitStudentExamRequest <<Request>>
+  class StudentAttendanceCheckInRequest <<Request>>
+  class GroupRequest <<Request>>
+  class GroupTaskRequest <<Request>>
+  class MessageRequest <<Request>>
+  class PostRequest <<Request>>
+}
+
+package "dto.response" as ResponsePackage {
+  class StudentCourseResponse <<Response>>
+  class CourseOfferingResponse <<Response>>
+  class AssessmentDetailResponse <<Response>>
+  class StudentExamResultResponse <<Response>>
+  class AttendanceHistoryResponse <<Response>>
+  class GroupResponse <<Response>>
+  class GroupTaskResponse <<Response>>
+  class MessageResponse <<Response>>
+  class CourseGradebookResponse <<Response>>
+  class OBEProgressResponse <<Response>>
+  class StudentTranscriptItemResponse <<Response>>
+}
+
+package "mapper" as MapperPackage {
+  class CourseMapper <<Mapper>>
+  class CourseScheduleMapper <<Mapper>>
+  class TopicMapper <<Mapper>>
+  class CommentMapper <<Mapper>>
+  class AssessmentMapper <<Mapper>>
+  class GroupMapper <<Mapper>>
+  class ConversationMapper <<Mapper>>
+  class ParticipantMapper <<Mapper>>
+  class MessageMapper <<Mapper>>
+  class QuestionMapper <<Mapper>>
+}
+
+package "client" as ClientPackage {
+  class FeignConfig <<Configuration>>
+  class FeignClientInterceptor <<Interceptor>>
+  class UserClient <<FeignClient>>
+  class GradingClient <<FeignClient>>
+  class NotificationClient <<FeignClient>>
+}
+
+package "exception" as ExceptionPackage {
+  class ApiExceptionHandler <<ExceptionHandler>>
+  class BadRequestException <<Exception>>
+  class ResourceNotFoundException <<Exception>>
+}
+
+ConfigPackage ..> ControllerPackage : cấu hình bảo mật
+RootPackage --> ConfigPackage : khởi tạo
+ClientPackage ..> ConfigPackage : sử dụng cấu hình
+ControllerPackage --> ServicePackage : sử dụng
+ControllerPackage ..> RequestPackage : nhận dữ liệu
+ControllerPackage ..> ResponsePackage : trả dữ liệu
+ControllerPackage ..> ExceptionPackage : xử lý lỗi
+ServicePackage --> JpaRepositoryPackage : truy cập MySQL
+ServicePackage --> MongoRepositoryPackage : truy cập MongoDB
+ServicePackage --> MapperPackage : chuyển đổi
+ServicePackage ..> ClientPackage : gọi dịch vụ
+ServicePackage ..> ResponsePackage : tạo kết quả
+JpaRepositoryPackage --> EntityPackage : quản lý
+MongoRepositoryPackage --> EntityPackage : quản lý
+EntityPackage ..> EnumPackage : sử dụng
+MapperPackage --> EntityPackage : ánh xạ
+MapperPackage ..> ResponsePackage : ánh xạ
+
+@enduml
