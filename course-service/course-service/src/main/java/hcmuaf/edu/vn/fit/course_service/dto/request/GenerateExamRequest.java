@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.course_service.dto.request;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 public class GenerateExamRequest {
@@ -13,7 +14,7 @@ public class GenerateExamRequest {
     private int mediumCount;
     private int hardCount;
 //    private String chapterId;
-    private String cloId;
+private List<String> cloIds;
 
     private String examTitle;
     private Integer durationMinutes;

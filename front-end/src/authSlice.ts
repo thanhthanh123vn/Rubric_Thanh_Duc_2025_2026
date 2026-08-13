@@ -9,11 +9,31 @@ interface AuthState {
     isAuthenticated: boolean;
 }
 
-const initialState: AuthState = {
-    user: null,
-    token: null,
-    isAuthenticated: false,
+const loadAuthFromStorage = (): AuthState => {
+    try {
+        const token = localStorage.getItem('token');
+        const userJson = localStorage.getItem('user');
+
+        if (token && userJson) {
+            return {
+                user: JSON.parse(userJson) as User,
+                token,
+                isAuthenticated: true,
+            };
+        }
+    } catch {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+    }
+
+    return {
+        user: null,
+        token: null,
+        isAuthenticated: false,
+    };
 };
+
+const initialState: AuthState = loadAuthFromStorage();
 
 const authSlice = createSlice({
     name: 'auth',
@@ -28,6 +48,8 @@ const authSlice = createSlice({
             state.isAuthenticated = true;
         },
         logout: (state) => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
             state.user = null;
             state.token = null;
             state.isAuthenticated = false;

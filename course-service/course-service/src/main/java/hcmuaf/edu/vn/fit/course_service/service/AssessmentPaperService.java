@@ -1,5 +1,6 @@
 package hcmuaf.edu.vn.fit.course_service.service;
 
+import ch.qos.logback.classic.Logger;
 import hcmuaf.edu.vn.fit.course_service.client.NotificationClient;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.GenerateExamRequest;
@@ -19,16 +20,16 @@ import hcmuaf.edu.vn.fit.course_service.repository.jpa.AssessmentRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.QuestionRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.StudentExamAssignmentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.logging.Log;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +47,8 @@ public class AssessmentPaperService {
     private final StudentExamAssignmentRepository studentExamAssignmentRepository;
     private final SubmissionRepository submissionRepository;
     private final CourseOfferingRepository courseOfferingRepository;
-
+    private final StringRedisTemplate redisTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public List<ExamQuestionDetailResponse> generateExamQuestions(String userId, GenerateExamRequest request) {
         // 1. Lấy tất cả câu hỏi hợp lệ từ Ngân hàng câu hỏi (Question Bank)
@@ -156,7 +158,6 @@ public class AssessmentPaperService {
                 .build();
 
         assessmentPaper = assessmentPaperRepository.save(assessmentPaper);
-
         return examQuestions;
     }
 //    public List<ExamQuestionDetailResponse> getAllExampleForLecturer(String offeringId){
@@ -217,18 +218,42 @@ public class AssessmentPaperService {
         }
 
         if (!assignments.isEmpty()) {
-            studentExamAssignmentRepository.saveAll(assignments);
+            // Lưu hàng loạt (Batch save) - Tốt cho hiệu năng
+            assignments = studentExamAssignmentRepository.saveAll(assignments);
         }
 
 
+        Map<String, Object> wsPayload = new HashMap<>();
+        wsPayload.put("assessmentPaperId", paper.getId());
+        wsPayload.put("examTitle", paper.getExamTitle());
+        wsPayload.put("durationMinutes", paper.getDurationMinutes());
+        wsPayload.put("questionCount", paper.getQuestionIds() != null ? paper.getQuestionIds().size() : 0);
+        wsPayload.put("startTime", paper.getStartTime() != null ? paper.getStartTime().toString() : null);
+        wsPayload.put("endTime", paper.getEndTime() != null ? paper.getEndTime().toString() : null);
+        wsPayload.put("status", "NOT_STARTED");
+
+
         for (StudentCourseProjection student : students) {
+
+
+
+                String courseId = paper.getSourceQuestionBankId();
+
+                String destination = String.format("/topic/course/%s/student/%s/exams", courseId, student.getId());
+
+                // Gán assignmentId (Nếu Frontend dùng làm key React). Lấy chính id của paper làm fallback
+                wsPayload.put("assignmentId", paper.getId());
+
+                messagingTemplate.convertAndSend(destination, wsPayload);
             try {
+
                 notificationClient.createNotification(
                         paper.getLecturerId(),
                         student.getId(),
                         "Bạn có đề thi mới",
                         "Giảng viên đã giao đề: " + (paper.getExamTitle() != null ? paper.getExamTitle() : "Đề thi")
                 );
+
             } catch (Exception ex) {
 
 
@@ -236,6 +261,7 @@ public class AssessmentPaperService {
             }
         }
     }
+
     public List<StudentAssignedExamResponse> getAssignedExamsForStudent(String studentId, String offeringId) {
         if (studentId == null || studentId.isBlank()) {
             throw new BadRequestException("studentId không hợp lệ");
@@ -280,16 +306,63 @@ public class AssessmentPaperService {
                     .build();
         }).filter(java.util.Objects::nonNull).toList();
     }
+    public void unlockExamSession(String examId, String studentId, String deviceToken) {
 
-    public LecturerExamDetailResponse getLecturerExamDetail(String paperId) {
+        String lockKey = "exam_lock:" + examId + ":" + studentId;
+
+        String lockedToken = redisTemplate.opsForValue().get(lockKey);
+        System.out.println("Không thể UnBlock"+lockedToken);
+        if (lockedToken == null) {
+            throw new ResourceNotFoundException("Phiên làm bài không tồn tại.");
+        }
+
+        if (!lockedToken.equals(deviceToken)) {
+            throw new IllegalArgumentException("Token không khớp.");
+        }
+
+        redisTemplate.delete(lockKey);
+
+
+    }
+    public void exitExam(
+            String paperId,
+            String studentId,
+            String token
+    ) {
+
+        String key =
+                "exam_lock:" + paperId + ":" + studentId;
+
+        String lockedToken =
+                redisTemplate.opsForValue().get(key);
+
+        if (lockedToken != null &&
+                lockedToken.equals(token)) {
+
+            redisTemplate.delete(key);
+        }
+    }
+    @Transactional
+    public LecturerExamDetailResponse getStudentExamToTake(String paperId, String studentId, String currentToken) {
 
         AssessmentPaper paper = assessmentPaperRepository.findById(paperId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đề thi với ID: " + paperId));
+        CourseOffering offering = courseOfferingRepository
+                .findById(paper.getSourceQuestionBankId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy học phần"));
+        String lockKey = "exam_lock:" + paperId + ":" + studentId;
+        String lockedToken = redisTemplate.opsForValue().get(lockKey);
 
-        // Lấy danh sách câu hỏi
+        if (lockedToken != null && !lockedToken.equals(currentToken)) {
+            throw new RuntimeException("Tài khoản của bạn đang làm bài thi này trên một thiết bị hoặc trình duyệt khác!");
+        }
+
+        // Thời gian làm bài + 5 phút dự phòng (hoặc lấy từ cấu hình paper)
+        long durationMinutes = paper.getDurationMinutes() + 5;
+        redisTemplate.opsForValue().set(lockKey, currentToken, Duration.ofMinutes(durationMinutes));
+
+        // 2. LẤY CÂU HỎI VÀ TÍNH ĐIỂM
         List<Question> questions = (List<Question>) questionRepository.findAllById(paper.getQuestionIds());
-
-        // 2. Tính lại điểm cho từng câu hỏi (Theo logic lúc generate)
         double totalWeight = 0;
         for (Question q : questions) {
             if (q.getDifficulty() == Difficulty.EASY) totalWeight += 1.0;
@@ -301,20 +374,6 @@ public class AssessmentPaperService {
         double currentTotalScore = 0.0;
         List<LecturerExamDetailResponse.ExamQuestionDetailDTO> questionDTOs = new ArrayList<>();
 
-
-        String finalOfferingId;
-        String courseName = "Môn học";
-        if (!questions.isEmpty()) {
-            finalOfferingId = questions.get(0).getOfferingId();
-
-            CourseOffering offering = courseOfferingRepository.findById(finalOfferingId).orElse(null);
-            if (offering != null && offering.getCourse() != null) {
-                courseName = offering.getCourse().getCourseName();
-            }
-        } else {
-            finalOfferingId = "";
-        }
-
         for (int i = 0; i < questions.size(); i++) {
             Question q = questions.get(i);
             double questionScore = 0.0;
@@ -323,76 +382,34 @@ public class AssessmentPaperService {
             else if (q.getDifficulty() == Difficulty.MEDIUM) questionScore = Math.round(2.0 * baseScorePerWeight * 100.0) / 100.0;
             else if (q.getDifficulty() == Difficulty.HARD) questionScore = Math.round(3.0 * baseScorePerWeight * 100.0) / 100.0;
 
-            // Xử lý câu cuối cùng để tròn 10 điểm
             if (i == questions.size() - 1) {
                 questionScore = Math.round((10.0 - currentTotalScore) * 100.0) / 100.0;
             } else {
                 currentTotalScore += questionScore;
             }
 
-
-            int correctIndex = -1;
-            if (q.getOptions() != null && !q.getOptions().isEmpty()) {
-                for (int j = 0; j < q.getOptions().size(); j++) {
-                    if (Boolean.TRUE.equals(q.getOptions().get(j).getCorrect())) {
-                        correctIndex = j;
-                        break;
-                    }
-                }
-            }
-
+            // BẢO MẬT: KHÔNG TÍNH TOÁN VÀ KHÔNG TRẢ VỀ correctIndex CHO SINH VIÊN
             questionDTOs.add(LecturerExamDetailResponse.ExamQuestionDetailDTO.builder()
                     .id(q.getId())
                     .content(q.getContent())
                     .difficulty(q.getDifficulty().name())
+                    .cloCode(q.getCloIds())
                     .points(questionScore)
                     .type(q.getType() != null ? q.getType().name() : "MULTIPLE_CHOICE")
                     .options(q.getOptions())
-                    .correctOptionIndex(correctIndex)
-                    .cloCode(q.getCloIds())
                     .build());
         }
-
-        // 3. Lấy thông tin sinh viên được giao bài thi
-        List<StudentExamAssignment> assignments = studentExamAssignmentRepository.findByAssessmentPaperId(paperId);
-
-        List<LecturerExamDetailResponse.StudentSubmissionRowDTO> submissionDTOs = assignments.stream().map(a -> {
-
-            SinhVienResponse sinhVienResponse = userClient.getSinhVien(a.getStudentId());
-
-
-            SubmissionEntity submission = submissionRepository
-                    .findByAssessmentIdAndStudentId(a.getAssessmentPaperId(), a.getStudentId())
-                    .orElse(null);
-
-
-
-            return LecturerExamDetailResponse.StudentSubmissionRowDTO.builder()
-                    .studentId(a.getStudentId())
-                    .studentName(sinhVienResponse != null ? sinhVienResponse.getFullName() : "N/A")
-                    .studentCode(sinhVienResponse != null ? sinhVienResponse.getUserId() : "N/A")
-                    .classCode(finalOfferingId)
-                    .score(submission != null ? submission.getGradeCore() : null)
-                    // Đã sửa lỗi ép kiểu thời gian
-                    .submitTime(submission != null && submission.getSubmittedAt() != null
-                            ? submission.getSubmittedAt().atZone(java.time.ZoneId.systemDefault()).toInstant()
-                            : null)
-                    .status(a.getStatus() != null ? a.getStatus().name() : "N/A")
-                    .build();
-        }).collect(Collectors.toList());
 
 
         return LecturerExamDetailResponse.builder()
                 .examId(paper.getId())
                 .examTitle(paper.getExamTitle())
-                .courseName(courseName)
-                .courseCode(finalOfferingId)
                 .durationMinutes(paper.getDurationMinutes())
                 .totalPoints(10.0)
-                .status(paper.getStatus())
-                .createdAt(paper.getCreatedAt())
                 .questions(questionDTOs)
-                .submissions(submissionDTOs)
+                .courseCode(offering.getOfferingId())
+                .courseName(offering.getOfferingName())
+                .status(paper.getStatus())
                 .build();
     }
     public AssessmentPaper updateExamPaper(String id, String userId, UpdateAssessmentPaperRequest request) {

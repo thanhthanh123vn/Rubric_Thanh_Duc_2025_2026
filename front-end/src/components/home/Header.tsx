@@ -6,6 +6,8 @@ import {enrollCourse} from "@/features/course/courseApi.ts";
 import {toast} from "sonner";
 import sinhVienService from "@/pages/admin/api/sinhVienService.ts";
 import {NotificationBell} from "@/components/home/NotificationBell.tsx";
+import authService from "@/user/api/authService.ts";
+import {useAppDispatch} from "@/hooks/useAppDispatch.ts";
 
 interface UserInfo {
     studentId: string;
@@ -80,10 +82,21 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router('/login');
+    const dispatch = useAppDispatch();
+
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+
+            // Chỉ khi API trả về 200 OK mới xóa và chuyển trang
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate('/login');
+        } catch (error) {
+            console.error("Lỗi khi đăng xuất backend:", error);
+            // Xem chi tiết lỗi API báo về là gì
+        }
     };
 
     if (!user) {
@@ -269,7 +282,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                             </h2>
 
                             <button
-                                onClick={() => router('/profile')}
+                                onClick={() => window.open("/profile", "_blank")}
                                 className="mt-4 px-4 sm:px-6 py-2 border border-gray-400 rounded-full text-xs sm:text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors"
                             >
                                 Quản lý Tài khoản

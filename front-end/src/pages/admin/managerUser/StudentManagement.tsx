@@ -11,6 +11,7 @@ import {
 import sinhVienService from "@/pages/admin/api/sinhVienService.ts";
 import type { StudentProfile } from "@/pages/admin/api/type.ts";
 import {enrollmentService} from "@/api/enrollmentApi.ts";
+import React from 'react';
 
 export default function StudentManagement() {
     // === STATES DANH SÁCH ===
@@ -217,46 +218,111 @@ export default function StudentManagement() {
                         <div className="flex"><span className="w-32 font-semibold">Số điện thoại:</span> <span>{viewingTranscriptStudent.phoneNumber || '---'}</span></div>
                     </div>
 
-                    <table className="w-full text-sm border-collapse mb-8 border border-slate-800">
-                        <thead>
-                        <tr className="bg-slate-100">
-                            <th className="border border-slate-800 py-2 px-3 text-center w-12">STT</th>
-                            <th className="border border-slate-800 py-2 px-3 text-left">Tên học phần</th>
-                            <th className="border border-slate-800 py-2 px-3 text-center w-20">Tín chỉ</th>
-                            <th className="border border-slate-800 py-2 px-3 text-center w-24">Tổng kết (H10)</th>
-                            <th className="border border-slate-800 py-2 px-3 text-center w-24">Điểm chữ</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {transcriptData.length > 0 ? (
-                            transcriptData.map((item, index) => (
-                                <tr key={item.enrollmentId || index}>
-                                    <td className="border border-slate-800 py-2 px-3 text-center">{index + 1}</td>
-                                    <td className="border border-slate-800 py-2 px-3 font-medium">{item.courseName}</td>
-                                    <td className="border border-slate-800 py-2 px-3 text-center">{item.credits || 3}</td>
-                                    <td className="border border-slate-800 py-2 px-3 text-center font-semibold">{item.totalScore?.toFixed(1)}</td>
-                                    <td className="border border-slate-800 py-2 px-3 text-center font-semibold">{item.letterGrade}</td>
+
+                    {(() => {
+
+                        const groupedData = transcriptData.reduce((acc, item) => {
+
+                            const key = `${item.academicYear}_${item.semester}`;
+                            if (!acc[key]) acc[key] = {
+                                academicYear: item.academicYear,
+                                semester: item.semester,
+                                items: []
+                            };
+                            acc[key].items.push(item);
+                            return acc;
+                        }, {} as Record<string, { academicYear: string, semester: string, items: any[] }>);
+
+
+                        const sortedGroups = Object.values(groupedData).sort((a, b) => {
+                            if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
+                            return a.semester.localeCompare(b.semester);
+                        });
+
+
+                        let cumulativeCredits = 0;
+                        let cumulativeScore = 0;
+
+                        return (
+                            <table className="w-full text-sm border-collapse mb-8 border border-slate-800">
+                                <thead>
+                                <tr className="bg-slate-100">
+                                    <th className="border border-slate-800 py-2 px-3 text-center w-12">STT</th>
+                                    <th className="border border-slate-800 py-2 px-3 text-left">Tên học phần</th>
+                                    <th className="border border-slate-800 py-2 px-3 text-center w-20">Tín chỉ</th>
+                                    <th className="border border-slate-800 py-2 px-3 text-center w-24">Tổng kết (H10)</th>
+                                    <th className="border border-slate-800 py-2 px-3 text-center w-24">Điểm chữ</th>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan={5} className="border border-slate-800 py-6 text-center text-slate-500">
-                                    Chưa có dữ liệu điểm cho sinh viên này.
-                                </td>
-                            </tr>
-                        )}
-                        </tbody>
-                        {transcriptData.length > 0 && (
-                            <tfoot>
-                            <tr className="font-bold bg-slate-50">
-                                <td colSpan={2} className="border border-slate-800 py-3 px-3 text-right">Tổng tín chỉ / ĐTB:</td>
-                                <td className="border border-slate-800 py-3 px-3 text-center">{totalCredits}</td>
-                                <td className="border border-slate-800 py-3 px-3 text-center text-blue-700">{avgScore}</td>
-                                <td className="border border-slate-800 py-3 px-3 text-center"></td>
-                            </tr>
-                            </tfoot>
-                        )}
-                    </table>
+                                </thead>
+                                <tbody>
+                                {sortedGroups.length > 0 ? (
+                                    sortedGroups.map((group, groupIndex) => {
+                                        let termCredits = 0;
+                                        let termScore = 0;
+
+                                        return (
+                                            <React.Fragment key={`group-${groupIndex}`}>
+                                                {/* Tiêu đề Học kỳ */}
+                                                <tr className="bg-slate-200 font-bold">
+                                                    <td colSpan={5} className="border border-slate-800 py-2 px-3 text-left uppercase">
+                                                        Học kỳ {group.semester} - Năm học {group.academicYear}
+                                                    </td>
+                                                </tr>
+
+                                                {/* Danh sách môn học trong học kỳ */}
+                                                {group.items.map((item, index) => {
+                                                    const credits = item.credits || 3;
+                                                    termCredits += credits;
+                                                    termScore += (item.totalScore || 0) * credits;
+                                                    cumulativeCredits += credits;
+                                                    cumulativeScore += (item.totalScore || 0) * credits;
+
+                                                    return (
+                                                        <tr key={item.enrollmentId || index}>
+                                                            <td className="border border-slate-800 py-2 px-3 text-center">{index + 1}</td>
+                                                            <td className="border border-slate-800 py-2 px-3 font-medium">{item.courseName}</td>
+                                                            <td className="border border-slate-800 py-2 px-3 text-center">{credits}</td>
+                                                            <td className="border border-slate-800 py-2 px-3 text-center font-semibold">{item.totalScore?.toFixed(1)}</td>
+                                                            <td className="border border-slate-800 py-2 px-3 text-center font-semibold">{item.letterGrade}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+
+                                                {/* Tổng kết học kỳ */}
+                                                <tr className="font-semibold bg-slate-50 italic">
+                                                    <td colSpan={2} className="border border-slate-800 py-2 px-3 text-right">Trung bình học kỳ:</td>
+                                                    <td className="border border-slate-800 py-2 px-3 text-center">{termCredits}</td>
+                                                    <td className="border border-slate-800 py-2 px-3 text-center text-blue-700">
+                                                        {termCredits > 0 ? (termScore / termCredits).toFixed(2) : "0.00"}
+                                                    </td>
+                                                    <td className="border border-slate-800 py-2 px-3 text-center"></td>
+                                                </tr>
+                                            </React.Fragment>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="border border-slate-800 py-6 text-center text-slate-500">
+                                            Chưa có dữ liệu điểm cho sinh viên này.
+                                        </td>
+                                    </tr>
+                                )}
+                                </tbody>
+                                {transcriptData.length > 0 && (
+                                    <tfoot>
+                                    <tr className="font-bold bg-blue-50 text-base">
+                                        <td colSpan={2} className="border border-slate-800 py-4 px-3 text-right uppercase">Trung bình tích lũy toàn khóa:</td>
+                                        <td className="border border-slate-800 py-4 px-3 text-center">{cumulativeCredits}</td>
+                                        <td className="border border-slate-800 py-4 px-3 text-center text-red-600">
+                                            {cumulativeCredits > 0 ? (cumulativeScore / cumulativeCredits).toFixed(2) : "0.00"}
+                                        </td>
+                                        <td className="border border-slate-800 py-4 px-3 text-center"></td>
+                                    </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        );
+                    })()}
 
                     <div className="flex justify-between text-sm mt-12 px-8">
                         <div className="text-center">

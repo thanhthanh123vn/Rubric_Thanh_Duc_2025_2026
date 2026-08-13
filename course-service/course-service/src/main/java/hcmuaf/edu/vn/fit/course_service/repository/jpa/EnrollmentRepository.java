@@ -29,7 +29,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
             "c.credits AS credits, " +
             "co.semester AS semester, " +
             "co.academic_year AS academicYear, " +
-            "co.lecturer_id AS lecturerId " + // Lấy mã giảng viên thay vì tên
+            "co.lecturer_id AS lecturerId " +
             "FROM enrollments e " +
             "JOIN course_offerings co ON e.offering_id = co.offering_id COLLATE utf8mb4_unicode_520_ci " +
             "JOIN courses c ON co.course_id = c.course_id COLLATE utf8mb4_unicode_520_ci " +
@@ -40,7 +40,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
 
     List<Enrollment> findByCourseOffering_OfferingId(String offeringId);
     @Query(value = "SELECT " +
-            "e.student_id AS id " + // Chỉ lấy được ID của sinh viên
+            "e.student_id AS id " +
             "FROM enrollments e " +
             "WHERE e.offering_id = :offeringId COLLATE utf8mb4_unicode_520_ci " +
             "AND e.status = 'ACTIVE' COLLATE utf8mb4_unicode_520_ci",
@@ -56,12 +56,19 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, String> 
             String studentId,
             EnrollmentStatus status
     );
+    List<Enrollment> findByStudentIdAndStatus(
+            String studentId,
+            EnrollmentStatus status
+    );
 
-    // Cách 2 (nếu muốn chặt hơn): đã có đủ cột thành phần
+
+
     List<Enrollment> findByStudentIdAndStatusAndAttendanceScoreIsNotNullOrAssignmentScoreIsNotNullOrMidtermScoreIsNotNullOrFinalScoreIsNotNull(
             String studentId,
             EnrollmentStatus status
     );
+
+     long countByStudentId(String studentId);
 
 
 

@@ -1,0 +1,24 @@
+@startuml
+autonumber
+actor "Giảng Viên" as Teacher
+participant "Front-End" as UI
+participant "Course Service" as CourseSvc
+database "MySQL Database" as DB
+
+Teacher -> UI: Nhập ma trận đề thi & Nhấn "Sinh đề"
+UI -> CourseSvc: POST /api/v1/course-service/assessments/paper/generate (Matrix Config)
+CourseSvc -> DB: Query `questions` JOIN `question_clo` lọc theo Độ khó & CLO
+DB --> CourseSvc: Trả về danh sách câu hỏi phù hợp
+CourseSvc -> CourseSvc: Kiểm tra số lượng (List.size >= Required)
+
+alt Đủ câu hỏi
+    CourseSvc -> CourseSvc: Chạy thuật toán trộn ngẫu nhiên (Shuffle)
+    CourseSvc -> DB: Insert `assessments` & map câu hỏi vào đề
+    DB --> CourseSvc: OK
+    CourseSvc --> UI: 200 OK & Dữ liệu đề thi
+    UI --> Teacher: Hiển thị đề thi đã sinh thành công
+else Không đủ câu hỏi
+    CourseSvc --> UI: 400 Bad Request (Lỗi thiếu dữ liệu)
+    UI --> Teacher: Hiển thị cảnh báo: "Kho không đủ câu hỏi cho CLO X"
+end
+@enduml

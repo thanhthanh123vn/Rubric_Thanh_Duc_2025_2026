@@ -1,0 +1,24 @@
+@startuml
+skinparam defaultTextAlignment center
+
+|Trưởng nhóm|
+start
+:Chọn "Thêm Task mới";
+:Nhập tiêu đề,\nmô tả,\nhạn chót và Assignee;
+
+|Hệ Thống|
+:Lưu Task\n(Trạng thái: TODO);
+:Gửi thông báo đến thành viên được giao;
+
+|Thành viên nhóm|
+:Nhận Task;
+:Cập nhật trạng thái\nIN_PROGRESS;
+:Hoàn thành công việc;
+:Đính kèm tệp kết quả;
+:Chuyển trạng thái\nCOMPLETED;
+
+|Hệ Thống|
+:Lưu completed_at;
+
+stop
+@enduml

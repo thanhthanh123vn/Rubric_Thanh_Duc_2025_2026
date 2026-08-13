@@ -6,6 +6,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+// 1. Giả định Import API của bạn ở đây (Bạn nhớ trỏ đúng đường dẫn file chứa hàm getAllClo)
+// import { courseApi } from '@/api/courseApi';
 
 interface DepartmentReport {
     id: string;
@@ -17,26 +19,57 @@ interface DepartmentReport {
     status: 'EXCELLENT' | 'GOOD' | 'NEEDS_IMPROVEMENT';
 }
 
+// 2. Định nghĩa kiểu dữ liệu cho CLO trả về từ API
+export interface CloData {
+    id: string | number;
+    name: string;
+    value: number;
+}
+
 export default function FacultyReport() {
     const [loading, setLoading] = useState(true);
     const [semester, setSemester] = useState('HK1-2025-2026');
     const [reports, setReports] = useState<DepartmentReport[]>([]);
 
+    // 3. State lưu trữ danh sách CLO
+    const [clos, setClos] = useState<CloData[]>([]);
+
     useEffect(() => {
-        // Giả lập gọi API lấy dữ liệu báo cáo
-        const fetchReports = () => {
+        const fetchData = async () => {
             setLoading(true);
-            setTimeout(() => {
-                setReports([
+            try {
+                // TODO: Gọi API lấy dữ liệu bộ môn (Tạm thời dùng mock data như code cũ của bạn)
+                const mockDepartmentReports: DepartmentReport[] = [
                     { id: 'HTTT', departmentName: 'Hệ Thống Thông Tin', totalCourses: 24, totalStudents: 1250, passRate: 92.5, obeAchievement: 88, status: 'EXCELLENT' },
                     { id: 'CNPM', departmentName: 'Công Nghệ Phần Mềm', totalCourses: 30, totalStudents: 1540, passRate: 89.0, obeAchievement: 85, status: 'GOOD' },
                     { id: 'KHMT', departmentName: 'Khoa Học Máy Tính', totalCourses: 18, totalStudents: 980, passRate: 85.5, obeAchievement: 80, status: 'GOOD' },
                     { id: 'ATTT', departmentName: 'An Toàn Thông Tin', totalCourses: 14, totalStudents: 650, passRate: 78.0, obeAchievement: 72, status: 'NEEDS_IMPROVEMENT' },
-                ]);
+                ];
+                setReports(mockDepartmentReports);
+
+                // 4. GỌI API LẤY DANH SÁCH CLO
+                // const cloResponse = await courseApi.getAllClo();
+                // setClos(cloResponse.data);
+
+                // --- MOCK DỮ LIỆU CLO TẠM THỜI ĐỂ HIỂN THỊ TRONG LÚC ĐỢI API ---
+                const mockCloData: CloData[] = [
+                    { id: 1, name: 'CLO1: Kiến thức cốt lõi', value: 92 },
+                    { id: 2, name: 'CLO2: Tư duy phân tích', value: 85 },
+                    { id: 3, name: 'CLO3: Kỹ năng thiết kế', value: 78 },
+                    { id: 4, name: 'CLO4: Làm việc nhóm', value: 95 },
+                    { id: 5, name: 'CLO5: Trách nhiệm nghề nghiệp', value: 88 },
+                ];
+                setClos(mockCloData);
+
+            } catch (error) {
+                console.error("Lỗi khi tải dữ liệu báo cáo:", error);
+                toast.error("Không thể tải dữ liệu. Vui lòng thử lại!");
+            } finally {
                 setLoading(false);
-            }, 800);
+            }
         };
-        fetchReports();
+
+        fetchData();
     }, [semester]);
 
     const handleExportReport = () => {
@@ -55,6 +88,12 @@ export default function FacultyReport() {
             default:
                 return null;
         }
+    };
+
+    // 5. Hàm phụ trợ lấy màu sắc luân phiên cho các thanh tiến độ CLO
+    const getProgressColor = (index: number) => {
+        const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-purple-500', 'bg-indigo-500'];
+        return colors[index % colors.length];
     };
 
     return (
@@ -187,39 +226,38 @@ export default function FacultyReport() {
                     </div>
                 </div>
 
-                {/* CỘT PHẢI: Trạng thái Chuẩn Đầu Ra (PLO/CLO) */}
+                {/* CỘT PHẢI: Trạng thái Chuẩn Đầu Ra (CLO) */}
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
                     <div className="mb-6">
-                        <h3 className="text-lg font-bold text-slate-800">Trạng thái CĐR Khoa (PLO)</h3>
-                        <p className="text-xs text-slate-500 mt-1">Mức độ đáp ứng Program Learning Outcomes</p>
+                        <h3 className="text-lg font-bold text-slate-800">Trạng thái CĐR Học phần (CLO)</h3>
+                        <p className="text-xs text-slate-500 mt-1">Mức độ đáp ứng Course Learning Outcomes</p>
                     </div>
 
                     <div className="flex-1 space-y-5">
-                        {/* Mock PLO Progress */}
-                        {[
-                            { name: 'PLO1: Kiến thức cốt lõi', value: 92, color: 'bg-emerald-500' },
-                            { name: 'PLO2: Tư duy phân tích', value: 85, color: 'bg-blue-500' },
-                            { name: 'PLO3: Kỹ năng thiết kế', value: 78, color: 'bg-amber-500' },
-                            { name: 'PLO4: Làm việc nhóm', value: 95, color: 'bg-purple-500' },
-                            { name: 'PLO5: Trách nhiệm nghề nghiệp', value: 88, color: 'bg-indigo-500' },
-                        ].map((plo, idx) => (
-                            <div key={idx}>
+                        {/* 6. Lấy State 'clos' đổ ra giao diện */}
+                        {clos.length > 0 ? clos.map((clo, idx) => (
+                            <div key={clo.id}>
                                 <div className="flex justify-between text-sm font-semibold text-slate-700 mb-1.5">
-                                    <span>{plo.name}</span>
-                                    <span>{plo.value}%</span>
+                                    <span>{clo.name}</span>
+                                    <span>{clo.value}%</span>
                                 </div>
                                 <div className="w-full bg-slate-100 rounded-full h-2">
-                                    <div className={`${plo.color} h-2 rounded-full transition-all duration-1000`} style={{ width: `${plo.value}%` }}></div>
+                                    <div
+                                        className={`${getProgressColor(idx)} h-2 rounded-full transition-all duration-1000`}
+                                        style={{ width: `${clo.value}%` }}
+                                    ></div>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <div className="text-sm text-slate-500 text-center py-4">Không có dữ liệu CLO.</div>
+                        )}
                     </div>
 
                     <div className="mt-6 pt-5 border-t border-slate-100">
                         <div className="flex items-start gap-3 p-3 bg-indigo-50 rounded-xl">
                             <CheckCircle2 className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                             <p className="text-xs text-indigo-800 font-medium leading-relaxed">
-                                Đánh giá chung: Mức độ đáp ứng chuẩn đầu ra của sinh viên Khoa đạt mức <strong className="font-bold">Tốt</strong>. Cần chú trọng cải thiện năng lực thiết kế thực hành (PLO3).
+                                Đánh giá chung: Mức độ đáp ứng chuẩn đầu ra (CLO) đang ổn định. Cần tập trung cải thiện thêm phần kỹ năng thực hành.
                             </p>
                         </div>
                     </div>

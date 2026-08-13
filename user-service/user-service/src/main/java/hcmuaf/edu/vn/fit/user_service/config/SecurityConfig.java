@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.user_service.util.JwtFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -31,11 +32,30 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        .requestMatchers(
+                                "/api/v1/user-service/auth/login",
+                                "/api/v1/user-service/auth/logout",
+                                "/api/v1/user-service/auth/refresh",
+                                "/api/v1/user-service/auth/forgot-password"
+                        ).permitAll()
 
-                        .requestMatchers("/api/v1/user-service/auth/**", "/api/v1/user-service/departments/**").permitAll()
-                        .anyRequest().authenticated());
+                        .requestMatchers("/api/v1/user-service/users/admin/**").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.GET,
+                                        "/api/v1/user-service/lecturer/**")
+                                .authenticated()
+                                .requestMatchers(HttpMethod.PUT,
+                                        "/api/v1/user-service/lecturer/profile/me")
+                                .authenticated()
+
+//
+//
+//                        .requestMatchers("/api/v1/user-service/lecturer/**").hasAnyRole("ADMIN","TEACHER","DEAN","HEAD_OF_DEPARTMENT","MAIN_LECTURER")
+                        .requestMatchers("/api/v1/user-service/users/me").authenticated()
+
+                        .anyRequest().authenticated()
+                );
 
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

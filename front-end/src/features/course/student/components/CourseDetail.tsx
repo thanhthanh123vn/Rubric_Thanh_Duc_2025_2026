@@ -490,8 +490,12 @@ const ClassroomContent = () => {
                 <div className="flex-1 p-3 sm:p-4 md:p-6 w-full">
                     <div className="max-w-3xl mx-auto w-full">
                         <Banner
-                            title={course?.course?.courseName || "Lớp Học"}
-                            description={`Giảng viên: ${course?.lecturerName} - Mã lớp: ${offeringId}`}
+                            title={`${course?.course?.courseName || "Lớp Học"}${
+                                course ? ` - ${course.semester} (${course.year})` : ""
+                            }`}
+                            description={`Giảng viên: ${
+                                course?.lecturers?.map((l: any) => l.lecturerName).join(", ") || ""
+                            } - Mã lớp: ${offeringId}`}
                         />
 
                         <CreatePostBox onPostSuccess={fetchData} fullName={user.fullName} avatarUrl={user.avatarUrl} />

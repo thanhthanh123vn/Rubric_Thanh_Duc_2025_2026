@@ -25,6 +25,7 @@ export type StudentAssignedExamResponse = {
     endTime: string;
     status: string;
 };
+const BASE = import.meta.env.VITE_API_BASE;
 export const assessmentPaperApi = {
     generateExamPaper: async (data: GenerateExamRequest) => {
 
@@ -56,8 +57,35 @@ export const assessmentPaperApi = {
         const response = await courseApi.get(`/assessments/paper/${examId}/detail`);
         return response.data;
     },
+    getStudentExamToTake:async(paperId:string)=>{
+        const response = await courseApi.get(`/assessments/paper/${paperId}/take`);
+        return response.data;
+    },
     async getExamResult(examId: string) {
         const res = await courseApi.get(`/student/exams/${examId}/result`);
         return res.data;
     },
+    unBlock(examId: string, studentId: string, deviceToken: string) {
+        const jwtToken = localStorage.getItem("token");
+
+
+        fetch(`${BASE}/api/v1/course-service/assessments/paper/student/exams/unlock`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": jwtToken ? `Bearer ${jwtToken}` : ""
+            },
+            body: JSON.stringify({
+                examId,
+                studentId,
+                deviceToken
+            }),
+            keepalive: true
+        }).catch(err => console.error("Unlock failed", err));
+    },
+    exit:async (examId: string) => {
+        const response = await courseApi.post(`/assessments/paper/${examId}/exit`);
+        return response.data;
+
+    }
 };

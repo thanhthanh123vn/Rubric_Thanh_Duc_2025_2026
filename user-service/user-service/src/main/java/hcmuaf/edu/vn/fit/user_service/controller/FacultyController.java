@@ -1,7 +1,9 @@
 package hcmuaf.edu.vn.fit.user_service.controller;
 
 import hcmuaf.edu.vn.fit.user_service.dto.response.FacultyResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.Faculty;
+import hcmuaf.edu.vn.fit.user_service.service.DepartmentService;
 import hcmuaf.edu.vn.fit.user_service.service.FacultyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import java.util.List;
 public class FacultyController {
 
     private final FacultyService facultyService;
+    private final DepartmentService departmentService;
 
     @GetMapping
     public ResponseEntity<List<FacultyResponse>> getAllFaculties() {
@@ -35,5 +38,43 @@ public class FacultyController {
     public ResponseEntity<Void> deleteFaculty(@PathVariable String id) {
         facultyService.deleteFaculty(id);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/{facultyName}")
+    public ResponseEntity<List<LecturerResponse>> getLecturersByFaculty(
+            @RequestHeader("X-User-ID") String userId,
+            @PathVariable String facultyName) {
+
+        if(userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<LecturerResponse> lecturers = facultyService.getLecturersByFaculty(facultyName);
+        return ResponseEntity.ok(lecturers);
+    }
+    @GetMapping("/department/{departmentName}")
+    public ResponseEntity<FacultyResponse> getFacultyByDepartment(@RequestHeader("X-User-Id")String userId,
+            @PathVariable String departmentName
+    ){
+        if(userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        FacultyResponse faculty = departmentService.getFacultyByDepartmentName(departmentName);
+        return ResponseEntity.ok(faculty);
+
+
+    }
+    @GetMapping("/{facultyName}/departments")
+    public ResponseEntity<List<String>> getDepartmentNamesByFaculty(
+            @RequestHeader("X-User-ID") String userId,
+            @PathVariable String facultyName) {
+
+        if(userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Gọi sang DepartmentService để lấy danh sách tên
+        List<String> departmentNames = departmentService.getDepartmentNamesByFaculty(facultyName);
+        return ResponseEntity.ok(departmentNames);
     }
 }

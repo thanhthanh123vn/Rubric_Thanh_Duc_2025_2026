@@ -77,8 +77,13 @@ export default function DepartmentOBE() {
 
 
     const handleViewOBE = (offeringId: string) => {
+        if(user?.role === "DEAN") {
+            navigate(`/dean/obe/${offeringId}/analytics`);
+        }else{
+            navigate(`/department/obe/${offeringId}/analytics`);
+        }
 
-        navigate(`/department/obe/${offeringId}/analytics`);
+
     };
 console.log(offerings);
     return (

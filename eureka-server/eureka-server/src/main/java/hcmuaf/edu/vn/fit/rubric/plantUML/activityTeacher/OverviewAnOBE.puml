@@ -1,0 +1,66 @@
+@startuml
+skinparam defaultTextAlignment center
+
+|Lãnh đạo Khoa / Trưởng bộ môn|
+start
+:Truy cập Dashboard Thống kê OBE;
+:Chọn bộ lọc
+(Học kỳ, Bộ môn, Học phần);
+
+|Frontend|
+:Gửi yêu cầu thống kê;
+
+|Backend|
+:Kiểm tra quyền truy cập;
+:Nhận tham số tìm kiếm;
+
+|Database|
+:Truy vấn danh sách sinh viên;
+:Truy vấn điểm Assessment;
+:Truy vấn Rubric;
+:Truy vấn bảng ánh xạ CLO - PLO;
+
+|Backend|
+:Phân tích dữ liệu;
+
+note right
+Tính toán:
+- Điểm Rubric
+- Mức đạt CLO
+- Tỷ lệ đạt PLO
+- Điểm trung bình
+- Sĩ số
+- Tỷ lệ hoàn thành OBE
+end note
+
+:Tổng hợp dữ liệu thống kê;
+:Chuyển dữ liệu thành JSON;
+
+if (Người dùng chọn?) then (Xem Dashboard)
+
+|Frontend|
+:Hiển thị
+Biểu đồ cột;
+:Hiển thị
+Biểu đồ tròn;
+:Hiển thị
+Các chỉ số thống kê;
+
+else (Xuất báo cáo)
+
+|Backend|
+:Tạo báo cáo Excel/PDF;
+
+|Report Service|
+:Sinh file báo cáo;
+
+|Backend|
+:Trả file về Frontend;
+
+|Frontend|
+:Tải file về máy;
+
+endif
+
+stop
+@enduml

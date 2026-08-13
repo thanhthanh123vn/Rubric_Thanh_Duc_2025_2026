@@ -16,7 +16,7 @@ const RoleProtectedRoute = ({ allowedRoles = [] }: RoleProtectedRouteProps) => {
     }
 
 
-    if (!allowedRoles.includes(user?.role)) {
+    if (!allowedRoles.includes(user?.role ?? "")) {
         switch (user?.role) {
             case "ADMIN": return <Navigate to="/admin" replace />;
             case "DEAN": return <Navigate to="/dean" replace />;
@@ -25,7 +25,8 @@ const RoleProtectedRoute = ({ allowedRoles = [] }: RoleProtectedRouteProps) => {
             case "MAIN_LECTURER": return <Navigate to="/mainlecturer" replace />;
             case "TEACHER":
             case "LECTURER": return <Navigate to="/teacher" replace />;
-            default: return <Navigate to="/dashboard" replace />;
+            case "STUDENT": return <Navigate to="/dashboard" replace />;
+            default: return <Navigate to="/login" replace />;
         }
     }
 

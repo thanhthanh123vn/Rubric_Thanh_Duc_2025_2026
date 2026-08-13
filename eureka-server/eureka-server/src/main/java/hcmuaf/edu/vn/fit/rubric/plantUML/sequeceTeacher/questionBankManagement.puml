@@ -1,0 +1,22 @@
+@startuml
+autonumber
+actor "Giảng Viên" as Teacher
+participant "Front-End\n(React)" as UI
+participant "Course Service" as CourseSvc
+database "MySQL Database" as DB
+
+Teacher -> UI: Cấu hình ma trận đề thi và nhấn "Sinh đề"
+UI -> CourseSvc: POST /api/exams/generate (Matrix Config, BankId)
+CourseSvc -> DB: Query câu hỏi theo điều kiện (CLO, Difficulty)
+DB --> CourseSvc: Trả về danh sách câu hỏi phù hợp
+CourseSvc -> CourseSvc: Thuật toán Randomize chọn ra danh sách câu hỏi
+alt Đủ số lượng yêu cầu
+    CourseSvc -> DB: Lưu AssessmentPaper & danh sách câu hỏi
+    DB --> CourseSvc: Xác nhận thành công
+    CourseSvc --> UI: Trả về bộ đề thi đã tạo
+    UI --> Teacher: Hiển thị bộ đề thi để duyệt
+else Không đủ số lượng
+    CourseSvc --> UI: Trả về lỗi 400 (Thiếu câu hỏi cho CLO_X)
+    UI --> Teacher: Cảnh báo cần bổ sung thêm câu hỏi vào kho
+end
+@enduml

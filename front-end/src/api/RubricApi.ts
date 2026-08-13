@@ -1,4 +1,4 @@
-import {rubricServiceApi} from "@/services/axiosConfig.ts";
+import {courseApi, rubricServiceApi} from "@/services/axiosConfig.ts";
 import type {CriteriaDTO} from "@/pages/mainlecturer/api/RubricAPI.ts";
 import type {Level} from "@/api/rubricType.ts";
 export interface RubricDTO {
@@ -59,6 +59,10 @@ export const rubricApi = {
 
     getMyRubrics: () => {
         return rubricServiceApi.get('/rubrics/me');
+    },
+    getOverview: async () =>{
+        const response = await courseApi.get("/student/dashboard/overview");
+        return response.data;
     }
 
 };

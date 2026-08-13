@@ -12,6 +12,7 @@ import hcmuaf.edu.vn.fit.course_service.repository.mongo.AssessmentPaperReposito
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.QuestionRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.StudentExamAssignmentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +29,7 @@ public class StudentExamService {
     private final AssessmentPaperRepository assessmentPaperRepository;
     private final SubmissionRepository submissionRepository;
     private final QuestionRepository questionRepository;
-
+    private final StringRedisTemplate redisTemplate;
     // TODO: Inject repository/service chứa đề thi + câu hỏi + đáp án đúng thật sự trong hệ thống của bạn
     // private final AssessmentPaperRepository assessmentPaperRepository;
 
@@ -42,7 +43,10 @@ public class StudentExamService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài thi hoặc bạn không có quyền nộp."));
 
 
+        String lockKey = "exam_lock:" + request.getExamId() + ":" + studentId;
 
+      
+        redisTemplate.delete(lockKey);
         System.out.println("Dữ Liệu Gửi vào"+request);
         System.out.println(assignment);
         if (assignment.getStatus() == StudentExamStatus.SUBMITTED || assignment.getStatus() == StudentExamStatus.GRADED) {

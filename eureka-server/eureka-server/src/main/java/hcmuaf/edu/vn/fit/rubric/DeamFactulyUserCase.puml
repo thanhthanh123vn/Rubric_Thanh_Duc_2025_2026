@@ -1,0 +1,61 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Lãnh Đạo Khoa\n(Trưởng/Phó Khoa)" as LDK
+
+skinparam usecase {
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
+}
+
+rectangle "Hệ Thống Quản Lý Đào Tạo OBE" {
+
+    usecase "36. Xem Thống Kê Tổng Quan\n(Dashboard Cấp Khoa)" as UC36
+
+    usecase "37. Xem Báo Cáo\nChất Lượng Đào Tạo" as UC37
+    usecase "37.1 Tổng hợp & Đánh giá CLO/PLO" as UC37_1
+    usecase "37.2 Trực quan hóa dữ liệu OBE" as UC37_2
+    usecase "37.3 Xuất báo cáo QA" as UC37_3
+
+    usecase "38. Phê Duyệt Rubric" as UC38
+    usecase "38.1 Xem danh sách Rubric" as UC38_1
+    usecase "38.2 Duyệt / Từ chối Rubric" as UC38_2
+
+    usecase "39. Quản Lý Môn Học/Khóa Học" as UC39
+    usecase "39.1 Xem danh sách khóa học" as UC39_1
+    usecase "39.2 Thêm khóa học mới" as UC39_2
+    usecase "39.3 Sửa thông tin môn học" as UC39_3
+    usecase "39.4 Xóa môn học" as UC39_4
+}
+
+'========================
+' Liên kết Actor
+'========================
+LDK --> UC36
+LDK --> UC37
+LDK --> UC38
+LDK --> UC39
+
+'========================
+' Chi tiết Báo cáo
+'========================
+UC37 ..> UC37_1 : <<include>>
+UC37 ..> UC37_2 : <<include>>
+UC37 ..> UC37_3 : <<extend>>
+
+'========================
+' Chi tiết Phê duyệt Rubric
+'========================
+UC38 ..> UC38_1 : <<include>>
+UC38_1 <.. UC38_2 : <<extend>>
+
+'========================
+' Chi tiết Quản lý Khóa học
+'========================
+UC39 ..> UC39_1 : <<include>>
+UC39_1 <.. UC39_2 : <<extend>>
+UC39_1 <.. UC39_3 : <<extend>>
+UC39_1 <.. UC39_4 : <<extend>>
+
+@enduml

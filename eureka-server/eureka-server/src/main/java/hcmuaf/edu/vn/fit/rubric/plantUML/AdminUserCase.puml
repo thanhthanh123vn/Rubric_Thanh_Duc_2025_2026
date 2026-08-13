@@ -1,0 +1,257 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam usecase {
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
+}
+
+actor "Admin" as Admin
+
+package "Hệ Thống E-Learning - Admin Portal" {
+
+    '=========================================
+    ' CẤP 1: CÁC PHÂN HỆ CHÍNH
+    '=========================================
+    usecase "Phân hệ 1: CHÍNH\n(Tổng quan)" as UC_M1
+    usecase "Phân hệ 2: ĐÀO TẠO\n& NHÂN SỰ" as UC_M2
+    usecase "Phân hệ 3: KIỂM TRA\n& ĐÁNH GIÁ" as UC_M3
+    usecase "Phân hệ 4: HỆ THỐNG" as UC_M4
+
+    '=========================================
+    ' CẤP 2 & CẤP BA: CHI TIẾT PHÂN HỆ 1
+    '=========================================
+    usecase "15. Tổng quan hệ thống" as UC_14
+    usecase "16. Tình trạng phân bổ" as UC_15
+    usecase "17. Hoạt động gần đây" as UC_16
+
+    '=========================================
+    ' CẤP 2, 3, 4: CHI TIẾT PHÂN HỆ 2
+    '=========================================
+    usecase "18. Quản Lý Người Dùng" as UC_17
+        usecase "18.1 Xem Tài Khoản" as UC_17_1
+        usecase "18.2 Tạo User" as UC_17_2
+        usecase "18.3 Xóa User" as UC_17_3
+        usecase "18.4 Chỉnh Sửa User" as UC_17_4
+        usecase "18.5 Phân Quyền User" as UC_17_5
+        usecase "18.6 Phân Công Giảng Viên" as UC_17_6
+
+    usecase "19. Quản lý Khoa / Bộ môn" as UC_18
+        usecase "19.1 Quản lý danh sách Khoa" as UC_18_1
+            usecase "19.1.1 Xem Danh Sách Khoa" as UC_18_1_1
+            usecase "19.1.2 Thêm Khoa" as UC_18_1_2
+            usecase "19.1.3 Sửa thông tin Khoa" as UC_18_1_3
+            usecase "19.1.4 Xóa Khoa" as UC_18_1_4
+        usecase "19.1.2 Quản lý Bộ môn" as UC_18_2
+            usecase "19.1.2.1 Xem danh sách Bộ môn" as UC_18_2_1
+            usecase "19.1.2.2 Thêm Bộ môn" as UC_18_2_2
+            usecase "19.1.2.3 Sửa thông tin Bộ môn" as UC_18_2_3
+            usecase "19.1.2.4 Xóa Bộ môn" as UC_18_2_4
+
+    usecase "20. Quản lý Khóa học" as UC_19
+        usecase "20.1 Quản lý danh sách Khóa học" as UC_19_1
+            usecase "20.1.1 Xem danh sách" as UC_19_1_1
+            usecase "20.1.2 Thêm mới" as UC_19_1_2
+            usecase "20.1.3 Cập nhật thông tin" as UC_19_1_3
+            usecase "20.1.4 Xóa Khóa học" as UC_19_1_4
+        usecase "20.2 Quản lý Syllabus" as UC_19_2
+            usecase "20.2.1 Xem danh sách học phần" as UC_19_2_1
+            usecase "20.2.2 Xem thông tin Syllabus" as UC_19_2_2
+            usecase "20.2.3 Tải lên (Upload)" as UC_19_2_3
+            usecase "20.2.4 Xóa Syllabus" as UC_19_2_4
+
+    usecase "21. Quản lý Lớp học" as UC_20_Class
+        usecase "21.1 Quản lý danh sách lớp" as UC_20_1_Class
+            usecase "21.1.1 Xem danh sách lớp" as UC_20_1_1
+            usecase "21.1.2 Thêm mới lớp" as UC_20_1_2
+            usecase "21.1.3 Cập nhật thông tin lớp" as UC_20_1_3
+            usecase "21.1.4 Xóa lớp" as UC_20_1_4
+            usecase "21.1.5 Thay đổi GV phụ trách" as UC_20_1_5
+        usecase "21.2 Thời khóa biểu" as UC_20_2_Class
+
+    '=========================================
+    ' CẤP 2, 3, 4: CHI TIẾT PHÂN HỆ 3
+    '=========================================
+    usecase "22. Quản Lý Ra Đề Môn Học" as UC_20_Exam
+        usecase "22.1 Thêm Bộ Câu Hỏi" as UC_20_1_Exam
+        usecase "22.2 Sửa Bộ Câu Hỏi" as UC_20_2_Exam
+        usecase "22.3 Xóa Bộ Câu Hỏi" as UC_20_3_Exam
+        usecase "22.4 Xem Ngân Hàng Đề Thi" as UC_20_4_Exam
+        usecase "22.5 Lấy Đề Thi Ngẫu Nhiên" as UC_20_5_Exam
+
+    usecase "23. Quản lý Bài tập" as UC_21
+        usecase "23.1 Quản lý học phần" as UC_21_1
+            usecase "23.1.1 Xem danh sách học phần" as UC_21_1_1
+            usecase "23.1.2 Chọn học phần" as UC_21_1_2
+            usecase "23.1.3 Quản lý bài tập" as UC_21_1_3
+            usecase "23.1.4 Quản lý ngân hàng đề" as UC_21_1_4
+            usecase "23.1.5 Quản lý trạng thái chấm điểm" as UC_21_1_5
+
+    usecase "24. Quản lý Rubric" as UC_22
+        usecase "24.1 Xem danh sách Rubric" as UC_22_1
+            usecase "24.1.1 Xem chi tiết Rubric" as UC_22_1_1
+                usecase "24.1.1.1 Thêm tiêu chí" as UC_22_1_1_1
+                usecase "24.1.1.2 Xóa tiêu chí" as UC_22_1_1_2
+                usecase "24.1.1.3 Lưu thay đổi" as UC_22_1_1_3
+                usecase "24.1.1.4 Cập nhật tiêu chí" as UC_22_1_1_4
+        usecase "24.2 Quản Lý Tiêu Chí Và Chấm Điểm" as UC_22_2
+            usecase "24.3.1 Thêm Tiêu chí cho Rubric Matrix" as UC_22_2_1
+            usecase "24.3.2 Sửa Tiêu chí Rubric Matrix" as UC_22_2_2
+            usecase "24.3.3 Xóa Tiêu chí Rubric Matrix" as UC_22_2_3
+
+    usecase "25. Điểm & Đánh giá" as UC_23
+        usecase "25.1 Quản lý Bảng điểm tổng hợp" as UC_23_1
+            usecase "25.1.1 Hiển thị DS khóa học (Bảng điểm)" as UC_23_1_1
+            usecase "25.1.2 Xem chi tiết bảng điểm" as UC_23_1_2
+        usecase "25.2 Quá trình chấm điểm theo Rubric" as UC_23_2
+            usecase "25.2.1 Hiển thị DS khóa học (Chấm điểm)" as UC_23_2_1
+            usecase "25.2.2 Xem chi tiết chấm điểm" as UC_23_2_2
+
+    '=========================================
+    ' CẤP 2, 3, 4: CHI TIẾT PHÂN HỆ 4
+    '=========================================
+    usecase "26. Báo cáo & Thống kê" as UC_24
+        usecase "26.1 Thống kê sĩ số lớp học" as UC_24_1
+        usecase "26.2 Thống kê điểm trung bình" as UC_24_2
+        usecase "26.3 Thống kê tỷ lệ đạt OBE" as UC_24_3
+        usecase "26.4 Xem biểu đồ thống kê" as UC_24_4
+            usecase "26.4.1 Biểu đồ cột điểm trung bình" as UC_24_4_1
+            usecase "26.4.2 Biểu đồ tròn tỷ lệ đạt OBE" as UC_24_4_2
+
+    usecase "27. Cài đặt hệ thống" as UC_25
+        usecase "27.1 Quản lý cấu hình chung" as UC_25_1
+        usecase "27.2 Quản lý bảo mật" as UC_25_2
+        usecase "27.3 Quản lý thông báo" as UC_25_3
+        usecase "27.4 Quản lý giao diện" as UC_25_4
+
+    usecase "28. Quản lý nhật ký hệ thống (Logs)" as UC_26
+        usecase "28.1 Xem danh sách nhật ký" as UC_26_1
+        usecase "28.2 Xem chi tiết nhật ký" as UC_26_2
+        usecase "28.3 Tìm kiếm nhật ký" as UC_26_3
+        usecase "28.4 Lọc nhật ký" as UC_26_4
+            usecase "28.4.1 Lọc theo mức độ (INFO/ERROR)" as UC_26_4_1
+}
+
+'========================
+' Liên kết ACTOR với 4 PHÂN HỆ
+'========================
+Admin --> UC_M1
+Admin --> UC_M2
+Admin --> UC_M3
+Admin --> UC_M4
+
+'========================
+' MỞ RỘNG PHÂN HỆ 1
+'========================
+UC_M1 ..> UC_14 : <<include>>
+UC_M1 ..> UC_15 : <<include>>
+UC_M1 ..> UC_16 : <<include>>
+
+'========================
+' MỞ RỘNG PHÂN HỆ 2
+'========================
+UC_M2 ..> UC_17 : <<include>>
+    UC_17 ..> UC_17_1 : <<include>>
+    UC_17 ..> UC_17_2 : <<include>>
+    UC_17 ..> UC_17_3 : <<include>>
+    UC_17 ..> UC_17_4 : <<include>>
+    UC_17 ..> UC_17_5 : <<include>>
+    UC_17 ..> UC_17_6 : <<include>>
+
+UC_M2 ..> UC_18 : <<include>>
+    UC_18 ..> UC_18_1 : <<include>>
+        UC_18_1 ..> UC_18_1_1 : <<include>>
+        UC_18_1 ..> UC_18_1_2 : <<include>>
+        UC_18_1 ..> UC_18_1_3 : <<include>>
+        UC_18_1 ..> UC_18_1_4 : <<include>>
+    UC_18 ..> UC_18_2 : <<include>>
+        UC_18_2 ..> UC_18_2_1 : <<include>>
+        UC_18_2 ..> UC_18_2_2 : <<include>>
+        UC_18_2 ..> UC_18_2_3 : <<include>>
+        UC_18_2 ..> UC_18_2_4 : <<include>>
+
+UC_M2 ..> UC_19 : <<include>>
+    UC_19 ..> UC_19_1 : <<include>>
+        UC_19_1 ..> UC_19_1_1 : <<include>>
+        UC_19_1 ..> UC_19_1_2 : <<include>>
+        UC_19_1 ..> UC_19_1_3 : <<include>>
+        UC_19_1 ..> UC_19_1_4 : <<include>>
+    UC_19 ..> UC_19_2 : <<include>>
+        UC_19_2 ..> UC_19_2_1 : <<include>>
+        UC_19_2 ..> UC_19_2_2 : <<include>>
+        UC_19_2 ..> UC_19_2_3 : <<include>>
+        UC_19_2 ..> UC_19_2_4 : <<include>>
+
+UC_M2 ..> UC_20_Class : <<include>>
+    UC_20_Class ..> UC_20_1_Class : <<include>>
+        UC_20_1_Class ..> UC_20_1_1 : <<include>>
+        UC_20_1_Class ..> UC_20_1_2 : <<include>>
+        UC_20_1_Class ..> UC_20_1_3 : <<include>>
+        UC_20_1_Class ..> UC_20_1_4 : <<include>>
+        UC_20_1_Class ..> UC_20_1_5 : <<include>>
+    UC_20_Class ..> UC_20_2_Class : <<include>>
+
+'========================
+' MỞ RỘNG PHÂN HỆ 3
+'========================
+UC_M3 ..> UC_20_Exam : <<include>>
+    UC_20_Exam ..> UC_20_1_Exam : <<include>>
+    UC_20_Exam ..> UC_20_2_Exam : <<include>>
+    UC_20_Exam ..> UC_20_3_Exam : <<include>>
+    UC_20_Exam ..> UC_20_4_Exam : <<include>>
+    UC_20_Exam ..> UC_20_5_Exam : <<include>>
+
+UC_M3 ..> UC_21 : <<include>>
+    UC_21 ..> UC_21_1 : <<include>>
+        UC_21_1 ..> UC_21_1_1 : <<include>>
+        UC_21_1 ..> UC_21_1_2 : <<include>>
+        UC_21_1 ..> UC_21_1_3 : <<include>>
+        UC_21_1 ..> UC_21_1_4 : <<include>>
+        UC_21_1 ..> UC_21_1_5 : <<include>>
+
+UC_M3 ..> UC_22 : <<include>>
+    UC_22 ..> UC_22_1 : <<include>>
+        UC_22_1 ..> UC_22_1_1 : <<include>>
+            UC_22_1_1 ..> UC_22_1_1_1 : <<include>>
+            UC_22_1_1 ..> UC_22_1_1_2 : <<include>>
+            UC_22_1_1 ..> UC_22_1_1_3 : <<include>>
+            UC_22_1_1 ..> UC_22_1_1_4 : <<include>>
+    UC_22 ..> UC_22_2 : <<include>>
+        UC_22_2 ..> UC_22_2_1 : <<include>>
+        UC_22_2 ..> UC_22_2_2 : <<include>>
+        UC_22_2 ..> UC_22_2_3 : <<include>>
+
+UC_M3 ..> UC_23 : <<include>>
+    UC_23 ..> UC_23_1 : <<include>>
+        UC_23_1 ..> UC_23_1_1 : <<include>>
+        UC_23_1 ..> UC_23_1_2 : <<include>>
+    UC_23 ..> UC_23_2 : <<include>>
+        UC_23_2 ..> UC_23_2_1 : <<include>>
+        UC_23_2 ..> UC_23_2_2 : <<include>>
+
+'========================
+' MỞ RỘNG PHÂN HỆ 4
+'========================
+UC_M4 ..> UC_24 : <<include>>
+    UC_24 ..> UC_24_1 : <<include>>
+    UC_24 ..> UC_24_2 : <<include>>
+    UC_24 ..> UC_24_3 : <<include>>
+    UC_24 ..> UC_24_4 : <<include>>
+        UC_24_4 ..> UC_24_4_1 : <<include>>
+        UC_24_4 ..> UC_24_4_2 : <<include>>
+
+UC_M4 ..> UC_25 : <<include>>
+    UC_25 ..> UC_25_1 : <<include>>
+    UC_25 ..> UC_25_2 : <<include>>
+    UC_25 ..> UC_25_3 : <<include>>
+    UC_25 ..> UC_25_4 : <<include>>
+
+UC_M4 ..> UC_26 : <<include>>
+    UC_26 ..> UC_26_1 : <<include>>
+    UC_26 ..> UC_26_2 : <<include>>
+    UC_26 ..> UC_26_3 : <<include>>
+    UC_26 ..> UC_26_4 : <<include>>
+        UC_26_4 ..> UC_26_4_1 : <<include>>
+
+@enduml

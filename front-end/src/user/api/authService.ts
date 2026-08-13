@@ -1,5 +1,6 @@
 import api from '../../services/axiosConfig.ts';
 import type {LoginRequest, LoginResponse, RegisterRequest} from './types';
+import {data} from "autoprefixer";
 
 const authService = {
     register: async (data: RegisterRequest): Promise<string> => {
@@ -12,10 +13,12 @@ const authService = {
         return response.data;
     },
 
-    logout: (): void => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+
+    logout: async() => {
+        // localStorage.removeItem('token');
+        // localStorage.removeItem('user');
+        await api.post('/auth/logout');
+        // window.location.href = '/login';
     },
 
     loginWithGoogle: () => {
@@ -25,6 +28,15 @@ const authService = {
         const token = localStorage.getItem('token');
 
         return !!token;
+    },
+    getProfileLecturer: async ()=>{
+        const response = await api.get<LoginResponse>('/lecturer/profile/me');
+        return response.data;
+
+    },
+      updateProfileLecturer : async (data: any) => {
+        const response = await api.put(`/lecturer/profile/me`, data);
+        return response.data;
     }
 
 };

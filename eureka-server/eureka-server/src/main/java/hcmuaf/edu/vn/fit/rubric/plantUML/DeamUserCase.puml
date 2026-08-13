@@ -1,0 +1,90 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam usecase {
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
+}
+
+' Khai báo Actor
+actor "Giảng Viên" as Teacher
+actor "Trưởng Bộ Môn" as HeadDept
+
+' Trưởng Bộ Môn kế thừa Giảng Viên
+HeadDept -|> Teacher
+
+package "Hệ Thống E-Learning - Department Portal" {
+
+    ' 1. Tổng quan
+    usecase "1. Tổng quan Bộ môn" as UC_Dashboard
+    usecase "1.1 Xem thống kê tổng quan\n(GV, Lớp, OBE)" as UC_DashStats
+    usecase "1.2 Xem tiến độ thiết lập Rubric" as UC_DashProgress
+
+    ' 2. Phê duyệt Rubric
+    usecase "2. Phê duyệt Rubric" as UC_Rubric
+    usecase "2.1 Phê duyệt Đề cương/Rubric" as UC_ApproveRubric
+    usecase "2.2 Yêu cầu chỉnh sửa" as UC_RejectRubric
+
+    ' 3. Quản lý Đánh giá
+    usecase "3. Quản lý Đánh giá\n(Đề thi/Bài tập)" as UC_Assessment
+    usecase "3.1 Tạo đề thi/bài tập mới" as UC_CreateAssmt
+    usecase "3.2 Xem, Sửa, Xóa\nđề thi/bài tập" as UC_ManageAssmt
+
+    ' 4. Phân công Học phần
+    usecase "4. Phân công Học phần" as UC_Assign
+    usecase "4.1 Xem danh sách lớp/môn học" as UC_ViewClasses
+    usecase "4.2 Phân công/Thay đổi Giảng viên" as UC_AssignTeacher
+
+    ' 5. Quản lý Chuẩn CLO
+    usecase "5. Quản lý Chuẩn CLO" as UC_CLO
+    usecase "5.1 Tạo chuẩn CLO mới" as UC_CreateCLO
+    usecase "5.2 Xem, Sửa, Xóa CLO" as UC_ManageCLO
+
+    ' 6. Phân tích chuẩn đầu ra OBE
+    usecase "6. Phân tích chuẩn đầu ra OBE" as UC_OBE
+    usecase "6.1 Tổng hợp mức đạt CLO\ncủa môn học" as UC_SumCLO
+    usecase "6.2 Xem phân bố điểm\nvà năng lực sinh viên" as UC_DistScore
+    usecase "6.3 Xuất báo cáo dữ liệu" as UC_ExportOBE
+
+    ' 7. Ngân Hàng Câu Hỏi
+    usecase "7. Quản lý Ngân Hàng Câu Hỏi" as UC_QBank
+    usecase "7.1 Xem danh sách kho câu hỏi\ncủa giảng viên" as UC_ViewQBank
+}
+
+'========================
+' Liên kết Actor với các Use Case chính (Cấp 1)
+'========================
+HeadDept --> UC_Dashboard
+HeadDept --> UC_Rubric
+HeadDept --> UC_Assessment
+HeadDept --> UC_Assign
+HeadDept --> UC_CLO
+HeadDept --> UC_OBE
+HeadDept --> UC_QBank
+
+'========================
+' Các Use Case con (Cấp 2 đẩy dần sang phải)
+'========================
+UC_Dashboard ..> UC_DashStats : <<include>>
+UC_Dashboard ..> UC_DashProgress : <<include>>
+
+UC_Rubric ..> UC_ApproveRubric : <<include>>
+UC_Rubric ..> UC_RejectRubric : <<include>>
+
+UC_Assessment ..> UC_CreateAssmt : <<include>>
+UC_Assessment ..> UC_ManageAssmt : <<include>>
+
+UC_Assign ..> UC_ViewClasses : <<include>>
+UC_Assign ..> UC_AssignTeacher : <<include>>
+
+UC_CLO ..> UC_CreateCLO : <<include>>
+UC_CLO ..> UC_ManageCLO : <<include>>
+
+UC_OBE ..> UC_SumCLO : <<include>>
+UC_OBE ..> UC_DistScore : <<include>>
+UC_OBE ..> UC_ExportOBE : <<include>>
+
+UC_QBank ..> UC_ViewQBank : <<include>>
+
+@enduml

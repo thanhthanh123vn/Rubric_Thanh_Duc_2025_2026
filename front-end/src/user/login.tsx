@@ -9,7 +9,7 @@ import {Label} from "../components/ui/label"
 import authService from '../user/api/authService';
 import type {LoginResponse} from '../user/api/types'
 import { useNavigate } from 'react-router-dom';
-
+import { toast } from "sonner";
 
 import { setCredentials } from '../authSlice';
 import {useAppDispatch} from "@/hooks/useAppDispatch.ts";
@@ -53,6 +53,7 @@ export default function LoginPage() {
 
             const profile = data.role === "STUDENT" ? data.student : data.lecturer;
             const displayName = profile?.fullName || data.userId||data.fullName;
+            // const displayEmail = data.student.email || data.lecturer.email;
 
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify({
@@ -61,7 +62,8 @@ export default function LoginPage() {
                 fullName: displayName,
                 avatarUrl: data.avatarUrl,
                 studentId: data.student?.studentId,
-                lecturerId: data.lecturer?.lecturerId
+                lecturerId: data.lecturer?.lecturerId,
+                email: data.email,
             }));
 
             dispatch(setCredentials({
@@ -71,7 +73,11 @@ export default function LoginPage() {
                     fullName: displayName,
                     avatarUrl: data.avatarUrl,
                     studentId: data.student?.studentId,
-                    lecturerId: data.lecturer?.lecturerId
+                    lecturerId: data.lecturer?.lecturerId,
+                    email: data.email,
+
+
+
                 },
                 token: data.token
             }));
@@ -114,8 +120,11 @@ export default function LoginPage() {
             navigate(targetPath);
 
         } catch (error: any) {
-            console.error("Lỗi Login:", error);
-            alert(error.response?.data?.message || "Sai tài khoản hoặc mật khẩu!");
+            const message =
+                error.response?.data?.message ||
+                "Sai tài khoản hoặc mật khẩu!";
+
+           toast.error(message);
         }
     };
     const handleWithGoogle = (e: React.FormEvent) => {

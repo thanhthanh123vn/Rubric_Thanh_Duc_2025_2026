@@ -43,7 +43,8 @@ const menuGroups = [
                     { title: 'Sinh viên', url: '/admin/users/list-students', icon: GraduationCap },
                     { title: 'Giảng viên', url: '/admin/users/list-lecturers', icon: UserCheck },
                     { title: 'Admin', url: '/admin/users/list-admins', icon: ShieldCheck },
-                    { title: 'Phân quyền', url: '/admin/users/list-users', icon: Key }
+                    { title: 'Phân quyền', url: '/admin/users/list-users', icon: Key },
+
                 ]
             },
             {

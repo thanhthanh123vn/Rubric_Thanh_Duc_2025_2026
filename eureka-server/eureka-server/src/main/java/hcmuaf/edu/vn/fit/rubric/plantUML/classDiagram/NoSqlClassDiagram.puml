@@ -1,0 +1,77 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam class {
+    BackgroundColor White
+    ArrowColor #2c3e50
+    BorderColor #2c3e50
+}
+
+package "MongoDB Collections (NoSQL)" {
+    class "courses" as CourseCollection {
+        + _id: ObjectId
+        + course_code: String
+        + course_name: String
+        + credits: Integer
+        + clos: Array[EmbeddedCLO]
+    }
+
+    class "course_offerings" as OfferingCollection {
+        + _id: ObjectId
+        + course_id: ObjectId (Ref)
+        + semester: String
+        + academic_year: String
+        + students: Array[EmbeddedStudent]
+        + lecturers: Array[ObjectId] (Ref)
+    }
+
+    class "rubrics" as RubricCollection {
+        + _id: ObjectId
+        + rubric_name: String
+        + course_id: ObjectId (Ref)
+        + criteria: Array[EmbeddedCriteria]
+    }
+
+    class "assessments" as AssessmentCollection {
+        + _id: ObjectId
+        + offering_id: ObjectId (Ref)
+        + assessment_name: String
+        + assessment_type: String
+        + weight: Double
+        + rubric_id: ObjectId (Ref)
+        + mapped_clos: Array[EmbeddedAssessmentCLO]
+    }
+
+    class "submissions" as SubmissionCollection {
+        + _id: ObjectId
+        + assessment_id: ObjectId (Ref)
+        + student_id: String
+        + file_url: String
+        + submission_text: String
+        + total_score: Double
+        + rubric_grading: Array[EmbeddedRubricResult]
+        + submitted_at: Timestamp
+    }
+
+    class "question_banks" as QuestionBankCollection {
+        + _id: ObjectId
+        + offering_id: ObjectId (Ref)
+        + name: String
+        + questions: Array[EmbeddedQuestion]
+    }
+
+    class "system_logs" as LogCollection {
+        + _id: ObjectId
+        + user_id: String
+        + action: String
+        + ip_address: String
+        + timestamp: Timestamp
+    }
+}
+
+OfferingCollection --> CourseCollection : references
+AssessmentCollection --> OfferingCollection : references
+AssessmentCollection --> RubricCollection : references
+SubmissionCollection --> AssessmentCollection : references
+QuestionBankCollection --> OfferingCollection : references
+@enduml

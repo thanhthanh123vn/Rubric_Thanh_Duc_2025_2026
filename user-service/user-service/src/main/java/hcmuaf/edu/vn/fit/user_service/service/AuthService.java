@@ -1,10 +1,7 @@
 package hcmuaf.edu.vn.fit.user_service.service;
 
 
-import hcmuaf.edu.vn.fit.user_service.dto.request.ForgotPasswordRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.LoginRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.RegisterRequest;
-import hcmuaf.edu.vn.fit.user_service.dto.request.ResetPasswordRequest;
+import hcmuaf.edu.vn.fit.user_service.dto.request.*;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerProfileResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.StudentProfileResponse;
@@ -19,14 +16,20 @@ import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.SinhVienRepository; // Import chuẩn ở đây
 import hcmuaf.edu.vn.fit.user_service.util.JwtUtils;
 import jakarta.servlet.http.HttpSession;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Random;
+import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +43,7 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final HttpSession session;
     private final SinhVienMapper svMapper;
+    private final StringRedisTemplate redisTemplate;
 
         @Transactional
         public void register(RegisterRequest request) {
@@ -64,23 +68,65 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
 
+        String identifier = request.identifier().trim();
+        String attemptKey = "login_attempts:" + identifier;
+        String lockKey = "login_locked:" + identifier;
+
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(lockKey))) {
+            Long expireSeconds = redisTemplate.getExpire(lockKey);
+            long minutes = (expireSeconds != null ? expireSeconds : 0) / 60;
+            long seconds = (expireSeconds != null ? expireSeconds : 0) % 60;
+            throw new IllegalArgumentException(String.format("Tài khoản đang bị tạm khóa. Vui lòng thử lại sau %d phút %d giây.", minutes, seconds));
+        }
+
         User user = null;
-        boolean isEmail = request.identifier().contains("@");
+        boolean isEmail = identifier.contains("@");
+
 
         if (isEmail) {
-            user = userRepository.findByEmail(request.identifier())
+            user = userRepository.findByEmail(identifier)
                     .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
         } else {
-            user = userRepository.findByUsername(request.identifier())
+            user = userRepository.findByUsername(identifier)
                     .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
         }
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!");
+        if (Boolean.TRUE.equals(user.getLocked())) {
+            throw new IllegalArgumentException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
         }
+
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+
+            Long attempts = redisTemplate.opsForValue().increment(attemptKey);
+
+
+            if (attempts != null && attempts == 1) {
+                redisTemplate.expire(attemptKey, Duration.ofMinutes(10));
+            }
+
+
+            if (attempts != null && attempts >= 5) {
+                redisTemplate.opsForValue().set(lockKey, "LOCKED", Duration.ofMinutes(5)); // Khóa 5 phút
+                redisTemplate.delete(attemptKey); // Xóa bộ đếm
+                throw new IllegalArgumentException("Bạn đã nhập sai 5 lần. Tài khoản bị khóa 5 phút.");
+            }
+
+            throw new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác! Bạn còn " + (5 - attempts) + " lần thử.");
+        }
+
+
+        redisTemplate.delete(attemptKey);
 
         StudentProfileResponse studentProfile = null;
         LecturerProfileResponse lecturerProfile = null;
+        String sessionKey = "session:user:" + user.getUserId();
 
+
+//        if (Boolean.TRUE.equals(redisTemplate.hasKey(sessionKey))) {
+//            throw new IllegalArgumentException(
+//                    "Tài khoản đang được đăng nhập trên một thiết bị khác."
+//            );
+//        }
         if ("STUDENT".equals(user.getRole())) {
             SinhVien sv = svRepository.findByUser(user).orElse(null);
             if (sv != null) {
@@ -103,14 +149,25 @@ public class AuthService {
             }
         }
 
-        String token = jwtUtils.generateToken(user.getUserId(), user.getRole(),user.getUsername());
-        String refreshToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole(),user.getUsername());
+        // 1. Tạo JWT và Refresh Token
 
+        // 2. TÍCH HỢP REDIS: Quản lý Session
+        // Tạo sessionKey gắn với userId để dễ dàng quản lý/thu hồi
+
+
+        // Lưu Refresh Token vào Redis với thời gian sống 7 ngày
+        String token = jwtUtils.generateToken(user.getUserId(), user.getRole(), user.getUsername());
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUserId(), user.getRole(), user.getUsername());
+
+        redisTemplate.opsForValue().set(sessionKey, refreshToken, Duration.ofDays(7));
+
+        // 3. Trả về Response
         return new LoginResponse(
                 token,
                 user.getRole(),
                 user.getUserId(),
                 user.getAvatarUrl(),
+                user.getEmail(),
                 studentProfile,
                 lecturerProfile,
                 refreshToken
@@ -154,7 +211,7 @@ public class AuthService {
                 );
             }
         }
-        return new LoginResponse(token, user.getUserId(),user.getUsername(),user.getAvatarUrl(), studentProfile,lecturerProfile,fullName);
+        return new LoginResponse(token, user.getUserId(),user.getUsername(),user.getAvatarUrl(), user.getEmail(),studentProfile,lecturerProfile,fullName);
     }
     @Transactional
     public void forgotPassword(ForgotPasswordRequest request) {
@@ -175,25 +232,27 @@ public class AuthService {
 
     // 2. Hàm xác nhận OTP và lưu mật khẩu mới
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        User user = userRepository.findByEmail(request.email())
+    public void changePassword(String userId, ChangePasswordRequest request) {
+
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản!"));
 
 
-        if (user.getResetOtp() == null || !user.getResetOtp().equals(request.otp())) {
-            throw new RuntimeException("Mã OTP không hợp lệ!");
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu hiện tại không đúng!");
         }
 
-        if (user.getResetOtpExpiry().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Mã OTP đã hết hạn!");
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new RuntimeException("Xác nhận mật khẩu không khớp!");
         }
 
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mật khẩu mới phải khác mật khẩu hiện tại!");
+        }
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-
-
-        user.setResetOtp(null);
-        user.setResetOtpExpiry(null);
         userRepository.save(user);
     }
     public TokenResponse refreshToken(String refreshToken) {
@@ -219,6 +278,31 @@ public class AuthService {
         session.removeAttribute("register_request");
         session.removeAttribute("otp_exp");
 
+    }
+    public void logout(String userId, String accessToken) {
+
+        // Xóa session
+        redisTemplate.delete("session:user:" + userId);
+
+        if (accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+
+        try {
+            long expirationTime = jwtUtils.getExpirationTime(accessToken);
+            long ttl = expirationTime - System.currentTimeMillis();
+
+            if (ttl > 0) {
+                redisTemplate.opsForValue().set(
+                        "blacklist:token:" + accessToken,
+                        "revoked",
+                        Duration.ofMillis(ttl)
+                );
+            }
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
     }
 }
 

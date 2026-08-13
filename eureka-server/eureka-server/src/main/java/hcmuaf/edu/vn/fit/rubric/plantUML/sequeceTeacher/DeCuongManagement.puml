@@ -1,0 +1,22 @@
+@startuml
+autonumber
+actor "Giảng Viên Chính" as Lecturer
+participant "Front-End\n(React)" as UI
+participant "API Gateway" as Gateway
+participant "Course Service" as Service
+database "MySQL Database" as DB
+
+Lecturer -> UI: Thêm tiêu chí Rubric và gắn CLO
+UI -> Gateway: POST /api/rubrics (Payload Rubric & Criteria)
+Gateway -> Service: Chuyển tiếp request kèm JWT Token
+Service -> Service: Kiểm tra điều kiện tổng trọng số = 100%
+alt Trọng số hợp lệ
+    Service -> DB: Lưu thông tin Rubric, Tiêu chí & Mức độ
+    DB --> Service: Xác nhận thành công
+    Service --> UI: Trả về HTTP 200 OK & Dữ liệu Rubric
+    UI --> Lecturer: Hiển thị thông báo cấu hình thành công
+else Trọng số không hợp lệ
+    Service --> UI: Trả về HTTP 400 Bad Request (Lỗi trọng số)
+    UI --> Lecturer: Cảnh báo lỗi tổng trọng số phải bằng 100%
+end
+@enduml

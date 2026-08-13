@@ -1,0 +1,28 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+skinparam actor {
+  BackgroundColor White
+  BorderColor Black
+}
+
+actor "Người Dùng Chung" as User
+
+package "Quản Lý Tài Khoản" {
+  usecase "1.1 Đăng nhập" as UC1
+  usecase "1.2 Đăng ký" as UC2
+  usecase "1.3 Quên mật khẩu" as UC3
+  usecase "1.4 Cập nhật thông tin" as UC4
+  usecase "1.5 Đăng xuất" as UC5
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+@enduml

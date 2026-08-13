@@ -1,0 +1,18 @@
+@startuml
+autonumber
+actor "Sinh Viên" as Student
+participant "Front-End" as UI
+participant "Cloud Storage\n(AWS S3 / Cloudinary)" as Cloud
+participant "Course Service" as CourseSvc
+database "MySQL Database" as DB
+
+Student -> UI: Chọn File & Nhấn "Nộp bài"
+UI -> Cloud: Tải tệp tin (Upload File Stream)
+Cloud --> UI: Trả về File_URL an toàn
+UI -> CourseSvc: POST /api/v1/course-service/assessments/{assessmentId}/submit (AssessmentID, File_URLs, Text)
+CourseSvc -> DB: Insert `submissions` (student_id, assessment_id, submitted_at)
+CourseSvc -> DB: Insert `submission_attachments` (attachment_url, original_name)
+DB --> CourseSvc: Xác nhận thành công
+CourseSvc --> UI: 200 OK
+UI --> Student: Hiển thị trạng thái "Nộp bài thành công"
+@enduml

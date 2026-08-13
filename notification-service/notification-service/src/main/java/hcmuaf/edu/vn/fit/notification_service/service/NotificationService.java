@@ -135,6 +135,7 @@ public class NotificationService {
         n.setTitle(title);
         n.setContent(content);
         n.setNotificationType(NotificationType.SYSTEM_ALERT);
+
         return repo.save(n);
     }
 

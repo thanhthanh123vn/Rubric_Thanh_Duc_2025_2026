@@ -1,0 +1,61 @@
+@startuml
+skinparam defaultTextAlignment center
+
+|Sinh viên|
+start
+:Chọn học phần;
+:Chọn bài đánh giá (Assessment);
+:Nhấn "Nộp bài";
+
+|Hệ thống|
+:Kiểm tra thời hạn nộp bài;
+
+if (Còn hạn nộp?) then (Có)
+
+|Sinh viên|
+:Chọn tệp tin cần nộp;
+:Nhập nội dung bài làm\n(Submission Text);
+:Nhấn "Xác nhận nộp";
+
+|Hệ thống|
+:Kiểm tra định dạng và kích thước tệp;
+
+if (Tệp hợp lệ?) then (Có)
+
+|Cloud Storage|
+:Nhận tệp;
+:Lưu tệp lên Cloud (S3/Cloudinary);
+:Trả về URL tệp;
+
+|Hệ thống|
+:Tạo Submission;
+:Lưu URL Attachment;
+:Cập nhật trạng thái = Đã nộp;
+:Ghi thời gian nộp bài;
+
+|Notification Service|
+:Gửi thông báo đến Giảng viên;
+
+|Hệ thống|
+:Thông báo nộp bài thành công;
+
+|Sinh viên|
+:Xem kết quả nộp bài;
+
+else (Không)
+
+|Hệ thống|
+:Thông báo tệp không hợp lệ;
+
+endif
+
+else (Không)
+
+|Hệ thống|
+:Vô hiệu hóa nút "Nộp bài";
+:Hiển thị thông báo\n"Đã quá hạn nộp";
+
+endif
+
+stop
+@enduml

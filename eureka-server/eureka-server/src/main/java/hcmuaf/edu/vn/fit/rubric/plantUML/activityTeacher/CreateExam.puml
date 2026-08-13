@@ -1,0 +1,36 @@
+@startuml
+skinparam defaultTextAlignment center
+
+|Giảng viên|
+start
+:Truy cập chức năng "Sinh đề thi";
+:Nhập các tham số Ma trận đề thi;
+
+note right
+VD:
+- Số lượng câu
+- Độ khó
+- Chuẩn đầu ra (CLO)
+end note
+
+|Hệ thống|
+:Truy vấn kho câu hỏi theo điều kiện;
+:Đếm số lượng câu hỏi khả dụng;
+
+if (Số lượng kho >= Số lượng yêu cầu?) then (Có)
+  :Áp dụng thuật toán Randomize (Xáo trộn);
+  :Trích xuất các câu hỏi được chọn;
+  :Tạo đối tượng Assessment (Bài thi mới);
+  :Liên kết các câu hỏi vào Assessment;
+  :Lưu dữ liệu vào hệ thống;
+  :Hiển thị bản xem trước đề thi;
+
+  |Giảng viên|
+  :Xem trước đề thi;
+
+else (Không)
+  :Báo lỗi\n"Không đủ câu hỏi trong kho";
+endif
+
+stop
+@enduml

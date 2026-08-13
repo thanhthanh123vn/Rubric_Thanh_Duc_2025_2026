@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "lecturers")
 @Data
@@ -31,4 +33,20 @@ public class Lecturer {
 
     @Column(name = "academic_title")
     private String academicTitle;
+
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "gender", length = 10)
+    private String gender;
+
+    @Column(name = "cccd", length = 20)
+    private String cccd;
+
+    @Column(name = "phone_number", length = 15)
+    private String phoneNumber;
+
+    @Column(name = "address", columnDefinition = "TEXT")
+    private String address;
 }

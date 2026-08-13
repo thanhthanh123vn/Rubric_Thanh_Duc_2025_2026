@@ -1,10 +1,13 @@
 package hcmuaf.edu.vn.fit.user_service.service;
 
 import hcmuaf.edu.vn.fit.user_service.dto.response.FacultyResponse;
+import hcmuaf.edu.vn.fit.user_service.dto.response.LecturerResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.Faculty;
+import hcmuaf.edu.vn.fit.user_service.entity.Lecturer;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.repository.FacultyRepository;
 import hcmuaf.edu.vn.fit.user_service.exception.ResourceNotFoundException;
+import hcmuaf.edu.vn.fit.user_service.repository.LecturerRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ public class FacultyService {
 
     private final FacultyRepository facultyRepository;
     private final UserRepository userRepository;
+    private final LecturerRepository lecturerRepository;
 
     public List<FacultyResponse> getAllFaculties() {
         return facultyRepository.findAll().stream()
@@ -58,5 +62,17 @@ public class FacultyService {
             throw new ResourceNotFoundException("Không tìm thấy Khoa với mã: " + id);
         }
         facultyRepository.deleteById(id);
+    }
+    public List<LecturerResponse> getLecturersByFaculty(String facultyName) {
+
+        List<Lecturer> lecturers = lecturerRepository.findByDepartment_Faculty_FacultyName(facultyName);
+
+        return lecturers.stream()
+                .map(lecturer -> LecturerResponse.builder()
+                        .lecturerId(lecturer.getLecturerId())
+                        .fullName(lecturer.getUser().getFullName())
+                        .department(lecturer.getDepartment().getDepartmentName()) // Vẫn giữ tên bộ môn cụ thể của GV
+                        .build())
+                .toList();
     }
 }

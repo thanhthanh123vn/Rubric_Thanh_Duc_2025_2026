@@ -1,0 +1,27 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+
+actor "Giảng Viên Chính" as MainTeacher
+actor "Giảng Viên" as Teacher
+MainTeacher -|> Teacher
+package "Quản Lý Đề Cương & Chuẩn Đầu Ra" {
+  usecase "14. Quản lý đề cương" as UC_Syllabus
+  usecase "14.1 Tạo CLO + Rubric trọng số" as UC_CreateRubric
+  usecase "14.2 Xóa CLO + Rubric trọng số" as UC_DelRubric
+  usecase "14.3 Sửa CLO + Rubric trọng số" as UC_EditRubric
+  usecase "14.4 Xem CLO + Rubric trọng số" as UC_ViewRubric
+  usecase "14.5 Xem Ma trận Rubric" as UC_Matrix
+}
+
+MainTeacher --> UC_Syllabus
+UC_Syllabus <.. UC_CreateRubric : <<extend>>
+UC_Syllabus <.. UC_DelRubric : <<extend>>
+UC_Syllabus <.. UC_EditRubric : <<extend>>
+UC_Syllabus <.. UC_ViewRubric : <<extend>>
+UC_Syllabus <.. UC_Matrix : <<extend>>
+@enduml
