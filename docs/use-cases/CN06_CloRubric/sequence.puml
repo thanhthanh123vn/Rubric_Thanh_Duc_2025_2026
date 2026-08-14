@@ -1,0 +1,30 @@
+@startuml
+autonumber
+title UC-14 Quản lý đề cương, CLO và Rubric
+actor "Giảng viên chính" as GV
+boundary "RubricPage" as UI
+control "CourseCloController" as CC
+control "CourseCloService" as CS
+control "RubricController" as RC
+control "RubricService" as RS
+control "RubricMatrixService" as MS
+control "RubricValidator <<Proposed>>" as V
+database "RubricRepository" as R
+GV -> UI : Nhập CLO
+UI -> CC : createCourseClo(request)
+CC -> CS : createClo(request)
+CS -> R : findByCloCode(code)
+CS -> R : save(clo)
+GV -> UI : Nhập Rubric và ma trận
+UI -> RC : createRubric(lecturerId, request)
+RC -> RS : createRubric(lecturerId, request)
+RS -> V : validateRubric(request)
+alt Không hợp lệ
+  V --> UI : Lỗi trọng số hoặc dữ liệu
+else Hợp lệ
+  RS -> R : save(rubric, criteria)
+  UI -> MS : updateMatrix(request)
+  MS -> R : save(rubric, criteria, levels)
+  R --> UI : Lưu thành công
+end
+@enduml

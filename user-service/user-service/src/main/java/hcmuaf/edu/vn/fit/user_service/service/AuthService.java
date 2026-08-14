@@ -91,7 +91,7 @@ public class AuthService {
             user = userRepository.findByUsername(identifier)
                     .orElseThrow(() -> new IllegalArgumentException("Tài khoản hoặc mật khẩu không chính xác!"));
         }
-        if (user.isLocked()) {
+        if (Boolean.TRUE.equals(user.getLocked())) {
             throw new IllegalArgumentException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!");
         }
 

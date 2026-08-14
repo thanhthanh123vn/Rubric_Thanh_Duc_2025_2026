@@ -1,0 +1,29 @@
+@startuml
+autonumber
+title UC-07 Điểm danh bằng QR và GPS
+actor "Giảng viên" as GV
+actor "Sinh viên" as SV
+boundary "AttendancePage" as UI
+control "AttendanceSessionController" as AC
+control "AttendanceSessionService" as AS
+control "StudentAttendanceController" as SC
+control "StudentAttendanceService" as SS
+database "AttendanceRepository" as DB
+GV -> UI : Tạo phiên điểm danh
+UI -> AC : createAttendanceSession(request)
+AC -> AS : createAttendanceSession(request)
+AS -> DB : save(session)
+DB --> UI : QR và thời hạn
+SV -> UI : Quét QR và gửi GPS
+UI -> SC : checkIn(request, studentId)
+SC -> SS : checkIn(studentId, request)
+SS -> DB : findSessionByToken(token)
+SS -> SS : validateTimeAndDistance(location)
+alt Không hợp lệ
+  SS --> UI : AttendanceException
+else Hợp lệ
+  SS -> DB : save(attendance)
+  DB --> UI : AttendanceCheckInResponse
+  UI --> SV : Điểm danh thành công
+end
+@enduml

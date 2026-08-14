@@ -1,0 +1,70 @@
+@startuml RubricServiceSchema
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+hide methods
+
+title RUBRIC SERVICE SCHEMA
+
+database "rubric_db" {
+  entity "rubrics" as rubrics {
+    * rubric_id: varchar <<PK>>
+    --
+    lecturer_id: varchar <<REF>>
+    course_id: varchar <<REF>>
+    created_by: varchar <<REF>>
+    * rubric_name: varchar
+    * status: varchar
+    description: text
+    reviewed_by: varchar <<REF>>
+    reviewed_at: datetime
+    feedback: text
+  }
+
+  entity "rubric_criteria" as rubric_criteria {
+    * criteria_id: varchar <<PK>>
+    --
+    * rubric_id: varchar <<FK>>
+    clo_id: varchar <<FK>>
+    * criteria_name: varchar
+    * weight: float
+  }
+
+  entity "rubric_levels" as rubric_levels {
+    * level_id: varchar <<PK>>
+    --
+    * criteria_id: varchar <<FK>>
+    * level_name: varchar
+    description: text
+    * score: float
+  }
+
+  entity "course_clos" as course_clos {
+    * clo_id: varchar <<PK>>
+    --
+    * clo_code: varchar
+    * clo_name: varchar
+    description: text
+    bloom_level: varchar
+  }
+
+  entity "course_clo_maps" as course_clo_maps {
+    * id: bigint <<PK>>
+    --
+    * course_id: varchar <<REF>>
+    * clo_id: varchar <<FK>>
+  }
+}
+
+rubrics ||--|{ rubric_criteria
+rubric_criteria ||--|{ rubric_levels
+course_clos ||--o{ rubric_criteria
+course_clos ||--o{ course_clo_maps
+
+legend bottom
+  course_id và lecturer_id là tham chiếu logic.
+  Không tạo khóa ngoại sang course_db hoặc user_db.
+endlegend
+
+@enduml

@@ -1,0 +1,24 @@
+@startuml
+title UC-09 Làm bài thi trực tuyến
+|Sinh viên|
+start
+:Chọn đề thi và nhấn Bắt đầu;
+|Hệ thống|
+:Kiểm tra phân công và thời gian;
+if (Được phép thi?) then (Có)
+  :Tải câu hỏi;
+  |Sinh viên|
+  :Chọn đáp án;
+  |Hệ thống|
+  :Lưu tạm tiến độ;
+  |Sinh viên|
+  :Nhấn Nộp bài;
+  |Hệ thống|
+  :Khóa bài và chấm đáp án;
+  :Lưu kết quả;
+  :Hiển thị xác nhận;
+else (Không)
+  :Thông báo ngoài thời gian hoặc đã nộp;
+endif
+stop
+@enduml

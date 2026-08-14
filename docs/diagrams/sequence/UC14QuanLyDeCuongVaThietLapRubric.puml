@@ -1,0 +1,73 @@
+@startuml UC14QuanLyDeCuongVaThietLapRubric
+autonumber
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title UC-14 Quản lý đề cương và thiết lập Rubric
+
+actor "Giảng viên chính" as GV
+boundary "CLOManagement\nCreateRubricModal\nRubricMatrixEditor" as UI
+control "CourseCloController" as CloC
+control "RubricController" as RubricC
+control "RubricMatrixController" as MatrixC
+control "CourseCloService" as CloS
+control "RubricService" as RubricS
+control "RubricMatrixService" as MatrixS
+control "RubricValidator\n<<Proposed>>" as Validator
+database "Repository / rubric_db" as DB
+
+GV -> UI : Chọn học phần
+UI -> CloC : getAll()
+CloC -> CloS : getAll()
+CloS -> DB : findAll()
+DB --> UI : Danh sách CLO
+UI -> RubricC : getAll()
+RubricC -> RubricS : getAllRubrics()
+RubricS -> DB : findAll()
+DB --> UI : Danh sách Rubric
+
+opt Thêm hoặc sửa CLO
+  GV -> UI : Nhập thông tin CLO
+  UI -> CloC : createCourseClo(request) /\nupdateCourseClo(cloId, request)
+  CloC -> CloS : createClo(request) /\nupdateClo(cloId, request)
+  CloS -> DB : findByCloCode(...)
+  alt E2: Mã CLO bị trùng
+    DB --> UI : Thông báo mã CLO bị trùng
+  else Hợp lệ
+    CloS -> DB : save(clo)
+    DB --> UI : Lưu CLO thành công
+  end
+end
+
+GV -> UI : Nhập Rubric, tiêu chí, trọng số và CLO
+UI -> RubricC : createRubric(lecturerId, request)
+RubricC -> RubricS : createRubric(lecturerId, request)
+RubricS -> Validator : validateRubric(request)
+
+alt E1: Tổng trọng số khác 100%
+  Validator --> UI : Thông báo lỗi trọng số
+else E3: Thiếu dữ liệu hoặc chưa liên kết CLO
+  Validator --> UI : Yêu cầu bổ sung dữ liệu
+else Rubric hợp lệ
+  RubricS -> DB : save(rubric, criteria)
+  DB --> UI : Tạo Rubric thành công
+
+  GV -> UI : Nhập các mức thể hiện và điểm
+  UI -> MatrixC : rubricMatrix(request)
+  MatrixC -> MatrixS : updateMatrix(request)
+  MatrixS -> Validator : validateMatrix(request)
+  alt Có tiêu chí ít hơn hai mức
+    Validator --> UI : Yêu cầu bổ sung mức thể hiện
+  else Ma trận hợp lệ
+    MatrixS -> DB : save(rubric, criteria, levels)
+    DB --> UI : Lưu thành công
+    UI --> GV : Thông báo thành công
+  end
+end
+
+note right of Validator
+  Lớp đề xuất trong class diagram,
+  dùng kiểm tra các ràng buộc E1-E3.
+end note
+
+@enduml

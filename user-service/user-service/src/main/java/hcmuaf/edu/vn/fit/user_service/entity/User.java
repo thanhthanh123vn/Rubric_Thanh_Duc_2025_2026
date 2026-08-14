@@ -38,6 +38,6 @@ public class User {
 
     @Column(name = "is_locked")
     @Builder.Default
-    private boolean locked = false;
+    private Boolean locked = Boolean.FALSE;
 
 }

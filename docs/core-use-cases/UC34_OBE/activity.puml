@@ -1,0 +1,21 @@
+@startuml
+title UC-34 Phân tích chuẩn đầu ra OBE
+|Trưởng bộ môn / Giảng viên|
+start
+:Chọn học kỳ, học phần hoặc lớp;
+|Hệ thống|
+:Kiểm tra phạm vi truy cập;
+:Tải CLO và kết quả đã chấm;
+if (Đủ dữ liệu và ánh xạ?) then (Có)
+  :Chuẩn hóa điểm và ánh xạ về CLO;
+  :Tính tỷ lệ đạt từng CLO;
+  :Hiển thị biểu đồ và thống kê;
+  |Trưởng bộ môn / Giảng viên|
+  :Chọn CLO cần xem chi tiết;
+  |Hệ thống|
+  :Hiển thị bằng chứng đánh giá;
+else (Không)
+  :Hiển thị dữ liệu hoặc ánh xạ còn thiếu;
+endif
+stop
+@enduml

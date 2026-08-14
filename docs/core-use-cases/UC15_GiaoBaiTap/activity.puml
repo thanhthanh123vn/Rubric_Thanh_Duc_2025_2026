@@ -1,0 +1,21 @@
+@startuml
+title UC-15 Giao bài tập
+|Giảng viên|
+start
+:Chọn lớp và tạo bài tập;
+:Nhập nội dung, hạn nộp và tệp;
+:Chọn Rubric chấm điểm;
+|Hệ thống|
+:Kiểm tra dữ liệu, thời gian và Rubric;
+if (Hợp lệ?) then (Có)
+  :Lưu bài đánh giá;
+  |Giảng viên|
+  :Nhấn Công bố;
+  |Hệ thống|
+  :Cập nhật trạng thái;
+  :Thông báo cho sinh viên;
+else (Không)
+  :Hiển thị trường cần sửa;
+endif
+stop
+@enduml

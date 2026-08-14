@@ -1,0 +1,23 @@
+@startuml
+title UC-03 Xem đánh giá Rubric
+|Sinh viên|
+start
+:Mở học phần và chọn đánh giá Rubric;
+|Hệ thống|
+:Kiểm tra sinh viên thuộc lớp;
+if (Được phép truy cập?) then (Có)
+  :Tải bài đánh giá và Rubric;
+  |Sinh viên|
+  :Chọn loại đánh giá;
+  |Hệ thống|
+  :Tải điểm và phản hồi;
+  if (Đã có kết quả?) then (Có)
+    :Hiển thị mức đạt, điểm và nhận xét;
+  else (Không)
+    :Hiển thị Rubric và trạng thái chưa chấm;
+  endif
+else (Không)
+  :Từ chối truy cập;
+endif
+stop
+@enduml

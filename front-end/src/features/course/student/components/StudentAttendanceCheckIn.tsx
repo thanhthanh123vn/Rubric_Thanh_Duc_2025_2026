@@ -1,5 +1,18 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, History, LocateFixed, QrCode, ScanLine } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  CalendarDays,
+  Camera,
+  CameraOff,
+  CheckCircle2,
+  Clock3,
+  History,
+  LocateFixed,
+  QrCode,
+  ScanLine,
+  TrendingUp,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -11,40 +24,62 @@ import {
 } from "@/api/attendanceApi.ts";
 import { getBrowserId } from "@/utils/browserId.ts";
 
-type StudentAttendanceCheckInProps = {
-  offeringId: string;
-};
-
-type GeoState = {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
+type Props = { offeringId: string };
+type GeoState = { latitude: number; longitude: number; accuracy: number };
+type ScannerControls = { stop: () => void };
+type AttendanceTableRow = {
+  session: AttendanceSessionSummaryResponse;
+  record: AttendanceHistoryResponse | null;
 };
 
 function formatDateTime(value: string | null) {
-  if (!value) {
-    return "--";
-  }
-
-  return new Date(value).toLocaleString("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatDateOnly(value: string) {
-  return new Date(value).toLocaleDateString("vi-VN");
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "--" : date.toLocaleDateString("vi-VN");
 }
 
-type AttendanceSummaryRow = {
-  date: string;
-  status: "present" | "absent";
-};
+function formatTimeOnly(value: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
 
-export default function StudentAttendanceCheckIn({
-  offeringId,
-}: StudentAttendanceCheckInProps) {
+function getMethodLabel(method: string | null) {
+  if (method === "QR") return "QR + GPS";
+  if (method === "MANUAL") return "Giảng viên cập nhật";
+  return method || "--";
+}
+
+function getAttendanceStatus(row: AttendanceTableRow) {
+  if (row.record?.status === "PRESENT") return "present";
+  if (row.record?.status === "ABSENT") return "absent";
+  return new Date(row.session.startTime).getTime() > Date.now() ? "upcoming" : "absent";
+}
+
+function getStatusBadge(status: ReturnType<typeof getAttendanceStatus>) {
+  if (status === "present") {
+    return { label: "Có mặt", className: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  }
+  if (status === "upcoming") {
+    return { label: "Chưa diễn ra", className: "border-sky-200 bg-sky-50 text-sky-700" };
+  }
+  return { label: "Vắng", className: "border-rose-200 bg-rose-50 text-rose-700" };
+}
+
+export default function StudentAttendanceCheckIn({ offeringId }: Props) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerControlsRef = useRef<ScannerControls | null>(null);
+  const scanHandledRef = useRef(false);
+
   const [qrContent, setQrContent] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLocating, setIsLocating] = useState(false);
@@ -54,9 +89,17 @@ export default function StudentAttendanceCheckIn({
   const [sessions, setSessions] = useState<AttendanceSessionSummaryResponse[]>([]);
   const [geoState, setGeoState] = useState<GeoState | null>(null);
 
+  const stopScanner = () => {
+    scannerControlsRef.current?.stop();
+    scannerControlsRef.current = null;
+    scanHandledRef.current = false;
+    setIsScanning(false);
+  };
+
   const loadAttendanceData = async () => {
     try {
       setIsLoadingHistory(true);
+      setErrorMessage("");
       const [historyResponse, sessionResponse] = await Promise.all([
         attendanceApi.getMyAttendanceHistory(offeringId),
         attendanceApi.getAttendanceSessionsByOffering(offeringId),
@@ -71,33 +114,44 @@ export default function StudentAttendanceCheckIn({
   };
 
   useEffect(() => {
-    if (!offeringId) {
-      return;
-    }
+    if (!offeringId) return;
 
-    loadAttendanceData();
+    let isCurrent = true;
+    Promise.all([
+      attendanceApi.getMyAttendanceHistory(offeringId),
+      attendanceApi.getAttendanceSessionsByOffering(offeringId),
+    ])
+      .then(([historyResponse, sessionResponse]) => {
+        if (!isCurrent) return;
+        setHistory(historyResponse);
+        setSessions(sessionResponse);
+      })
+      .catch((error: unknown) => {
+        if (isCurrent) setErrorMessage(getAttendanceErrorMessage(error));
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoadingHistory(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [offeringId]);
 
+  useEffect(() => () => scannerControlsRef.current?.stop(), []);
+
   const getCurrentLocation = async () => {
-    if (!navigator.geolocation) {
-      throw new Error("Trinh duyet khong ho tro GPS.");
-    }
+    if (!navigator.geolocation) throw new Error("Trình duyệt không hỗ trợ định vị GPS.");
 
     return new Promise<GeoState>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-        },
-        () => reject(new Error("Khong the lay vi tri hien tai.")),
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        },
+        (position) => resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        }),
+        () => reject(new Error("Không thể lấy vị trí hiện tại. Hãy cấp quyền GPS và thử lại.")),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
       );
     });
   };
@@ -105,9 +159,10 @@ export default function StudentAttendanceCheckIn({
   const handleGetLocation = async () => {
     try {
       setIsLocating(true);
+      setErrorMessage("");
       const location = await getCurrentLocation();
       setGeoState(location);
-      toast.success("Da cap nhat vi tri GPS.");
+      toast.success("Đã cập nhật vị trí GPS.");
     } catch (error) {
       const message = getAttendanceErrorMessage(error);
       setErrorMessage(message);
@@ -117,31 +172,22 @@ export default function StudentAttendanceCheckIn({
     }
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setErrorMessage("");
-
-    if (!qrContent.trim()) {
-      const message = "Vui long dan noi dung QR de diem danh.";
-      setErrorMessage(message);
-      toast.error(message);
-      return;
-    }
-
+  const submitCheckIn = async (content: string) => {
+    if (!content.trim() || isSubmitting) return;
     try {
       setIsSubmitting(true);
+      setErrorMessage("");
       const location = geoState ?? await getCurrentLocation();
       setGeoState(location);
-
       const response = await attendanceApi.checkInByQr({
-        qrContent: qrContent.trim(),
+        qrContent: content.trim(),
         latitude: location.latitude,
         longitude: location.longitude,
         browserId: getBrowserId(),
       });
       setCheckInResult(response);
       setQrContent("");
-      toast.success(response.message || "Diem danh thanh cong.");
+      toast.success(response.message || "Điểm danh thành công.");
       await loadAttendanceData();
     } catch (error) {
       const message = getAttendanceErrorMessage(error);
@@ -152,241 +198,266 @@ export default function StudentAttendanceCheckIn({
     }
   };
 
-  const attendedDates = Array.from(
-    new Set(history.map((item) => item.studyDate).filter(Boolean)),
-  ).sort((first, second) => new Date(second).getTime() - new Date(first).getTime());
+  const startScanner = async () => {
+    if (!videoRef.current || isScanning) return;
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      const message =
+        "Trình duyệt chỉ cho phép dùng camera trên HTTPS hoặc localhost. Hãy mở hệ thống bằng HTTPS rồi thử lại.";
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
 
-  const attendedDateSet = new Set(attendedDates);
-  const absentDates = sessions
-    .map((item) => item.attendanceDate)
-    .filter((date) => new Date(date).getTime() <= Date.now())
-    .filter((date, index, array) => array.indexOf(date) === index)
-    .filter((date) => !attendedDateSet.has(date))
-    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime());
+    try {
+      setErrorMessage("");
+      setCheckInResult(null);
+      setIsScanning(true);
+      scanHandledRef.current = false;
+      const { BrowserQRCodeReader } = await import("@zxing/browser");
+      const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 250 });
+      scannerControlsRef.current = await reader.decodeFromConstraints(
+        { audio: false, video: { facingMode: { ideal: "environment" } } },
+        videoRef.current,
+        (result, _error, controls) => {
+          if (!result || scanHandledRef.current) return;
+          scanHandledRef.current = true;
+          const content = result.getText();
+          setQrContent(content);
+          controls.stop();
+          scannerControlsRef.current = null;
+          setIsScanning(false);
+          toast.success("Đã quét được mã QR. Đang xác thực vị trí...");
+          void submitCheckIn(content);
+        },
+      );
+    } catch (error) {
+      stopScanner();
+      const message =
+        error instanceof Error && error.name === "NotAllowedError"
+          ? "Bạn chưa cấp quyền sử dụng camera."
+          : "Không thể mở camera. Hãy kiểm tra quyền camera hoặc nhập nội dung QR thủ công.";
+      setErrorMessage(message);
+      toast.error(message);
+    }
+  };
 
-  const attendanceSummaryRows: AttendanceSummaryRow[] = [
-    ...attendedDates.map((date) => ({ date, status: "present" as const })),
-    ...absentDates.map((date) => ({ date, status: "absent" as const })),
-  ].sort((first, second) => new Date(second.date).getTime() - new Date(first.date).getTime());
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!qrContent.trim()) {
+      const message = "Vui lòng quét mã QR hoặc nhập nội dung QR.";
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
+    void submitCheckIn(qrContent);
+  };
+
+  const attendanceRows = useMemo<AttendanceTableRow[]>(() => {
+    const recordsBySession = new Map(history.map((item) => [item.sessionId, item]));
+    return sessions
+      .map((session) => ({ session, record: recordsBySession.get(session.sessionId) || null }))
+      .sort((a, b) => new Date(b.session.startTime).getTime() - new Date(a.session.startTime).getTime());
+  }, [history, sessions]);
+
+  const statistics = useMemo(() => {
+    const rows = attendanceRows.filter((row) => getAttendanceStatus(row) !== "upcoming");
+    const present = rows.filter((row) => getAttendanceStatus(row) === "present").length;
+    const absent = rows.length - present;
+    const rate = rows.length === 0 ? 0 : Math.round((present / rows.length) * 100);
+    return {
+      total: rows.length,
+      present,
+      absent,
+      rate,
+      result: rows.length > 0 && rate >= 80 ? "Đạt" : "Chưa đạt",
+    };
+  }, [attendanceRows]);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.95fr)]">
-      <div className="space-y-4">
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-              <ScanLine className="h-5 w-5" />
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatisticCard icon={CalendarDays} label="Số buổi đã học" value={String(statistics.total)}
+          note="Không tính các buổi chưa diễn ra." tone="slate" />
+        <StatisticCard icon={UserCheck} label="Có mặt" value={String(statistics.present)}
+          note={`${statistics.present}/${statistics.total} buổi`} tone="emerald" />
+        <StatisticCard icon={UserX} label="Vắng" value={String(statistics.absent)}
+          note={`${statistics.absent}/${statistics.total} buổi`} tone="rose" />
+        <StatisticCard icon={TrendingUp} label="Tỷ lệ chuyên cần" value={`${statistics.rate}%`}
+          note={`${statistics.result} yêu cầu tối thiểu 80%`}
+          tone={statistics.rate >= 80 ? "emerald" : "amber"} />
+      </div>
+
+      <section className="w-full space-y-6">
+        <article className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
+                <ScanLine className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">Quét QR điểm danh</h3>
+                <p className="mt-1 text-sm text-slate-500">Camera sẽ đọc QR và gửi check-in cùng vị trí GPS.</p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-base font-bold text-slate-900">Diem danh bang QR + GPS</h4>
-              <p className="text-sm text-slate-500">
-                Dan noi dung QR va cap quyen vi tri de gui check-in.
-              </p>
-            </div>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">QR + GPS</span>
           </div>
 
-          <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">QR content</span>
-              <textarea
-                value={qrContent}
-                onChange={(event) => setQrContent(event.target.value)}
-                placeholder={`{"sessionId":"...","qrToken":"..."}`}
-                className="min-h-36 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-800 outline-none transition focus:border-emerald-400 focus:bg-white"
-              />
-            </label>
+          <div className="relative mt-5 aspect-video overflow-hidden rounded-2xl bg-slate-950">
+            <video ref={videoRef}
+              className={`h-full w-full object-cover ${isScanning ? "opacity-100" : "opacity-20"}`}
+              muted playsInline />
+            {isScanning ? (
+              <>
+                <div className="pointer-events-none absolute inset-[14%] rounded-2xl border-2 border-emerald-400 shadow-[0_0_0_999px_rgba(2,6,23,0.38)]" />
+                <div className="absolute inset-x-0 bottom-4 text-center text-sm font-medium text-white">Đưa mã QR vào giữa khung hình</div>
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
+                <Camera className="h-9 w-9" />
+                <p className="mt-3 text-sm font-semibold">Camera chưa được bật</p>
+              </div>
+            )}
+          </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="mt-4 flex flex-wrap gap-3">
+            {isScanning ? (
+              <button type="button" onClick={stopScanner}
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">
+                <CameraOff className="h-4 w-4" />Tắt camera
+              </button>
+            ) : (
+              <button type="button" onClick={() => void startScanner()} disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
+                <Camera className="h-4 w-4" />Mở camera quét QR
+              </button>
+            )}
+            <button type="button" onClick={() => void handleGetLocation()} disabled={isLocating}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+              <LocateFixed className="h-4 w-4 text-emerald-600" />
+              {isLocating ? "Đang lấy GPS..." : geoState ? "Cập nhật GPS" : "Lấy vị trí GPS"}
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Vị trí hiện tại</p>
+            <p className="mt-1 text-sm text-slate-700">
+              {geoState
+                ? `${geoState.latitude.toFixed(6)}, ${geoState.longitude.toFixed(6)} · sai số ${Math.round(geoState.accuracy)} m`
+                : "Chưa lấy vị trí GPS"}
+            </p>
+          </div>
+
+          <details className="mt-4 rounded-xl border border-slate-200 bg-white">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">Nhập nội dung QR thủ công</summary>
+            <form className="space-y-3 border-t border-slate-200 p-4" onSubmit={handleSubmit}>
+              <textarea value={qrContent} onChange={(event) => setQrContent(event.target.value)}
+                placeholder={`{"sessionId":"...","qrToken":"..."}`}
+                className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm outline-none focus:border-emerald-400" />
+              <button type="submit" disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                <QrCode className="h-4 w-4" />{isSubmitting ? "Đang xác nhận..." : "Xác nhận điểm danh"}
+              </button>
+            </form>
+          </details>
+
+          {errorMessage ? (
+            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{errorMessage}</div>
+          ) : null}
+          {checkInResult ? (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Vi tri hien tai</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {geoState
-                      ? `${geoState.latitude.toFixed(6)}, ${geoState.longitude.toFixed(6)} - sai so ${Math.round(geoState.accuracy)}m`
-                      : "Chua lay GPS"}
+                  <p className="font-semibold text-emerald-800">Điểm danh thành công</p>
+                  <p className="mt-1 text-sm text-emerald-700">
+                    {formatDateTime(checkInResult.checkinTime)} · {getMethodLabel(checkInResult.method)}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={isLocating}
-                  className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <LocateFixed className="h-4 w-4" />
-                  {isLocating ? "Dang lay GPS..." : "Lay GPS"}
-                </button>
               </div>
             </div>
+          ) : null}
+        </article>
 
-            {errorMessage ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
-                {errorMessage}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <QrCode className="h-4 w-4" />
-              {isSubmitting ? "Dang gui diem danh..." : "Xac nhan diem danh"}
-            </button>
-          </form>
-        </div>
-
-        {checkInResult ? (
-          <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="rounded-2xl bg-white p-2 text-emerald-700 shadow-sm">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                  Check-in thanh cong
-                </p>
-                <p className="mt-2 text-base font-bold text-slate-900">{checkInResult.message}</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <InfoItem label="Ngay hoc" value={checkInResult.studyDate} />
-                  <InfoItem label="Thoi gian" value={formatDateTime(checkInResult.checkinTime)} />
-                  <InfoItem label="Session ID" value={checkInResult.sessionId} />
-                  <InfoItem label="Phuong thuc" value={checkInResult.method} />
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="space-y-4">
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
-              <History className="h-5 w-5" />
-            </div>
+        <article className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700"><History className="h-5 w-5" /></div>
             <div>
-              <h4 className="text-base font-bold text-slate-900">Thống kê chuyên cần</h4>
-              <p className="text-sm text-slate-500">Xem nhanh những buổi đã đi học và đã vắng.</p>
+              <h3 className="font-bold text-slate-900">Lịch sử điểm danh</h3>
+              <p className="mt-1 text-sm text-slate-500">Theo dõi từng phiên giống bảng tổng quan của giảng viên.</p>
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <SimpleSummaryCard title="Đã đi học" value={attendedDates.length.toString()} tone="present" />
-            <SimpleSummaryCard title="Đã vắng" value={absentDates.length.toString()} tone="absent" />
-          </div>
-
-          <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-            {attendanceSummaryRows.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-slate-500">
-                Chưa có buổi điểm danh nào trong học phần này.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead className="bg-slate-50">
-                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                      <th className="px-4 py-3">Ngày</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {attendanceSummaryRows.map((row) => (
-                      <tr key={`${row.status}-${row.date}`}>
-                        <td className="px-4 py-3 font-medium text-slate-900">{formatDateOnly(row.date)}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              row.status === "present"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-rose-100 text-rose-700"
-                            }`}
-                          >
-                            {row.status === "present" ? "Đi học" : "Vắng"}
-                          </span>
+          {isLoadingHistory ? (
+            <div className="p-10 text-center text-sm text-slate-500">Đang tải lịch sử điểm danh...</div>
+          ) : attendanceRows.length === 0 ? (
+            <div className="p-10 text-center text-sm text-slate-500">Chưa có phiên điểm danh nào trong học phần này.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] border-collapse text-sm">
+                <thead className="bg-slate-100">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
+                    <th className="w-16 border-b border-r border-slate-300 px-4 py-3 text-center">STT</th>
+                    <th className="border-b border-r border-slate-300 px-4 py-3">Buổi học</th>
+                    <th className="border-b border-r border-slate-300 px-4 py-3">Giờ check-in</th>
+                    <th className="border-b border-r border-slate-300 px-4 py-3">Phương thức</th>
+                    <th className="border-b border-r border-slate-300 px-4 py-3">Trạng thái</th>
+                    <th className="border-b border-slate-300 px-4 py-3">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white">
+                  {attendanceRows.map((row, index) => {
+                    const status = getAttendanceStatus(row);
+                    const badge = getStatusBadge(status);
+                    return (
+                      <tr key={row.session.sessionId} className="align-top text-slate-700 hover:bg-slate-50/70">
+                        <td className="border-b border-r border-slate-200 px-4 py-4 text-center font-semibold text-slate-500">{index + 1}</td>
+                        <td className="whitespace-nowrap border-b border-r border-slate-200 px-4 py-4">
+                          <p className="font-semibold text-slate-900">{formatDateOnly(row.session.attendanceDate)}</p>
+                          <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                            <Clock3 className="h-3.5 w-3.5" />{formatTimeOnly(row.session.startTime)}–{formatTimeOnly(row.session.endTime)}
+                          </p>
+                        </td>
+                        <td className="whitespace-nowrap border-b border-r border-slate-200 px-4 py-4">{formatDateTime(row.record?.checkinTime || null)}</td>
+                        <td className="whitespace-nowrap border-b border-r border-slate-200 px-4 py-4">{getMethodLabel(row.record?.method || null)}</td>
+                        <td className="border-b border-r border-slate-200 px-4 py-4">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
+                        </td>
+                        <td className="min-w-48 border-b border-slate-200 px-4 py-4 text-slate-600">
+                          {row.record?.note || (status === "absent" ? "Không có bản ghi check-in." : "--")}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
-              <History className="h-5 w-5" />
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <div>
-              <h4 className="text-base font-bold text-slate-900">Lich su diem danh cua toi</h4>
-              <p className="text-sm text-slate-500">Cac lan check-in gan nhat trong hoc phan.</p>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {isLoadingHistory ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-                Dang tai lich su diem danh...
-              </div>
-            ) : history.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
-                Ban chua co ban ghi diem danh nao trong hoc phan nay.
-              </div>
-            ) : (
-              history.map((item) => (
-                <div key={item.attendanceId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{item.studyDate}</p>
-                      <p className="mt-1 text-xs text-slate-500">Session: {item.sessionId}</p>
-                    </div>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {item.status}
-                    </span>
-                  </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <InfoItem label="Check-in luc" value={formatDateTime(item.checkinTime)} />
-                    <InfoItem label="Phuong thuc" value={item.method || "--"} />
-                  </div>
-                  <p className="mt-3 text-sm text-slate-600">{item.note || "Khong co ghi chu."}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
+          )}
+        </article>
+      </section>
     </div>
   );
 }
 
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-white px-3 py-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-1 break-all text-sm font-semibold text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function SimpleSummaryCard({
-  title,
-  value,
-  tone,
+function StatisticCard({
+  icon: Icon, label, value, note, tone,
 }: {
-  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
   value: string;
-  tone: "present" | "absent";
+  note: string;
+  tone: "slate" | "emerald" | "rose" | "amber";
 }) {
-  const toneClass =
-    tone === "present"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-rose-200 bg-rose-50 text-rose-700";
-
+  const toneClass = {
+    slate: "border-slate-200 bg-white text-slate-600",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    rose: "border-rose-200 bg-rose-50 text-rose-700",
+    amber: "border-amber-200 bg-amber-50 text-amber-700",
+  }[tone];
   return (
     <div className={`rounded-2xl border p-4 ${toneClass}`}>
-      <p className="text-sm font-semibold">{title}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
+      <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold">{label}</p><Icon className="h-5 w-5" /></div>
+      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-1 text-xs text-slate-500">{note}</p>
     </div>
   );
 }

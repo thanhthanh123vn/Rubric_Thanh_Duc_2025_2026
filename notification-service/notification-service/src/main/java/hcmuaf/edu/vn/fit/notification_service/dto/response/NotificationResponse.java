@@ -2,7 +2,7 @@ package hcmuaf.edu.vn.fit.notification_service.dto.response;
 
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -11,8 +11,10 @@ public class NotificationResponse {
     private String title;
     private String content;
     private boolean isRead;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private String referenceUrl;
+    private String courseId;
+    private String notificationType;
 
     private String ownerId;
     private String senderId;

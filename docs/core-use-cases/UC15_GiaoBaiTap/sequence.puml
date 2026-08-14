@@ -1,0 +1,25 @@
+@startuml
+autonumber
+title UC-15 Giao bài tập
+actor "Giảng viên" as GV
+boundary "AssessmentEditor" as UI
+control "AssessmentController" as C
+control "AssessmentService" as S
+participant "RubricClient" as RC
+participant "NotificationClient" as NC
+database "AssessmentRepository" as DB
+GV -> UI : Nhập bài tập và hạn nộp
+GV -> UI : Chọn Rubric
+UI -> C : createAssessment(userId, request, files)
+C -> S : createAssessment(userId, request, files)
+S -> S : validateScheduleAndFiles(request)
+S -> RC : getRubric(rubricId)
+alt Dữ liệu không hợp lệ
+  S --> UI : ValidationException
+else Hợp lệ
+  S -> DB : save(assessment)
+  S -> NC : notifyStudents(assessmentId)
+  DB --> UI : AssessmentLecturerResponse
+  UI --> GV : Tạo bài tập thành công
+end
+@enduml

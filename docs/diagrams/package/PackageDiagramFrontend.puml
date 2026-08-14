@@ -1,0 +1,59 @@
+@startuml PackageDiagramFrontend
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+hide empty members
+
+title FRONTEND REACT
+
+package "pages" as Pages {
+  class Dashboard <<Screen>>
+  class CalendarPage <<Screen>>
+  class CourseDetail <<Screen>>
+  class CourseEvaluations <<Screen>>
+  class StudentAttendanceCheckIn <<Screen>>
+  class StudentExamListPage <<Screen>>
+  class StudentTakeExamPage <<Screen>>
+  class StudentExamResultPage <<Screen>>
+  class CourseGroups <<Screen>>
+}
+
+package "components" as Components {
+  class Header <<Component>>
+  class Sidebar <<Component>>
+  class CourseCard <<Component>>
+  class AssessmentDetailModal <<Component>>
+}
+
+package "features" as Features {
+  class CourseStudentSlice <<StoreSlice>>
+  class AssignmentSlice <<StoreSlice>>
+  class CourseApi <<ApiClient>>
+  class GroupService <<ApiClient>>
+}
+
+package "api" as Api {
+  class AttendanceApi <<ApiClient>>
+  class PostService <<ApiClient>>
+  class RubricApi <<ApiClient>>
+  class NotificationApi <<ApiClient>>
+}
+
+package "app" as App {
+  class Router <<Configuration>>
+  class Store <<ReduxStore>>
+  class LmsLayout <<Layout>>
+}
+
+Pages --> Components : sử dụng
+Pages --> Features : sử dụng
+Pages --> Api : gọi
+Features --> Api : gọi
+Features --> Store : cập nhật trạng thái
+Router --> Pages : điều hướng
+LmsLayout --> Components : bố cục
+
+@enduml

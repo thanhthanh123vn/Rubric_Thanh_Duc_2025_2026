@@ -76,10 +76,14 @@ export function NotificationBell() {
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setNotifications(sortedNotifs);
-        } catch (error) {
+          })
+          .catch((error) => {
             console.error("Lỗi lấy thông báo:", error);
-        }
-    };
+          });
+        return () => {
+            active = false;
+        };
+    }, [user?.userId]);
 
     useEffect(() => {
         if (user?.userId) {

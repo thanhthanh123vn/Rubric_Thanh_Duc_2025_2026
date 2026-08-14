@@ -1,0 +1,136 @@
+@startuml UserServiceClassDiagram
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+title SƠ ĐỒ LỚP TỔNG QUAN USER SERVICE
+
+package "controller" {
+  class AuthController <<RestController>> {
+    -authService: AuthService
+    +register(request: RegisterRequest): ResponseEntity
+    +login(request: LoginRequest): ResponseEntity
+    +refreshToken(refreshToken: String): ResponseEntity
+    +forgotPassword(request: ForgotPasswordRequest): ResponseEntity
+    +resetPassword(request: ResetPasswordRequest): ResponseEntity
+  }
+
+  class UserController <<RestController>> {
+    -userService: UserService
+    +getAllUsers(keyword: String, pageable: Pageable): ResponseEntity
+    +getUserById(userId: String): ResponseEntity
+    +updateUser(userId: String, request: UpdateUserRequest): ResponseEntity
+    +updateAvatar(userId: String, file: MultipartFile): ResponseEntity
+  }
+
+  class SinhVienController <<RestController>> {
+    -sinhVienService: SinhVienService
+    +getProfile(userId: String): ResponseEntity
+    +updateProfile(userId: String, request: UpdateProfileRequest): ResponseEntity
+    +getAllSinhVien(keyword: String, pageable: Pageable): ResponseEntity
+  }
+}
+
+package "service" {
+  class AuthService <<Service>> {
+    -userRepository: UserRepository
+    -sinhVienRepository: SinhVienRepository
+    -passwordEncoder: BCryptPasswordEncoder
+    -jwtUtils: JwtUtils
+    -emailService: EmailService
+    +register(request: RegisterRequest): void
+    +login(request: LoginRequest): LoginResponse
+    +loginWithGoogle(user: OAuth2User): LoginResponse
+    +forgotPassword(request: ForgotPasswordRequest): void
+    +resetPassword(request: ResetPasswordRequest): void
+    +refreshToken(token: String): TokenResponse
+  }
+
+  class UserService <<Service>> {
+    -userRepository: UserRepository
+    -lecturerRepository: LecturerRepository
+    -userMapper: UserMapper
+    -cloudinaryService: CloudinaryService
+    +getAllUsers(keyword: String, pageable: Pageable): Page
+    +getUserById(id: String): UserResponse
+    +createUser(request: CreateUserRequest): UserResponse
+    +updateUser(userId: String, request: UpdateUserRequest): UserResponse
+    +deleteUser(userId: String): void
+    +updateAvatar(userId: String, file: MultipartFile): String
+  }
+
+  class SinhVienService <<Service>> {
+    -sinhVienRepository: SinhVienRepository
+    -userRepository: UserRepository
+    -sinhVienMapper: SinhVienMapper
+    +getAllSinhVien(keyword: String, pageable: Pageable): Page
+    +createStudent(request: UpdateProfileRequest): SinhVien
+    +updateProfile(userId: String, request: UpdateProfileRequest): SinhVien
+    +getProfile(studentId: String): ProfileResponse
+    +deleteSinhVien(studentId: String): void
+  }
+}
+
+package "repository" {
+  interface UserRepository <<Repository>> {
+    +findByUsername(username: String): Optional
+    +findByEmail(email: String): Optional
+    +existsByEmail(email: String): boolean
+    +findByGoogleId(googleId: String): Optional
+  }
+  interface SinhVienRepository <<Repository>> {
+    +findByUser(user: User): Optional
+    +searchByKeyword(keyword: String, pageable: Pageable): Page
+  }
+  interface LecturerRepository <<Repository>>
+}
+
+package "entity" {
+  class User <<Entity>> {
+    +userId: String
+    +username: String
+    +passwordHash: String
+    +email: String
+    +role: String
+    +authProvider: String
+    +avatarUrl: String
+    +fullName: String
+  }
+
+  class SinhVien <<Entity>> {
+    +studentId: String
+    +fullName: String
+    +className: String
+    +major: String
+    +dateOfBirth: LocalDate
+    +gender: String
+    +phoneNumber: String
+    +address: String
+  }
+
+  class Lecturer <<Entity>> {
+    +lecturerId: String
+    +fullName: String
+    +academicTitle: String
+  }
+}
+
+AuthController --> AuthService
+UserController --> UserService
+SinhVienController --> SinhVienService
+AuthService --> UserRepository
+AuthService --> SinhVienRepository
+UserService --> UserRepository
+UserService --> LecturerRepository
+SinhVienService --> SinhVienRepository
+SinhVienService --> UserRepository
+UserRepository --> User
+SinhVienRepository --> SinhVien
+LecturerRepository --> Lecturer
+User "1" *-- "0..1" SinhVien
+User "1" *-- "0..1" Lecturer
+
+@enduml

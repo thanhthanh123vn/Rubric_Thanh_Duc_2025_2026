@@ -1,0 +1,24 @@
+@startuml
+title UC-02 Quản lý học phần và nội dung lớp học
+|Quản trị viên / Giảng viên|
+start
+:Nhập thông tin học phần hoặc lớp;
+|Hệ thống|
+:Kiểm tra dữ liệu và quyền;
+if (Hợp lệ?) then (Có)
+  :Lưu học phần và lớp học phần;
+  |Quản trị viên / Giảng viên|
+  :Phân công giảng viên và ghi danh sinh viên;
+  |Hệ thống|
+  :Lưu danh sách thành viên;
+  |Giảng viên|
+  :Tải đề cương hoặc tạo bài đăng;
+  |Hệ thống|
+  :Lưu và thông báo nội dung mới;
+  |Sinh viên|
+  :Mở lớp và xem nội dung;
+else (Không)
+  :Thông báo lỗi dữ liệu hoặc quyền;
+endif
+stop
+@enduml

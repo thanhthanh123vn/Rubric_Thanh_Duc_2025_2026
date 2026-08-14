@@ -1,0 +1,25 @@
+@startuml
+autonumber
+title UC-17 Quản lý đề thi trắc nghiệm
+actor "Giảng viên" as GV
+boundary "ExamPaperPage" as UI
+control "AssessmentPaperController" as C
+control "AssessmentPaperService" as S
+database "QuestionRepository" as QR
+database "AssessmentPaperRepository" as PR
+GV -> UI : Nhập ma trận đề
+UI -> C : generateExamPaper(userId, request)
+C -> S : generateExamQuestions(userId, request)
+S -> QR : findEligibleQuestions(matrix)
+alt Không đủ câu hỏi
+  QR --> UI : Báo số lượng thiếu
+else Đủ câu hỏi
+  S -> PR : save(assessmentPaper)
+  PR --> UI : Danh sách câu hỏi đề
+  GV -> UI : Chỉnh sửa và công bố
+  UI -> C : updateExamPaper(id, request)
+  UI -> C : publishExam(id)
+  C -> S : publishExam(id)
+  S -> PR : updateStatus(PUBLISHED)
+end
+@enduml

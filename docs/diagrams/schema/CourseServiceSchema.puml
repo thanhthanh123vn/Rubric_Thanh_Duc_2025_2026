@@ -1,0 +1,249 @@
+@startuml CourseServiceSchema
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+hide methods
+
+title COURSE SERVICE RELATIONAL SCHEMA
+
+database "course_db" {
+  entity "courses" as courses {
+    * course_id: varchar <<PK>>
+    --
+    department_id: varchar <<REF>>
+    * course_code: varchar <<UQ>>
+    * course_name: varchar
+    * credits: integer
+    description: text
+  }
+
+  entity "course_offerings" as offerings {
+    * offering_id: varchar <<PK>>
+    --
+    * course_id: varchar <<FK>>
+    offering_name: varchar
+    lecturer_id: varchar <<REF>>
+    semester: varchar
+    academic_year: varchar
+    start_date: date
+    end_date: date
+    status: varchar
+    attendance_score_weight: double
+    assignment_score_weight: double
+  }
+
+  entity "course_offering_lecturers" as offering_lecturers {
+    * offering_id: varchar <<FK>>
+    * lecturer_id: varchar <<REF>>
+  }
+
+  entity "enrollments" as enrollments {
+    * enrollment_id: varchar <<PK>>
+    --
+    * offering_id: varchar <<FK>>
+    * student_id: varchar <<REF>>
+    enrollment_date: datetime
+    status: varchar
+    attendance_score: float
+    assignment_score: float
+    final_score: float
+    total_score: float
+    letter_grade: varchar
+  }
+
+  entity "course_schedules" as schedules {
+    * schedule_id: varchar <<PK>>
+    --
+    * offering_id: varchar <<FK>>
+    room: varchar
+    class_type: varchar
+    day_of_week: integer
+    start_time: time
+    end_time: time
+  }
+
+  entity "syllabus_files" as syllabus_files {
+    * id: varchar <<PK>>
+    --
+    * course_id: varchar <<FK>>
+    file_name: varchar
+    file_url: varchar
+  }
+
+  entity "assessments" as assessments {
+    * assessment_id: varchar <<PK>>
+    --
+    * offering_id: varchar <<FK>>
+    rubric_id: varchar <<REF>>
+    assessment_name: varchar
+    assessment_type: varchar
+    weight: float
+    description: text
+    file_url: varchar
+    start_time: datetime
+    end_time: datetime
+    duration_minutes: integer
+  }
+
+  entity "assessment_clo" as assessment_clo {
+    * assessment_clo_id: varchar <<PK>>
+    --
+    * assessment_id: varchar <<FK>>
+    * clo_id: varchar <<REF>>
+    clo_weight: double
+  }
+
+  entity "assessment_comments" as assessment_comments {
+    * comment_id: varchar <<PK>>
+    --
+    * assessment_id: varchar <<FK>>
+    * user_id: varchar <<REF>>
+    content: text
+    created_at: datetime
+  }
+
+  entity "submissions" as submissions {
+    * submission_id: varchar <<PK>>
+    --
+    * assessment_id: varchar <<FK>>
+    * student_id: varchar <<REF>>
+    rubric_id: varchar <<REF>>
+    file_url: varchar
+    submitted_link: varchar
+    submitted_at: datetime
+    status: varchar
+    grade_cache: double
+  }
+
+  entity "submission_attachments" as submission_attachments {
+    * attachment_id: varchar <<PK>>
+    --
+    * submission_id: varchar <<FK>>
+    attachment_type: varchar
+    attachment_url: varchar
+    original_name: varchar
+    created_at: datetime
+  }
+
+  entity "attendance_sessions" as attendance_sessions {
+    * session_id: varchar <<PK>>
+    --
+    * offering_id: varchar <<FK>>
+    created_by: varchar <<REF>>
+    attendance_date: date
+    start_time: datetime
+    end_time: datetime
+    latitude: double
+    longitude: double
+    radius: double
+    qr_token: varchar
+    status: varchar
+  }
+
+  entity "attendance" as attendance {
+    * attendance_id: varchar <<PK>>
+    --
+    * session_id: varchar <<FK>>
+    * offering_id: varchar <<FK>>
+    * student_id: varchar <<REF>>
+    status: varchar
+    checkin_time: datetime
+    latitude: double
+    longitude: double
+    distance: double
+    method: varchar
+    note: varchar
+  }
+
+  entity "attendance_legends" as attendance_legends {
+    * id: varchar <<PK>>
+    --
+    * offering_id: varchar <<FK>>
+    legend_label: varchar
+    color_hex: varchar
+  }
+
+  entity "conversations" as conversations {
+    * id: varchar <<PK>>
+    --
+    conversation_type: varchar
+    conversation_name: varchar
+    last_message: varchar
+    created_at: datetime
+  }
+
+  entity "groups" as groups {
+    * group_id: varchar <<PK>>
+    --
+    * offering_id: varchar <<FK>>
+    * conversation_id: varchar <<FK, UQ>>
+    parent_group_id: varchar <<FK>>
+    created_by_id: varchar <<REF>>
+    group_name: varchar
+    topic: varchar
+  }
+
+  entity "participants" as participants {
+    * id: varchar <<PK>>
+    --
+    * conversation_id: varchar <<FK>>
+    * user_id: varchar <<REF>>
+    participant_role: varchar
+  }
+
+  entity "messages" as messages {
+    * message_id: varchar <<PK>>
+    --
+    * conversation_id: varchar <<FK>>
+    offering_id: varchar <<FK>>
+    * sender_id: varchar <<REF>>
+    content: text
+    created_at: datetime
+  }
+
+  entity "group_tasks" as group_tasks {
+    * task_id: varchar <<PK>>
+    --
+    * group_id: varchar <<FK>>
+    title: varchar
+    description: text
+    assignee_id: varchar <<REF>>
+    assigner_id: varchar <<REF>>
+    status: varchar
+    deadline: datetime
+    result_note: text
+    result_link: varchar
+    result_file_url: varchar
+    completed_at: datetime
+  }
+}
+
+courses ||--o{ offerings
+courses ||--o{ syllabus_files
+offerings ||--o{ offering_lecturers
+offerings ||--o{ enrollments
+offerings ||--o{ schedules
+offerings ||--o{ assessments
+assessments ||--o{ assessment_clo
+assessments ||--o{ assessment_comments
+assessments ||--o{ submissions
+submissions ||--o{ submission_attachments
+offerings ||--o{ attendance_sessions
+attendance_sessions ||--o{ attendance
+offerings ||--o{ attendance
+offerings ||--o{ attendance_legends
+offerings ||--o{ groups
+groups ||--o{ groups : nhóm cha
+groups ||--|| conversations
+conversations ||--o{ participants
+conversations ||--o{ messages
+groups ||--o{ group_tasks
+
+legend bottom
+  FK là khóa ngoại nội bộ course_db.
+  REF là mã tham chiếu đến dữ liệu do service khác sở hữu.
+  Không tạo khóa ngoại cho cột REF.
+endlegend
+
+@enduml

@@ -102,6 +102,10 @@ export const courseService = {
         const response = await courseApi.get(`/courses/offering/${offeringId}/gradebook`);
         return response.data;
     },
+    getMyGradebook: async (offeringId: string): Promise<CourseGradebook> => {
+        const response = await courseApi.get(`/courses/offering/${offeringId}/gradebook/me`);
+        return response.data;
+    },
     updateGradebookConfig: async (
         offeringId: string,
         attendanceWeight: number,

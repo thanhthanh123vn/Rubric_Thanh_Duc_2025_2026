@@ -124,7 +124,7 @@ public class UserService {
                 avatarUrl,
                 user.getAuthProvider(),
                 fullName,
-                user.isLocked()
+                Boolean.TRUE.equals(user.getLocked())
         );
     }
 

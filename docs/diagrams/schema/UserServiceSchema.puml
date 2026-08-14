@@ -1,0 +1,83 @@
+@startuml UserServiceSchema
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+hide methods
+
+title USER SERVICE SCHEMA
+
+database "user_db" {
+  entity "users" as users {
+    * user_id: varchar <<PK>>
+    --
+    * username: varchar <<UQ>>
+    * email: varchar <<UQ>>
+    * password_hash: varchar
+    * role: varchar
+    auth_provider: varchar
+    google_id: varchar
+    full_name: varchar
+    avatar_url: varchar
+    reset_otp: varchar
+    reset_otp_expiry: datetime
+  }
+
+  entity "students" as students {
+    * student_id: varchar <<PK>>
+    --
+    * user_id: varchar <<FK, UQ>>
+    full_name: varchar
+    class_name: varchar
+    major: varchar
+    date_of_birth: date
+    gender: varchar
+    phone_number: varchar
+    address: varchar
+  }
+
+  entity "lecturers" as lecturers {
+    * lecturer_id: varchar <<PK>>
+    --
+    * user_id: varchar <<FK>>
+    department_id: varchar <<FK>>
+    full_name: varchar
+    academic_title: varchar
+  }
+
+  entity "faculties" as faculties {
+    * faculty_id: varchar <<PK>>
+    --
+    * faculty_name: varchar
+    dean_user_id: varchar <<FK>>
+    dean_name: varchar
+    email: varchar
+  }
+
+  entity "departments" as departments {
+    * department_id: varchar <<PK>>
+    --
+    * faculty_id: varchar <<FK>>
+    * department_name: varchar
+  }
+
+  entity "department_heads" as department_heads {
+    * id: varchar <<PK>>
+    --
+    * department_id: varchar <<FK>>
+    * lecturer_id: varchar <<FK>>
+    start_date: date
+    end_date: date
+    status: varchar
+  }
+}
+
+users ||--o| students
+users ||--o{ lecturers
+users ||--o| faculties : dean
+faculties ||--o{ departments
+departments ||--o{ lecturers
+departments ||--o{ department_heads
+lecturers ||--o{ department_heads
+
+@enduml

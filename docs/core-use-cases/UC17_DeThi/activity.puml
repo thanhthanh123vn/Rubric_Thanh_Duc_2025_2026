@@ -1,0 +1,21 @@
+@startuml
+title UC-17 Quản lý đề thi trắc nghiệm
+|Giảng viên|
+start
+:Nhập cấu hình và ma trận đề;
+|Hệ thống|
+:Tìm câu hỏi phù hợp;
+if (Đủ câu hỏi?) then (Có)
+  :Sinh đề thi;
+  |Giảng viên|
+  :Xem trước và chỉnh sửa;
+  :Nhấn Công bố;
+  |Hệ thống|
+  :Lưu và phân công đề;
+else (Không)
+  :Báo số câu hỏi còn thiếu;
+  |Giảng viên|
+  :Điều chỉnh ma trận hoặc bổ sung câu hỏi;
+endif
+stop
+@enduml

@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle2, ClipboardList, FolderKanban, Users } from "lucide-react";
+import { Calculator, CheckCircle2, ClipboardList, FolderKanban, GraduationCap, Users } from "lucide-react";
 
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import AssessmentDetailModal from "./AssessmentDetailModal";
-import { courseService } from "@/features/course/courseApi";
+import {
+  courseService,
+  type CourseGradebook,
+  type GradebookStudent,
+} from "@/features/course/courseApi";
 import { groupService } from "@/features/course/student/api/GroupService.ts";
 import type { Assessment } from "@/features/course/student/assignmentSlice";
 import StudentAttendanceCheckIn from "@/features/course/student/components/StudentAttendanceCheckIn.tsx";
@@ -20,10 +24,15 @@ import type {
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
 import StudentExamListPage from "@/features/course/student/components/StudentExamListPage.tsx";
 
-type SectionKey = "attendance" | "assignments" | "project" | "final";
+type SectionKey = "attendance" | "assignments" | "project" | "course-result";
 
 function normalizeSection(value: string | null): SectionKey {
-  if (value === "attendance" || value === "assignments" || value === "project" || value === "final") {
+  if (
+    value === "attendance" ||
+    value === "assignments" ||
+    value === "project" ||
+    value === "course-result"
+  ) {
     return value;
   }
 
@@ -125,6 +134,9 @@ export default function CourseEvaluations() {
   const [projectTasks, setProjectTasks] = useState<GroupTaskResponse[]>([]);
   const [activeProjectGroupId, setActiveProjectGroupId] = useState<string | null>(null);
   const [projectLoading, setProjectLoading] = useState(false);
+  const [gradebook, setGradebook] = useState<CourseGradebook | null>(null);
+  const [gradebookLoading, setGradebookLoading] = useState(false);
+  const [gradebookError, setGradebookError] = useState<string | null>(null);
 
   const { user: reduxUser } = useAppSelector((state) => state.auth);
   let currentUser = reduxUser;
@@ -308,6 +320,26 @@ export default function CourseEvaluations() {
 
     void fetchProjectData();
   }, [activeSection, offeringId, currentUserId]);
+
+  useEffect(() => {
+    if (activeSection !== "course-result" || !offeringId) return;
+
+    const fetchGradebook = async () => {
+      try {
+        setGradebookLoading(true);
+        setGradebookError(null);
+        setGradebook(await courseService.getMyGradebook(offeringId));
+      } catch (error) {
+        console.error("Lỗi khi tải kết quả học phần:", error);
+        setGradebook(null);
+        setGradebookError("Chưa thể tải kết quả học phần. Vui lòng thử lại sau.");
+      } finally {
+        setGradebookLoading(false);
+      }
+    };
+
+    void fetchGradebook();
+  }, [activeSection, offeringId]);
 
   useEffect(() => {
     if (activeSection !== "project" || !activeProjectGroupId) return;
@@ -696,22 +728,120 @@ export default function CourseEvaluations() {
     </div>
   );
 
-  const renderFinal = () => (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        <SimpleCard title="Kiến thức" value="90%" note="Nắm được nội dung trọng tâm." />
-        <SimpleCard title="Ứng dụng" value="86%" note="Làm đúng yêu cầu bài." />
-        <SimpleCard title="Trình bày" value="92%" note="Trình bày rõ ràng, dễ theo dõi." />
-      </div>
+  const formatScore = (score?: number | null) =>
+    score === null || score === undefined ? "--" : `${Number(score).toFixed(1)}`;
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm font-semibold text-slate-900">Nhận xét cuối kỳ</p>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Kết quả cuối kỳ ở mức tốt. Nếu tiếp tục giữ ổn định ở bài tập và project, tổng kết học phần sẽ rất khả quan.
-        </p>
+  const formatScoreWithScale = (score?: number | null, maximum = 10) =>
+    score === null || score === undefined ? "--" : `${formatScore(score)}/${maximum.toFixed(1)}`;
+
+  const renderCourseResult = () => {
+    if (gradebookLoading) {
+      return <div className="py-12 text-center text-sm text-slate-500">Đang tải kết quả học phần...</div>;
+    }
+
+    if (gradebookError) {
+      return (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+          {gradebookError}
+        </div>
+      );
+    }
+
+    const student: GradebookStudent | undefined = gradebook?.students[0];
+    if (!gradebook || !student) {
+      return (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+          Chưa có dữ liệu điểm cho học phần này.
+        </div>
+      );
+    }
+
+    const hasCompleteResult =
+      student.attendanceScore != null &&
+      student.assignmentScore != null &&
+      student.examScore != null;
+
+    return (
+      <div className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-3">
+          <SimpleCard
+            title={`Điểm thành phần (${gradebook.componentWeight}%)`}
+            value={formatScoreWithScale(student.componentScore, gradebook.componentWeight / 10)}
+            note="Phần điểm đã quy đổi từ chuyên cần và bài tập."
+            tone="amber"
+          />
+          <SimpleCard
+            title={`Cuối kỳ (${gradebook.examWeight}%)`}
+            value={formatScoreWithScale(student.examScore)}
+            note="Điểm thi cuối kỳ trên thang điểm 10."
+          />
+          <SimpleCard
+            title="Tổng kết"
+            value={formatScoreWithScale(student.totalScore)}
+            note={student.letterGrade ? `Điểm chữ: ${student.letterGrade}` : "Chưa đủ điểm để xếp loại."}
+            tone="emerald"
+          />
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <div className="flex items-start gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <Calculator className="mt-0.5 h-5 w-5 text-emerald-600" />
+            <div>
+              <h3 className="font-semibold text-slate-900">Chi tiết cách tính</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Dữ liệu được lấy từ bảng điểm tổng quan do giảng viên cập nhật.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid divide-y divide-slate-200 md:grid-cols-2 md:divide-x md:divide-y-0">
+            <div className="p-5">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4 text-amber-600" />
+                <h4 className="font-semibold text-slate-900">Điểm thành phần</h4>
+              </div>
+              <div className="mt-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Chuyên cần ({gradebook.attendanceWeight}%)</span>
+                  <span className="font-semibold text-slate-900">{formatScoreWithScale(student.attendanceScore)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Bài tập ({gradebook.assignmentWeight}%)</span>
+                  <span className="font-semibold text-slate-900">{formatScoreWithScale(student.assignmentScore)}</span>
+                </div>
+                <div className="border-t border-slate-200 pt-3 text-xs leading-5 text-slate-500">
+                  Điểm thành phần là tổng đóng góp theo tỷ trọng, tối đa {gradebook.componentWeight / 10} điểm
+                  vào điểm tổng kết.
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-emerald-600" />
+                <h4 className="font-semibold text-slate-900">Kết quả cuối kỳ</h4>
+              </div>
+              <div className="mt-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600">Điểm thi ({gradebook.examWeight}%)</span>
+                  <span className="font-semibold text-slate-900">{formatScoreWithScale(student.examScore)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-3">
+                  <span className="font-medium text-slate-700">Điểm tổng kết</span>
+                  <span className="text-lg font-bold text-emerald-700">{formatScoreWithScale(student.totalScore)}</span>
+                </div>
+                {!hasCompleteResult ? (
+                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
+                    Giảng viên chưa nhập đủ điểm thành phần hoặc cuối kỳ nên chưa thể tính kết quả tổng kết.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderContent = () => {
     if (activeSection === "attendance") {
@@ -726,7 +856,9 @@ export default function CourseEvaluations() {
       return renderProject();
     }
 
-
+    if (activeSection === "course-result") {
+      return renderCourseResult();
+    }
 
     return null;
   };
@@ -738,7 +870,7 @@ export default function CourseEvaluations() {
         ? "Bài tập"
         : activeSection === "project"
           ? "Project"
-          : "Bài cuối kỳ";
+          : "Kết quả học phần";
 
   return (
     <div className="min-h-screen bg-slate-50">

@@ -276,6 +276,10 @@ public class NotificationService {
             dto.setCreatedAt(createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime());
 
             dto.setReferenceUrl(notif.getReferenceUrl());
+            dto.setCourseId(notif.getCourseId());
+            dto.setNotificationType(
+                    notif.getNotificationType() != null ? notif.getNotificationType().name() : null
+            );
             dto.setSenderId(notif.getSenderId());
 
             try {

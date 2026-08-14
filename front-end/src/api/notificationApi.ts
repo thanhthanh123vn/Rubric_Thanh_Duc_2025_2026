@@ -1,13 +1,4 @@
-import {courseApi, notificationServiceApi} from "@/services/axiosConfig";
-
-// export const notificationApi = {
-//
-//     getNotifications: () => {
-//         return notificationServiceApi.get(`/getNotification/me`);
-//     },
-// }
-//
-// import { courseApi } from "@/services/axiosConfig.ts";
+import { notificationServiceApi } from "@/services/axiosConfig";
 
 export interface NotificationResponse {
     id: string;
@@ -20,26 +11,29 @@ export interface NotificationResponse {
 
 export const notificationApi = {
     getAdminNotifications: async (): Promise<NotificationResponse[]> => {
-        const response = await courseApi.get<NotificationResponse[]>("/admin/notifications");
+        const response = await notificationServiceApi.get<NotificationResponse[]>(
+            "/getNotification/me"
+        );
         return response.data;
     },
 
     markAsRead: async (id: string): Promise<void> => {
-        await courseApi.patch(`/admin/notifications/${id}/read`);
+        await notificationServiceApi.put(`/${id}/read`);
     },
 
     markAllAsRead: async (): Promise<void> => {
-        await courseApi.patch("/admin/notifications/read-all");
+        await notificationServiceApi.put("/me/read-all");
     },
 
     deleteNotification: async (id: string): Promise<void> => {
-        await courseApi.delete(`/admin/notifications/${id}`);
+        await notificationServiceApi.delete(`/${id}`);
     },
+
     broadcastNotification: (data: {
         title: string;
         message: string;
         recipientRole: string;
     }) => {
         return notificationServiceApi.post("/notifications/broadcast", data);
-    }
+    },
 };

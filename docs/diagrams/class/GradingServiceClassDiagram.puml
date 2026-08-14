@@ -1,0 +1,115 @@
+@startuml GradingServiceClassDiagram
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+title SƠ ĐỒ LỚP TỔNG QUAN GRADING SERVICE
+
+package "controller" {
+  class GradingController <<RestController>> {
+    -gradingService: GradingService
+    +gradeStudent(studentId: String, rubricId: String): Grade
+    +submitGrade(request: GradeRequest): ResponseEntity
+    +countGraded(assessmentId: String): ResponseEntity
+    +getStudentsToGrade(offeringId: String, assessmentId: String): ResponseEntity
+    +saveGrades(request: SaveGradesRequest): ResponseEntity
+    +getFeedbackTemplates(userId: String): ResponseEntity
+  }
+  class GradebookController <<RestController>> {
+    -gradingService: GradingService
+    +getGradesByAssessments(ids: List): ResponseEntity
+  }
+}
+
+package "service" {
+  class GradingService <<Service>> {
+    -repository: GradeRepository
+    -rubricResultRepository: RubricResultRepository
+    -feedbackTemplateRepository: FeedbackTemplateRepository
+    -courseClient: CourseClient
+    -rubricClient: RubricClient
+    -notificationClient: NotificationClient
+    +gradeStudent(studentId: String, rubricId: String): Grade
+    +processGrading(request: GradeRequest): void
+    +countGradedByAssessmentId(assessmentId: String): Long
+    +getGradeByStudentAndAssessmentId(studentId: String, assessmentId: String): Grade
+    +getStudentsToGrade(offeringId: String, assessmentId: String): List
+    +saveGrades(request: SaveGradesRequest): void
+    +getFeedbackTemplates(userId: String): List
+    +createFeedbackTemplate(request: FeedbackTemplateRequest): FeedbackTemplateResponse
+    +deleteFeedbackTemplate(id: Long, userId: String): void
+  }
+}
+
+package "repository" {
+  interface GradeRepository <<Repository>> {
+    +findByStudentIdAndAssessmentId(studentId: String, assessmentId: String): Optional
+    +countByAssessmentId(assessmentId: String): Long
+  }
+  interface RubricResultRepository <<Repository>> {
+    +deleteBySubmissionId(submissionId: String): void
+  }
+  interface FeedbackTemplateRepository <<Repository>> {
+    +findByUserIdOrderByUpdatedAtDescIdDesc(userId: String): List
+    +findByUserIdAndContentIgnoreCase(userId: String, content: String): Optional
+  }
+}
+
+package "entity" {
+  class Grade <<Entity>> {
+    +id: Long
+    +grade: String
+    +submissionId: String
+    +assessmentId: String
+    +studentId: String
+    +rubricId: String
+    +status: String
+    +totalScore: double
+    +comment: String
+  }
+  class RubricResult <<Entity>> {
+    +resultId: String
+    +submissionId: String
+    +criteriaId: String
+    +levelId: String
+    +calculatedScore: Double
+    +lecturerComment: String
+    +gradedAt: LocalDateTime
+  }
+  class CriteriaGrade <<ValueObject>> {
+    +criteriaId: String
+    +levelId: String
+    +scoreAchieved: Double
+  }
+  class FeedbackTemplate <<Entity>> {
+    +id: Long
+    +userId: String
+    +content: String
+    +createdAt: LocalDateTime
+    +updatedAt: LocalDateTime
+  }
+}
+
+package "client" {
+  interface CourseClient <<FeignClient>>
+  interface RubricClient <<FeignClient>>
+  interface NotificationClient <<FeignClient>>
+}
+
+GradingController --> GradingService
+GradebookController --> GradingService
+GradingService --> GradeRepository
+GradingService --> RubricResultRepository
+GradingService --> FeedbackTemplateRepository
+GradingService ..> CourseClient
+GradingService ..> RubricClient
+GradingService ..> NotificationClient
+GradeRepository --> Grade
+RubricResultRepository --> RubricResult
+FeedbackTemplateRepository --> FeedbackTemplate
+Grade "1" o-- "0..*" RubricResult : chi tiết Rubric
+
+@enduml

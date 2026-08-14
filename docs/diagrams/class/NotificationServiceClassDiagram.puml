@@ -1,0 +1,82 @@
+@startuml NotificationServiceClassDiagram
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+title SƠ ĐỒ LỚP TỔNG QUAN NOTIFICATION SERVICE
+
+package "controller" {
+  class NotificationController <<RestController>> {
+    -notificationService: NotificationService
+    +create(notification: Notification): Notification
+    +getUserNotifications(userId: String): List
+    +markAsRead(notificationId: String): ResponseEntity
+    +markAllAsRead(userId: String): ResponseEntity
+    +deleteNotification(notificationId: String): ResponseEntity
+    +getUnreadCount(userId: String): ResponseEntity
+    +sendEmail(to: String, subject: String, content: String): String
+  }
+}
+
+package "service" {
+  class NotificationService <<Service>> {
+    -repo: NotificationRepository
+    -userClient: UserClient
+    -mailSender: JavaMailSender
+    -redisTemplate: StringRedisTemplate
+    -objectMapper: ObjectMapper
+    +sendNotification(senderId: String, ownerId: String, title: String, content: String): Notification
+    +notifyHomeworkAssigned(senderId: String, studentId: String, courseId: String, assignmentId: String, title: String): Notification
+    +notifyHomeworkSubmitted(studentId: String, lecturerId: String, courseId: String, submissionId: String, studentName: String, title: String): Notification
+    +getUserNotifications(userId: String): List
+    +markAsRead(notificationId: String): Notification
+    +markAllAsRead(userId: String): void
+    +deleteNotification(notificationId: String): void
+    +countUnreadNotifications(userId: String): long
+    +sendEmail(to: String, subject: String, content: String): void
+  }
+  class RedisNotificationSubscriber <<Subscriber>> {
+    -messagingTemplate: SimpMessagingTemplate
+    -objectMapper: ObjectMapper
+    +onMessage(message: String): void
+  }
+}
+
+package "repository" {
+  interface NotificationRepository <<Repository>> {
+    +findByOwnerIdOrderByCreatedAtDesc(ownerId: String): List
+    +countByOwnerIdAndIsReadFalse(ownerId: String): long
+    +deleteByLinkedResourceId(resourceId: String): void
+  }
+}
+
+package "entity" {
+  class Notification <<Entity>> {
+    +id: String
+    +senderId: String
+    +ownerId: String
+    +courseId: String
+    +title: String
+    +content: String
+    +isRead: boolean
+    +notificationType: NotificationType
+    +linkedResourceId: String
+    +referenceUrl: String
+  }
+  enum NotificationType
+}
+
+package "client" {
+  interface UserClient <<FeignClient>>
+}
+
+NotificationController --> NotificationService
+NotificationService --> NotificationRepository
+NotificationService ..> UserClient
+NotificationRepository --> Notification
+Notification --> NotificationType
+
+@enduml

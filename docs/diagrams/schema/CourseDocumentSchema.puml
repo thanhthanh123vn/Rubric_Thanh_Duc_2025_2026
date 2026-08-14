@@ -1,0 +1,120 @@
+@startuml CourseDocumentSchema
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+hide methods
+
+title COURSE SERVICE DOCUMENT SCHEMA
+
+database "course_document_db" {
+  entity "course_posts" as course_posts <<Collection>> {
+    * _id: ObjectId
+    --
+    * offering_id: string <<REF>>
+    * author_id: string <<REF>>
+    title: string
+    content: string
+    file_ids: array
+    created_at: datetime
+  }
+
+  entity "post_comments" as post_comments <<Collection>> {
+    * _id: ObjectId
+    --
+    * post_id: ObjectId <<REF>>
+    * user_id: string <<REF>>
+    content: string
+    created_at: datetime
+  }
+
+  entity "chapters" as chapters <<Collection>> {
+    * _id: ObjectId
+    --
+    * offering_id: string <<REF>>
+    code: string
+    title: string
+    order: integer
+    description: string
+    active: boolean
+  }
+
+  entity "question_banks" as question_banks <<Collection>> {
+    * _id: ObjectId
+    --
+    offering_id: string <<REF>>
+    course_id: string <<REF>>
+    lecturer_id: string <<REF>>
+    name: string
+    is_public: boolean
+    share_permissions: array
+    question_ids: array
+  }
+
+  entity "questions" as questions <<Collection>> {
+    * _id: ObjectId
+    --
+    offering_id: string <<REF>>
+    chapter_id: ObjectId <<REF>>
+    content: string
+    type: string
+    difficulty: string
+    score: double
+    options: array
+    expected_answer: string
+    clo_ids: array <<REF>>
+  }
+
+  entity "assessment_papers" as assessment_papers <<Collection>> {
+    * _id: ObjectId
+    --
+    * assessment_id: string <<REF>>
+    lecturer_id: string <<REF>>
+    source_question_bank_id: ObjectId <<REF>>
+    question_ids: array
+    exam_title: string
+    duration_minutes: integer
+    start_time: datetime
+    end_time: datetime
+    shuffle_questions: boolean
+    shuffle_options: boolean
+  }
+
+  entity "student_exam_assignments" as exam_assignments <<Collection>> {
+    * _id: ObjectId
+    --
+    * assessment_paper_id: ObjectId <<REF>>
+    * student_id: string <<REF>>
+    status: string
+    start_time: datetime
+    end_time: datetime
+    started_at: datetime
+    submitted_at: datetime
+    score: double
+  }
+
+  entity "system_logs" as system_logs <<Collection>> {
+    * _id: ObjectId
+    --
+    level: string
+    action: string
+    message: string
+    username: string
+    ip_address: string
+    timestamp: datetime
+  }
+}
+
+course_posts ||--o{ post_comments
+chapters ||--o{ questions
+question_banks }o--o{ questions : question_ids
+question_banks ||--o{ assessment_papers
+assessment_papers }o--o{ questions : question_ids
+assessment_papers ||--o{ exam_assignments
+
+legend bottom
+  Các quan hệ MongoDB là tham chiếu bằng id, không phải khóa ngoại.
+  Tệp vật lý được lưu trong S3, collection chỉ lưu file_ids hoặc URL.
+endlegend
+
+@enduml

@@ -1,0 +1,20 @@
+@startuml
+autonumber
+title UC-01 Xác thực và quản lý người dùng
+actor "Người dùng" as User
+boundary "LoginPage" as UI
+control "AuthController" as C
+control "AuthService" as S
+database "UserRepository" as R
+User -> UI : Nhập tài khoản và mật khẩu
+UI -> C : login(request)
+C -> S : login(request)
+S -> R : findByEmail(email)
+alt Thông tin không hợp lệ
+  S --> UI : Lỗi xác thực
+else Hợp lệ
+  S -> S : generateToken(user)
+  S --> UI : LoginResponse
+  UI --> User : Đăng nhập thành công
+end
+@enduml

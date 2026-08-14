@@ -51,6 +51,24 @@ public class GradebookService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public CourseGradebookResponse getStudentGradebook(String offeringId, String studentId) {
+        CourseOffering offering = getOffering(offeringId);
+        Enrollment enrollment = enrollmentRepository
+                .findByStudentIdAndCourseOffering_OfferingId(studentId, offeringId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Sinh viên không thuộc lớp học phần"));
+
+        return CourseGradebookResponse.builder()
+                .offeringId(offeringId)
+                .attendanceWeight(attendanceWeight(offering))
+                .assignmentWeight(assignmentWeight(offering))
+                .componentWeight(componentWeight(offering))
+                .examWeight(examWeight(offering))
+                .students(List.of(toStudentResponse(enrollment)))
+                .build();
+    }
+
     @Transactional
     public CourseGradebookResponse updateConfig(String offeringId, GradebookConfigRequest request) {
         validateWeights(request.getAttendanceWeight(), request.getAssignmentWeight());

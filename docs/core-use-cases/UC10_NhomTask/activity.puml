@@ -1,0 +1,22 @@
+@startuml
+title UC-10 Quản lý nhóm và nhiệm vụ
+|Sinh viên / Trưởng nhóm|
+start
+:Mở nhóm học tập;
+|Hệ thống|
+:Tải thành viên và nhiệm vụ;
+|Trưởng nhóm|
+:Quản lý thành viên hoặc giao nhiệm vụ;
+|Hệ thống|
+:Kiểm tra quyền và dữ liệu;
+if (Hợp lệ?) then (Có)
+  :Lưu thay đổi nhóm;
+  |Thành viên|
+  :Cập nhật nhiệm vụ hoặc gửi tin nhắn;
+  |Hệ thống|
+  :Lưu trạng thái và phát tin nhắn;
+else (Không)
+  :Thông báo lỗi quyền hoặc dữ liệu;
+endif
+stop
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+autonumber
+title UC-02 Quản lý học phần và nội dung lớp học
+actor "Quản trị viên / Giảng viên" as User
+boundary "CoursePage" as UI
+control "CourseController" as C
+control "CourseService" as S
+control "PostController" as PC
+control "PostService" as PS
+database "CourseRepository" as R
+User -> UI : Nhập thông tin học phần
+UI -> C : create(request)
+C -> S : createCourse(request)
+S -> R : save(course)
+R --> UI : CourseResponse
+User -> UI : Tạo bài đăng
+UI -> PC : createPost(request, authorId)
+PC -> PS : createPost(request, authorId)
+PS -> R : save(post)
+R --> UI : PostResponse
+@enduml

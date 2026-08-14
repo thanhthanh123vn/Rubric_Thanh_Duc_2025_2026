@@ -1,0 +1,30 @@
+@startuml
+title UC-04 Kiểm tra và nộp bài trực tuyến
+|Giảng viên|
+start
+:Tạo và công bố bài đánh giá;
+|Hệ thống|
+:Kiểm tra và lưu bài đánh giá;
+:Thông báo cho sinh viên;
+|Sinh viên|
+:Mở bài được giao;
+|Hệ thống|
+:Kiểm tra lớp và thời gian làm bài;
+if (Được phép làm bài?) then (Có)
+  |Sinh viên|
+  :Làm trắc nghiệm hoặc tải tệp;
+  :Nhấn Nộp bài;
+  |Hệ thống|
+  :Kiểm tra dữ liệu bài nộp;
+  if (Hợp lệ?) then (Có)
+    :Lưu bài và thời gian nộp;
+    :Chấm tự động nếu là trắc nghiệm;
+    :Gửi xác nhận;
+  else (Không)
+    :Thông báo lỗi bài nộp;
+  endif
+else (Không)
+  :Thông báo chưa mở hoặc quá hạn;
+endif
+stop
+@enduml

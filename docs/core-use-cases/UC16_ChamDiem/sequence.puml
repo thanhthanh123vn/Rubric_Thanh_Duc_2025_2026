@@ -1,0 +1,23 @@
+@startuml
+autonumber
+title UC-16 Chấm điểm và phản hồi
+actor "Giảng viên" as GV
+boundary "GradingPage" as UI
+control "GradingController" as C
+control "GradingService" as S
+participant "RubricClient" as RC
+database "GradeRepository" as DB
+GV -> UI : Chọn mức và nhập phản hồi
+UI -> C : submitGrade(request)
+C -> S : processGrading(request)
+S -> RC : getRubric(rubricId)
+S -> S : validateAndCalculate(request, rubric)
+alt Thiếu hoặc sai tiêu chí
+  S --> UI : ValidationException
+else Hợp lệ
+  S -> DB : save(grade, rubricResults)
+  DB --> S : Grade
+  S --> UI : Lưu thành công
+  UI --> GV : Hiển thị kết quả
+end
+@enduml

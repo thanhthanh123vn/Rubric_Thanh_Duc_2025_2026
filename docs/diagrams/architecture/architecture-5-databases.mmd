@@ -1,0 +1,60 @@
+flowchart TB
+    CLIENT["Browser"]
+
+    subgraph HOST["Ubuntu 192.168.181.134"]
+        subgraph NET["Docker network: lms-network"]
+            FE["React + Nginx :80<br/>public entry point"]
+            GW["API Gateway :8080"]
+            EU["Eureka :8761"]
+
+            US["User Service :8081"]
+            CS["Course Service :8082"]
+            RS["Rubric Service :8083"]
+            NS["Notification Service :8084"]
+            GS["Grading Service :8085"]
+
+            UDB[("user-db<br/>user_db :3306")]
+            CDB[("course-db<br/>course_db :3306")]
+            RDB[("rubric-db<br/>rubric_db :3306")]
+            NDB[("notification-db<br/>notification_db :3306")]
+            GDB[("grading-db<br/>grading_db :3306")]
+            MONGO[("MongoDB :27017")]
+            REDIS[("Redis :6379")]
+
+            FE -->|"/api/**"| GW
+            FE -->|"/oauth2/**"| US
+            FE -->|"/ws"| CS
+            FE -->|"/ws-notifications"| NS
+
+            GW --> US
+            GW --> CS
+            GW --> RS
+            GW --> NS
+            GW --> GS
+            GW -.-> EU
+            US -.-> EU
+            CS -.-> EU
+            RS -.-> EU
+            NS -.-> EU
+            GS -.-> EU
+
+            US -->|"JDBC"| UDB
+            CS -->|"JDBC"| CDB
+            RS -->|"JDBC"| RDB
+            NS -->|"JDBC"| NDB
+            GS -->|"JDBC"| GDB
+            CS --> MONGO
+            NS <--> REDIS
+
+            CS -->|"REST/Feign"| US
+            RS -->|"REST/Feign"| US
+            RS -->|"REST/Feign"| CS
+            CS <-->|"REST/Feign"| GS
+            GS -->|"REST/Feign"| RS
+            CS -->|"REST/Feign"| NS
+            RS -->|"REST/Feign"| NS
+            GS -->|"REST/Feign"| NS
+        end
+    end
+
+    CLIENT -->|"HTTP 192.168.181.134:80"| FE

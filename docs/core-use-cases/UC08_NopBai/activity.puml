@@ -1,0 +1,25 @@
+@startuml
+title UC-08 Nộp bài và xem phản hồi
+|Sinh viên|
+start
+:Mở bài tập và xem yêu cầu;
+:Chọn tệp bài làm;
+:Nhấn Nộp bài;
+|Hệ thống|
+:Kiểm tra lớp, hạn nộp và tệp;
+if (Bài nộp hợp lệ?) then (Có)
+  :Lưu bài và thời gian nộp;
+  :Gửi xác nhận;
+  |Sinh viên|
+  :Chọn Xem kết quả;
+  |Hệ thống|
+  if (Điểm đã công bố?) then (Có)
+    :Hiển thị điểm và phản hồi;
+  else (Không)
+    :Hiển thị trạng thái chờ chấm;
+  endif
+else (Không)
+  :Thông báo lỗi bài nộp;
+endif
+stop
+@enduml

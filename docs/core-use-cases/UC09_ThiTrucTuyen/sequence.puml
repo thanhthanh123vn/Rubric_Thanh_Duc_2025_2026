@@ -1,0 +1,27 @@
+@startuml
+autonumber
+title UC-09 Làm bài thi trực tuyến
+actor "Sinh viên" as SV
+boundary "ExamPage" as UI
+control "AssessmentPaperController" as PC
+control "AssessmentPaperService" as PS
+control "StudentExamController" as EC
+control "StudentExamService" as ES
+database "ExamRepository" as DB
+SV -> UI : Mở danh sách đề thi
+UI -> PC : getStudentAssignedExams(studentId, offeringId)
+PC -> PS : getAssignedExamsForStudent(...)
+PS -> DB : findAssignedExams(...)
+DB --> UI : Danh sách đề
+SV -> UI : Gửi đáp án
+UI -> EC : submitExam(studentId, request)
+EC -> ES : submitExam(studentId, request)
+ES -> ES : validateAndScore(request)
+alt Không hợp lệ
+  ES --> UI : ExamException
+else Hợp lệ
+  ES -> DB : save(result)
+  DB --> UI : SubmitStudentExamResponse
+  UI --> SV : Xác nhận và kết quả
+end
+@enduml

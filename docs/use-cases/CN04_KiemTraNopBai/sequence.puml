@@ -1,0 +1,24 @@
+@startuml
+autonumber
+title UC-04 Kiểm tra và nộp bài trực tuyến
+actor "Sinh viên" as SV
+boundary "AssessmentPage" as UI
+control "AssessmentController" as C
+control "AssessmentService" as S
+control "StudentExamController" as EC
+control "StudentExamService" as ES
+database "AssessmentRepository" as R
+alt Nộp bài tập hoặc dự án
+  SV -> UI : Chọn tệp và gửi bài
+  UI -> C : submitAssignment(assessmentId, studentId, files)
+  C -> S : submitAssignment(...)
+  S -> R : save(submission)
+else Nộp bài trắc nghiệm
+  SV -> UI : Gửi đáp án
+  UI -> EC : submitExam(studentId, request)
+  EC -> ES : submitExam(studentId, request)
+  ES -> R : save(result)
+end
+R --> UI : Xác nhận và kết quả
+UI --> SV : Thông báo hoàn tất
+@enduml
