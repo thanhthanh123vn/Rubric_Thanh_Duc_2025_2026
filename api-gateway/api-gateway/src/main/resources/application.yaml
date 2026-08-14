@@ -19,17 +19,25 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
       routes:
+
+
+
         # 1. USER SERVICE
+
         - id: user-service
           uri: lb://USER-SERVICE
+
           predicates:
             - Path=/api/v1/user-service/**
           filters:
             - name: JwtAuthenticationFilter
 
+
+
         # 2. COURSE SERVICE
         - id: course-service
           uri: lb://COURSE-SERVICE
+
           predicates:
             - Path=/api/v1/course-service/**
           filters:

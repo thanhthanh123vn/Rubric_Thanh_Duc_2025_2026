@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-
-
 @Entity
 @Table(name = "participants")
 @Getter
@@ -21,8 +19,11 @@ public class Participant extends AbstractEntity<Participant> {
 	@JoinColumn(name = "conversation_id", nullable = false)
 	private Conversation conversation;
 
-
 	@Column(name = "user_id")
 	private String userId;
+
+	// BỔ SUNG: Biến lưu số lượng tin nhắn chưa đọc của riêng user này trong cuộc trò chuyện
+	@Column(name = "unseen_message_count", columnDefinition = "INT DEFAULT 0")
+	private Integer unseenMessageCount = 0;
 
 }

@@ -8,7 +8,10 @@ import hcmuaf.edu.vn.fit.notification_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.notification_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
 import hcmuaf.edu.vn.fit.notification_service.entity.enums.NotificationType;
-import hcmuaf.edu.vn.fit.notification_service.repository.NotificationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import hcmuaf.edu.vn.fit.notification_service.repository.mongoDb.NotificationRepository;
+import org.apache.juli.logging.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -16,8 +19,12 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -26,13 +33,17 @@ public class NotificationService {
     @Autowired
     private NotificationRepository repo;
 
+    private static final Logger log =
+            LoggerFactory.getLogger(NotificationService.class);
+
     @Autowired
     private JavaMailSender mailSender;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
+
     @Autowired
-    private  UserClient userClient;
+    private UserClient userClient;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -41,15 +52,108 @@ public class NotificationService {
     private Notification saveAndBroadcast(Notification n) {
         Notification saved = repo.save(n);
         try {
-            String jsonMessage = objectMapper.writeValueAsString(saved);
+
+            NotificationResponse responseDto = mapToResponse(saved);
+
+
+            String jsonMessage = objectMapper.writeValueAsString(responseDto);
             redisTemplate.convertAndSend("notification-channel", jsonMessage);
         } catch (Exception e) {
-            e.printStackTrace();
+            // Dùng log thay vì printStackTrace
+            log.error("Lỗi khi phát thông báo qua Redis: ", e);
         }
         return saved;
     }
 
-    // Giao bài tập cho 1 sinh viên
+    @Transactional
+    public void sendBroadcastNotification(
+            String senderId,
+            String title,
+            String content,
+            String recipientRole
+    ) {
+
+        log.info("=== START BROADCAST ===");
+        log.info("senderId = {}", senderId);
+        log.info("recipientRole = {}", recipientRole);
+        log.info("title = {}", title);
+
+
+        log.info("Calling user-service...");
+
+        List<String> targetUserIds =
+                userClient.getUserIdsByRole(recipientRole);
+
+        log.info("targetUserIds = {}", targetUserIds);
+
+        if (targetUserIds == null || targetUserIds.isEmpty()) {
+            throw new RuntimeException(
+                    "Không tìm thấy người dùng nào thuộc nhóm: "
+                            + recipientRole
+            );
+        }
+
+        // 2. Tạo notification
+        List<Notification> notifications = targetUserIds.stream()
+                .map(userId -> {
+                    Notification n = new Notification();
+
+                    n.setSenderId(senderId);
+                    n.setOwnerId(userId);
+                    n.setTitle(title);
+                    n.setContent(content);
+                    n.setNotificationType(NotificationType.SYSTEM_ALERT);
+
+                    return n;
+                })
+                .collect(Collectors.toList());
+
+        log.info(
+                "Created {} notification records",
+                notifications.size()
+        );
+
+        // 3. Save DB
+        log.info("Saving notifications to database...");
+
+        List<Notification> savedList =
+                repo.saveAll(notifications);
+
+        log.info(
+                "Saved {} notifications",
+                savedList.size()
+        );
+
+        // 4. Redis
+        savedList.forEach(n -> {
+            try {
+                NotificationResponse responseDto =
+                        mapToResponse(n);
+
+                String json =
+                        objectMapper.writeValueAsString(responseDto);
+
+                log.info(
+                        "Publishing notification to Redis: {}",
+                        json
+                );
+
+                redisTemplate.convertAndSend(
+                        "notification-channel",
+                        json
+                );
+
+            } catch (Exception e) {
+                log.error(
+                        "Lỗi khi phát thông báo broadcast qua Redis",
+                        e
+                );
+            }
+        });
+
+        log.info("=== END BROADCAST ===");
+    }
+
     public Notification notifyHomeworkAssigned(String senderId, String studentId, String courseId, String assignmentId, String assignmentTitle) {
         Notification n = new Notification();
         n.setSenderId(senderId);
@@ -72,16 +176,6 @@ public class NotificationService {
             n.setSenderId(senderId);
             n.setOwnerId(studentId);
             n.setCourseId(courseId);
-//            try{
-//                String userCurId = userClient.getUserIdByLecturerId(senderId);
-//                UserResponse userResponse = userClient.getUser(userCurId);
-////                n.setAvatarUrl(userResponse.getAvatarUrl());
-//
-//
-//
-//            } catch (Exception e) {
-//                throw new RuntimeException("không tìm thấy giảng viên");
-//            }
 
             n.setTitle("Bài tập mới");
             n.setContent("Giảng viên đã giao bài tập mới: " + assignmentTitle);
@@ -93,11 +187,13 @@ public class NotificationService {
 
         List<Notification> savedList = repo.saveAll(notifications);
         System.out.println(savedList);
+
         // Broadcast từng thông báo cho từng sinh viên
         savedList.forEach(n -> {
             try {
                 redisTemplate.convertAndSend("notification-channel", objectMapper.writeValueAsString(n));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         });
 
         return savedList;
@@ -110,13 +206,9 @@ public class NotificationService {
         n.setOwnerId(lecturerId); // Người nhận là giảng viên
         n.setCourseId(courseId);
         n.setTitle("Nộp bài tập");
-        try{
-
+        try {
             UserResponse userResponse = userClient.getUser(studentId);
             n.setAvatarUrl(userResponse.getAvatarUrl());
-
-
-
         } catch (Exception e) {
             throw new RuntimeException("không tìm thấy giảng viên");
         }
@@ -129,7 +221,7 @@ public class NotificationService {
     }
 
     // Gửi thông báo hệ thống chung
-    public Notification sendNotification(String senderId,String owenrID,String title, String content) {
+    public Notification sendNotification(String senderId, String owenrID, String title, String content) {
         Notification n = new Notification();
         n.setSenderId(senderId);
         n.setOwnerId(owenrID);
@@ -161,16 +253,16 @@ public class NotificationService {
         savedList.forEach(n -> {
             try {
                 redisTemplate.convertAndSend("notification-channel", objectMapper.writeValueAsString(n));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         });
 
         return savedList;
     }
 
     // Lấy thông báo theo ownerId
-
     public List<NotificationResponse> getUserNotifications(String userId) {
-        List<Notification> notifications = repo.findByOwnerIdOrderByCreatedAtDesc(userId); // Hoặc hàm lấy list tương ứng của bạn
+        List<Notification> notifications = repo.findByOwnerIdOrderByCreatedAtDesc(userId);
 
         return notifications.stream().map(notif -> {
             NotificationResponse dto = new NotificationResponse();
@@ -178,16 +270,18 @@ public class NotificationService {
             dto.setTitle(notif.getTitle());
             dto.setContent(notif.getContent());
             dto.setRead(notif.isRead());
-            dto.setCreatedAt(LocalDateTime.from(notif.getCreatedAt()));
+
+            // SỬA LỖI NULL POINTER EXCEPTION TẠI ĐÂY
+            Instant createdAt = notif.getCreatedAt() != null ? notif.getCreatedAt() : Instant.now();
+            dto.setCreatedAt(createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime());
+
             dto.setReferenceUrl(notif.getReferenceUrl());
             dto.setSenderId(notif.getSenderId());
-
 
             try {
                 if (notif.getSenderId() != null) {
                     String senderId = notif.getSenderId();
                     boolean isFound = false;
-
 
                     try {
                         UserResponse user = userClient.getUser(senderId);
@@ -197,9 +291,7 @@ public class NotificationService {
                             isFound = true;
                         }
                     } catch (Exception ignored) {
-
                     }
-
 
                     if (!isFound) {
                         try {
@@ -208,11 +300,10 @@ public class NotificationService {
                                 UserResponse userResponse = userClient.getUser(lecturer.getUserId());
                                 dto.setSenderName(userResponse.getFullName());
                                 dto.setSenderAvatar(userResponse.getAvatarUrl());
-
-
                                 isFound = true;
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
 
                     if (!isFound) {
@@ -229,6 +320,7 @@ public class NotificationService {
             return dto;
         }).collect(Collectors.toList());
     }
+
     @Transactional
     public Notification markAsRead(String notificationId) {
         Notification notification = repo.findById(notificationId)
@@ -240,7 +332,6 @@ public class NotificationService {
 
     @Transactional
     public void markAllAsRead(String userId) {
-
         List<Notification> unreadNotifications = repo.findByOwnerIdAndIsReadFalse(userId);
 
         for (Notification notification : unreadNotifications) {
@@ -259,7 +350,6 @@ public class NotificationService {
     }
 
     public long countUnreadNotifications(String userId) {
-
         return repo.countByOwnerIdAndIsReadFalse(userId);
     }
 
@@ -270,8 +360,65 @@ public class NotificationService {
         mail.setText(content);
         mailSender.send(mail);
     }
+
     @Transactional
     public void deleteNotificationsByLinkedResourceId(String linkedResourceId) {
         repo.deleteByLinkedResourceId(linkedResourceId);
     }
+
+    private NotificationResponse mapToResponse(Notification notif) {
+        NotificationResponse dto = new NotificationResponse();
+        dto.setId(notif.getId());
+        dto.setTitle(notif.getTitle());
+        dto.setContent(notif.getContent());
+        dto.setRead(notif.isRead());
+        dto.setOwnerId(notif.getOwnerId());
+        Instant createdAt = notif.getCreatedAt() != null ? notif.getCreatedAt() : Instant.now();
+        dto.setCreatedAt(createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime());
+
+        dto.setReferenceUrl(notif.getReferenceUrl());
+        dto.setSenderId(notif.getSenderId());
+
+        try {
+            if (notif.getSenderId() != null) {
+                String senderId = notif.getSenderId();
+                boolean isFound = false;
+
+                try {
+                    UserResponse user = userClient.getUser(senderId);
+                    if (user != null && user.getFullName() != null) {
+                        dto.setSenderName(user.getFullName());
+                        dto.setSenderAvatar(user.getAvatarUrl());
+                        isFound = true;
+                    }
+                } catch (Exception ignored) {
+                }
+
+                if (!isFound) {
+                    try {
+                        LecturerResponse lecturer = userClient.getLecturer(senderId);
+                        if (lecturer != null && lecturer.getFullName() != null) {
+                            UserResponse userResponse = userClient.getUser(lecturer.getUserId());
+                            dto.setSenderName(userResponse.getFullName());
+                            dto.setSenderAvatar(userResponse.getAvatarUrl());
+                            isFound = true;
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                if (!isFound) {
+                    dto.setSenderName("Hệ thống LMS");
+                }
+            } else {
+                dto.setSenderName("Hệ thống LMS");
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy thông tin người gửi: {}" + e.getMessage());
+            dto.setSenderName("Hệ thống LMS");
+        }
+
+        return dto;
+    }
+
 }

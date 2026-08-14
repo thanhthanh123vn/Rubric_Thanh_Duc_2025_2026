@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import hcmuaf.edu.vn.fit.user_service.entity.enums.Role;
+
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -22,7 +24,12 @@ public interface UserRepository extends JpaRepository<User, String> {
     Page<User> findByRole(String role,  Pageable pageable);
     Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String username, String email, Pageable pageable);
 
+    @Query("SELECT u.userId FROM User u")
+    List<String> findAllUserIds();
 
+    // Lấy ID theo một Role cụ thể
+    @Query("SELECT u.userId FROM User u WHERE u.role = :role")
+    List<String> findUserIdsByRole(@Param("role") String role);
 
 
     @Query("SELECT u FROM User u WHERE u.role = :role AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')))")

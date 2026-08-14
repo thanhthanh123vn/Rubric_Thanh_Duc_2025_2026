@@ -85,7 +85,7 @@ export default function DepartmentOBE() {
 
 
     };
-console.log(offerings);
+    console.log(offerings);
     return (
         <div className="p-6 bg-slate-50 min-h-screen">
             {/* Header */}

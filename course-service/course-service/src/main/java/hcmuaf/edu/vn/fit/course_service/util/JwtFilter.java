@@ -29,13 +29,15 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
         String token = null;
-
-        // 1. Tìm Token trong Header trước (Dành cho REST API thông thường)
+        if (path.startsWith("/ws") || path.startsWith("/api/v1/course-service/ws")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         String header = request.getHeader("Authorization");
         if(header != null && header.startsWith("Bearer ")){
             token = header.substring(7);
         }
-        // 2. Nếu không có Header, tìm trong tham số URL (Dành cho WebSocket Native)
+
         else if (request.getParameter("token") != null) {
             token = request.getParameter("token");
         }
@@ -59,9 +61,9 @@ public class JwtFilter extends OncePerRequestFilter {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // Giữ nguyên dòng log để bạn dễ debug
-                System.out.println("Authorities = " + authentication.getAuthorities());
-                System.out.println("Principal = " + authentication.getPrincipal());
+//                // Giữ nguyên dòng log để bạn dễ debug
+//                System.out.println("Authorities = " + authentication.getAuthorities());
+//                System.out.println("Principal = " + authentication.getPrincipal());
             }
         }
 

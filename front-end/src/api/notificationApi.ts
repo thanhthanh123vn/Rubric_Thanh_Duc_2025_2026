@@ -1,4 +1,4 @@
-import {notificationServiceApi} from "@/services/axiosConfig";
+import {courseApi, notificationServiceApi} from "@/services/axiosConfig";
 
 // export const notificationApi = {
 //
@@ -34,5 +34,12 @@ export const notificationApi = {
 
     deleteNotification: async (id: string): Promise<void> => {
         await courseApi.delete(`/admin/notifications/${id}`);
+    },
+    broadcastNotification: (data: {
+        title: string;
+        message: string;
+        recipientRole: string;
+    }) => {
+        return notificationServiceApi.post("/notifications/broadcast", data);
     }
 };

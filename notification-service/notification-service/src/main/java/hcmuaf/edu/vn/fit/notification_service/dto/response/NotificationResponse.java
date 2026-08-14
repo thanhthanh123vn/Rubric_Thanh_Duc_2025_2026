@@ -14,7 +14,7 @@ public class NotificationResponse {
     private LocalDateTime createdAt;
     private String referenceUrl;
 
-
+    private String ownerId;
     private String senderId;
     private String senderName;
     private String senderAvatar;

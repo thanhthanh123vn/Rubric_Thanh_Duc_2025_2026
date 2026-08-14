@@ -13,8 +13,8 @@ import java.util.Optional;
 
 @Repository
 public interface SubmissionRepository extends JpaRepository<SubmissionEntity, String> {
-    Optional<SubmissionEntity> findByAssessmentIdAndStudentId(String assessmentId, String studentId);
 
+    Optional<SubmissionEntity> findByAssessmentIdAndStudentId(String assessmentId, String studentId);
 
     @Modifying
     @Transactional
@@ -24,6 +24,8 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, St
     List<SubmissionEntity> findByAssessmentId(String assessmentId);
 
     List<SubmissionEntity> findTop5ByOrderBySubmittedAtDesc();
+
     Optional<SubmissionEntity> findTopByAssessmentIdAndStudentIdOrderBySubmittedAtDesc(String assessmentId, String studentId);
+
     Long countByAssessmentId(String assessmentId);
 }

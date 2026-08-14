@@ -31,7 +31,7 @@ const initialState: AssessmentState = {
 
 
 
-// 🔥 thunk gọi API
+//  thunk gọi API
 export const fetchAssessments = createAsyncThunk(
     "assessment/fetchByOffering",
     async (offeringId: string, { rejectWithValue }) => {
@@ -46,7 +46,7 @@ export const fetchAssessments = createAsyncThunk(
 
 
 
-// 🔥 slice
+//  slice
 const assessmentSlice = createSlice({
     name: "assessment",
     initialState,

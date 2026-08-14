@@ -719,11 +719,11 @@ function ProjectSection({
 }
 
 function ChatPanel({
-  conversationId,
-  currentUserId,
-  students,
-  onClose,
-}: {
+                     conversationId,
+                     currentUserId,
+                     students,
+                     onClose,
+                   }: {
   conversationId: string;
   currentUserId: string;
   students: Type[];
@@ -732,40 +732,90 @@ function ChatPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   const stompClientRef = useRef<Client | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null); // Ref để giữ vị trí cuộn
+
   const { id } = useParams<{ id: string }>();
   const offeringId = id ?? "";
 
+
+  const fetchHistory = async (pageNumber: number) => {
+    if (!conversationId) return;
+    try {
+      setIsLoadingHistory(true);
+      const response = await courseApi.get(
+          `/chat/conversation/${conversationId}/history?page=${pageNumber}&size=20`
+      );
+
+      const fetchedMessages = response.data?.messages || [];
+      const hasMore = response.data?.hasNext || false;
+
+      setMessages((prev) => {
+        if (pageNumber === 0) return fetchedMessages;
+
+        return [...fetchedMessages, ...prev];
+      });
+
+      setHasNext(hasMore);
+      setPage(pageNumber);
+    } catch (error) {
+      console.error("Không thể tải lịch sử chat:", error);
+    } finally {
+      setIsLoadingHistory(false);
+      setIsInitialLoad(false);
+    }
+  };
+
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typingUsers]);
+    if (isInitialLoad || page === 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, typingUsers, isInitialLoad, page]);
 
   useEffect(() => {
     if (!conversationId) return;
+    const token = localStorage.getItem('token');
 
-    const fetchHistory = async () => {
-      try {
-        const response = await courseApi.get(`/chat/conversation/${conversationId}/history`);
-        setMessages(response.data || []);
-      } catch (error) {
-        console.error("Kh\u00f4ng th\u1ec3 t\u1ea3i l\u1ecbch s\u1eed chat:", error);
-      }
-    };
 
-    void fetchHistory();
+    void fetchHistory(0);
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${import.meta.env.VITE_WS_URL ?? ''}/ws`),
+      webSocketFactory: () => new SockJS(`${import.meta.env.VITE_WS_URL_COURSE ?? ''}/ws?token=${token}`),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`
+      },
       reconnectDelay: 5000,
+      debug: (str) => {
+        console.log('STOMP Debug: ' + str);
+      },
+      onStompError: (frame) => {
+        console.error('STOMP Error (Từ Broker): ', frame.headers['message']);
+        console.error('Chi tiết: ', frame.body);
+      },
+      onWebSocketError: (event) => {
+        console.error('Lỗi WebSocket (Từ mạng/máy chủ): ', event);
+      },
+      onWebSocketClose: (event) => {
+        console.log('Kết nối WebSocket đã bị đóng: ', event);
+      },
       onConnect: () => {
         client.subscribe(`/topic/chat/${conversationId}`, (message) => {
           try {
             const receivedMessage = JSON.parse(message.body);
             setMessages((prev) => [...prev, receivedMessage]);
+
+            setPage(0);
           } catch (error) {
-            console.error("L\u1ed7i parse tin nh\u1eafn:", error);
+            console.error("Lỗi parse tin nhắn:", error);
           }
         });
 
@@ -780,7 +830,7 @@ function ChatPanel({
               });
             }
           } catch (error) {
-            console.error("L\u1ed7i typing:", error);
+            console.error("Lỗi typing:", error);
           }
         });
       },
@@ -813,96 +863,144 @@ function ChatPanel({
   };
 
   const handleSend = () => {
-    if (!input.trim() || !stompClientRef.current?.connected) return;
+    // 1. Kiểm tra xem người dùng đã nhập gì chưa
+    if (!input.trim()) {
+      return;
+    }
 
-    stompClientRef.current.publish({
-      destination: `/app/chat/${conversationId}/sendMessage`,
-      body: JSON.stringify({
-        senderId: currentUserId,
-        content: input.trim(),
-        conversationId,
-        offeringId,
-      }),
-    });
+    // 2. Log ra để kiểm tra trạng thái WebSocket
+    console.log("Trạng thái STOMP Client:", stompClientRef.current?.connected);
 
-    setInput("");
-    publishTyping(false);
+    // 3. Kiểm tra kết nối trước khi gửi
+    if (!stompClientRef.current || !stompClientRef.current.connected) {
+      alert("Đang chờ kết nối tới máy chủ chat. Vui lòng thử lại sau vài giây!");
+      return;
+    }
+
+    try {
+      stompClientRef.current.publish({
+        destination: `/app/chat/${conversationId}/sendMessage`,
+        body: JSON.stringify({
+          senderId: currentUserId,
+          content: input.trim(),
+          conversationId: conversationId,
+          offeringId: offeringId,
+        }),
+      });
+
+      setInput("");
+      publishTyping(false);
+    } catch (error) {
+      console.error("Lỗi khi gửi tin nhắn qua WebSocket:", error);
+      alert("Có lỗi xảy ra khi gửi tin nhắn.");
+    }
+  };
+
+  // Xử lý khi nhấn nút "Tải thêm tin nhắn cũ"
+  const handleLoadMore = () => {
+    // Lưu lại chiều cao hiện tại của khung chat để không bị giật scroll
+    if (chatContainerRef.current) {
+      const scrollHeightBefore = chatContainerRef.current.scrollHeight;
+
+      fetchHistory(page + 1).then(() => {
+
+        setTimeout(() => {
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight - scrollHeightBefore;
+          }
+        }, 0);
+      });
+    }
   };
 
   return (
-    <ModalShell
-      title={"Th\u1ea3o lu\u1eadn nh\u00f3m"}
-      subtitle={"Trao \u0111\u1ed5i nhanh v\u1edbi th\u00e0nh vi\u00ean trong nh\u00f3m."}
-      onClose={onClose}
-      widthClass="max-w-4xl"
-    >
-      <div className="flex h-[65vh] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-        <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-emerald-600" />
-            <p className="text-sm font-semibold text-slate-900">{"Khung chat nh\u00f3m"}</p>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50/60 p-4">
-          {messages.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-              {"Ch\u01b0a c\u00f3 tin nh\u1eafn. H\u00e3y b\u1eaft \u0111\u1ea7u th\u1ea3o lu\u1eadn."}
+      <ModalShell
+          title={"Thảo luận nhóm"}
+          subtitle={"Trao đổi nhanh với thành viên trong nhóm."}
+          onClose={onClose}
+          widthClass="max-w-4xl"
+      >
+        <div className="flex h-[65vh] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-emerald-600" />
+              <p className="text-sm font-semibold text-slate-900">{"Khung chat nhóm"}</p>
             </div>
-          ) : (
-            messages.map((message, index) => {
-              const isMine = message.senderId === currentUserId;
-              return (
-                <div
-                  key={`${message.messageId || "message"}-${index}`}
-                  className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[78%] rounded-2xl px-4 py-3 shadow-sm ${
-                      isMine ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-800"
-                    }`}
-                  >
-                    <p className={`text-xs font-semibold ${isMine ? "text-emerald-50" : "text-slate-500"}`}>
-                      {isMine ? "B\u1ea1n" : getStudentName(message.senderId, students)}
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm">{message.content}</p>
-                    {message.createdAt ? (
-                      <p className={`mt-2 text-[11px] ${isMine ? "text-emerald-100" : "text-slate-400"}`}>
-                        {formatDateTime(message.createdAt)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })
-          )}
-          {typingUsers.length > 0 ? (
-            <p className="text-xs italic text-emerald-600">
-              {typingUsers.map((userId) => getStudentName(userId, students)).join(", ")} {"\u0111ang nh\u1eadp tin nh\u1eafn..."}
-            </p>
-          ) : null}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
 
-        <div className="border-t border-slate-100 bg-white p-4">
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") handleSend();
-              }}
-              placeholder={"Nh\u1eadp tin nh\u1eafn..."}
-              className="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <Button type="button" className="rounded-full bg-emerald-600 px-5 hover:bg-emerald-700" onClick={handleSend}>
-              <Send className="h-4 w-4" />
-            </Button>
+          <div ref={chatContainerRef} className="flex-1 space-y-4 overflow-y-auto bg-slate-50/60 p-4">
+
+            {/* NÚT TẢI THÊM TIN NHẮN */}
+            {hasNext && (
+                <div className="flex justify-center pb-2">
+                  <button
+                      onClick={handleLoadMore}
+                      disabled={isLoadingHistory}
+                      className="text-xs font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-4 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    {isLoadingHistory ? "Đang tải..." : "Tải thêm tin nhắn cũ"}
+                  </button>
+                </div>
+            )}
+
+            {messages.length === 0 && !isLoadingHistory && !isInitialLoad ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                  {"Chưa có tin nhắn. Hãy bắt đầu thảo luận."}
+                </div>
+            ) : (
+                messages.map((message, index) => {
+                  const isMine = message.senderId === currentUserId;
+                  return (
+                      <div
+                          key={`${message.messageId || "message"}-${index}`}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                            className={`max-w-[78%] rounded-2xl px-4 py-3 shadow-sm ${
+                                isMine ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-800"
+                            }`}
+                        >
+                          <p className={`text-xs font-semibold ${isMine ? "text-emerald-50" : "text-slate-500"}`}>
+                            {isMine ? "Bạn" : getStudentName(message.senderId, students)}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm">{message.content}</p>
+                          {message.createdAt ? (
+                              <p className={`mt-2 text-[11px] ${isMine ? "text-emerald-100" : "text-slate-400"}`}>
+                                {formatDateTime(message.createdAt)}
+                              </p>
+                          ) : null}
+                        </div>
+                      </div>
+                  );
+                })
+            )}
+            {typingUsers.length > 0 ? (
+                <p className="text-xs italic text-emerald-600">
+                  {typingUsers.map((userId) => getStudentName(userId, students)).join(", ")} {"đang nhập tin nhắn..."}
+                </p>
+            ) : null}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t border-slate-100 bg-white p-4">
+            <div className="flex gap-3">
+              <input
+                  type="text"
+                  value={input}
+                  onChange={handleInputChange}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") handleSend();
+                  }}
+                  placeholder={"Nhập tin nhắn..."}
+                  className="flex-1 rounded-full border border-slate-200 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <Button type="button" className="rounded-full bg-emerald-600 px-5 hover:bg-emerald-700" onClick={handleSend}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    </ModalShell>
+      </ModalShell>
   );
 }
 
@@ -1445,7 +1543,7 @@ const CourseGroups = () => {
     const localUser = localStorage.getItem("user");
     if (localUser) currentUser = JSON.parse(localUser);
   }
-  const currentUserId = currentUser?.studentId || currentUser?.userId || null;
+  const currentUserId = currentUser?.userId || currentUser?.studentId || null;
 
   const [students, setStudents] = useState<Type[]>([]);
   const [myGroups, setMyGroups] = useState<GroupResponse[]>([]);
@@ -1462,9 +1560,9 @@ const CourseGroups = () => {
       const [studentData, groupData, assessmentData] = await Promise.all([
         courseService.getStudentsByOffering(offeringId),
         groupService.getMyGroups(offeringId, currentUserId),
-        courseService.getAssessmentByOffering(offeringId),
+        // courseService.getAssessmentByOffering(offeringId),
       ]);
-
+console.log(groupData);
       setStudents(studentData || []);
       setMyGroups(groupData || []);
       setProjectAssessments((assessmentData || []).filter((item: Assessment) => isProjectAssessment(item)));

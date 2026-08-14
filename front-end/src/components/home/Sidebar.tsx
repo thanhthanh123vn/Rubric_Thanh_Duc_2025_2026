@@ -35,7 +35,7 @@ const Sidebar = ({ isOpen, onClose }: any) => {
     { key: "calendar", icon: Calendar, label: 'Lịch học', path: "/calendar" },
     { key: "courses", icon: GraduationCap, label: 'Đã đăng ký', path: "#" },
     { key: "rubrics", icon: FileText, label: 'Thư viện Rubric', path: "/rubrics" },
-    { key: "obe", icon: BarChart3, label: 'Báo cáo OBE', path: "/obe-reports" },
+    // { key: "obe", icon: BarChart3, label: 'Báo cáo OBE', path: "/obe-reports" },
   ];
 
   useEffect(() => {
@@ -185,7 +185,8 @@ const Sidebar = ({ isOpen, onClose }: any) => {
         </nav>
 
         <div className="p-4 border-t border-gray-200/50 shrink-0">
-          <NavLink to="/profile/settings" className={({isActive}) => `
+          <NavLink to="/profile/settings" target="_blank"
+                   className={({isActive}) => `
           flex items-center gap-3 px-3 py-3 rounded-xl transition-all relative overflow-hidden
           ${isActive ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm' : 'text-gray-600 hover:bg-white/60 hover:shadow-sm'}
           ${isCollapsed ? 'justify-center' : ''}

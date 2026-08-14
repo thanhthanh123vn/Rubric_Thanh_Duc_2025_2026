@@ -1,14 +1,15 @@
 package hcmuaf.edu.vn.fit.notification_service.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
+import hcmuaf.edu.vn.fit.notification_service.dto.response.NotificationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RedisNotificationSubscriber {
+public class RedisNotificationSubscriber implements MessageListener{
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
@@ -16,18 +17,22 @@ public class RedisNotificationSubscriber {
     @Autowired
     private ObjectMapper objectMapper;
 
-
-    public void onMessage(String message) {
+    @Override
+    public void onMessage(Message message, byte[] pattern) {
         try {
+            // Lấy chuỗi JSON từ Redis
+            String jsonMessage = new String(message.getBody());
+            NotificationResponse response = objectMapper.readValue(jsonMessage, NotificationResponse.class);
 
-            Notification notification = objectMapper.readValue(message, Notification.class);
 
 
+            String destination = "/topic/notifications/" + response.getOwnerId();
 
-            messagingTemplate.convertAndSend("/topic/user/" + notification.getOwnerId(), notification);
+
+            messagingTemplate.convertAndSend(destination, response);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Lỗi khi xử lý tin nhắn từ Redis: " + e.getMessage());
         }
     }
 }
