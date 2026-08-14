@@ -50,11 +50,6 @@ else (Xuất báo cáo)
 
 |Backend|
 :Tạo báo cáo Excel/PDF;
-
-|Report Service|
-:Sinh file báo cáo;
-
-|Backend|
 :Trả file về Frontend;
 
 |Frontend|

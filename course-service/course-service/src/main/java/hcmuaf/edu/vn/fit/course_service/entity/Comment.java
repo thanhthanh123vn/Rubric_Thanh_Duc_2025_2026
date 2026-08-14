@@ -27,7 +27,8 @@ public class Comment {
 
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
-
+    @Column(name = "parent_id")
+    private String parentId;
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private Timestamp createdAt = new Timestamp(System.currentTimeMillis());

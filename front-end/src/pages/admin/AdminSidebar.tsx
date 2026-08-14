@@ -114,6 +114,7 @@ const menuGroups = [
             { title: 'Báo cáo & Thống kê', url: '/admin/reports', icon: PieChart },
             { title: 'Cài đặt hệ thống', url: '/admin/settings', icon: Settings },
             { title: 'Logs', url: '/admin/logs', icon: Shield },
+            { title: 'Gửi thông báo', url: '/admin/notifications', icon: Bell },
             // { title: 'In Bảng Điểm', url: '/admin/grading', icon: FileSpreadsheet },
         ]
     }

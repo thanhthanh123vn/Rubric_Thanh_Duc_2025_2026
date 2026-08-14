@@ -9,6 +9,9 @@ import hcmuaf.edu.vn.fit.course_service.mapper.SyllabusFileMapper;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.PostRepository;
 import hcmuaf.edu.vn.fit.course_service.repository.jpa.SyllabusFileRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -40,8 +43,9 @@ public class PostService {
     }
 
     public List<PostResponse> getPostsByOffering(String offeringId) {
-        List<Post> posts = postRepository.findByOfferingIdOrderByCreatedAtDesc(offeringId);
-        return posts.stream().map(this::mapToResponse).collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Post> postPage = postRepository.findByOfferingIdOrderByCreatedAtDesc(offeringId,pageable);
+        return postPage.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     public PostResponse getPostById(String postId) {

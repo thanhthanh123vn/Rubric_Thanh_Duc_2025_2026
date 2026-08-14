@@ -85,5 +85,9 @@ public class UserController {
         String avatarUrl = userService.updateAvatar(userId, file);
         return ResponseEntity.ok(avatarUrl);
     }
-
+    @GetMapping("/ids-by-role")
+    public ResponseEntity<List<String>> getUserIdsByRole(@RequestParam("role") String role) {
+        List<String> userIds = userService.getUserIdsByRole(role);
+        return ResponseEntity.ok(userIds);
+    }
 }

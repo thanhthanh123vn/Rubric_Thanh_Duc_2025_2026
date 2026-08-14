@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Bell, LogOut, Menu, UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import authService from "@/user/api/authService.ts";
+import {NotificationBell} from "@/components/home/NotificationBell.tsx";
+
+// BỔ SUNG: Import component NotificationBell của bạn vào đây
+// (Hãy điều chỉnh lại đường dẫn cho đúng với cấu trúc thư mục của bạn)
+
+
 interface TeacherInfo {
   fullName?: string;
   role?: string;
@@ -40,13 +46,11 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
     try {
       await authService.logout();
 
-
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');
     } catch (error) {
       console.error("Lỗi khi đăng xuất backend:", error);
-      // Xem chi tiết lỗi API báo về là gì
     }
   };
 
@@ -58,9 +62,9 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
 
   if (!teacher) {
     return (
-      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-4 py-3 shadow-sm lg:px-8 lg:py-4">
-        <div className="flex h-12 items-center text-sm text-gray-500">Dang tai thong tin...</div>
-      </header>
+        <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-4 py-3 shadow-sm lg:px-8 lg:py-4">
+          <div className="flex h-12 items-center text-sm text-gray-500">Đang tải thông tin...</div>
+        </header>
     );
   }
 
@@ -68,112 +72,110 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
   const teacherEmail = teacher.email || `${teacherName.toLowerCase().replace(/\s+/g, '.')}@hcmuaf.edu.vn`;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-4 py-3 shadow-sm lg:px-8 lg:py-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {onMenuClick && (
-            <button
-              onClick={onMenuClick}
-              className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100 lg:hidden"
-              aria-label="Mo menu giang vien"
-            >
-              <Menu size={24} />
-            </button>
-          )}
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white px-4 py-3 shadow-sm lg:px-8 lg:py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            {onMenuClick && (
+                <button
+                    onClick={onMenuClick}
+                    className="rounded-lg p-1.5 text-gray-600 transition-colors hover:bg-gray-100 lg:hidden"
+                    aria-label="Mo menu giang vien"
+                >
+                  <Menu size={24} />
+                </button>
+            )}
 
-          <button
-            onClick={() => navigate('/teacher')}
-            className="min-w-0 text-left transition-opacity hover:opacity-90"
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">
-              He thong Danh gia OBE
-            </p>
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-lg font-bold text-emerald-700 sm:text-xl">
-                {teacherName}
-              </h1>
-              <span className="hidden items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
+            <button
+                onClick={() => navigate('/teacher')}
+                className="min-w-0 text-left transition-opacity hover:opacity-90"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">
+                He thong Danh gia OBE
+              </p>
+              <div className="flex min-w-0 items-center gap-2">
+                <h1 className="truncate text-lg font-bold text-emerald-700 sm:text-xl">
+                  {teacherName}
+                </h1>
+                <span className="hidden items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:inline-flex">
                 Giang vien
               </span>
-            </div>
-            <p className="hidden text-sm text-gray-500 md:block">
-              Khoa Cong nghe Thong tin | Truong Dai hoc Nong Lam TP.HCM
-            </p>
-          </button>
-        </div>
-
-        <div className="relative flex items-center gap-2" ref={menuRef}>
-          <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 md:flex">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-sm font-semibold text-emerald-700">HK2 2025-2026</span>
+              </div>
+              <p className="hidden text-sm text-gray-500 md:block">
+                Khoa Cong nghe Thong tin | Truong Dai hoc Nong Lam TP.HCM
+              </p>
+            </button>
           </div>
 
-          <button className="relative rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border border-white bg-red-500" />
-          </button>
+          <div className="relative flex items-center gap-2" ref={menuRef}>
+            <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 md:flex">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-sm font-semibold text-emerald-700">HK2 2025-2026</span>
+            </div>
 
-          <button
-            onClick={() => setShowProfileMenu((value) => !value)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-base font-bold text-white transition-all hover:ring-4 hover:ring-emerald-100 focus:outline-none lg:h-11 lg:w-11 lg:text-lg"
-            aria-label="Mo menu tai khoan"
-          >
-            {getInitial(teacherName)}
-          </button>
+            {/* SỬ DỤNG COMPONENT THÔNG BÁO TẠI ĐÂY (Thay cho nút chuông tĩnh) */}
+            <NotificationBell />
 
-          {showProfileMenu && (
-            <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] max-w-[380px] origin-top-right rounded-2xl border border-gray-200 bg-[#f8fafd] p-2 shadow-xl transition-all sm:w-[380px] sm:rounded-[28px]">
-              <div className="flex flex-col items-center rounded-xl bg-white p-5 shadow-sm sm:rounded-[24px]">
+            <button
+                onClick={() => setShowProfileMenu((value) => !value)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-base font-bold text-white transition-all hover:ring-4 hover:ring-emerald-100 focus:outline-none lg:h-11 lg:w-11 lg:text-lg"
+                aria-label="Mo menu tai khoan"
+            >
+              {getInitial(teacherName)}
+            </button>
+
+            {showProfileMenu && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] max-w-[380px] origin-top-right rounded-2xl border border-gray-200 bg-[#f8fafd] p-2 shadow-xl transition-all sm:w-[380px] sm:rounded-[28px]">
+                  <div className="flex flex-col items-center rounded-xl bg-white p-5 shadow-sm sm:rounded-[24px]">
                 <span className="break-all text-center text-xs font-medium text-gray-800 sm:text-sm">
                   {teacherEmail}
                 </span>
 
-                <div
-                    className="mb-2 mt-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-3xl font-normal text-white sm:h-20 sm:w-20 sm:text-4xl">
-                  {getInitial(teacherName)}
+                    <div
+                        className="mb-2 mt-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-3xl font-normal text-white sm:h-20 sm:w-20 sm:text-4xl">
+                      {getInitial(teacherName)}
+                    </div>
+
+                    <h2 className="w-full break-words text-center text-lg font-normal text-gray-900 sm:text-xl">
+                      Xin chao, {teacherName}!
+                    </h2>
+
+                    <button
+                        onClick={() => window.open('/teacher/profile', '_blank')}
+                        className="mt-4 rounded-full border border-emerald-300 px-4 py-2 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50 sm:px-6 sm:text-sm"
+                    >
+                      Quản lý tài khoản
+                    </button>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-1">
+                    <button
+                        className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6">
+                      <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
+                      Them mot tai khoan khac
+                    </button>
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6"
+                    >
+                      <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+                      Dang xuat
+                    </button>
+                  </div>
+
+                  <div className="mb-1 mt-2 flex justify-center gap-2 text-[10px] text-gray-600 sm:text-xs">
+                    <Link to="#" className="rounded-md px-2 py-1.5 transition-colors hover:bg-gray-200">
+                      Chinh sach rieng tu
+                    </Link>
+                    <span className="py-1.5">|</span>
+                    <Link to="#" className="rounded-md px-2 py-1.5 transition-colors hover:bg-gray-200">
+                      Dieu khoan
+                    </Link>
+                  </div>
                 </div>
-
-                <h2 className="w-full break-words text-center text-lg font-normal text-gray-900 sm:text-xl">
-                  Xin chao, {teacherName}!
-                </h2>
-
-                <button
-                    onClick={() => window.open('/teacher/profile', '_blank')}
-                    className="mt-4 rounded-full border border-emerald-300 px-4 py-2 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-50 sm:px-6 sm:text-sm"
-                >
-                  Quản lý tài khoản
-                </button>
-              </div>
-
-              <div className="mt-2 flex flex-col gap-1">
-                <button
-                    className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6">
-                  <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Them mot tai khoan khac
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6"
-                >
-                  <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Dang xuat
-                </button>
-              </div>
-
-              <div className="mb-1 mt-2 flex justify-center gap-2 text-[10px] text-gray-600 sm:text-xs">
-                <Link to="#" className="rounded-md px-2 py-1.5 transition-colors hover:bg-gray-200">
-                  Chinh sach rieng tu
-                </Link>
-                <span className="py-1.5">|</span>
-                <Link to="#" className="rounded-md px-2 py-1.5 transition-colors hover:bg-gray-200">
-                  Dieu khoan
-                </Link>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
   );
 }

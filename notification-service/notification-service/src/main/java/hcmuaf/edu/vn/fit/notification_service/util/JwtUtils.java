@@ -11,7 +11,7 @@ import java.util.Date;
 
 @Component
 public class JwtUtils {
-    @Value("${SECRET_KEY}")
+    @Value("${app.jwt.secret}")
     private  String SECRET_KEY ;
     private final long EXPIRATION_TIME = 86400000;
     private final long ACCESS_TOKEN_EXPIRATION = 86400000; // 1 ngày
@@ -53,14 +53,15 @@ public class JwtUtils {
         return extractAllClaims(token).get("role", String.class);
     }
     public boolean isTokenValid(String token) {
-        try{
+
+        try {
             Claims claims = extractAllClaims(token);
-
             return claims.getExpiration().after(new Date());
-        }catch (Exception e){
-
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("JWT ERROR: " + e.getMessage());
+            return false;
         }
-        return false;
     }
     public String extractUserId(String token) {
         return extractAllClaims(token).get("userId", String.class);
@@ -75,4 +76,5 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
 }

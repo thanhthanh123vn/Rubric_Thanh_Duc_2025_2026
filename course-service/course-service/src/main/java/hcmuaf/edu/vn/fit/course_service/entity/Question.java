@@ -4,6 +4,8 @@ import hcmuaf.edu.vn.fit.course_service.entity.enums.Difficulty;
 import hcmuaf.edu.vn.fit.course_service.entity.enums.QuestionType;
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
@@ -14,6 +16,16 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@CompoundIndexes({
+
+        @CompoundIndex(name = "offering_idx", def = "{'offeringId': 1}"),
+
+
+        @CompoundIndex(name = "id_type_idx", def = "{'_id': 1, 'type': 1}"),
+
+
+        @CompoundIndex(name = "offering_content_idx", def = "{'offeringId': 1, 'content': 1}")
+})
 public class Question {
 
     @Id

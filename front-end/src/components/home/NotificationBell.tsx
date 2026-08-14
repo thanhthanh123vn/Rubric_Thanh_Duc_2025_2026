@@ -9,10 +9,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // BỔ SUNG IMPORT NÀY
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { notificationApi } from "@/features/notification/notificationApi";
 import { connectWebSocket } from "@/notification/WebSocketNotication";
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -49,11 +50,29 @@ export function NotificationBell() {
     }
 
     useEffect(() => {
-        let active = true;
-        notificationApi.getNotifications()
-          .then((response) => {
-            if (!active) return;
-            const sortedNotifs = response.sort((a: any, b: any) =>
+        fetchNotifications();
+    }, [user?.userId]);
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await notificationApi.getNotifications();
+
+            const mappedNotifs = response.data.map((n: any) => {
+                const readStatus = n.read === true || n.is_read === 1 || n.is_read === true || n.isRead === true;
+                return {
+                    id: n.id,
+                    title: n.title,
+                    content: n.content || n.message,
+                    isRead: readStatus,
+                    is_read: readStatus ? 1 : 0,
+                    createdAt: n.created_at || n.createdAt,
+                    referenceUrl: n.reference_url || n.referenceUrl,
+                    senderAvatar: n.avatar_url || n.senderAvatar,
+                    senderName: n.sender_id || n.senderName
+                };
+            });
+
+            const sortedNotifs = mappedNotifs.sort((a: any, b: any) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setNotifications(sortedNotifs);
@@ -68,28 +87,55 @@ export function NotificationBell() {
 
     useEffect(() => {
         if (user?.userId) {
-            const stompClient = connectWebSocket(user.userId, (newNotif) => {
-                setNotifications((prev) => [newNotif, ...prev]);
+            const stompClient = connectWebSocket(user.userId, (newNotif: any) => {
+                const readStatus = newNotif.read === true || newNotif.is_read === 1 || newNotif.is_read === true || newNotif.isRead === true;
+                const mappedRealtimeNotif = {
+                    id: newNotif.id,
+                    title: newNotif.title,
+                    content: newNotif.content || newNotif.message,
+                    isRead: readStatus,
+                    is_read: readStatus ? 1 : 0,
+                    createdAt: newNotif.created_at || newNotif.createdAt || new Date().toISOString(),
+                    referenceUrl: newNotif.reference_url || newNotif.referenceUrl,
+                    senderAvatar: newNotif.avatar_url || newNotif.senderAvatar,
+                    senderName: newNotif.sender_id || newNotif.senderName
+                };
+
+                setNotifications((prev) => [mappedRealtimeNotif, ...prev]);
             });
             return () => {
                 if (stompClient && stompClient.connected) {
-                    stompClient.disconnect();
+                    stompClient.deactivate();
                 }
             };
         }
     }, [user?.userId]);
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const unreadNotifications = notifications.filter(
+        notification => notification.is_read === 0
+    );
+
+    const readNotifications = notifications.filter(
+        notification => notification.is_read === 1
+    );
+
+    const unreadCount = unreadNotifications.length;
 
     const handleNotificationClick = async (n: any) => {
-        if (!n.isRead) {
+        if (n.is_read === 0 || !n.isRead) {
             try {
                 await notificationApi.markAsRead(n.id);
                 setNotifications(prev =>
-                    prev.map(item => item.id === n.id ? { ...item, isRead: true } : item)
+                    prev.map(item =>
+                        item.id === n.id
+                            ? { ...item, isRead: true, is_read: 1 }
+                            : item
+                    )
                 );
             } catch (error) {
                 console.error("Lỗi cập nhật trạng thái đọc:", error);
+                alert("Không thể đánh dấu đã đọc. Vui lòng kiểm tra kết nối mạng.");
+                return;
             }
         }
 
@@ -103,22 +149,63 @@ export function NotificationBell() {
         if (!user?.userId || unreadCount === 0) return;
 
         try {
-            await notificationApi.markAllAsRead(user.userId);
-            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+            await notificationApi.markAllAsRead();
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true, is_read: 1 })));
         } catch (error) {
             console.error("Lỗi cập nhật tất cả trạng thái đọc:", error);
         }
     };
 
+    // Component nhỏ cho từng item
+    const renderNotificationItem = (n: any) => (
+        <DropdownMenuItem
+            key={n.id}
+            className={`group flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-all duration-200 outline-none rounded-none border-b border-gray-50 last:border-0 
+            ${n.is_read === 0
+                ? "bg-[#ebf5ff] hover:bg-[#e1f0ff] focus:bg-[#e1f0ff]"
+                : "bg-white hover:bg-gray-50 focus:bg-gray-50"
+            }`}
+            onClick={() => handleNotificationClick(n)}
+        >
+            <div className="relative shrink-0">
+                <Avatar className={`h-12 w-12 sm:h-14 sm:w-14 border ${n.is_read === 0 ? "border-blue-200" : "border-gray-200"} transition-colors`}>
+                    <AvatarImage src={n.senderAvatar || ""} alt="Avatar" className="object-cover" />
+                    {/* Tone màu cũ cho Avatar fallback */}
+                    <AvatarFallback className="bg-blue-100 text-blue-700 font-bold text-lg">
+                        {n.senderName ? n.senderName.charAt(0).toUpperCase() : "N"}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+                <span className={`text-[14px] sm:text-[15px] leading-tight mb-0.5 transition-colors ${n.is_read === 0 ? "font-bold text-gray-900" : "font-semibold text-gray-700"}`}>
+                    {n.title || "Thông báo hệ thống"}
+                </span>
+                <p className={`text-[13px] sm:text-[14px] line-clamp-2 leading-snug ${n.is_read === 0 ? "text-gray-700" : "text-gray-500"}`}>
+                    {n.content}
+                </p>
+                <span className={`text-[12px] font-medium mt-1.5 transition-colors ${n.is_read === 0 ? "text-blue-600" : "text-gray-400"}`}>
+                    {formatTimeAgo(n.createdAt)}
+                </span>
+            </div>
+
+            <div className="shrink-0 ml-1 w-3 flex justify-center items-center">
+                {/* Chấm tròn báo chưa đọc màu xanh dương */}
+                {n.is_read === 0 && (
+                    <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm ring-4 ring-blue-100/50" />
+                )}
+            </div>
+        </DropdownMenuItem>
+    );
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative h-10 w-10 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full hover:bg-gray-100">
+                <Button variant="ghost" size="icon" className="relative h-10 w-10 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full hover:bg-gray-100 transition-colors">
                     <Bell className="h-6 w-6 text-gray-700" />
                     {unreadCount > 0 && (
                         <Badge
-                            // ĐÃ SỬA: Ép màu nền đỏ, chữ trắng, thêm viền trắng mỏng để nổi bật
-                            className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold min-w-[20px] justify-center bg-red-500 text-white border-2 border-white hover:bg-red-600 shadow-sm"
+                            className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-bold min-w-[20px] justify-center bg-red-500 text-white border-2 border-white shadow-sm transition-transform hover:scale-105"
                         >
                             {unreadCount > 9 ? "9+" : unreadCount}
                         </Badge>
@@ -128,79 +215,82 @@ export function NotificationBell() {
 
             <DropdownMenuContent
 
-                className="w-[calc(100vw-32px)] sm:w-[400px] rounded-xl shadow-lg border-gray-100 p-0 overflow-hidden z-50"
+                className="w-[calc(100vw-32px)] sm:w-[400px] rounded-2xl shadow-xl border border-gray-100 p-0 overflow-hidden z-[100] bg-white"
                 align="end"
                 sideOffset={8}
-
                 collisionPadding={16}
             >
-                <DropdownMenuLabel className="font-bold flex justify-between items-center px-4 py-3 bg-white">
-                    <span className="text-lg sm:text-xl">Thông báo</span>
+                <DropdownMenuLabel className="font-bold flex justify-between items-center px-4 py-3.5 bg-white border-b border-gray-50">
+                    <span className="text-lg sm:text-xl text-gray-900">Thông báo</span>
                     {unreadCount > 0 && (
                         <Button
                             variant="ghost"
                             size="sm"
-                            className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 h-8"
+                            className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2.5 h-8 font-medium transition-colors rounded-lg"
                             onClick={handleMarkAllAsRead}
                         >
-                            <CheckCheck className="w-4 h-4 sm:mr-1"/>
+                            <CheckCheck className="w-4 h-4 sm:mr-1.5"/>
                             <span className="hidden sm:inline">Đánh dấu tất cả đã đọc</span>
                             <span className="sm:hidden">Đọc tất cả</span>
                         </Button>
                     )}
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="m-0" />
 
-                <ScrollArea className="max-h-[60vh] sm:h-[420px] bg-white">
-                    {notifications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-40 sm:h-full p-8 text-center text-sm text-gray-500">
-                            <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-gray-200 mb-3" />
-                            Bạn không có thông báo nào mới
-                        </div>
-                    ) : (
-                        notifications.map((n) => (
-                            <DropdownMenuItem
-                                key={n.id}
-                                className={`flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-colors focus:bg-gray-100 rounded-none border-b border-gray-50 last:border-0 
-                                ${!n.isRead ? "bg-[#ebf5ff] hover:bg-[#e1f0ff]" : "bg-white hover:bg-gray-50"}`}
-                                onClick={() => handleNotificationClick(n)}
+                <Tabs defaultValue="unread" className="w-full">
+                    <div className="px-4 py-2 border-b border-gray-100 bg-white">
+                        <TabsList className="grid w-full grid-cols-2 h-10 bg-gray-50/80 p-1 rounded-xl">
+                            {/* Định dạng Tab active mang tone xanh blue */}
+                            <TabsTrigger
+                                value="unread"
+                                className="text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm transition-all font-medium"
                             >
-                                {/* 1. Phần Avatar */}
-                                <div className="relative shrink-0">
-                                    <Avatar className="h-12 w-12 sm:h-14 sm:w-14 border border-gray-200">
-                                        <AvatarImage src={n.senderAvatar || ""} alt="Avatar" className="object-cover" />
-                                        <AvatarFallback className="bg-blue-100 text-blue-700 font-bold text-lg">
-                                            {n.senderName ? n.senderName.charAt(0).toUpperCase() : "N"}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </div>
+                                Chưa đọc ({unreadNotifications.length})
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="read"
+                                className="text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm transition-all font-medium"
+                            >
+                                Đã đọc ({readNotifications.length})
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
 
-                                {/* 2. Phần Nội dung */}
-                                <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-                                    <span className="text-[14px] sm:text-[15px] font-semibold text-gray-900 leading-tight mb-0.5">
-                                        {n.title || "Thông báo hệ thống"}
-                                    </span>
-                                    <p className="text-[13px] sm:text-[14px] text-gray-600 line-clamp-2 leading-snug">
-                                        {n.content || n.message}
-                                    </p>
-                                    <span className={`text-[12px] font-medium mt-1 ${!n.isRead ? "text-blue-600" : "text-gray-400"}`}>
-                                        {formatTimeAgo(n.createdAt)}
-                                    </span>
+                    <ScrollArea className="max-h-[50vh] sm:h-[380px] bg-white">
+                        <TabsContent value="unread" className="m-0 border-0 outline-none">
+                            {unreadNotifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-40 sm:h-full p-8 text-center text-sm text-gray-500">
+                                    <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                                        <Bell className="w-6 h-6 text-gray-300" />
+                                    </div>
+                                    <p className="font-medium text-gray-600">Không có thông báo mới nào</p>
                                 </div>
+                            ) : (
+                                unreadNotifications.map(renderNotificationItem)
+                            )}
+                        </TabsContent>
 
-                                {/* 3. Dấu chấm xanh */}
-                                <div className="shrink-0 ml-1 w-3 flex justify-center items-center">
-                                    {!n.isRead && <div className="w-3 h-3 bg-blue-600 rounded-full shadow-sm" />}
+                        <TabsContent value="read" className="m-0 border-0 outline-none">
+                            {readNotifications.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-40 sm:h-full p-8 text-center text-sm text-gray-500">
+                                    <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                                        <CheckCheck className="w-6 h-6 text-gray-300" />
+                                    </div>
+                                    <p className="font-medium text-gray-600">Chưa có thông báo nào đã đọc</p>
                                 </div>
-                            </DropdownMenuItem>
-                        ))
-                    )}
-                </ScrollArea>
+                            ) : (
+                                readNotifications.map(renderNotificationItem)
+                            )}
+                        </TabsContent>
+                    </ScrollArea>
+                </Tabs>
 
-                <DropdownMenuSeparator className="m-0" />
-                <div className="bg-white p-2">
-                    <Button variant="ghost" className="w-full text-sm h-10 sm:h-9 font-semibold text-gray-700 hover:text-black hover:bg-gray-100 rounded-lg">
-                        Xem tất cả
+                <div className="bg-white p-2 border-t border-gray-50">
+                    <Button
+                        variant="ghost"
+                        onClick={() => navigate('/notifications')}
+                        className="w-full text-sm h-10 font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 rounded-xl transition-colors"
+                    >
+                        Xem tất cả thông báo
                     </Button>
                 </div>
             </DropdownMenuContent>

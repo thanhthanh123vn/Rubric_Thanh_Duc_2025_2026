@@ -29,19 +29,20 @@ public class SecurityConfig {
 
                         // Cho phép Client kết nối WebSockets để nhận thông báo realtime
                         .requestMatchers("/api/v1/notification-service/ws-notifications/**").permitAll()
+                        .requestMatchers("/ws-notifications/**").permitAll()
 
                         // Chỉ Admin hoặc System mới được tạo thông báo hệ thống (Global Broadcast)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/notification-service/notifications/broadcast").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notification-service/notifications/broadcast").hasAnyRole("ADMIN","TEACHER","DEAN","MAIN_TEACHER","HEAD_OF_DEPARTMENT")
 
                         // Các API lấy thông báo của cá nhân yêu cầu Authenticated
                         .requestMatchers("/api/v1/notification-service/getNotification/**").authenticated()
                         .requestMatchers("/api/v1/notification-service/notifications/**").authenticated()
-                        .requestMatchers("/api/v1/notification-service/").authenticated()
+
 
                         // Gửi Bài Tập Về Nhà
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/notification-service/homework-assigned-multiple")
-                        .hasAnyRole("STUDENT", "TEACHER", "DEAN", "MAIN_TEACHER","MAIN_TEACHER")
+                        .hasAnyRole("STUDENT", "TEACHER", "DEAN", "MAIN_TEACHER","ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

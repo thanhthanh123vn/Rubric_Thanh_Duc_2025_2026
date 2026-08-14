@@ -69,7 +69,7 @@ const Dashboard = () => {
   }, [studentId, refreshKey]);
 
   return (
-      // Cập nhật màu nền nhẹ nhàng bg-gray-50/30 giống CalendarPage
+
       <div className="flex h-screen bg-gray-50/30 overflow-hidden relative font-sans w-full">
         {isMobileMenuOpen && (
             <div
