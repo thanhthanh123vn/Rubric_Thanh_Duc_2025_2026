@@ -1,0 +1,230 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor LightCyan
+  BorderColor DarkCyan
+}
+
+' ================= ACTORS =================
+actor "Sinh Viên" as SV
+actor "Giảng Viên" as GV
+actor "Giảng Viên Chính" as GVC
+actor "Lãnh Đạo Khoa\n(Trưởng/Phó Khoa)" as LDK
+actor "Trưởng Bộ Môn" as TBM
+actor "Admin" as AD
+
+GVC -|> GV
+
+' ================= HỆ THỐNG =================
+package "Hệ Thống E-Learning & Quản Lý Đào Tạo (OBE)" {
+
+    ' --- PHÂN HỆ SINH VIÊN ---
+    package "Phân hệ Sinh Viên" {
+        usecase "3. Xem bài đăng" as SV3
+        usecase "3. Danh sách lớp học" as SV3_1
+        usecase "4. Điểm danh (QR + GPS)" as SV4
+        usecase "4.1 Xác định thời gian và GPS..." as SV4_1
+        usecase "2. Tham gia lớp học" as SV2
+        usecase "2.1 Xem đánh giá môn học" as SV2_1
+        usecase "2.2 Xem đánh giá Rubric" as SV2_2
+        usecase "2.2.1 Đánh giá Chuyên cần" as SV2_2_1
+        usecase "2.2.2 Đánh giá Bài tập" as SV2_2_2
+        usecase "2.2.3 Đánh giá Dự án" as SV2_2_3
+        usecase "2.2.4 Đánh giá Bài tập Cuối kỳ" as SV2_2_4
+        usecase "5. Kiểm tra trực tuyến" as SV5
+        usecase "5.1 Làm bài thi trắc nghiệm" as SV5_1
+        usecase "5.2 Làm bài tập / Dự án" as SV5_2
+        usecase "5.3 Xem kết quả & Phản hồi" as SV5_3
+        usecase "5.3.1 Xem biểu đồ năng lực" as SV5_3_1
+        usecase "6. Quản lý nhóm & Task" as SV6
+        usecase "6.1 Thêm Thành Viên" as SV6_1
+        usecase "6.2 Xóa Thành Viên" as SV6_2
+        usecase "6.3 Sửa Quyền" as SV6_3
+        usecase "6.4 Giao Nhiệm Vụ" as SV6_4
+        usecase "6.5 Xem Thành Viên" as SV6_5
+        usecase "6.6 Chat nhóm" as SV6_6
+    }
+
+    SV --> SV3
+    SV --> SV3_1
+    SV --> SV4
+    SV4 .> SV4_1 : <<include>>
+    SV --> SV2
+    SV2 .> SV2_1 : <<include>>
+    SV2 .> SV2_2 : <<include>>
+    SV2_2 .> SV2_2_1 : <<include>>
+    SV2_2 .> SV2_2_2 : <<include>>
+    SV2_2 .> SV2_2_3 : <<include>>
+    SV2_2 .> SV2_2_4 : <<include>>
+    SV --> SV5
+    SV5 .> SV5_1 : <<include>>
+    SV5 .> SV5_2 : <<include>>
+    SV5_1 .> SV5_3 : <<include>>
+    SV5_3 <. SV5_3_1 : <<extend>>
+    SV --> SV6
+    SV6 .> SV6_1 : <<include>>
+    SV6 .> SV6_2 : <<include>>
+    SV6 .> SV6_3 : <<include>>
+    SV6 .> SV6_4 : <<include>>
+    SV6 .> SV6_5 : <<include>>
+    SV6 .> SV6_6 : <<include>>
+
+    ' --- PHÂN HỆ GIẢNG VIÊN & GV CHÍNH ---
+    package "Phân hệ Giảng Viên" {
+        usecase "Thêm Môn Học" as GV_TMH
+        usecase "Quản Lý Môn Học" as GV_QLMH
+        usecase "7. Danh Sách Phân Công" as GV7
+        usecase "8. Tạo Điểm Danh" as GV8
+        usecase "8.1 Danh Sách Điểm Danh" as GV8_1
+        usecase "9. Quản Lý Lớp Học" as GV9
+        usecase "9.1 Xem danh sách SV" as GV9_1
+        usecase "9.2 Chat Trong Lớp" as GV9_2
+        usecase "9.3 Giao Bài Tập" as GV9_3
+        usecase "9.3.1 Cấu Hình Ma Trận" as GV9_3_1
+        usecase "9.3.1.1 Sinh đề tự động" as GV9_3_1_1
+        usecase "9.3.1.1.1 Chấm Điểm" as GV9_3_1_1_1
+        usecase "Sử dụng thư viện nhận xét" as GV_TVNX
+        usecase "9.4 Tải Giáo Trình" as GV9_4
+        usecase "9.5 Thêm SV Vào Lớp" as GV9_5
+        usecase "9.6 Xóa SV Khỏi Lớp" as GV9_6
+        usecase "10. Quản Lý Câu Hỏi Ra Đề" as GV10
+        usecase "10.1 Xóa Câu Hỏi Đề Thi" as GV10_1
+        usecase "10.2 Import từ Word/Excel" as GV10_2
+        usecase "10.3 Gán thẻ Bloom/LOs" as GV10_3
+        usecase "10.4 Xem Câu Hỏi Đề Thi" as GV10_4
+        usecase "10.5 Sửa Câu Hỏi Đề Thi" as GV10_5
+        usecase "11. Tạo Kho Câu Hỏi" as GV11
+        usecase "11.1 Quản Lý Kho" as GV11_1
+        usecase "11.1.1 Thêm Câu Hỏi" as GV11_1_1
+        usecase "11.1.2 Sửa Câu Hỏi" as GV11_1_2
+        usecase "11.1.3 Xóa Câu Hỏi" as GV11_1_3
+        usecase "11.1.4 Xem Danh Sách Câu Hỏi" as GV11_1_4
+        usecase "12. Nhập Điểm Cuối Kỳ" as GV12
+
+        ' Giảng Viên Chính
+        usecase "13. Quản lý đề cương" as GVC13
+        usecase "13.1 Tạo CLO + Rubric" as GVC13_1
+        usecase "13.2 Xóa CLO + Rubric" as GVC13_2
+        usecase "13.3 Sửa CLO + Rubric" as GVC13_3
+        usecase "13.4 Xem CLO + Rubric" as GVC13_4
+        usecase "13.5 Xem Ma trận Rubric" as GVC13_5
+    }
+
+    GV --> GV_TMH
+    GV --> GV_QLMH
+    GV --> GV7
+    GV --> GV8
+    GV8 .> GV8_1 : <<include>>
+    GV --> GV9
+    GV9 .> GV9_1 : <<include>>
+    GV9 .> GV9_2 : <<include>>
+    GV9 .> GV9_3 : <<include>>
+    GV9_3 .> GV9_3_1 : <<include>>
+    GV9_3_1 .> GV9_3_1_1 : <<include>>
+    GV9_3_1_1 .> GV9_3_1_1_1 : <<include>>
+    GV9_3_1_1_1 <. GV_TVNX : <<extend>>
+    GV9 .> GV9_4 : <<include>>
+    GV9 .> GV9_5 : <<include>>
+    GV9 .> GV9_6 : <<include>>
+    GV --> GV10
+    GV10 .> GV10_1 : <<include>>
+    GV10 .> GV10_2 : <<include>>
+    GV10 .> GV10_3 : <<include>>
+    GV10 .> GV10_4 : <<include>>
+    GV10 .> GV10_5 : <<include>>
+    GV --> GV11
+    GV11 .> GV11_1 : <<include>>
+    GV11_1 .> GV11_1_1 : <<include>>
+    GV11_1 .> GV11_1_2 : <<include>>
+    GV11_1 .> GV11_1_3 : <<include>>
+    GV11_1 .> GV11_1_4 : <<include>>
+    GV --> GV12
+
+    GVC --> GVC13
+    GVC13 <. GVC13_1 : <<extend>>
+    GVC13 <. GVC13_2 : <<extend>>
+    GVC13 <. GVC13_3 : <<extend>>
+    GVC13 <. GVC13_4 : <<extend>>
+    GVC13 <. GVC13_5 : <<extend>>
+
+    ' --- PHÂN HỆ LÃNH ĐẠO KHOA & TRƯỞNG BỘ MÔN ---
+    package "Phân hệ Lãnh Đạo & Quản lý OBE" {
+        usecase "36. Xem Thống Kê Tổng Quan (Dashboard)" as LDK36
+        usecase "37. Xem Báo Cáo Chất Lượng Đào Tạo" as LDK37
+        usecase "37.1 Tổng hợp & Đánh giá CLO/PLO" as LDK37_1
+        usecase "37.2 Trực quan hóa dữ liệu OBE" as LDK37_2
+        usecase "37.3 Xuất báo cáo QA" as LDK37_3
+        usecase "38. Phê Duyệt Rubric" as LDK38
+        usecase "38.1 Xem danh sách Rubric" as LDK38_1
+        usecase "38.2 Duyệt / Từ chối Rubric" as LDK38_2
+        usecase "39. Quản Lý Môn Học/Khóa Học" as LDK39
+        usecase "39.1 Xem danh sách khóa học" as LDK39_1
+        usecase "39.2 Thêm khóa học mới" as LDK39_2
+        usecase "39.3 Sửa thông tin môn học" as LDK39_3
+        usecase "39.4 Xóa môn học" as LDK39_4
+
+        usecase "16. Phê duyệt & Quản lý Đề cương/Rubric" as TBM16
+        usecase "17. Theo dõi tiến độ giảng dạy" as TBM17
+        usecase "18. Xem báo cáo OBE cấp bộ môn" as TBM18
+        usecase "19. Xem Dashboard thống kê tổng quan" as TBM19
+        usecase "20. Xem báo cáo chất lượng OBE toàn khoa" as TBM20
+    }
+
+    LDK --> LDK36
+    LDK --> LDK37
+    LDK37 .> LDK37_1 : <<include>>
+    LDK37 .> LDK37_2 : <<include>>
+    LDK37 <. LDK37_3 : <<extend>>
+    LDK --> LDK38
+    LDK38 .> LDK38_1 : <<include>>
+    LDK38_1 <. LDK38_2 : <<extend>>
+    LDK --> LDK39
+    LDK39 .> LDK39_1 : <<include>>
+    LDK39_1 <. LDK39_2 : <<extend>>
+    LDK39_1 <. LDK39_3 : <<extend>>
+    LDK39_1 <. LDK39_4 : <<extend>>
+
+    TBM --> TBM16
+    TBM --> TBM17
+    TBM --> TBM18
+    LDK --> TBM19
+    LDK --> TBM20
+
+    ' --- PHÂN HỆ ADMIN ---
+    package "Phân hệ Admin" {
+        usecase "15. Tổng quan hệ thống" as AD15
+        usecase "16. Tình trạng phân bổ" as AD16
+        usecase "17. Hoạt động gần đây" as AD17
+
+        usecase "18. Quản Lý Người Dùng" as AD18
+        usecase "19. Quản lý Khoa / Bộ môn" as AD19
+        usecase "20. Quản Lý Khóa học" as AD20
+        usecase "21. Quản Lý Lớp Học (Admin)" as AD21
+
+        usecase "22. Quản Lý Ra Đề Môn Học" as AD22
+        usecase "23. Quản Lý Bài Tập (Admin)" as AD23
+        usecase "24. Quản Lý Rubric" as AD24
+        usecase "25. Điểm & Đánh giá" as AD25
+
+        usecase "26. Báo cáo & Thống kê" as AD26
+        usecase "27. Cài đặt hệ thống" as AD27
+        usecase "28. Quản lý nhật ký (Logs)" as AD28
+    }
+
+    AD --> AD15
+    AD --> AD16
+    AD --> AD17
+    AD --> AD18
+    AD --> AD19
+    AD --> AD20
+    AD --> AD21
+    AD --> AD22
+    AD --> AD23
+    AD --> AD24
+    AD --> AD25
+    AD --> AD26
+    AD --> AD27
+    AD --> AD28
+}
+@enduml

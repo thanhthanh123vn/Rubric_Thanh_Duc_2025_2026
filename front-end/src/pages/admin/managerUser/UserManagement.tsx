@@ -502,18 +502,18 @@ export default function UserManagement() {
             {lockingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-in fade-in p-4">
                     <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-in zoom-in-95">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${(lockingUser.status === 'LOCKED' || lockingUser.locked === true) ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                            {(lockingUser.status === 'LOCKED' || lockingUser.locked === true) ? (
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${lockingUser.locked ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                            {lockingUser.locked ? (
                                 <Unlock className="w-8 h-8 text-emerald-600" />
                             ) : (
                                 <Lock className="w-8 h-8 text-amber-600" />
                             )}
                         </div>
                         <h3 className="text-xl font-bold text-slate-900 mb-2">
-                            Xác nhận {(lockingUser.status === 'LOCKED' || lockingUser.locked === true) ? 'mở khóa' : 'khóa'}?
+                            Xác nhận {lockingUser.locked ? 'mở khóa' : 'khóa'}?
                         </h3>
                         <p className="text-slate-500 text-sm mb-6">
-                            Bạn có chắc chắn muốn {(lockingUser.status === 'LOCKED' || lockingUser.locked === true) ? 'mở khóa' : 'khóa'} tài khoản <strong className="text-slate-800">{lockingUser.userId}</strong>?
+                            Bạn có chắc chắn muốn {lockingUser.locked ? 'mở khóa' : 'khóa'} tài khoản <strong className="text-slate-800">{lockingUser.userId}</strong>?
                         </p>
 
                         <div className="flex gap-3">
@@ -523,7 +523,7 @@ export default function UserManagement() {
                             <Button
                                 onClick={confirmToggleLock}
                                 disabled={isSubmitting}
-                                className={`flex-1 h-12 rounded-xl text-white shadow-sm font-medium ${(lockingUser.status === 'LOCKED' || lockingUser.locked === true) ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+                                className={`flex-1 h-12 rounded-xl text-white shadow-sm font-medium ${lockingUser.locked ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'}`}
                             >
                                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Xác nhận"}
                             </Button>

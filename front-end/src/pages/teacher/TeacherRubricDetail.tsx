@@ -6,7 +6,7 @@ import { getRubricById, updateRubric } from "@/pages/mainlecturer/api/RubricAPI.
 interface CriteriaResponse {
     id: string;
     cloId: string;
-    criteriaName: string;
+    name: string;
     weight: number;
 }
 
@@ -51,7 +51,7 @@ export default function TeacherRubricDetail() {
         const newCriteria: CriteriaResponse = {
             id: `new-${Date.now()}`,
             cloId: '',
-            criteriaName: '',
+            name: '',
             weight: 0
         };
         setEditedCriteria([...editedCriteria, newCriteria]);
@@ -184,9 +184,9 @@ export default function TeacherRubricDetail() {
                                 <tr key={item.id} className="hover:bg-slate-50 group">
                                     <td className="px-4 py-3">
                                         {isEditing ? (
-                                            <input type="text" value={item.criteriaName} onChange={(e) => handleCriteriaChange(index, 'criteriaName', e.target.value)} className="w-full border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Nhập tên tiêu chí..." />
+                                            <input type="text" value={item.name} onChange={(e) => handleCriteriaChange(index, 'name', e.target.value)} className="w-full border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Nhập tên tiêu chí..." />
                                         ) : (
-                                            <span className="font-medium text-slate-800">{item.criteriaName}</span>
+                                            <span className="font-medium text-slate-800">{item.name}</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">

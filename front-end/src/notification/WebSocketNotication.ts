@@ -1,39 +1,46 @@
-import SockJS from 'sockjs-client';
-import Stomp from "stompjs";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
+export const connectWebSocket = (userId: string, onMessageReceived: (msg: any) => void) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        console.warn("Không tìm thấy token, hủy kết nối WebSocket Thông báo.");
+        return null;
+    }
 
-export const connectWebSocket = (
-    userId: string | number,
-    onMessageReceived: (notification: any) => void
-) => {
+    const client = new Client({
 
-    const socket = new SockJS(`${import.meta.env.VITE_WS_URL_NOTICATION}/ws-notifications`);
-    const stompClient = Stomp.over(socket);
+        webSocketFactory: () => new SockJS(`${import.meta.env.VITE_WS_URL_NOTICATION ?? 'http://localhost:8084'}/ws-notifications?token=${token}`),
 
+        connectHeaders: {
+            Authorization: `Bearer ${token}`,
+        },
+        reconnectDelay: 5000,
+        debug: (str) => {
+            // console.log('Notification STOMP: ' + str);
+        },
+        onConnect: () => {
+            console.log("=== ĐÃ KẾT NỐI WEBSOCKET THÔNG BÁO ===");
 
-    stompClient.debug = () => {};
+            const subscriptionChannel = `/topic/notifications/${userId}`;
 
-    stompClient.connect(
-        {}, // Headers (nếu bạn dùng JWT token, có thể truyền vào đây)
-        (frame) => {
-            console.log('WebSocket Connected: ' + frame);
-
-
-            stompClient.subscribe('/topic/user/' + userId, (notificationPayload) => {
-                const notification = JSON.parse(notificationPayload.body);
-
-                console.log("CÓ THÔNG BÁO MỚI:", notification);
-
-
-                onMessageReceived(notification);
+            client.subscribe(subscriptionChannel, (message) => {
+                try {
+                    const newNotif = JSON.parse(message.body);
+                    onMessageReceived(newNotif);
+                } catch (error) {
+                    console.error("Lỗi parse dữ liệu thông báo WebSocket:", error);
+                }
             });
         },
-        (error) => {
-            console.error("Lỗi kết nối WebSocket: ", error);
-
+        onStompError: (frame) => {
+            console.error('Lỗi STOMP Broker (Thông báo):', frame.headers['message']);
+        },
+        onWebSocketError: (event) => {
+            console.error('Lỗi mạng WebSocket (Thông báo):', event);
         }
-    );
+    });
 
-
-    return stompClient;
+    client.activate();
+    return client;
 };

@@ -27,6 +27,7 @@ type CriteriaType = {
     name: string;
     weight: number;
     cloId: string | null;
+    levels?: Level[];
 
 };
 
@@ -85,7 +86,7 @@ export default function CreateRubricModal({
 
 
 
-                setClos(closData.data || closData || []);
+                setClos(closData.data || []);
 
             } catch (error) {
                 console.error("Lỗi khi tải dữ liệu phụ:", error);
@@ -118,6 +119,7 @@ export default function CreateRubricModal({
                 name: item.name,
                 cloId: item.cloId,
                 weight: Number(item.weight) * 100,
+                levels: item.levels || [],
 
             }))
         );
@@ -163,10 +165,11 @@ export default function CreateRubricModal({
             courseId: selectedCourseId, // Dùng selectedCourseId từ dropdown
             submitForApproval,
             criteria: criteria.map((item) => ({
-                criteriaId: item.id,
-                criteriaName: item.name,
+                id: item.id || "",
+                name: item.name,
                 cloId: item.cloId,
                 weight: Number(item.weight) / 100,
+                levels: item.levels || [],
 
             })),
         };

@@ -98,6 +98,7 @@ public class UserService {
             Optional<Lecturer> lec = lecturerRepository.findById(id);
             if (lec.isPresent()) {
                 fullName = lec.get().getFullName();
+
                 avatarUrl = user.getAvatarUrl();
             }
         }else if("DEAN".equals(user.getRole())) {
@@ -359,6 +360,16 @@ public class UserService {
         );
 
 
+    }
+    public List<String> getUserIdsByRole(String roleName) {
+
+        if (roleName == null || roleName.equalsIgnoreCase("ALL")) {
+            return userRepository.findAllUserIds();
+        }
+
+        return userRepository.findUserIdsByRole(
+                roleName.trim().toUpperCase()
+        );
     }
     public List<LecturerResponse> getLecturersByDepartment(String departmentName) {
         List<Lecturer> lecturers = lecturerRepository.findByDepartment_DepartmentName(departmentName);

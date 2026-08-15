@@ -32,9 +32,9 @@ export default function TeacherCourseLayout() {
   const course = courses.find((item) => item.offeringId === id);
 
   return (
-    <div className="min-h-[calc(100vh-2rem)] rounded-[2rem] bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6f3_100%)] font-sans antialiased">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-[1600px] gap-6 px-0 py-0 xl:grid-cols-[320px_1fr]">
-        <aside className="hidden overflow-hidden rounded-l-[2rem] border-r border-white/60 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl xl:flex xl:flex-col">
+    <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6f3_100%)] font-sans antialiased">
+      <div className="mx-auto grid h-screen w-full max-w-[1600px] px-0 py-0 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-white/60 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl xl:flex xl:flex-col">
           <div className="border-b border-slate-200 p-6">
             <Link
               to="/teacher"
@@ -159,8 +159,8 @@ export default function TeacherCourseLayout() {
           </div>
         </aside>
 
-        <div className="min-w-0 bg-white/75 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl xl:rounded-r-[2rem]">
-          <header className="border-b border-slate-200/70 bg-white/80 px-4 py-4 md:px-6 md:py-5 xl:px-8">
+        <div className="h-screen min-w-0 overflow-y-auto bg-white/75 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+          <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur-xl md:px-6 md:py-5 xl:px-8">
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 <Link
@@ -180,9 +180,9 @@ export default function TeacherCourseLayout() {
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
-                <div className="relative cursor-pointer rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100">
-                  <NotificationBell />
-                </div>
+                {/*<div className="relative cursor-pointer rounded-full p-2 text-gray-600 transition-colors hover:bg-gray-100">*/}
+                {/*  <NotificationBell />*/}
+                {/*</div>*/}
 
                 <div className="hidden items-center gap-3 md:flex">
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">

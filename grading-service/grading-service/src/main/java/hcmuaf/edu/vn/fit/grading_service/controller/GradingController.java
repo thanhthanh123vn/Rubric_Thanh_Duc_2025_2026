@@ -105,6 +105,18 @@ public class GradingController {
         }
     }
 
+    @PutMapping("/feedback-templates/{templateId}")
+    public ResponseEntity<?> updateFeedbackTemplate(
+            @PathVariable Long templateId,
+            @RequestBody FeedbackTemplateRequest request
+    ) {
+        try {
+            return ResponseEntity.ok(service.updateFeedbackTemplate(templateId, request));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(exception.getMessage());
+        }
+    }
+
     @DeleteMapping("/feedback-templates/{templateId}")
     public ResponseEntity<?> deleteFeedbackTemplate(
             @PathVariable Long templateId,

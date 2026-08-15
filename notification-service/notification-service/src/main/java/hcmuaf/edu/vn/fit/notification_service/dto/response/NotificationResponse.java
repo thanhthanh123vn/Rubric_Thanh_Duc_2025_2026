@@ -15,6 +15,8 @@ public class NotificationResponse {
     private String referenceUrl;
     private String courseId;
     private String notificationType;
+
+    private String ownerId;
     private String senderId;
     private String senderName;
     private String senderAvatar;

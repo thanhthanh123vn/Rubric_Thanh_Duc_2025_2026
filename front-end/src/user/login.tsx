@@ -64,6 +64,7 @@ export default function LoginPage() {
                 studentId: data.student?.studentId,
                 lecturerId: data.lecturer?.lecturerId,
                 email: data.email,
+                locked: false,
             }));
 
             dispatch(setCredentials({
@@ -75,6 +76,7 @@ export default function LoginPage() {
                     studentId: data.student?.studentId,
                     lecturerId: data.lecturer?.lecturerId,
                     email: data.email,
+                    locked: false,
 
 
 

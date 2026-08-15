@@ -37,22 +37,22 @@ LDK --> UC37
 LDK --> UC38
 LDK --> UC39
 
-'========================
+
 ' Chi tiết Báo cáo
-'========================
+
 UC37 ..> UC37_1 : <<include>>
 UC37 ..> UC37_2 : <<include>>
 UC37 ..> UC37_3 : <<extend>>
 
-'========================
+
 ' Chi tiết Phê duyệt Rubric
-'========================
+
 UC38 ..> UC38_1 : <<include>>
 UC38_1 <.. UC38_2 : <<extend>>
 
-'========================
+
 ' Chi tiết Quản lý Khóa học
-'========================
+
 UC39 ..> UC39_1 : <<include>>
 UC39_1 <.. UC39_2 : <<extend>>
 UC39_1 <.. UC39_3 : <<extend>>

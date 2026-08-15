@@ -7,7 +7,7 @@ import {
   teacherTones,
 } from './teacherData';
 import { useEffect, useMemo, useState } from "react";
-import courseService from "@/pages/admin/api/courseService.ts"; // Đảm bảo import đúng service
+import courseService from "@/pages/admin/api/courseService.ts";
 
 const colorClasses = [
   "from-emerald-600 to-teal-500",

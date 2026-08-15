@@ -2,7 +2,7 @@ import { courseApi } from "@/services/axiosConfig";
 export interface AnswerOption {
     id: string;
     content: string;
-    isCorrect: boolean;
+    correct: boolean;
 }
 
 export interface Question {
@@ -11,8 +11,9 @@ export interface Question {
     type: "MULTIPLE_CHOICE" | "ESSAY";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     offeringId:string;
+    score: number;
     options: AnswerOption[];
-    cloIds: any[];
+    cloIds: string[];
 }
 export const questionApi = {
     getQuestionsByCourse: async (

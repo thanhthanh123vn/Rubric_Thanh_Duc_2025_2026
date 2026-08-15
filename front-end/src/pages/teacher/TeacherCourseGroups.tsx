@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  CheckCircle2,
+  ArrowRight,
+  CalendarClock,
+  ChevronDown,
   ClipboardList,
   ExternalLink,
   Loader2,
+  Search,
   Shuffle,
   SquarePlus,
   UserRound,
-  UserSearch,
   Users,
-  UsersRound,
-  Workflow,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -19,6 +21,7 @@ import { courseService } from "@/features/course/courseApi.ts";
 import { groupService } from "@/features/course/student/api/GroupService.ts";
 import type { GroupResponse, Type } from "@/features/course/student/api/type.ts";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
+import { fetchSubmissionStatuses, summarizeSubmissionStatuses } from "@/api/GradingApi.ts";
 
 interface TeacherProjectAssessment {
   assessmentId: string;
@@ -59,13 +62,13 @@ function getStudentName(userId: string, students: Type[]) {
   return student?.fullName || userId;
 }
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-lg font-bold text-slate-900">{value}</p>
-    </div>
-  );
+function getInitials(value: string) {
+  return value
+    .trim()
+    .split(/\s+/)
+    .slice(-2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "N";
 }
 
 function InfoCard({
@@ -85,36 +88,6 @@ function InfoCard({
       </div>
       <p className="mt-2 text-base font-bold text-slate-900">{value}</p>
     </div>
-  );
-}
-
-function ActionIconButton({
-  icon,
-  label,
-  onClick,
-  count,
-}: {
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-  count?: number | string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-emerald-200 hover:bg-slate-50"
-    >
-      <div className="flex items-center gap-3">
-        <div className="rounded-xl bg-slate-50 p-2 text-emerald-600">{icon}</div>
-        <p className="text-sm font-semibold text-slate-900">{label}</p>
-      </div>
-      {count !== undefined ? (
-        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-          {count}
-        </span>
-      ) : null}
-    </button>
   );
 }
 
@@ -164,8 +137,8 @@ function ModalShell({
   onClose: () => void;
   children: ReactNode;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4 sm:p-6">
       <button
         type="button"
         aria-label="\u0110\u00f3ng modal"
@@ -181,14 +154,16 @@ function ModalShell({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Đóng"
+            className="rounded-xl border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
           >
-            {"\u0110\u00f3ng"}
+            <X className="h-4 w-4" />
           </button>
         </div>
         <div className="overflow-y-auto p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -203,6 +178,7 @@ export default function TeacherCourseGroups() {
   const [search, setSearch] = useState("");
   const [loadingPage, setLoadingPage] = useState(true);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<ManagementPanel | null>(null);
   const [manualGroupName, setManualGroupName] = useState("");
   const [manualTopic, setManualTopic] = useState("");
@@ -231,7 +207,7 @@ export default function TeacherCourseGroups() {
         if (preferredId && groupData.some((group: GroupResponse) => group.id === preferredId)) {
           return preferredId;
         }
-        return groupData[0].id;
+        return null;
       });
     } catch (error) {
       console.error("L\u1ed7i khi t\u1ea3i danh s\u00e1ch nh\u00f3m:", error);
@@ -255,7 +231,21 @@ export default function TeacherCourseGroups() {
         const projects = (Array.isArray(data) ? data : []).filter(
           (item: TeacherProjectAssessment) => (item.assessmentType || "").trim().toLowerCase() === "project",
         );
-        setProjectAssessments(projects);
+        const projectsWithAccurateCounts = await Promise.all(
+          projects.map(async (project: TeacherProjectAssessment) => {
+            try {
+              const statuses = await fetchSubmissionStatuses(project.assessmentId);
+              return {
+                ...project,
+                ...summarizeSubmissionStatuses(Array.isArray(statuses) ? statuses : []),
+              };
+            } catch (error) {
+              console.error(`Không thể cập nhật số bài chờ chấm của ${project.assessmentId}:`, error);
+              return project;
+            }
+          }),
+        );
+        setProjectAssessments(projectsWithAccurateCounts);
       } catch (error) {
         console.error("L\u1ed7i khi t\u1ea3i danh s\u00e1ch project:", error);
         toast.error("Kh\u00f4ng th\u1ec3 t\u1ea3i danh s\u00e1ch project.");
@@ -422,277 +412,316 @@ export default function TeacherCourseGroups() {
   };
 
   return (
-    <div className="space-y-4 p-3 sm:p-4 md:p-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="flex items-start gap-3">
+    <div className="min-h-screen space-y-5 bg-slate-50 p-3 sm:p-4 md:p-6">
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-5 p-5 md:p-7 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">Nhóm &amp; đồ án</h1>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setActivePanel("random")}
+              className="h-11 rounded-xl border-slate-200 px-4"
+            >
+              <Shuffle className="h-4 w-4" />
+              Chia nhóm ngẫu nhiên
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setActivePanel("create")}
+              className="h-11 rounded-xl bg-emerald-600 px-4 hover:bg-emerald-700"
+            >
+              <SquarePlus className="h-4 w-4" />
+              Tạo nhóm
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 border-t border-slate-100 bg-slate-50/70 p-4 md:grid-cols-4 md:p-5">
+          {[
+            {
+              label: "Sinh viên",
+              value: students.length,
+              cardClass: "border-sky-100 bg-sky-50/80",
+              valueClass: "text-sky-700",
+            },
+            {
+              label: "Nhóm học tập",
+              value: groups.length,
+              cardClass: "border-emerald-100 bg-emerald-50/80",
+              valueClass: "text-emerald-700",
+            },
+            {
+              label: "Chưa có nhóm",
+              value: ungroupedStudents.length,
+              cardClass: "border-amber-100 bg-amber-50/80",
+              valueClass: "text-amber-700",
+            },
+            {
+              label: "Bài chờ chấm",
+              value: totalPendingProjects,
+              cardClass: "border-violet-100 bg-violet-50/80",
+              valueClass: "text-violet-700",
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className={`rounded-2xl border px-4 py-4 shadow-sm md:px-5 ${item.cardClass}`}
+            >
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</p>
+              <p className={`mt-2 text-2xl font-bold md:text-3xl ${item.valueClass}`}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative min-w-0 flex-1 lg:max-w-xl">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Tìm tên nhóm, đề tài hoặc thành viên..."
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <button
+              type="button"
+              onClick={() => setActivePanel("students")}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Tất cả sinh viên
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePanel("ungrouped")}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Chưa có nhóm ({ungroupedStudents.length})
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-5">
+        <section className="order-2 rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">
-                {"Nh\u00f3m v\u00e0 d\u1ef1 \u00e1n"}
-              </p>
-              <h4 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
-                {"Qu\u1ea3n l\u00fd nh\u00f3m h\u1ecdc ph\u1ea7n"}
-              </h4>
-              <p className="mt-2 text-sm text-slate-500">
-                {"Xem nh\u00f3m, sinh vi\u00ean v\u00e0 t\u1ea1o nh\u00f3m nhanh."}
-              </p>
+              <h2 className="font-bold text-slate-900">Danh sách nhóm</h2>
+              <p className="mt-1 text-sm text-slate-500">{filteredGroups.length} nhóm trong học phần</p>
             </div>
-            <Workflow className="mt-1 h-5 w-5 shrink-0 text-emerald-600" />
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{groups.length} nhóm</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:w-[280px]">
-            <StatCard label={"S\u1ed1 nh\u00f3m"} value={groups.length} />
-            <StatCard label="Project" value={projectAssessments.length} />
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 lg:grid-cols-4">
-          <ActionIconButton
-            icon={<UsersRound className="h-5 w-5" />}
-            label={"Sinh vi\u00ean"}
-            count={students.length}
-            onClick={() => setActivePanel("students")}
-          />
-          <ActionIconButton
-            icon={<UserSearch className="h-5 w-5" />}
-            label={"Ch\u01b0a c\u00f3 nh\u00f3m"}
-            count={ungroupedStudents.length}
-            onClick={() => setActivePanel("ungrouped")}
-          />
-          <ActionIconButton
-            icon={<SquarePlus className="h-5 w-5" />}
-            label={"T\u1ea1o nh\u00f3m"}
-            onClick={() => setActivePanel("create")}
-          />
-          <ActionIconButton
-            icon={<Shuffle className="h-5 w-5" />}
-            label="Random"
-            onClick={() => setActivePanel("random")}
-          />
-        </div>
-
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={"T\u00ecm t\u00ean nh\u00f3m, \u0111\u1ec1 t\u00e0i, th\u00e0nh vi\u00ean..."}
-          className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-        />
-      </div>
-
-      {loadingPage ? (
-        <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
-          <div className="flex flex-col items-center gap-3 text-slate-500">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-            <p className="text-sm">{"\u0110ang t\u1ea3i d\u1eef li\u1ec7u nh\u00f3m..."}</p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-4 py-4">
-              <h5 className="font-semibold text-slate-900">{"Danh s\u00e1ch nh\u00f3m"}</h5>
-              <p className="mt-1 text-sm text-slate-500">{filteredGroups.length} {"nh\u00f3m"}</p>
-            </div>
-
-            <div className="max-h-[720px] overflow-y-auto p-3">
-              {filteredGroups.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                  {"Ch\u01b0a c\u00f3 nh\u00f3m n\u00e0o. C\u00f3 th\u1ec3 t\u1ea1o nh\u00f3m m\u1edbi ho\u1eb7c random."}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {filteredGroups.map((group) => {
-                    const selected = activeGroupId === group.id;
-                    return (
-                      <button
-                        key={group.id}
-                        type="button"
-                        onClick={() => setActiveGroupId(group.id)}
-                        className={`block w-full rounded-2xl border p-4 text-left transition ${
-                          selected
-                            ? "border-emerald-300 bg-emerald-50 shadow-sm"
-                            : "border-slate-200 bg-white hover:border-emerald-200 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-slate-900">{group.groupName}</p>
-                            <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                              {group.topic || "Ch\u01b0a c\u1eadp nh\u1eadt \u0111\u1ec1 t\u00e0i"}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                            {group.participants.length} TV
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {activeGroup ? (
-              <>
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
-                          {"Th\u00f4ng tin nh\u00f3m"}
-                        </p>
-                        <h5 className="mt-1 text-xl font-bold text-slate-900">{activeGroup.groupName}</h5>
-                        <p className="mt-2 text-sm text-slate-500">
-                          {activeGroup.topic || "Ch\u01b0a c\u1eadp nh\u1eadt \u0111\u1ec1 t\u00e0i"}
-                        </p>
-                      </div>
-                      <ClipboardList className="h-5 w-5 text-emerald-600" />
-                    </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      <InfoCard
-                        icon={<Users className="h-4 w-4 text-emerald-600" />}
-                        label={"Th\u00e0nh vi\u00ean"}
-                        value={`${activeGroup.participants.length}`}
-                      />
-                      <InfoCard
-                        icon={<UserRound className="h-4 w-4 text-emerald-600" />}
-                        label={"Tr\u01b0\u1edfng nh\u00f3m"}
-                        value={
-                          getStudentName(
-                            activeGroup.participants.find((participant) => participant.role === "ADMIN")?.userId ||
-                              activeGroup.createdById,
-                            students,
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <UserRound className="h-5 w-5 text-emerald-600" />
-                      <h5 className="font-semibold text-slate-900">{"Th\u00e0nh vi\u00ean nh\u00f3m"}</h5>
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      {activeGroup.participants.map((participant) => (
-                        <div
-                          key={participant.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3"
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-900">
-                              {getStudentName(participant.userId, students)}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">{participant.userId}</p>
-                          </div>
-                          <span
-                            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              participant.role === "ADMIN"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-slate-200 text-slate-700"
-                            }`}
-                          >
-                            {participant.role === "ADMIN" ? "Tr\u01b0\u1edfng nh\u00f3m" : "Th\u00e0nh vi\u00ean"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h5 className="font-semibold text-slate-900">Project</h5>
-                      <p className="mt-1 text-sm text-slate-500">{"Danh s\u00e1ch b\u00e0i project c\u1ee7a h\u1ecdc ph\u1ea7n."}</p>
-                    </div>
-                    <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                      {"Ch\u1edd ch\u1ea5m"}: {totalPendingProjects}
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    {loadingProjects ? (
-                      <div className="flex items-center justify-center py-14 text-sm text-slate-500">
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-600" />
-                        {"\u0110ang t\u1ea3i danh s\u00e1ch project..."}
-                      </div>
-                    ) : projectAssessments.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-                        {"Ch\u01b0a c\u00f3 b\u00e0i t\u1eadp project n\u00e0o."}
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {projectAssessments.map((project) => (
-                          <div
-                            key={project.assessmentId}
-                            className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-emerald-200 hover:shadow-sm"
-                          >
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h6 className="text-base font-semibold text-slate-900">{project.assessmentName}</h6>
-                                  <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                                    Project
-                                  </span>
-                                </div>
-
-                                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
-                                  {project.description || "Ch\u01b0a c\u00f3 m\u00f4 t\u1ea3."}
-                                </p>
-
-                                <div className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-2 xl:grid-cols-4">
-                                  <p>{"H\u1ea1n n\u1ed9p"}: {formatDate(project.endTime)}</p>
-                                  <p>{"\u0110\u00e3 n\u1ed9p"}: {project.submittedCount || 0}</p>
-                                  <p>{"Ch\u1edd ch\u1ea5m"}: {project.pendingCount || 0}</p>
-                                  <p>{"Lo\u1ea1i"}: {(project.assessmentType || "project").toUpperCase()}</p>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2 sm:flex-row lg:w-[220px] lg:flex-col">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    navigate(`/teacher/course/${offeringId}/assessment/${project.assessmentId}/grading`)
-                                  }
-                                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                                >
-                                  <CheckCircle2 className="h-4 w-4 text-white" />
-                                  {"Ch\u1ea5m b\u00e0i"}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    navigate(`/teacher/course/${offeringId}/assessment/${project.assessmentId}/grading`)
-                                  }
-                                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                  {"M\u1edf project"}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
+          <div className="p-4 md:p-5">
+            {loadingPage ? (
+              <div className="flex min-h-72 flex-col items-center justify-center gap-3 text-sm text-slate-500">
+                <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
+                Đang tải dữ liệu nhóm...
+              </div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                <p className="font-semibold text-slate-700">Chưa tìm thấy nhóm phù hợp</p>
+                <p className="mt-1 text-sm text-slate-500">Tạo nhóm mới hoặc thử một từ khóa khác.</p>
+              </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-                {"Ch\u01b0a c\u00f3 nh\u00f3m n\u00e0o \u0111\u01b0\u1ee3c ch\u1ecdn."}
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {filteredGroups.map((group) => {
+                  const leaderId = group.participants.find((participant) => participant.role === "ADMIN")?.userId || group.createdById;
+                  const leaderName = getStudentName(leaderId, students);
+
+                  return (
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => setActiveGroupId(group.id)}
+                      className="group rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 font-bold text-emerald-700">
+                            {getInitials(group.groupName)}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="truncate font-bold text-slate-900">{group.groupName}</h3>
+                            <p className="mt-0.5 truncate text-xs text-slate-500">Trưởng nhóm: {leaderName}</p>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-600" />
+                      </div>
+
+                      <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-slate-600">
+                        {group.topic || "Chưa cập nhật đề tài"}
+                      </p>
+
+                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                        <div className="flex -space-x-2">
+                          {group.participants.slice(0, 4).map((participant) => (
+                            <span
+                              key={participant.id}
+                              title={getStudentName(participant.userId, students)}
+                              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[9px] font-bold text-slate-600"
+                            >
+                              {getInitials(getStudentName(participant.userId, students))}
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-xs font-semibold text-slate-500">{group.participants.length} thành viên</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
-        </div>
-      )}
+        </section>
+
+        <section className="order-1 rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 md:text-xl">Đồ án học phần</h2>
+            </div>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">{totalPendingProjects} chờ chấm</span>
+          </div>
+
+          <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+            {loadingProjects ? (
+              <div className="flex min-h-32 items-center justify-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-600" />
+                Đang tải đồ án...
+              </div>
+            ) : projectAssessments.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">
+                Chưa có đồ án nào trong học phần.
+              </div>
+            ) : (
+              projectAssessments.map((project) => {
+                const expanded = expandedProjectId === project.assessmentId;
+
+                return (
+                  <article
+                    key={project.assessmentId}
+                    className={`overflow-hidden rounded-2xl border transition ${
+                      expanded ? "border-violet-200 bg-violet-50/30" : "border-slate-200 bg-white hover:border-violet-200"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedProjectId(expanded ? null : project.assessmentId)}
+                      aria-expanded={expanded}
+                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <h3 className="truncate text-sm font-bold text-slate-900 md:text-base">{project.assessmentName}</h3>
+                        <span className="shrink-0 rounded-lg bg-violet-50 px-2 py-1 text-[10px] font-bold uppercase text-violet-700">Project</span>
+                      </div>
+                      <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-180 text-violet-600" : ""}`} />
+                    </button>
+
+                    {expanded ? (
+                      <div className="border-t border-violet-100 bg-white px-4 py-4">
+                        <p className="text-sm leading-6 text-slate-600">{project.description || "Chưa có mô tả."}</p>
+
+                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+                          <CalendarClock className="h-4 w-4 text-slate-400" />
+                          Hạn nộp: {formatDate(project.endTime)}
+                        </div>
+
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                          <div className="grid grid-cols-2 gap-2 sm:w-72">
+                            <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Đã nộp</p>
+                              <p className="mt-1 text-lg font-bold text-slate-900">{project.submittedCount || 0}</p>
+                            </div>
+                            <div className="rounded-xl bg-amber-50 px-3 py-2.5">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600">Chờ chấm</p>
+                              <p className="mt-1 text-lg font-bold text-amber-700">{project.pendingCount || 0}</p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/teacher/course/${offeringId}/assessment/${project.assessmentId}/grading`)}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Mở trang chấm bài
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </div>
+
+      {activeGroup ? (
+        <ModalShell
+          title={activeGroup.groupName}
+          description={activeGroup.topic || "Chưa cập nhật đề tài cho nhóm."}
+          onClose={() => setActiveGroupId(null)}
+        >
+          <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="space-y-3">
+              <InfoCard
+                icon={<Users className="h-4 w-4 text-emerald-600" />}
+                label="Thành viên"
+                value={`${activeGroup.participants.length}`}
+              />
+              <InfoCard
+                icon={<UserRound className="h-4 w-4 text-emerald-600" />}
+                label="Trưởng nhóm"
+                value={getStudentName(
+                  activeGroup.participants.find((participant) => participant.role === "ADMIN")?.userId || activeGroup.createdById,
+                  students,
+                )}
+              />
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <ClipboardList className="h-4 w-4 text-emerald-600" />
+                  Đề tài
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{activeGroup.topic || "Chưa cập nhật đề tài"}</p>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="font-bold text-slate-900">Danh sách thành viên</h4>
+                <span className="text-xs font-semibold text-slate-500">{activeGroup.participants.length} sinh viên</span>
+              </div>
+              <div className="space-y-2">
+                {activeGroup.participants.map((participant) => {
+                  const name = getStudentName(participant.userId, students);
+                  return (
+                    <div key={participant.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">{getInitials(name)}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">{participant.userId}</p>
+                        </div>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${participant.role === "ADMIN" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+                        {participant.role === "ADMIN" ? "Trưởng nhóm" : "Thành viên"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </ModalShell>
+      ) : null}
 
       {activePanel === "students" ? (
         <ModalShell

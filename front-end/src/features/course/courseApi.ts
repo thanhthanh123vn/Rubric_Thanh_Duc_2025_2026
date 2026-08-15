@@ -146,11 +146,13 @@ export const courseService = {
         const response = await courseApi.get(`/topic/offerings/${postId}/comments`);
         return response.data;
     },
-    createComment: async (postId: string, content: string) => {
-        const response = await courseApi.post(`/topic/offerings/${postId}/comments`, { content });
+    createComment: async (postId: string, content: string, parentId?: string) => {
+        const response = await courseApi.post(`/topic/offerings/${postId}/comments`, {
+            content,
+            parentId: parentId || null
+        });
         return response.data;
     },
-
 
     getOBEProgressByStudent : async (offeringId: string) => {
             const response = await courseApi.get(`/courses/offering/${offeringId}/OBE`)

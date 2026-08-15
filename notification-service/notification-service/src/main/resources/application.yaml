@@ -10,6 +10,10 @@ spring:
     url: jdbc:mysql://localhost:3306/db_rubric?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
     username: ${DB_NAME}
     password: ${DB_PW}
+    data:
+      mongodb:
+        uri: mongodb://localhost:27017/db_rubric
+
 
   jpa:
     hibernate:
@@ -41,5 +45,5 @@ eureka:
         prefer-ip-address: true
 app:
   jwt:
-    secret: your_very_long_and_secret_key_22130260_thanh_nlu
+    secret: ${SECRET_KEY}
     expiration: 86400000

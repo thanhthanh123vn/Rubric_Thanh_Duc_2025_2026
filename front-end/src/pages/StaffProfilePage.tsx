@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     User, Settings, BookOpen, MessageSquare,
-    LogOut, Search, Bell, MapPin, Edit, Menu, Shield, Briefcase
+    LogOut, Search, Bell, MapPin, Edit, Menu,
+    Shield, Briefcase, Library, Building
 } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import authService, { uploadAvatar } from "@/user/api/authService.ts";
@@ -12,7 +13,7 @@ export default function StaffProfilePage() {
     const router = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [userInfo, setUserInfo] = useState({
-        username: 'GV001', // Mã CBGV
+        username: 'GV001',
         fullName: 'Tên Cán Bộ',
         role: 'TEACHER',
         avatarUrl: ''
@@ -25,7 +26,7 @@ export default function StaffProfilePage() {
         fullName: '',
         email: '',
         dateOfBirth: '',
-        nationality: 'Việt Nam', // Bạn có thể thêm trường này vào DB sau nếu cần
+        nationality: 'Việt Nam',
         cccd: '',
         gender: 'Nam',
         phoneNumber: '',
@@ -43,16 +44,14 @@ export default function StaffProfilePage() {
                 setAvatarUrl(parsed.avatarUrl || '');
 
                 try {
-                    // Gọi API lấy dữ liệu mới nhất
                     const fullData = await authService.getProfileLecturer();
-                    console.log("Dữ liệu từ API:", fullData);
 
                     setFormData(prev => ({
                         ...prev,
                         fullName: fullData.fullName || '',
                         email: fullData.email || '',
-                        dateOfBirth: fullData.dateOfBirth || '', // Hiển thị định dạng YYYY-MM-DD cho thẻ <input type="date">
-                        nationality: 'Việt Nam', // Cố định hoặc lấy từ backend nếu có
+                        dateOfBirth: fullData.dateOfBirth || '',
+                        nationality: 'Việt Nam',
                         cccd: fullData.cccd || '',
                         gender: fullData.gender || 'Nam',
                         phoneNumber: fullData.phoneNumber || '',
@@ -75,6 +74,24 @@ export default function StaffProfilePage() {
         fetchUserProfile();
     }, [router]);
 
+    // ==========================================
+    // PHÂN QUYỀN HIỂN THỊ (RBAC LOGIC)
+    // ==========================================
+    const role = userInfo.role;
+    const isAdmin = role === 'ADMIN';
+    const isDean = role === 'DEAN';
+    const isHeadOfDept = role === 'HEAD_OF_DEPARTMENT';
+    const isTeacherOrAbove = ['TEACHER', 'MAIN_LECTURER', 'HEAD_OF_DEPARTMENT', 'DEAN'].includes(role);
+
+    // Cấu hình linh hoạt cho nút Workspace ở Mobile Navbar dựa trên quyền cao nhất
+    const mobileWorkspace = useMemo(() => {
+        if (isAdmin) return { path: "/admin/dashboard", label: "Quản trị", icon: Shield };
+        if (isDean) return { path: "/dean", label: "Khoa", icon: Building };
+        if (isHeadOfDept) return { path: "/department", label: "Bộ môn", icon: Library };
+        if (isTeacherOrAbove) return { path: "/teacher", label: "Giảng dạy", icon: Briefcase };
+        return { path: "/profile/result-grading", label: "Học tập", icon: BookOpen };
+    }, [role]);
+
     const getInitial = (name: string) => {
         if (!name) return "U";
         const words = name.trim().split(' ');
@@ -96,7 +113,6 @@ export default function StaffProfilePage() {
     const handleSaveProfile = async () => {
         setIsLoading(true);
         try {
-            // Chuẩn bị payload để update
             const payloadToUpdate = {
                 fullName: formData.fullName,
                 dateOfBirth: formData.dateOfBirth || null,
@@ -144,7 +160,6 @@ export default function StaffProfilePage() {
         }
     };
 
-    // Hàm lấy tên hiển thị của Role
     const getRoleName = (role: string) => {
         switch (role) {
             case 'ADMIN': return 'Quản trị viên';
@@ -156,7 +171,6 @@ export default function StaffProfilePage() {
         }
     };
 
-    // Hàm lấy màu sắc huy hiệu cho Role
     const getRoleBadgeColor = (role: string) => {
         switch (role) {
             case 'ADMIN': return 'bg-purple-600 text-white';
@@ -168,36 +182,72 @@ export default function StaffProfilePage() {
         }
     };
 
+    const getRolePrefix = (role: string) => {
+        switch (role) {
+            case 'ADMIN': return '/admin';
+            case 'DEAN': return '/dean';
+            case 'HEAD_OF_DEPARTMENT': return '/department';
+            case 'MAIN_LECTURER':
+            case 'TEACHER': return '/teacher';
+            default: return ''; // Dành cho Sinh viên (nếu dùng gốc là /profile)
+        }
+    };
+
+    const rolePrefix = getRolePrefix(userInfo.role);
     return (
         <div className="flex flex-col lg:flex-row min-h-screen bg-[#f3f9f5] font-sans pb-20 lg:pb-0">
-            {/* SIDEBAR DÀNH CHO GIẢNG VIÊN / CÁN BỘ */}
+            {/* SIDEBAR TỰ ĐỘNG THÍCH ỨNG THEO ROLE */}
             <aside className="hidden lg:flex w-72 bg-white border-r border-emerald-100 flex-col shadow-sm z-20 sticky top-0 h-screen">
                 <div className="h-20 flex items-center px-6 border-b border-emerald-50">
                     <div className="text-emerald-700 font-extrabold text-3xl mr-3 tracking-tighter">NLU Rubric</div>
                 </div>
                 <nav className="flex-1 px-4 py-8 space-y-2">
-                    <a href="#" className="flex items-center gap-4 px-4 py-3.5 bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-700/20">
+
+                    <Link
+                        to={`${rolePrefix}/profile`}
+                        className="flex items-center gap-4 px-4 py-3.5 bg-emerald-700 text-white rounded-xl shadow-md shadow-emerald-700/20"
+                    >
                         <User className="w-5 h-5" />
                         <span className="font-medium">Hồ sơ cá nhân</span>
-                    </a>
+                    </Link>
 
-                    {/* Tùy chỉnh thanh điều hướng theo Role */}
-                    {userInfo.role === 'ADMIN' ? (
-                        <Link to="/admin/logs" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                    {/* Nút Cài đặt tài khoản / Đổi mật khẩu */}
+                    <Link
+                        to={`${rolePrefix}/profile/forgot-password`}
+                        className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors"
+                    >
+                        <Settings className="w-5 h-5" />
+                        <span className="font-medium">Cài đặt tài khoản</span>
+                    </Link>
+
+                    {/* MENU ĐỘNG THEO ROLE */}
+                    {isAdmin && (
+                        <Link to="/admin/dashboard" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                             <Shield className="w-5 h-5" />
                             <span className="font-medium">Quản lý hệ thống</span>
                         </Link>
-                    ) : (
+                    )}
+
+                    {isTeacherOrAbove && (
                         <Link to="/teacher" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                             <Briefcase className="w-5 h-5" />
                             <span className="font-medium">Quản lý giảng dạy</span>
                         </Link>
                     )}
 
-                    <a href="/teacher/profile/forgot-password" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
-                        <Settings className="w-5 h-5" />
-                        <span className="font-medium">Cài đặt tài khoản</span>
-                    </a>
+                    {isHeadOfDept && (
+                        <Link to="/department" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <Library className="w-5 h-5" />
+                            <span className="font-medium">Quản lý bộ môn</span>
+                        </Link>
+                    )}
+
+                    {isDean && (
+                        <Link to="/dean" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <Building className="w-5 h-5" />
+                            <span className="font-medium">Quản lý Khoa</span>
+                        </Link>
+                    )}
                 </nav>
                 <div className="p-6 border-t border-emerald-50">
                     <button onClick={handleLogout} className="flex items-center gap-4 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 w-full rounded-xl transition-colors">
@@ -394,7 +444,7 @@ export default function StaffProfilePage() {
                                     <label className="block text-xs lg:text-sm font-medium text-gray-500 mb-1 lg:mb-1.5">Đơn vị công tác</label>
                                     <input
                                         type="text" name="department"
-                                        readOnly={true} // Không cho tự sửa phòng ban
+                                        readOnly={true}
                                         value={formData.department}
                                         className="w-full px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl text-sm lg:text-base bg-gray-100 border border-gray-200 text-gray-500 outline-none cursor-not-allowed"
                                     />
@@ -403,7 +453,7 @@ export default function StaffProfilePage() {
                                     <label className="block text-xs lg:text-sm font-medium text-gray-500 mb-1 lg:mb-1.5">Email trường</label>
                                     <input
                                         type="email" name="email"
-                                        readOnly={true} // Email hệ thống thường không đổi
+                                        readOnly={true}
                                         value={formData.email}
                                         placeholder="email@hcmuaf.edu.vn"
                                         className="w-full px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl text-sm lg:text-base bg-gray-100 border border-gray-200 text-gray-500 outline-none cursor-not-allowed"
@@ -435,24 +485,28 @@ export default function StaffProfilePage() {
                 </div>
             </main>
 
-            {/* NAVBAR MOBILE */}
+            {/* NAVBAR MOBILE TỰ ĐỘNG THÍCH ỨNG THEO ROLE */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-2 z-40 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-                <a href="#" className="flex flex-col items-center justify-center w-full h-full text-emerald-700">
+                {/* Nút Hồ sơ luôn Active ở trang này */}
+                <a href="/profile" className="flex flex-col items-center justify-center w-full h-full text-emerald-700">
                     <User className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-medium">Hồ sơ</span>
                 </a>
-                <Link to={userInfo.role === 'ADMIN' ? "/admin/dashboard" : "/teacher"} className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                    {userInfo.role === 'ADMIN' ? <Shield className="w-5 h-5 mb-1" /> : <Briefcase className="w-5 h-5 mb-1" />}
-                    <span className="text-[10px] font-medium">Quản lý</span>
+
+                {/* Nút Workspace động theo chức vụ */}
+                <Link to={mobileWorkspace.path} className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
+                    <mobileWorkspace.icon className="w-5 h-5 mb-1" />
+                    <span className="text-[10px] font-medium">{mobileWorkspace.label}</span>
                 </Link>
+
                 <a href="#" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
                     <MessageSquare className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-medium">Tin nhắn</span>
                 </a>
-                <a href="#" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                    <Menu className="w-5 h-5 mb-1" />
-                    <span className="text-[10px] font-medium">Menu</span>
-                </a>
+                <Link to="/profile/settings" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
+                    <Settings className="w-5 h-5 mb-1" />
+                    <span className="text-[10px] font-medium">Cài đặt</span>
+                </Link>
             </nav>
         </div>
     );

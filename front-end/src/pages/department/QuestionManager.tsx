@@ -14,7 +14,7 @@ import {questionBankApi} from "@/api/QuestionBankApi.ts";
 
 interface AnswerOption {
     content: string;
-    isCorrect: boolean;
+    correct: boolean;
 }
 
 interface Clo {
@@ -64,10 +64,10 @@ export default function TeacherQuestionBank() {
         content: ''
     });
     const [options, setOptions] = useState<AnswerOption[]>([
-        { content: '', isCorrect: true },
-        { content: '', isCorrect: false },
-        { content: '', isCorrect: false },
-        { content: '', isCorrect: false },
+        { content: '', correct: true },
+        { content: '', correct: false },
+        { content: '', correct: false },
+        { content: '', correct: false },
     ]);
     useEffect(() => {
         const fetchBank = async () => {
@@ -124,8 +124,8 @@ export default function TeacherQuestionBank() {
             setEditingQuestionId(null);
             setFormData({ cloId:[], topicId: '', difficulty: 'MEDIUM', type: 'ESSAY', content: '' });
             setOptions([
-                { content: '', isCorrect: true }, { content: '', isCorrect: false },
-                { content: '', isCorrect: false }, { content: '', isCorrect: false },
+                { content: '', correct: true }, { content: '', correct: false },
+                { content: '', correct: false }, { content: '', correct: false },
             ]);
         }
     }, [isModalOpen]);
@@ -145,8 +145,8 @@ export default function TeacherQuestionBank() {
 
 
         if (question.type === 'MULTIPLE_CHOICE' && question.options) {
-            const newOptions = Array(4).fill({ content: '', isCorrect: false }).map((defaultOpt, idx) => {
-                return question.options[idx] ? { content: question.options[idx].content, isCorrect: question.options[idx].isCorrect } : defaultOpt;
+            const newOptions = Array(4).fill({ content: '', correct: false }).map((defaultOpt, idx) => {
+                return question.options[idx] ? { content: question.options[idx].content, correct: question.options[idx].correct } : defaultOpt;
             });
 
             setOptions(newOptions);
@@ -415,16 +415,16 @@ export default function TeacherQuestionBank() {
                                             {['A', 'B', 'C', 'D'].map((label, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`relative flex items-start gap-3 p-3 rounded-lg border transition-all ${options[index].isCorrect ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                                                    className={`relative flex items-start gap-3 p-3 rounded-lg border transition-all ${options[index].correct ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                                                 >
                                                     <div
                                                         className="mt-0.5 cursor-pointer text-slate-400 hover:text-blue-500 transition-colors"
                                                         onClick={() => {
-                                                            const newOpts = options.map((opt, i) => ({...opt, isCorrect: i === index}));
+                                                            const newOpts = options.map((opt, i) => ({...opt, correct: i === index}));
                                                             setOptions(newOpts);
                                                         }}
                                                     >
-                                                        {options[index].isCorrect ? (
+                                                        {options[index].correct ? (
                                                             <CheckCircle2 className="w-5 h-5 text-blue-600"/>
                                                         ) : (
                                                             <Circle className="w-5 h-5"/>

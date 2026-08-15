@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import type {RootState} from "@/app/store";
 import AdminLayout from "@/pages/admin/AdminLayout";
@@ -15,11 +15,7 @@ const AdminProtectedRoute = () => {
         return <Navigate to="/dashboard" replace />;
     }
 
-    return (
-        <AdminLayout>
-            <Outlet />
-        </AdminLayout>
-    );
+    return <AdminLayout />;
 };
 
 export default AdminProtectedRoute;

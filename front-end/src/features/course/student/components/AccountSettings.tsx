@@ -1,8 +1,9 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     User, Settings, BookOpen, MessageSquare,
-    LogOut, Search, Bell, Menu, Lock, Save, Loader2, Shield, Briefcase
+    LogOut, Search, Bell, Menu, Lock, Save, Loader2,
+    Shield, Briefcase, Library, Building
 } from 'lucide-react';
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,14 +15,33 @@ export default function AccountSettings() {
     const router = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
 
-    // Lấy thông tin user từ localStorage, dùng username thay cho studentId để tổng quát
+    // Lấy thông tin user từ localStorage một cách an toàn
     const storedUser = localStorage.getItem('user');
     const userInfo = storedUser ? JSON.parse(storedUser) : {
-        username: '22130260',
-        fullName: 'Nguyễn Văn Thạnh',
+        username: 'unknown',
+        fullName: 'Người dùng',
         role: 'STUDENT',
         avatarUrl: ''
     };
+
+    // ==========================================
+    // PHÂN QUYỀN HIỂN THỊ (RBAC LOGIC)
+    // ==========================================
+    const role = userInfo.role;
+    const isStudent = role === 'STUDENT';
+    const isAdmin = role === 'ADMIN';
+    const isDean = role === 'DEAN';
+    const isHeadOfDept = role === 'HEAD_OF_DEPARTMENT';
+    const isTeacherOrAbove = ['TEACHER', 'MAIN_LECTURER', 'HEAD_OF_DEPARTMENT', 'DEAN'].includes(role);
+
+    // Cấu hình linh hoạt cho nút Workspace ở Mobile Navbar dựa trên quyền cao nhất
+    const mobileWorkspace = useMemo(() => {
+        if (isAdmin) return { path: "/admin/dashboard", label: "Quản trị", icon: Shield };
+        if (isDean) return { path: "/dean", label: "Khoa", icon: Building };
+        if (isHeadOfDept) return { path: "/department", label: "Bộ môn", icon: Library };
+        if (isTeacherOrAbove) return { path: "/teacher", label: "Giảng dạy", icon: Briefcase };
+        return { path: "/profile/result-grading", label: "Học tập", icon: BookOpen };
+    }, [role]);
 
     // State quản lý form đổi mật khẩu
     const [passwordForm, setPasswordForm] = useState({
@@ -69,7 +89,6 @@ export default function AccountSettings() {
         setIsLoading(true);
         try {
             await userService.changePassword(passwordForm);
-
             toast.success("Đổi mật khẩu thành công!");
             setPasswordForm({
                 currentPassword: "",
@@ -89,7 +108,7 @@ export default function AccountSettings() {
 
     return (
         <div className="flex flex-col lg:flex-row min-h-screen bg-[#f3f9f5] font-sans pb-20 lg:pb-0">
-            {/* SIDEBAR TỰ ĐỘNG THÍCH ỨNG THEO ROLE */}
+
             <aside className="hidden lg:flex w-72 bg-white border-r border-emerald-100 flex-col shadow-sm z-20 sticky top-0 h-screen">
                 <div className="h-20 flex items-center px-6 border-b border-emerald-50">
                     <div className="text-emerald-700 font-extrabold text-3xl mr-3 tracking-tighter">NLU Rubric</div>
@@ -108,23 +127,39 @@ export default function AccountSettings() {
                         <span className="font-medium">Cài đặt tài khoản</span>
                     </a>
 
-                    {/* MENU RENDER THEO ROLE */}
-                    {userInfo.role === 'STUDENT' && (
+                    {/* MENU ĐỘNG THEO ROLE */}
+                    {isStudent && (
                         <Link to="/profile/result-grading" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                             <BookOpen className="w-5 h-5" />
                             <span className="font-medium">Kết quả học tập</span>
                         </Link>
                     )}
-                    {userInfo.role === 'ADMIN' && (
+
+                    {isAdmin && (
                         <Link to="/admin/dashboard" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                             <Shield className="w-5 h-5" />
                             <span className="font-medium">Quản lý hệ thống</span>
                         </Link>
                     )}
-                    {(userInfo.role !== 'STUDENT' && userInfo.role !== 'ADMIN') && (
-                        <Link to="/teacher/dashboard" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+
+                    {isTeacherOrAbove && (
+                        <Link to="/teacher" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
                             <Briefcase className="w-5 h-5" />
                             <span className="font-medium">Quản lý giảng dạy</span>
+                        </Link>
+                    )}
+
+                    {isHeadOfDept && (
+                        <Link to="/department" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <Library className="w-5 h-5" />
+                            <span className="font-medium">Quản lý bộ môn</span>
+                        </Link>
+                    )}
+
+                    {isDean && (
+                        <Link to="/dean" className="flex items-center gap-4 px-4 py-3.5 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl transition-colors">
+                            <Building className="w-5 h-5" />
+                            <span className="font-medium">Quản lý Khoa</span>
                         </Link>
                     )}
                 </nav>
@@ -249,7 +284,7 @@ export default function AccountSettings() {
                                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-100">
                                         <div>
                                             <p className="text-sm font-semibold text-gray-800">Nhận thông báo qua Email</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">Gửi thông báo điểm số, lịch học về email trường</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">Gửi thông báo quan trọng về email trường</p>
                                         </div>
                                         <input
                                             type="checkbox"
@@ -300,39 +335,27 @@ export default function AccountSettings() {
                 </div>
             </main>
 
-            {/* NAVBAR MOBILE TỰ ĐỘNG THÍCH ỨNG */}
+            {/* NAVBAR MOBILE TỰ ĐỘNG THÍCH ỨNG THEO ROLE */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 px-2 z-40 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
                 <Link to="/profile" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
                     <User className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-medium">Hồ sơ</span>
                 </Link>
 
-                {/* MENU MOBILE THEO ROLE */}
-                {userInfo.role === 'STUDENT' ? (
-                    <Link to="/profile/result-grading" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                        <BookOpen className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Học tập</span>
-                    </Link>
-                ) : userInfo.role === 'ADMIN' ? (
-                    <Link to="/admin/dashboard" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                        <Shield className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Quản trị</span>
-                    </Link>
-                ) : (
-                    <Link to="/teacher/dashboard" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                        <Briefcase className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-medium">Quản lý</span>
-                    </Link>
-                )}
+                {/* Workspace linh hoạt nhất theo chức vụ */}
+                <Link to={mobileWorkspace.path} className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
+                    <mobileWorkspace.icon className="w-5 h-5 mb-1" />
+                    <span className="text-[10px] font-medium">{mobileWorkspace.label}</span>
+                </Link>
 
                 <a href="#" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
                     <MessageSquare className="w-5 h-5 mb-1" />
                     <span className="text-[10px] font-medium">Tin nhắn</span>
                 </a>
-                <a href="#" className="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-emerald-700 transition-colors">
-                    <Menu className="w-5 h-5 mb-1" />
-                    <span className="text-[10px] font-medium">Menu</span>
-                </a>
+                <Link to="/profile/settings" className="flex flex-col items-center justify-center w-full h-full text-emerald-700 font-bold">
+                    <Settings className="w-5 h-5 mb-1" />
+                    <span className="text-[10px] font-medium">Cài đặt</span>
+                </Link>
             </nav>
         </div>
     );

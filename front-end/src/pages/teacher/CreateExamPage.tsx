@@ -48,7 +48,7 @@
                     ]);
 
                     setBanks(bankRes || []);
-                    setCloItems(cloRes?.data || cloRes || []);
+                    setCloItems(cloRes.data || []);
                 } catch (error) {
                     toast.error("Lỗi khi tải dữ liệu cấu hình đề thi");
                 }

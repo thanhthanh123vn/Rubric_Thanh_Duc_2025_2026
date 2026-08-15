@@ -234,7 +234,11 @@ export default function StudentManagement() {
                         }, {} as Record<string, { academicYear: string, semester: string, items: any[] }>);
 
 
-                        const sortedGroups = Object.values(groupedData).sort((a, b) => {
+                        const sortedGroups = (Object.values(groupedData) as Array<{
+                            academicYear: string;
+                            semester: string;
+                            items: any[];
+                        }>).sort((a, b) => {
                             if (a.academicYear !== b.academicYear) return a.academicYear.localeCompare(b.academicYear);
                             return a.semester.localeCompare(b.semester);
                         });

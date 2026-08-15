@@ -147,7 +147,7 @@ export default function TeacherQuestionBank() {
     setEditingQuestionId(question.id);
     console.log(question);
     setFormData({
-      cloIds: question.cloIds || '',
+      cloIds: question.cloIds || [],
       topicId: 'T1', // Tuỳ chỉnh theo logic project của bạn
       difficulty: question.difficulty,
       score: 1,

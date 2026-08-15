@@ -7,6 +7,9 @@ import hcmuaf.edu.vn.fit.notification_service.dto.response.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @FeignClient(
         name = "user-service",
@@ -30,5 +33,9 @@ public interface UserClient {
     LecturerResponse getLecturerByUserId(@PathVariable("userId") String userId);
     @GetMapping("/lecturers/{lecturerId}/user-id")
     String getUserIdByLecturerId(@PathVariable("lecturerId") String lecturerId);
+    @GetMapping("/users/ids-by-role")
+    List<String> getUserIdsByRole(
+            @RequestParam("role") String role
+    );
 }
 

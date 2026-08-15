@@ -139,7 +139,7 @@ export default function PublicQuestionBank() {
     if (question.type === 'MULTIPLE_CHOICE' && question.options) {
       const newOptions = Array(4).fill({ content: '', isCorrect: false }).map((defaultOpt, idx) => {
         return question.options[idx]
-          ? { content: question.options[idx].content, isCorrect: question.options[idx].isCorrect }
+          ? { content: question.options[idx].content, isCorrect: question.options[idx].correct }
           : defaultOpt;
       });
       setOptions(newOptions);

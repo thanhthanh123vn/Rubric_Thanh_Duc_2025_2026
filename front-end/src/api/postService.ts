@@ -13,8 +13,17 @@ const postService = {
     },
 
 
-    getPostsByOffering: async (offeringId: string): Promise<PostResponse[]> => {
-        const response = await courseApi.get(`/posts/course/${offeringId}`);
+    getPostsByOffering: async (
+        offeringId: string,
+        page: number = 0,
+        size: number = 10
+    ): Promise<any> => {
+        const response = await courseApi.get(`/posts/course/${offeringId}`, {
+            params: {
+                page: page,
+                size: size
+            }
+        });
         return response.data;
     },
     getPostById: async (postId: string): Promise<PostResponse> => {

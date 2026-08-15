@@ -1,6 +1,6 @@
 import axios, {type AxiosInstance, type InternalAxiosRequestConfig} from 'axios';
 import {getBrowserToken} from "@/utils/browserId.ts";
-const BASE = import.meta.env.VITE_API_BASE;
+const BASE = import.meta.env.VITE_API_BASE || '/api/v1';
 
 const attachToken = (config : InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');

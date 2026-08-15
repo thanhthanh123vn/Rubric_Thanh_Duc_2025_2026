@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ClipboardList, FileEdit, FileText, TimerReset, Users, Workflow } from 'lucide-react';
+import {BarChart3, Bell, BookOpen, ClipboardList, FileEdit, FileText, TimerReset, Users, Workflow} from 'lucide-react';
 
 export interface TeacherCourseItem {
   offeringId: string;
@@ -107,4 +107,5 @@ export const teacherCourseMenu = [
       { key: 'outcome-report', label: 'Báo cáo chuẩn đầu ra', path: 'outcomes' },
     ],
   },
+  { key: 'notifications', icon: Bell, label: 'Thông Báo', path: 'notifications' },
 ];

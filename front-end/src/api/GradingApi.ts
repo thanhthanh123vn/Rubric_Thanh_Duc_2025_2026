@@ -1,5 +1,5 @@
 import {courseApi, gradeSerciveApi, rubricServiceApi} from "@/services/axiosConfig.ts";
-import type { AssessmentEvidenceDTO, FeedbackTemplateDTO } from "@/api/type";
+import type { AssessmentEvidenceDTO, FeedbackTemplateDTO, SubmissionStatusDTO } from "@/api/type";
 
 
 export const fetchSubmissionsPending = async (assessmentId: string) => {
@@ -14,6 +14,20 @@ export const fetchSubmissionStatuses = async (assessmentId: string) => {
         `/assessments/${assessmentId}/submission-statuses`
     );
     return response.data;
+};
+
+export const summarizeSubmissionStatuses = (submissions: SubmissionStatusDTO[]) => {
+    const submitted = submissions.filter((submission) => submission.submitted);
+    const gradedCount = submitted.filter((submission) =>
+        submission.status?.toUpperCase() === "GRADED" ||
+        (submission.totalScore !== null && submission.totalScore !== undefined)
+    ).length;
+
+    return {
+        submittedCount: submitted.length,
+        gradedCount,
+        pendingCount: submitted.length - gradedCount,
+    };
 };
 
 export const fetchAssessmentEvidence = async (
@@ -62,6 +76,17 @@ export const fetchFeedbackTemplates = async (userId: string) => {
 
 export const createFeedbackTemplate = async (payload: { userId: string; content: string }) => {
     const response = await gradeSerciveApi.post<FeedbackTemplateDTO>(`/feedback-templates`, payload);
+    return response.data;
+};
+
+export const updateFeedbackTemplate = async (
+    templateId: number,
+    payload: { userId: string; content: string },
+) => {
+    const response = await gradeSerciveApi.put<FeedbackTemplateDTO>(
+        `/feedback-templates/${templateId}`,
+        payload,
+    );
     return response.data;
 };
 

@@ -1,13 +1,4 @@
-import {notificationServiceApi} from "@/services/axiosConfig";
-
-// export const notificationApi = {
-//
-//     getNotifications: () => {
-//         return notificationServiceApi.get(`/getNotification/me`);
-//     },
-// }
-//
-// import { courseApi } from "@/services/axiosConfig.ts";
+import { notificationServiceApi } from "@/services/axiosConfig";
 
 export interface NotificationResponse {
     id: string;
@@ -20,7 +11,9 @@ export interface NotificationResponse {
 
 export const notificationApi = {
     getAdminNotifications: async (): Promise<NotificationResponse[]> => {
-        const response = await notificationServiceApi.get<NotificationResponse[]>("/getNotification/me");
+        const response = await notificationServiceApi.get<NotificationResponse[]>(
+            "/getNotification/me"
+        );
         return response.data;
     },
 
@@ -34,5 +27,13 @@ export const notificationApi = {
 
     deleteNotification: async (id: string): Promise<void> => {
         await notificationServiceApi.delete(`/${id}`);
-    }
+    },
+
+    broadcastNotification: (data: {
+        title: string;
+        message: string;
+        recipientRole: string;
+    }) => {
+        return notificationServiceApi.post("/notifications/broadcast", data);
+    },
 };

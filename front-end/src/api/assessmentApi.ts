@@ -7,7 +7,7 @@ export type GenerateExamRequest = {
     easyCount: number;
     mediumCount: number;
     hardCount: number;
-    cloId: string | null;
+    cloIds: string[] | null;
     examTitle: string;
     durationMinutes: number;
     startTime: string;

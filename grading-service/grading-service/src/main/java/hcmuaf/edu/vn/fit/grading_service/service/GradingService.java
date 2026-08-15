@@ -196,6 +196,32 @@ public class GradingService {
     }
 
     @Transactional
+    public FeedbackTemplateResponse updateFeedbackTemplate(Long templateId, FeedbackTemplateRequest request) {
+        if (templateId == null || request == null) {
+            throw new IllegalArgumentException("templateId và request không được để trống");
+        }
+
+        String normalizedUserId = normalizeUserId(request.getUserId());
+        String normalizedContent = normalizeContent(request.getContent());
+        FeedbackTemplate template = feedbackTemplateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhận xét mẫu"));
+
+        if (!normalizedUserId.equals(template.getUserId())) {
+            throw new IllegalArgumentException("Bạn không có quyền sửa nhận xét mẫu này");
+        }
+
+        feedbackTemplateRepository
+                .findByUserIdAndContentIgnoreCase(normalizedUserId, normalizedContent)
+                .filter(existing -> !existing.getId().equals(templateId))
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException("Nội dung nhận xét mẫu đã tồn tại");
+                });
+
+        template.setContent(normalizedContent);
+        return toFeedbackTemplateResponse(feedbackTemplateRepository.save(template));
+    }
+
+    @Transactional
     public void deleteFeedbackTemplate(Long templateId, String userId) {
         if (templateId == null) {
             throw new IllegalArgumentException("templateId không được để trống");

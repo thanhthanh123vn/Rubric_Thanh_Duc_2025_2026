@@ -3,12 +3,14 @@ package hcmuaf.edu.vn.fit.course_service.service;
 import hcmuaf.edu.vn.fit.course_service.entity.SystemLog;
 import hcmuaf.edu.vn.fit.course_service.repository.mongo.SystemLogRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl; // Bổ sung import
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate; // Bổ sung import
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query; // Import đúng Query của MongoTemplate
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -64,5 +66,10 @@ public class SystemLogService {
         List<SystemLog> logs = mongoTemplate.find(query, SystemLog.class);
 
         return new PageImpl<>(logs, pageable, total);
+    }
+    @Async
+    @EventListener
+    public void handleLogCreation(SystemLog log) {
+        logRepository.save(log);
     }
 }

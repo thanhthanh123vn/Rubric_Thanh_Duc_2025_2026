@@ -1,16 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
-import { CalendarDays, ChevronRight, ClipboardList, Clock3, ListFilter, Search, X } from "lucide-react";
+import { fetchSubmissionStatuses, summarizeSubmissionStatuses } from "@/api/GradingApi.ts";
+import { CalendarDays, Check, ChevronRight, ClipboardList, Clock3, ListFilter, Search, SlidersHorizontal, X } from "lucide-react";
 
 interface TeacherAssessmentItem {
   assessmentId: string;
   assessmentName: string;
   assessmentType?: string | null;
+  startTime?: string | null;
   endTime?: string | null;
   submittedCount?: number | null;
   pendingCount?: number | null;
 }
+
+type SortOrder = "NEWEST" | "OLDEST";
+
+const getAssessmentTimestamp = (assessment: TeacherAssessmentItem) => {
+  const value = assessment.startTime || assessment.endTime;
+  if (!value) return null;
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+};
 
 const toDateInputValue = (value?: string | null) => {
   if (!value) return "";
@@ -53,14 +65,40 @@ export default function TeacherAssessmentList() {
   const [assessments, setAssessments] = useState<TeacherAssessmentItem[]>([]);
   const [keyword, setKeyword] = useState("");
   const [selectedType, setSelectedType] = useState("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("NEWEST");
+  const [showSortOptions, setShowSortOptions] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     if (!id) return;
-    assessmentService.getAssessmentsByOffering(id).then((data) => {
-      setAssessments(Array.isArray(data) ? data : []);
-    });
+
+    let active = true;
+    const loadAssessments = async () => {
+      const data = await assessmentService.getAssessmentsByOffering(id);
+      const items: TeacherAssessmentItem[] = Array.isArray(data) ? data : [];
+      const itemsWithAccurateCounts = await Promise.all(
+        items.map(async (assessment) => {
+          try {
+            const statuses = await fetchSubmissionStatuses(assessment.assessmentId);
+            return {
+              ...assessment,
+              ...summarizeSubmissionStatuses(Array.isArray(statuses) ? statuses : []),
+            };
+          } catch (error) {
+            console.error(`Không thể cập nhật số bài chờ chấm của ${assessment.assessmentId}:`, error);
+            return assessment;
+          }
+        }),
+      );
+
+      if (active) setAssessments(itemsWithAccurateCounts);
+    };
+
+    void loadAssessments();
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const assessmentTypes = useMemo(() =>
@@ -71,7 +109,7 @@ export default function TeacherAssessmentList() {
   const filteredAssessments = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
-    return assessments.filter((assessment) => {
+    const matchingAssessments = assessments.filter((assessment) => {
       const matchesKeyword =
         !normalizedKeyword ||
         assessment.assessmentName?.toLowerCase().includes(normalizedKeyword) ||
@@ -82,11 +120,28 @@ export default function TeacherAssessmentList() {
 
       return matchesKeyword && matchesDate && matchesType;
     });
-  }, [assessments, fromDate, keyword, selectedType, toDate]);
+
+    return matchingAssessments.sort((left, right) => {
+      const leftTimestamp = getAssessmentTimestamp(left);
+      const rightTimestamp = getAssessmentTimestamp(right);
+
+      if (leftTimestamp === null && rightTimestamp === null) {
+        return left.assessmentName.localeCompare(right.assessmentName, "vi");
+      }
+      if (leftTimestamp === null) return 1;
+      if (rightTimestamp === null) return -1;
+
+      return sortOrder === "NEWEST"
+        ? rightTimestamp - leftTimestamp
+        : leftTimestamp - rightTimestamp;
+    });
+  }, [assessments, fromDate, keyword, selectedType, sortOrder, toDate]);
 
   const clearFilters = () => {
     setKeyword("");
     setSelectedType("");
+    setSortOrder("NEWEST");
+    setShowSortOptions(false);
     setFromDate("");
     setToDate("");
   };
@@ -167,14 +222,58 @@ export default function TeacherAssessmentList() {
               Hiển thị <span className="font-semibold text-slate-900">{filteredAssessments.length}</span> /{" "}
               {assessments.length} bài tập
             </div>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <X className="h-4 w-4" />
-              Xóa bộ lọc
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <X className="h-4 w-4" />
+                Xóa bộ lọc
+              </button>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowSortOptions((current) => !current)}
+                  aria-label="Mở tùy chọn sắp xếp"
+                  aria-expanded={showSortOptions}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition ${
+                    showSortOptions || sortOrder === "OLDEST"
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                </button>
+
+                {showSortOptions ? (
+                  <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                    {([
+                      { value: "NEWEST", label: "Mới nhất" },
+                      { value: "OLDEST", label: "Cũ nhất" },
+                    ] as const).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setSortOrder(option.value);
+                          setShowSortOptions(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+                          sortOrder === option.value
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {option.label}
+                        {sortOrder === option.value ? <Check className="h-4 w-4" /> : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -204,9 +303,13 @@ export default function TeacherAssessmentList() {
                   <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 md:text-sm">
                     <Clock3 className="h-3.5 w-3.5" />
                     <span>
+                      {assessment.startTime
+                        ? new Date(assessment.startTime).toLocaleString("vi-VN")
+                        : "Chưa có ngày bắt đầu"}
+                      {" → "}
                       {assessment.endTime
                         ? new Date(assessment.endTime).toLocaleString("vi-VN")
-                        : "Chưa có hạn nộp"}
+                        : "Chưa có ngày kết thúc"}
                     </span>
                   </div>
                 </div>

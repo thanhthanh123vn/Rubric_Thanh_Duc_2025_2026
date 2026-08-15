@@ -50,7 +50,7 @@ export default function AssignLecturerModal({ isOpen, onClose, courseId, courseN
 
         setLoading(true);
         try {
-            await courseService.assignLecturer(courseId, selectedLecturerId);
+            await courseService.assignLecturers(courseId, [selectedLecturerId]);
             alert("Phân công giảng viên thành công!");
             onSuccess();
             onClose();

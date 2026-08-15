@@ -46,7 +46,9 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
             if (path.contains("/auth/login") ||
                     path.contains("/auth/register") ||
 
-                    path.contains("/oauth2-success")) {
+                    path.contains("/oauth2-success")||
+            path.contains("/ws")||
+           path.contains("/ws-notifications")) {
 
                 return chain.filter(exchange);
             }
