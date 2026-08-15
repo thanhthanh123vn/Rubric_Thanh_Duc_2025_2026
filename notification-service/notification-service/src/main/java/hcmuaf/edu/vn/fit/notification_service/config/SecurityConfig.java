@@ -41,7 +41,7 @@ public class SecurityConfig {
                         // Gửi Bài Tập Về Nhà
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/notification-service/homework-assigned-multiple")
-                        .hasAnyRole("STUDENT", "TEACHER", "DEAN", "MAIN_TEACHER","MAIN_TEACHER")
+                        .hasAnyRole("STUDENT", "TEACHER", "DEAN", "MAIN_TEACHER")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

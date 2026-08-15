@@ -11,13 +11,14 @@ import java.util.Date;
 
 @Component
 public class JwtUtils {
-    private String SECRET_KEY = "BjvC4R43upbpQ9ha0e534/Oj5rFq9qml4cEFjgr56HQ=";
+    @Value("${app.jwt.secret}")
+    private String SECRET_KEY;
     private final long EXPIRATION_TIME = 86400000;
     private final long ACCESS_TOKEN_EXPIRATION = 86400000; // 1 ngày
     private final long REFRESH_TOKEN_EXPIRATION = 604800000;
     public Key getSigningKey() {
 
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(SECRET_KEY.trim().getBytes());
     }
 
 

@@ -51,13 +51,14 @@ interface CriteriaGradePayload {
 }
 
 type ExpandedPane = "none" | "submission" | "rubric";
-type SubmissionFilter = "ALL" | "SUBMITTED" | "NOT_SUBMITTED";
+type SubmissionFilter = "ALL" | "PENDING" | "GRADED" | "NOT_SUBMITTED";
 type GradingView = "grading" | "feedback";
 type GradingMode = "RUBRIC" | "MANUAL";
 
 const FILTER_OPTIONS: { value: SubmissionFilter; label: string }[] = [
     { value: "ALL", label: "Tất cả" },
-    { value: "SUBMITTED", label: "Đã nộp" },
+    { value: "PENDING", label: "Chờ chấm" },
+    { value: "GRADED", label: "Đã chấm" },
     { value: "NOT_SUBMITTED", label: "Chưa nộp" },
 ];
 
@@ -169,13 +170,15 @@ const sumWeightedScores = (
 
 const getDisplaySubmissionBadge = (submission: SubmissionStatusDTO) => {
     if (!submission.submitted) return "Chưa nộp";
-    if (!submission.status || submission.status === "SUBMITTED") return "Đã nộp";
 
-    const normalizedStatus = submission.status.toUpperCase();
-    if (normalizedStatus === "GRADED") return "Đã chấm";
+    const normalizedStatus = submission.status?.toUpperCase();
+    if (
+        normalizedStatus === "GRADED" ||
+        (submission.totalScore !== null && submission.totalScore !== undefined)
+    ) return "Đã chấm";
     if (normalizedStatus === "NOT_SUBMITTED") return "Chưa nộp";
 
-    return submission.status;
+    return "Chờ chấm";
 };
 
 const isSubmissionGraded = (submission?: SubmissionStatusDTO | null) => {
@@ -236,7 +239,7 @@ export default function TeacherGrading() {
     const [saving, setSaving] = useState(false);
     const [expandedPane, setExpandedPane] = useState<ExpandedPane>("none");
     const [searchStudentId, setSearchStudentId] = useState("");
-    const [submissionFilter, setSubmissionFilter] = useState<SubmissionFilter>("ALL");
+    const [submissionFilter, setSubmissionFilter] = useState<SubmissionFilter>("PENDING");
     const [gradingView, setGradingView] = useState<GradingView>("grading");
     const [assessmentEvidence, setAssessmentEvidence] = useState<AssessmentEvidenceDTO | null>(null);
     const [loadingEvidence, setLoadingEvidence] = useState(false);
@@ -352,9 +355,11 @@ export default function TeacherGrading() {
 
         return submissions.filter((submission) => {
             const matchKeyword = !keyword || submission.studentId.toLowerCase().includes(keyword);
+            const graded = isSubmissionGraded(submission);
             const matchFilter =
                 submissionFilter === "ALL" ||
-                (submissionFilter === "SUBMITTED" && submission.submitted) ||
+                (submissionFilter === "PENDING" && submission.submitted && !graded) ||
+                (submissionFilter === "GRADED" && graded) ||
                 (submissionFilter === "NOT_SUBMITTED" && !submission.submitted);
 
             return matchKeyword && matchFilter;
@@ -650,9 +655,11 @@ export default function TeacherGrading() {
                                             </div>
                                             <span
                                                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                                    sub.submitted
-                                                        ? "bg-emerald-100 text-emerald-700"
-                                                        : "bg-amber-100 text-amber-700"
+                                                    !sub.submitted
+                                                        ? "bg-slate-100 text-slate-600"
+                                                        : isSubmissionGraded(sub)
+                                                            ? "bg-emerald-100 text-emerald-700"
+                                                            : "bg-amber-100 text-amber-700"
                                                 }`}
                                             >
                         {getDisplaySubmissionBadge(sub)}

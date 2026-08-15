@@ -18,7 +18,7 @@ public class JwtUtils {
     private String SECRET_KEY;
 
     private Key getSignKey() {
-           return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
 
 
     }

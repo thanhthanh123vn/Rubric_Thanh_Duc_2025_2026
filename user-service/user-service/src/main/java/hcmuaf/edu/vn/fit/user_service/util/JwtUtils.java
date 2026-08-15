@@ -18,7 +18,7 @@ public class JwtUtils {
     private final long ACCESS_TOKEN_EXPIRATION = 86400000; // 1 ngày
     private final long REFRESH_TOKEN_EXPIRATION = 604800000;
     public Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(SECRET_KEY.trim().getBytes());
     }
 
 
