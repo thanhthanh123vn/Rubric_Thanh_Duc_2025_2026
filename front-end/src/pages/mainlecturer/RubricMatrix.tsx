@@ -1,5 +1,5 @@
 import { Edit2, Eye, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RubricMatrixEditor, {
     type CloOption,
     type RubricMatrixResponse,
@@ -62,11 +62,11 @@ export default function RubricMatrix() {
     const [showModal, setShowModal] = useState(false);
     const [selectedMatrix, setSelectedMatrix] = useState<RubricMatrixResponse | null>(null);
     const [previewMatrix, setPreviewMatrix] = useState<RubricMatrixResponse | null>(null);
-
-    useEffect(() => {
-        void fetchRubricMatrix();
-        void fetchOptions();
-    }, []);
+    const cloLabels = useMemo(
+        () => new Map(clos.map((clo) => [clo.cloId, `${clo.cloCode} - ${clo.cloName}`])),
+        [clos],
+    );
+    const getCloLabel = (cloId: string) => cloLabels.get(cloId) || cloId;
 
     const fetchRubricMatrix = async () => {
         try {
@@ -99,6 +99,15 @@ export default function RubricMatrix() {
             console.error("Lỗi khi tải tùy chọn ma trận rubric:", error);
         }
     };
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            void fetchRubricMatrix();
+            void fetchOptions();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, []);
 
     const openEditor = (matrix: RubricMatrixResponse | null) => {
         setSelectedMatrix(matrix);
@@ -281,7 +290,7 @@ export default function RubricMatrix() {
                                             className="border-b border-slate-100 hover:bg-slate-50"
                                         >
                                             <td className="px-4 py-2 font-medium text-slate-900">
-                                                {row.cloId ?? "Chưa gán CLO"}
+                                                {row.cloId ? getCloLabel(row.cloId) : "Chưa gán CLO"}
                                             </td>
 
                                             <td className="px-4 py-2 text-slate-600">
@@ -336,6 +345,7 @@ export default function RubricMatrix() {
                 description={previewMatrix?.description ?? ""}
                 criteria={matrixToPreviewCriteria(previewMatrix)}
                 totalWeight={previewMatrix ? normalizeWeight(previewMatrix.totalWeight) : 0}
+                getCloLabel={getCloLabel}
                 sortLevels={sortLevels}
                 onClose={closePreview}
             />

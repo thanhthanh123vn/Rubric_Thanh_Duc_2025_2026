@@ -11,6 +11,7 @@ import {getAllClo} from "@/features/rubric/rubricApi.ts";
 type CloType = {
     cloId: string;
     cloCode: string;
+    courseId: string;
     description?: string; // Tùy chọn nếu API có trả về
 };
 
@@ -128,6 +129,11 @@ export default function CreateRubricModal({
     const totalWeight = useMemo(() => {
         return criteria.reduce((sum, item) => sum + Number(item.weight || 0), 0);
     }, [criteria]);
+
+    const courseClos = useMemo(
+        () => clos.filter((clo) => clo.courseId === selectedCourseId),
+        [clos, selectedCourseId],
+    );
 
     const handleAddCriteria = () => {
         setCriteria((prev) => [...prev, { name: "", weight: 0, cloId: null, levels: [] }]);
@@ -325,7 +331,7 @@ export default function CreateRubricModal({
                                                         className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none bg-white"
                                                     >
                                                         <option value="">Chưa gắn CLO</option>
-                                                        {clos.map((clo) => (
+                                                        {courseClos.map((clo) => (
                                                             <option key={clo.cloId} value={clo.cloId}>
                                                                 {clo.cloCode}
                                                             </option>

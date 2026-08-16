@@ -30,7 +30,6 @@ package "repository" as RepositoryPackage {
   class RubricCriteriaRepository <<Repository>>
   class RubricLevelRepository <<Repository>>
   class CourseCloRepository <<Repository>>
-  class CourseCloMapRepository <<Repository>>
 }
 
 package "entity" as EntityPackage {
@@ -38,7 +37,6 @@ package "entity" as EntityPackage {
   class RubricCriteria <<Entity>>
   class RubricLevel <<Entity>>
   class CourseCloEntity <<Entity>>
-  class CourseCloMapEntity <<Entity>>
   enum RubricStatus
 }
 

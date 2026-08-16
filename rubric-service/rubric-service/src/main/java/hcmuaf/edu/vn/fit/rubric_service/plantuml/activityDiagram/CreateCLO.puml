@@ -4,7 +4,8 @@ title Activity Diagram - Tao CLO
 
 |Main Lecturer|
 start
-:Mo man hinh Quan ly CLO;
+:Mo danh sach khoa hoc;
+:Chon mot khoa hoc;
 :Bam "Tao CLO moi";
 :Nhap ma CLO, ten CLO,\nmo ta, Bloom level;
 :Bam "Tao CLO";
@@ -16,7 +17,7 @@ start
 
 |Backend (Rubric Service)|
 :CourseCloController nhan request;
-:CourseCloService kiem tra cloCode trung;
+:CourseCloService kiem tra cloCode trung trong courseId;
 
 if (Ma CLO da ton tai?) then (Yes)
   :Tra loi loi RuntimeException;
@@ -26,17 +27,13 @@ if (Ma CLO da ton tai?) then (Yes)
   :Sua thong tin va gui lai;
   stop
 else (No)
-  :Tao CourseCloEntity;
-  if (Co courseId?) then (Yes)
-    :Tao them CourseCloMapEntity;
-  else (No)
-  endif
+  :Tao CourseCloEntity co courseId bat buoc;
   :Luu CLO vao database;
   :Tra ve CLO vua tao;
 endif
 
 |Frontend (React)|
-:Goi lai GET /course-clo;
+:Goi lai GET /course-clo?courseId=...;
 :Cap nhat danh sach CLO;
 :Dong modal va reset form;
 

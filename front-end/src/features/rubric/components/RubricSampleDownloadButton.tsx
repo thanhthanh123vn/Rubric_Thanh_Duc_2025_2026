@@ -6,6 +6,7 @@ type Props = {
     description: string;
     criteria: MatrixCriterionDraft[];
     totalWeight: number;
+    getCloLabel: (cloId: string) => string;
     sortLevels: (levels: MatrixLevelDraft[]) => MatrixLevelDraft[];
 };
 
@@ -57,6 +58,7 @@ export default function RubricSampleDownloadButton({
     description,
     criteria,
     totalWeight,
+    getCloLabel,
     sortLevels,
 }: Props) {
     const handleDownloadImage = async () => {
@@ -205,7 +207,7 @@ export default function RubricSampleDownloadButton({
 
             context.fillStyle = "#64748b";
             context.font = "400 14px Arial";
-            context.fillText(`Tên CLO : ${criterion.cloId || "Chưa gắn CLO"}`, tableX + 16, currentY + 28 + criterionNameLines.length * 22 + 20);
+            context.fillText(`Tên CLO: ${criterion.cloId ? getCloLabel(criterion.cloId) : "Chưa gắn CLO"}`, tableX + 16, currentY + 28 + criterionNameLines.length * 22 + 20);
             context.fillStyle = "#047857";
             context.font = "600 14px Arial";
             context.fillText(`Trọng số ${criterion.weight}%`, tableX + 16, currentY + 28 + criterionNameLines.length * 22 + 44);

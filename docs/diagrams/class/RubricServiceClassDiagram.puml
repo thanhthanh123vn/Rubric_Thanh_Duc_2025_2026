@@ -10,7 +10,7 @@ title SƠ ĐỒ LỚP TỔNG QUAN RUBRIC SERVICE
 
 package "frontend.boundary" {
   class CLOManagement <<Boundary>> {
-    -selectedCourseIds: List
+    -selectedCourseId: String
     -editingClo: CloResponse
     +loadData(): Promise
     +handleSubmit(event: FormEvent): Promise
@@ -31,6 +31,7 @@ package "frontend.boundary" {
   class RubricApi <<ApiClient>> {
     +getCourseOptions(): Promise
     +getAllClo(): Promise
+    +getClosByCourse(courseId: String): Promise
     +createClo(data: CloPayload): Promise
     +updateClo(cloId: String, data: CloPayload): Promise
     +getAllRubric(): Promise
@@ -43,7 +44,8 @@ package "frontend.boundary" {
 package "controller" {
   class RubricController <<RestController>> {
     -rubricService: RubricService
-    +getAll(): List
+    +getAll(courseId: String): List
+    +getById(cloId: String): CourseCloEntity
     +getById(id: String): Rubric
     +createRubric(userId: String, request: RubricRequest): ResponseEntity
     +delete(userId: String, id: String): void
@@ -86,8 +88,9 @@ package "service" {
   }
   class CourseCloService <<Service>> {
     -courseCloRepository: CourseCloRepository
-    -courseCloMapRepository: CourseCloMapRepository
     +getAll(): List
+    +getByCourseId(courseId: String): List
+    +getById(cloId: String): CourseCloEntity
     +createClo(request: CloRequest): CourseCloEntity
     +updateClo(cloId: String, request: CloRequest): CourseCloEntity
   }
@@ -113,13 +116,9 @@ package "repository" {
   }
   interface CourseCloRepository <<Repository>> {
     +findAll(): List
-    +findByCloCode(code: String): Optional
-    +findByCloCodeAndCloIdNot(code: String, id: String): Optional
+    +findByCourseIdOrderByCloCodeAsc(courseId: String): List
+    +findByCourseIdAndCloCode(courseId: String, code: String): Optional
     +save(clo: CourseCloEntity): CourseCloEntity
-  }
-  interface CourseCloMapRepository <<Repository>> {
-    +deleteByClo_CloId(cloId: String): void
-    +saveAll(mappings: List): List
   }
 }
 
@@ -136,6 +135,7 @@ package "entity" {
   class RubricCriteria <<Entity>> {
     +criteriaId: String
     +cloId: String
+    +courseId: String
     +criteriaName: String
     +weight: Float
   }
@@ -151,10 +151,6 @@ package "entity" {
     +cloName: String
     +description: String
     +bloomLevel: String
-  }
-  class CourseCloMapEntity <<Entity>> {
-    +id: Long
-    +courseId: String
   }
 }
 
@@ -180,10 +176,8 @@ RubricController ..> CourseClient
 RubricService --> RubricCriteriaRepository
 RubricService --> RubricLevelRepository
 CourseCloService --> CourseCloRepository
-CourseCloService --> CourseCloMapRepository
 Rubric "1" *-- "1..*" RubricCriteria
 RubricCriteria "1" *-- "1..*" RubricLevel
-CourseCloEntity "1" *-- "0..*" CourseCloMapEntity
 RubricCriteria "0..*" ..> "0..1" CourseCloEntity : cloId
 CLOManagement --> RubricApi
 CreateRubricModal --> RubricApi

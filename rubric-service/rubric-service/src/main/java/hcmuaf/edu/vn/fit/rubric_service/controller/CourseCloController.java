@@ -8,7 +8,6 @@ import hcmuaf.edu.vn.fit.rubric_service.entity.CourseCloEntity;
 import hcmuaf.edu.vn.fit.rubric_service.service.CourseCloService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,8 +23,15 @@ public class CourseCloController {
     private final CourseClient courseClient;
 
     @GetMapping
-    public List<CourseCloEntity> getAll(){
-        return courseCloService.getAll();
+    public List<CourseCloEntity> getAll(@RequestParam(required = false) String courseId){
+        return courseId == null
+                ? courseCloService.getAll()
+                : courseCloService.getByCourseId(courseId);
+    }
+
+    @GetMapping("/{cloId}")
+    public CourseCloEntity getById(@PathVariable String cloId) {
+        return courseCloService.getById(cloId);
     }
 
     @PostMapping

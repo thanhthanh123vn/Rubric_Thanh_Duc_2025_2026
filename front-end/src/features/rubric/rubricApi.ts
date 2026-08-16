@@ -5,8 +5,7 @@ export interface CloPayload {
     cloName: string;
     description: string;
     bloomLevel: string;
-    courseId?: string;
-    courseIds?: string[];
+    courseId: string;
 }
 
 export interface CloResponse {
@@ -15,14 +14,15 @@ export interface CloResponse {
     cloName: string;
     description: string;
     bloomLevel: string;
-    courseMappings?: Array<{
-        courseId: string;
-    }>;
+    courseId: string;
 }
 
 export interface CourseOption {
     courseId: string;
+    courseCode?: string;
     courseName: string;
+    credits?: number;
+    department?: string;
 }
 
 export interface RubricCriterion {
@@ -173,6 +173,14 @@ export const getRubricDetail = async (rubricId: string): Promise<RubricResponse>
 
 export const getAllClo = () => {
     return rubricServiceApi.get<CloResponse[]>("/course-clo");
+};
+
+export const getClosByCourse = (courseId: string) => {
+    return rubricServiceApi.get<CloResponse[]>("/course-clo", { params: { courseId } });
+};
+
+export const getCloById = (cloId: string) => {
+    return rubricServiceApi.get<CloResponse>(`/course-clo/${cloId}`);
 };
 
 export const createClo = (data: CloPayload) => {

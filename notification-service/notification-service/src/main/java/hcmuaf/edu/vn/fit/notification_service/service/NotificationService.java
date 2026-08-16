@@ -273,7 +273,7 @@ public class NotificationService {
 
             // SỬA LỖI NULL POINTER EXCEPTION TẠI ĐÂY
             Instant createdAt = notif.getCreatedAt() != null ? notif.getCreatedAt() : Instant.now();
-            dto.setCreatedAt(createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime());
+            dto.setCreatedAt(notif.getCreatedAt());
 
             dto.setReferenceUrl(notif.getReferenceUrl());
             dto.setCourseId(notif.getCourseId());
@@ -378,8 +378,7 @@ public class NotificationService {
         dto.setRead(notif.isRead());
         dto.setOwnerId(notif.getOwnerId());
         Instant createdAt = notif.getCreatedAt() != null ? notif.getCreatedAt() : Instant.now();
-        dto.setCreatedAt(createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime());
-
+        dto.setCreatedAt(notif.getCreatedAt());
         dto.setReferenceUrl(notif.getReferenceUrl());
         dto.setSenderId(notif.getSenderId());
 

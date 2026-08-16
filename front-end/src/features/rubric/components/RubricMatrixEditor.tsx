@@ -144,12 +144,18 @@ export default function RubricMatrixEditor({
     const [saveState, setSaveState] = useState<"idle" | "saving" | "success" | "error">("idle");
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+        let active = true;
+
+        queueMicrotask(() => {
+            if (!active) return;
             setDraft(createDraftFromMatrix(selectedMatrix));
             setIsSaving(false);
             setSaveMessage("");
             setSaveState("idle");
-        }
+        });
+
+        return () => { active = false; };
     }, [open, selectedMatrix]);
 
     const totalWeight = useMemo(
@@ -166,6 +172,12 @@ export default function RubricMatrixEditor({
         () => draft.criteria.filter((item) => item.levels.length > 0).length,
         [draft.criteria],
     );
+
+    const cloLabels = useMemo(
+        () => new Map(clos.map((clo) => [clo.cloId, `${clo.cloCode} - ${clo.cloName}`])),
+        [clos],
+    );
+    const getCloLabel = (cloId: string) => cloLabels.get(cloId) || cloId;
 
     const updateDraft = <K extends keyof MatrixEditorDraft>(field: K, value: MatrixEditorDraft[K]) => {
         setDraft((current) => ({ ...current, [field]: value }));
@@ -495,6 +507,7 @@ export default function RubricMatrixEditor({
 
                 <RubricMatrixPreview
                     criteria={draft.criteria}
+                    getCloLabel={getCloLabel}
                     validationItems={validationItems}
                     sortLevels={sortLevels}
                     onAddLevel={addCriterionLevel}
@@ -552,6 +565,7 @@ export default function RubricMatrixEditor({
                 description={draft.description}
                 criteria={draft.criteria}
                 totalWeight={totalWeight}
+                getCloLabel={getCloLabel}
                 sortLevels={sortLevels}
                 onClose={() => setShowRubricSample(false)}
             />

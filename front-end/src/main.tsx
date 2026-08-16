@@ -5,6 +5,9 @@ import App from './App.tsx'
 import './styles/tailwind.css'
 import {store} from "@/app/store.ts";
 import {Provider} from "react-redux";
+import { registerServiceWorker } from "@/pwa/registerServiceWorker.ts";
+
+registerServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

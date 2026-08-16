@@ -12,6 +12,8 @@ import {
   TrendingUp,
   UserCheck,
   UserX,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,7 +27,7 @@ import {
 import { getBrowserId } from "@/utils/browserId.ts";
 
 type Props = { offeringId: string };
-type GeoState = { latitude: number; longitude: number; accuracy: number };
+type GeoState = { latitude: number; longitude: number; accuracy: number; capturedAt: number };
 type ScannerControls = { stop: () => void };
 type AttendanceTableRow = {
   session: AttendanceSessionSummaryResponse;
@@ -88,6 +90,7 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
   const [history, setHistory] = useState<AttendanceHistoryResponse[]>([]);
   const [sessions, setSessions] = useState<AttendanceSessionSummaryResponse[]>([]);
   const [geoState, setGeoState] = useState<GeoState | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const stopScanner = () => {
     scannerControlsRef.current?.stop();
@@ -140,6 +143,20 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
 
   useEffect(() => () => scannerControlsRef.current?.stop(), []);
 
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      stopScanner();
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
   const getCurrentLocation = async () => {
     if (!navigator.geolocation) throw new Error("Trình duyệt không hỗ trợ định vị GPS.");
 
@@ -149,9 +166,17 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
+          capturedAt: Date.now(),
         }),
-        () => reject(new Error("Không thể lấy vị trí hiện tại. Hãy cấp quyền GPS và thử lại.")),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+        (error) => {
+          const message = error.code === error.PERMISSION_DENIED
+            ? "Bạn chưa cấp quyền vị trí. Hãy cho phép GPS trong cài đặt trình duyệt."
+            : error.code === error.TIMEOUT
+              ? "GPS phản hồi quá chậm. Hãy ra nơi thoáng và thử lại."
+              : "Không thể xác định vị trí hiện tại. Hãy bật GPS và thử lại.";
+          reject(new Error(message));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
       );
     });
   };
@@ -174,10 +199,17 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
 
   const submitCheckIn = async (content: string) => {
     if (!content.trim() || isSubmitting) return;
+    if (!navigator.onLine) {
+      const message = "Thiết bị đang ngoại tuyến. Hãy kết nối mạng trước khi điểm danh.";
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
     try {
       setIsSubmitting(true);
       setErrorMessage("");
-      const location = geoState ?? await getCurrentLocation();
+      const hasFreshLocation = geoState && Date.now() - geoState.capturedAt < 30000;
+      const location = hasFreshLocation ? geoState : await getCurrentLocation();
       setGeoState(location);
       const response = await attendanceApi.checkInByQr({
         qrContent: content.trim(),
@@ -200,6 +232,12 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
 
   const startScanner = async () => {
     if (!videoRef.current || isScanning) return;
+    if (!navigator.onLine) {
+      const message = "Thiết bị đang ngoại tuyến. Hãy kết nối mạng để điểm danh.";
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
     if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
       const message =
         "Trình duyệt chỉ cho phép dùng camera trên HTTPS hoặc localhost. Hãy mở hệ thống bằng HTTPS rồi thử lại.";
@@ -274,8 +312,8 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
   }, [attendanceRows]);
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:space-y-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatisticCard icon={CalendarDays} label="Số buổi đã học" value={String(statistics.total)}
           note="Không tính các buổi chưa diễn ra." tone="slate" />
         <StatisticCard icon={UserCheck} label="Có mặt" value={String(statistics.present)}
@@ -288,8 +326,8 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
       </div>
 
       <section className="w-full space-y-6">
-        <article className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
+        <article className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
                 <ScanLine className="h-5 w-5" />
@@ -299,10 +337,16 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
                 <p className="mt-1 text-sm text-slate-500">Camera sẽ đọc QR và gửi check-in cùng vị trí GPS.</p>
               </div>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">QR + GPS</span>
+            <div className="flex items-center gap-2 self-start">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${isOnline ? "bg-sky-50 text-sky-700" : "bg-rose-50 text-rose-700"}`}>
+                {isOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                {isOnline ? "Trực tuyến" : "Ngoại tuyến"}
+              </span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">QR + GPS</span>
+            </div>
           </div>
 
-          <div className="relative mt-5 aspect-video overflow-hidden rounded-2xl bg-slate-950">
+          <div className="relative mt-4 aspect-square max-h-[70svh] overflow-hidden rounded-2xl bg-slate-950 sm:mt-5 sm:aspect-video">
             <video ref={videoRef}
               className={`h-full w-full object-cover ${isScanning ? "opacity-100" : "opacity-20"}`}
               muted playsInline />
@@ -319,20 +363,20 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {isScanning ? (
               <button type="button" onClick={stopScanner}
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                 <CameraOff className="h-4 w-4" />Tắt camera
               </button>
             ) : (
-              <button type="button" onClick={() => void startScanner()} disabled={isSubmitting}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
+              <button type="button" onClick={() => void startScanner()} disabled={isSubmitting || !isOnline}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
                 <Camera className="h-4 w-4" />Mở camera quét QR
               </button>
             )}
             <button type="button" onClick={() => void handleGetLocation()} disabled={isLocating}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60">
               <LocateFixed className="h-4 w-4 text-emerald-600" />
               {isLocating ? "Đang lấy GPS..." : geoState ? "Cập nhật GPS" : "Lấy vị trí GPS"}
             </button>
@@ -353,8 +397,8 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
               <textarea value={qrContent} onChange={(event) => setQrContent(event.target.value)}
                 placeholder={`{"sessionId":"...","qrToken":"..."}`}
                 className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm outline-none focus:border-emerald-400" />
-              <button type="submit" disabled={isSubmitting}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              <button type="submit" disabled={isSubmitting || !isOnline}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 sm:w-auto">
                 <QrCode className="h-4 w-4" />{isSubmitting ? "Đang xác nhận..." : "Xác nhận điểm danh"}
               </button>
             </form>
@@ -392,8 +436,34 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
           ) : attendanceRows.length === 0 ? (
             <div className="p-10 text-center text-sm text-slate-500">Chưa có phiên điểm danh nào trong học phần này.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse text-sm">
+            <>
+              <div className="space-y-3 p-4 sm:hidden">
+                {attendanceRows.map((row, index) => {
+                  const status = getAttendanceStatus(row);
+                  const badge = getStatusBadge(status);
+                  return (
+                    <article key={row.session.sessionId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Buổi {index + 1}</p>
+                          <p className="mt-1 font-bold text-slate-900">{formatDateOnly(row.session.attendanceDate)}</p>
+                          <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                            <Clock3 className="h-3.5 w-3.5" />{formatTimeOnly(row.session.startTime)}–{formatTimeOnly(row.session.endTime)}
+                          </p>
+                        </div>
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
+                      </div>
+                      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                        <div><dt className="text-xs text-slate-500">Check-in</dt><dd className="mt-1 font-medium text-slate-800">{formatDateTime(row.record?.checkinTime || null)}</dd></div>
+                        <div><dt className="text-xs text-slate-500">Phương thức</dt><dd className="mt-1 font-medium text-slate-800">{getMethodLabel(row.record?.method || null)}</dd></div>
+                      </dl>
+                      {row.record?.note ? <p className="mt-3 border-t border-slate-200 pt-3 text-xs text-slate-600">{row.record.note}</p> : null}
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full min-w-[900px] border-collapse text-sm">
                 <thead className="bg-slate-100">
                   <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">
                     <th className="w-16 border-b border-r border-slate-300 px-4 py-3 text-center">STT</th>
@@ -429,8 +499,9 @@ export default function StudentAttendanceCheckIn({ offeringId }: Props) {
                     );
                   })}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
         </article>
       </section>
@@ -454,9 +525,9 @@ function StatisticCard({
     amber: "border-amber-200 bg-amber-50 text-amber-700",
   }[tone];
   return (
-    <div className={`rounded-2xl border p-4 ${toneClass}`}>
+    <div className={`min-w-0 rounded-2xl border p-3 sm:p-4 ${toneClass}`}>
       <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold">{label}</p><Icon className="h-5 w-5" /></div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-3 text-xl font-bold text-slate-900 sm:text-2xl">{value}</p>
       <p className="mt-1 text-xs text-slate-500">{note}</p>
     </div>
   );

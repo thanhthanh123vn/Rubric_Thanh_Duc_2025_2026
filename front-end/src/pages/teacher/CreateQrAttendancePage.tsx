@@ -1007,14 +1007,14 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
   }, [activeRecordTab, recordCounts]);
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.15),_transparent_30%),linear-gradient(180deg,_#ffffff_0%,_#f4fbf8_100%)] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
+    <div className="space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:space-y-6 md:space-y-8">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.15),_transparent_30%),linear-gradient(180deg,_#ffffff_0%,_#f4fbf8_100%)] p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Điểm danh QR + GPS
             </span>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900">
+            <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
               Quản lý điểm danh lớp học phần
             </h2>
           </div>
@@ -1031,7 +1031,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
       {view !== "overview" ? (
         <>
           <section className={`${view === "history" ? "hidden" : "grid"} gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)]`}>
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
+            <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
                   <CalendarDays className="h-5 w-5" />
@@ -1116,7 +1116,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                         type="button"
                         onClick={handleGetLocation}
                         disabled={isLocating || hasActiveQr}
-                        className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:rounded-full"
                       >
                         <LocateFixed className="h-4 w-4" />
                         {isLocating ? "Đang lấy GPS..." : "Lấy GPS"}
@@ -1147,7 +1147,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                 <button
                   type="submit"
                   disabled={isSubmitting || hasActiveQr}
-                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto sm:rounded-full"
                 >
                   <QrCode className="h-4 w-4" />
                   {hasActiveQr
@@ -1159,7 +1159,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
               </form>
             </article>
 
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
+            <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-2xl bg-slate-900/5 p-3 text-slate-700">
                   <QrCode className="h-5 w-5" />
@@ -1171,9 +1171,9 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
 
               {displayedSession ? (
                 <div className="space-y-5">
-                  <div className="flex justify-center rounded-[1.75rem] border border-dashed border-emerald-200 bg-emerald-50/60 p-6">
-                    <div className="rounded-[1.5rem] bg-white p-4 shadow-sm">
-                      <QRCodeSVG value={displayedSession.qrContent} size={240} level="M" includeMargin />
+                  <div className="flex justify-center rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/60 p-3 sm:rounded-[1.75rem] sm:p-6">
+                    <div className="w-full max-w-[272px] rounded-[1.5rem] bg-white p-4 shadow-sm">
+                      <QRCodeSVG value={displayedSession.qrContent} size={240} level="M" includeMargin className="h-auto w-full" />
                     </div>
                   </div>
 
@@ -1208,7 +1208,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
           </section>
 
           <section className={`${view === "create" ? "hidden" : "grid"} gap-6 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)]`}>
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
+            <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
                   <Clock3 className="h-5 w-5" />
@@ -1272,7 +1272,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
               </div>
             </article>
 
-            <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
+            <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
                   <Users2 className="h-5 w-5" />
@@ -1323,7 +1323,35 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                       />
                     ) : (
                       <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
-                        <div className="overflow-x-auto">
+                        <div className="space-y-3 p-3 sm:hidden">
+                          {filteredAttendanceRecords.map((record, index) => (
+                            <article key={record.attendanceId} className="rounded-2xl bg-slate-50 p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate font-bold text-slate-900">{record.studentName}</p>
+                                  <p className="mt-1 text-xs text-slate-500">#{index + 1} · {record.studentId}</p>
+                                </div>
+                                <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${record.suspicious ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                  {record.suspicious ? "Nghi ngờ" : getAttendanceStatusLabel(record.status)}
+                                </span>
+                              </div>
+                              <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                <div><dt className="text-xs text-slate-500">Check-in</dt><dd className="mt-1 font-medium text-slate-800">{record.checkinTime ? formatDateTime(record.checkinTime) : "--"}</dd></div>
+                                <div><dt className="text-xs text-slate-500">Phương thức</dt><dd className="mt-1 font-medium text-slate-800">{getAttendanceMethodLabel(record.method)}</dd></div>
+                                <div><dt className="text-xs text-slate-500">Khoảng cách</dt><dd className="mt-1 font-medium text-slate-800">{formatMeters(record.distance)}</dd></div>
+                                <div><dt className="text-xs text-slate-500">Đối chiếu GPS</dt><dd className="mt-1 font-medium text-slate-800">{getGpsReviewLabel(record)}</dd></div>
+                              </dl>
+                              {canReviewAttendanceRecord(record) ? (
+                                <button type="button" disabled={updatingAttendanceId === record.attendanceId}
+                                  onClick={() => void handleAttendanceStatusUpdate(record, record.status === "ABSENT" ? "PRESENT" : "ABSENT")}
+                                  className={`mt-4 min-h-11 w-full rounded-xl px-3 py-2 text-sm font-semibold ${record.status === "ABSENT" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"} disabled:opacity-70`}>
+                                  {updatingAttendanceId === record.attendanceId ? "Đang cập nhật..." : record.status === "ABSENT" ? "Khôi phục có mặt" : "Đánh vắng"}
+                                </button>
+                              ) : null}
+                            </article>
+                          ))}
+                        </div>
+                        <div className="hidden overflow-x-auto sm:block">
                           <table className="min-w-full divide-y divide-slate-200 text-sm">
                             <thead className="bg-slate-100/90">
                               <tr className="text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -1422,14 +1450,14 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
         </>
       ) : (
         <section className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             <InfoCard label="Tổng sinh viên" value={String(overviewStats.totalStudents)} />
             <InfoCard label="Số buổi đã học" value={String(overviewStats.totalSessions)} />
             <InfoCard label="Đậu chuyên cần" value={String(overviewStats.passCount)} />
             <InfoCard label="Rớt chuyên cần" value={String(overviewStats.failCount)} />
           </div>
 
-          <article className="rounded-[2rem] border border-slate-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.06)] md:p-8">
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
                 <Users2 className="h-5 w-5" />
@@ -1534,7 +1562,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                         <button
                           type="button"
                           onClick={handleExportAttendanceExcel}
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+                          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 sm:w-auto"
                         >
                           <Download className="h-4 w-4" />
                           Xuất Excel
@@ -1543,6 +1571,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                     </div>
                   </div>
 
+                  <p className="text-xs text-slate-500 sm:hidden">Vuốt ngang bảng để xem các buổi điểm danh.</p>
                   <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
                   <div className="overflow-x-auto">
                     <table className="min-w-[1100px] w-full divide-y divide-slate-200 text-sm">
