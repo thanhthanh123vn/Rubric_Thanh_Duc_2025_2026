@@ -151,7 +151,7 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
                     <button
                         className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6">
                       <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
-                      Them mot tai khoan khac
+                      Thêm một tài khoản khác
                     </button>
 
                     <button
@@ -159,17 +159,17 @@ export default function TeacherHeader({ onMenuClick }: TeacherHeaderProps) {
                         className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6"
                     >
                       <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
-                      Dang xuat
+                     Đăng Xuất
                     </button>
                   </div>
 
                   <div className="mb-1 mt-2 flex justify-center gap-2 text-[10px] text-gray-600 sm:text-xs">
                     <Link to="#" className="rounded-md px-2 py-1.5 transition-colors hover:bg-gray-200">
-                      Chinh sach rieng tu
+                     Chính sách riêng tư
                     </Link>
                     <span className="py-1.5">|</span>
                     <Link to="#" className="rounded-md px-2 py-1.5 transition-colors hover:bg-gray-200">
-                      Dieu khoan
+                     Điều Khoản
                     </Link>
                   </div>
                 </div>

@@ -138,7 +138,7 @@ const navigate = useNavigate();
                                             <button
                                                 className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6">
                                                 <UserPlus className="h-4 w-4 sm:h-5 sm:w-5"/>
-                                                Them mot tai khoan khac
+                                               Thêm một tài khoản khác
                                             </button>
 
                                             <button
@@ -146,7 +146,7 @@ const navigate = useNavigate();
                                                 className="flex w-full items-center gap-3 rounded-full px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-white sm:gap-4 sm:px-6"
                                             >
                                                 <LogOut className="h-4 w-4 sm:h-5 sm:w-5"/>
-                                                Dang xuat
+                                              Đăng Xuất
                                             </button>
                                         </div>
 

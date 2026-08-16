@@ -11,41 +11,50 @@ import java.util.List;
 @Repository
 public interface AssessmentRepository extends JpaRepository<Assessment,String> {
     @Query(value = """
-    SELECT 
-        a.assessment_id,
-        a.assessment_name,
-        a.assessment_type,
-        a.weight,
-        a.end_time,
+SELECT 
+    a.assessment_id,
+    a.assessment_name,
+    a.assessment_type,
+    a.weight,
+    a.end_time,
 
-        s.submission_id,
-        s.submitted_at,
+    s.submission_id,
+    s.submitted_at,
 
-        sum(rr.calculated_score) as total_score,
-        rr.lecturer_comment,
-            
-        CONCAT('[', GROUP_CONCAT(DISTINCT CONCAT('"', c.clo_code, '"')), ']') AS clos
-                                    
-    FROM assessments a
+    SUM(rr.calculated_score) AS total_score,
+    
+    -- Dùng hàm MAX để lấy comment mà không vi phạm luật Group By
+    MAX(rr.lecturer_comment) AS lecturer_comment,
+        
+    CONCAT('[', GROUP_CONCAT(DISTINCT CONCAT('"', c.clo_code, '"')), ']') AS clos
+                                
+FROM assessments a
 
-    LEFT JOIN submissions s 
-        ON s.assessment_id = a.assessment_id
-        AND s.student_id = :studentId
+LEFT JOIN submissions s 
+    ON s.assessment_id = a.assessment_id
+    AND s.student_id = :studentId
 
-    LEFT JOIN rubric_results rr 
-        ON rr.submission_id = s.submission_id
+LEFT JOIN rubric_results rr 
+    ON rr.submission_id = s.submission_id
 
-    LEFT JOIN assessment_clo ac 
-        ON ac.assessment_id = a.assessment_id
+LEFT JOIN assessment_clo ac 
+    ON ac.assessment_id = a.assessment_id
 
-    LEFT JOIN course_clo c 
-        ON c.clo_id = ac.clo_id
+LEFT JOIN course_clo c 
+    ON c.clo_id = ac.clo_id
 
-    WHERE a.offering_id = :offeringId
-    group by a.assessment_id
-    """, nativeQuery = true)
-    List<Object[]> getAssignmentByCourseOffering(@Param("offeringId") String offeringId,@Param("studentId") String studentId);
+WHERE a.offering_id = :offeringId
 
+GROUP BY 
+    a.assessment_id,
+    a.assessment_name,
+    a.assessment_type,
+    a.weight,
+    a.end_time,
+    s.submission_id,
+    s.submitted_at
+""", nativeQuery = true)
+    List<Object[]> getAssignmentByCourseOffering(@Param("offeringId") String offeringId, @Param("studentId") String studentId);
     @Query(value = """
 
             SELECT
