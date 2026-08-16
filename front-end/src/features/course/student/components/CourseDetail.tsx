@@ -9,8 +9,9 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import { toast } from "sonner";
 import postService from "@/api/postService.ts";
-import { X, Send, MessageSquare } from "lucide-react";
-
+import {X, Send, MessageSquare, ArrowLeft} from "lucide-react";
+import Banner from "@/components/common/Banner";
+import { getBannerColor } from "@/utils/colorUtils";
 const getInitial = (name?: string) => {
     if (!name) return "U";
     const words = name.trim().split(' ');
@@ -18,14 +19,6 @@ const getInitial = (name?: string) => {
     return lastName.charAt(0).toUpperCase();
 };
 
-const Banner = ({ title, description }: any) => {
-    return (
-        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl p-6 mb-4 md:mb-6 shadow-sm">
-            <h2 className="text-2xl font-semibold">{title}</h2>
-            <p className="text-sm opacity-90 mt-1">{description}</p>
-        </div>
-    );
-};
 
 const CreatePostBox = ({ onPostSuccess, fullName, avatarUrl }: { onPostSuccess: () => void, fullName?: string, avatarUrl?: string }) => {
     const { id } = useParams<{ id: string }>();
@@ -91,14 +84,64 @@ const CreatePostBox = ({ onPostSuccess, fullName, avatarUrl }: { onPostSuccess: 
     );
 };
 
-// const UpcomingBox = () => {
-//     return (
-//         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-6">
-//             <p className="text-gray-800 font-medium">Sắp đến hạn</p>
-//             <p className="text-sm text-gray-500 mt-1">Tuyệt vời, không có bài tập nào sắp đến hạn!</p>
-//         </div>
-//     );
-// };
+const UpcomingBox = ({ offeringId, assignments }: { offeringId: string, assignments: any[] }) => {
+    const navigate = useNavigate();
+
+    // Lọc các bài tập chưa tới hạn và sắp xếp theo thời gian gần nhất
+    const upcomingAssignments = useMemo(() => {
+        const now = new Date().getTime();
+        return assignments
+            .filter(a => a.endTime && new Date(a.endTime).getTime() > now)
+            .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
+            .slice(0, 4); // Chỉ hiển thị tối đa 4 bài tập gần nhất cho gọn
+    }, [assignments]);
+
+    return (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+            <h3 className="text-gray-900 font-medium mb-3">Sắp đến hạn</h3>
+
+            {upcomingAssignments.length > 0 ? (
+                <div className="space-y-4 mb-4">
+                    {upcomingAssignments.map((item, index) => {
+                        const date = new Date(item.endTime);
+                        const isToday = new Date().toDateString() === date.toDateString();
+                        const isTomorrow = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toDateString() === date.toDateString();
+
+                        let dateText = date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+                        if (isToday) dateText = "Hôm nay";
+                        else if (isTomorrow) dateText = "Ngày mai";
+
+                        return (
+                            <div
+                                key={`upcoming-${item.assessmentId || index}`}
+                                className="group cursor-pointer"
+                                onClick={() => navigate(`/course/${offeringId}/assignments/${item.assessmentId}`)}
+                            >
+                                <p className="text-sm font-medium text-gray-800 group-hover:text-emerald-600 truncate transition-colors">
+                                    {item.assessmentName}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    Đến hạn {date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - {dateText}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <p className="text-sm text-gray-500 mb-4">Tuyệt vời, không có bài tập nào sắp đến hạn!</p>
+            )}
+
+            <div className="flex justify-end mt-2">
+                <button
+                    onClick={() => navigate(`/course/${offeringId}/assignments`)}
+                    className="text-sm font-medium text-emerald-600 hover:text-emerald-800 transition-colors"
+                >
+                    Xem tất cả
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offeringId, lecturerName }: any) => {
     const navigate = useNavigate();
@@ -190,7 +233,7 @@ const Post = ({ postId, id, username, fullName, avatarUrl, createdAt, content, c
     }
     const displayName = fullName || username || "Ẩn danh";
 
-    const [showComments, setShowComments] = useState(true);
+    const [showComments, setShowComments] = useState(false);
     const [commentInput, setCommentInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [localComments, setLocalComments] = useState<any[]>(initialComments);
@@ -500,6 +543,7 @@ const ClassroomContent = () => {
             user = JSON.parse(localUser);
         }
     }
+
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const { id } = useParams<{ id: string }>();
@@ -508,7 +552,7 @@ const ClassroomContent = () => {
     const [course, setCourse] = useState<any>(null);
     const [feed, setFeed] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-
+const navigate = useNavigate();
     const [postPage, setPostPage] = useState(0);
     const [hasMorePosts, setHasMorePosts] = useState(true);
     const POST_SIZE = 10;
@@ -558,7 +602,18 @@ const ClassroomContent = () => {
             setLoading(false);
         }
     };
+    const bannerColors = [
+        "blue",
+        "emerald",
+        "purple",
+        "pink",
+        "orange",
+        "cyan",
+        "indigo",
+        "red",
+    ];
 
+    const bannerColor = offeringId ? getBannerColor(offeringId) : "emerald";
     const loadMorePosts = async () => {
         if (!hasMorePosts || !offeringId) return;
         try {
@@ -637,16 +692,22 @@ const ClassroomContent = () => {
                 onEnrollSuccess={() => setRefreshKey(prev => prev + 1)}
             />
 
-            <div className="flex flex-1 flex-col md:flex-row">
-                <div className="w-full md:w-64 shrink-0">
+            <div className="flex flex-1 flex-col lg:flex-row">
+                {/* Sidebar */}
+                <div className="w-full lg:w-72 shrink-0">
                     <Sidebar
                         isOpen={isMobileMenuOpen}
                         onClose={() => setIsMobileMenuOpen(false)}
                     />
                 </div>
 
-                <div className="flex-1 p-3 sm:p-4 md:p-6 w-full">
-                    <div className="max-w-3xl mx-auto w-full">
+                {/* Nội dung chính */}
+                <div className="flex-1 p-4 lg:p-8 w-full">
+
+                    <div className="w-full max-w-6xl mx-auto">
+
+
+
                         <Banner
                             title={`${course?.course?.courseName || "Lớp Học"}${
                                 course ? ` - ${course.semester} (${course.year})` : ""
@@ -654,43 +715,59 @@ const ClassroomContent = () => {
                             description={`Giảng viên: ${
                                 course?.lecturers?.map((l: any) => l.lecturerName).join(", ") || ""
                             } - Mã lớp: ${offeringId}`}
+                            color={bannerColor}
                         />
 
-                        <CreatePostBox onPostSuccess={fetchData} fullName={user.fullName} avatarUrl={user.avatarUrl} />
+                        {/* LAYOUT 2 CỘT TẠI ĐÂY */}
+                        <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start mt-6">
 
-                        {/*<div className="hidden md:block mb-4">*/}
-                        {/*    <UpcomingBox />*/}
-                        {/*</div>*/}
 
-                        <div className="space-y-4">
-                            {feed.length === 0 ? (
-                                <div className="text-center text-gray-500 mt-8 text-sm md:text-base">
-                                    Chưa có thông báo và bài tập nào.
-                                </div>
-                            ) : (
-                                <>
-                                    {feed.map((item: any, idx: number) => {
-                                        if (item.feedType === 'ASSIGNMENT') {
-                                            return <AssignmentPost key={`assign-${item.assessmentId || idx}`} {...item} lecturerName={course?.lecturerName} />;
-                                        }
-                                        if (item.feedType === 'ANNOUNCEMENT') {
-                                            return <AnnouncementPost key={`ann-${item.id || idx}`} {...item} lecturerName={course?.lecturerName} />;
-                                        }
-                                        return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user?.avatarUrl} />;
-                                    })}
+                            <div className="w-full lg:w-1/4 shrink-0 lg:sticky lg:top-[90px]">
+                                {/* Truyền danh sách assignment vào UpcomingBox */}
+                                <UpcomingBox
+                                    offeringId={offeringId}
+                                    assignments={feed.filter((item: any) => item.feedType === 'ASSIGNMENT')}
+                                />
+                            </div>
 
-                                    {hasMorePosts && (
-                                        <div className="flex justify-center mt-6">
-                                            <button
-                                                onClick={loadMorePosts}
-                                                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-full shadow-sm hover:bg-gray-50 hover:text-emerald-600 transition-colors"
-                                            >
-                                                Tải thêm bài đăng cũ...
-                                            </button>
+                            {/* Cột phải: Đăng bài & Feed (Khoảng 75% chiều rộng) */}
+                            <div className="w-full lg:w-3/4 flex-1">
+                                <CreatePostBox onPostSuccess={fetchData} fullName={user.fullName}
+                                               avatarUrl={user.avatarUrl}/>
+
+                                <div className="space-y-4">
+                                    {feed.length === 0 ? (
+                                        <div className="text-center text-gray-500 mt-8 text-sm md:text-base">
+                                            Chưa có thông báo và bài tập nào.
                                         </div>
+                                    ) : (
+                                        <>
+                                            {feed.map((item: any, idx: number) => {
+                                                if (item.feedType === 'ASSIGNMENT') {
+                                                    return <AssignmentPost key={`assign-${item.assessmentId || idx}`} {...item} lecturerName={course?.lecturerName} />;
+                                                }
+                                                if (item.feedType === 'ANNOUNCEMENT') {
+                                                    return <AnnouncementPost key={`ann-${item.id || idx}`} {...item} lecturerName={course?.lecturerName} />;
+                                                }
+                                                return <Post key={`post-${item.postId || idx}`} {...item} avatarUrlMe={user?.avatarUrl} />;
+                                            })}
+
+                                            {hasMorePosts && (
+                                                <div className="flex justify-center mt-6">
+                                                    <button
+                                                        onClick={loadMorePosts}
+                                                        className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-full shadow-sm hover:bg-gray-50 hover:text-emerald-600 transition-colors"
+                                                    >
+                                                        Tải thêm bài đăng cũ...
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                </>
-                            )}
+                                </div>
+                            </div>
+                            {/* HẾT CỘT PHẢI */}
+
                         </div>
                     </div>
                 </div>
