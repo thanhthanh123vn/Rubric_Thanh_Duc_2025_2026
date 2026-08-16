@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import { Layers } from 'lucide-react';
 import {rubricApi} from "@/api/RubricApi.ts";
-import {RubricPreview} from "@/pages/department/RubricPreview.tsx";
+import RubricVersionDiff from "@/features/rubric/components/RubricVersionDiff.tsx";
 
 
 
@@ -24,6 +24,8 @@ interface RubricSubmission {
     reviewedBy?: string;
     status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
     feedback?: string;
+    versionNumber?: number;
+    parentRubricId?: string | null;
 
 }
 
@@ -136,10 +138,12 @@ export default function RubricApproval() {
             {/* Header */}
             <div className="mb-6">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <FileText className="w-6 h-6 text-indigo-600" /> Phê duyệt Rubric
+                    <FileText className="w-6 h-6 text-indigo-600" /> {isDean ? 'Phê duyệt Rubric cấp khoa' : 'Phê duyệt Rubric version'}
                 </h2>
                 <p className="text-slate-500 text-sm mt-1">
-                    Xem xét và đánh giá các bảng tiêu chí chấm điểm do Giảng viên đệ trình.
+                    {isDean
+                        ? 'Xem xét rubric dùng chung được gửi lên cấp khoa.'
+                        : 'Xem bản cũ, bản chỉnh sửa và duyệt version do giảng viên chính trong bộ môn gửi lên.'}
                 </p>
             </div>
 
@@ -213,12 +217,15 @@ export default function RubricApproval() {
                             filteredRubrics.map((rubric) => (
                                 <tr key={rubric.rubricId} className="hover:bg-slate-50 transition-colors group">
                                     <td className="px-6 py-4">
-                                        <div className="font-bold text-slate-800">{rubric.rubricName}</div>
+                                        <div className="flex items-center gap-2 font-bold text-slate-800">
+                                            <span>{rubric.rubricName}</span>
+                                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">v{rubric.versionNumber ?? 1}</span>
+                                        </div>
                                         <div className="text-xs text-slate-500 mt-0.5">Mã học phần: {rubric.courseId}</div>
                                     </td>
                                     <td className="px-6 py-4 font-medium text-slate-700">{rubric.createdBy}</td>
                                     <td className="px-6 py-4 text-slate-500 text-xs">
-                                        {formatDate(rubric.reviewedAt)}
+                                        {formatDate(rubric.submittedAt)}
                                     </td>
                                     <td className="px-6 py-4">{renderStatusBadge(rubric.status)}</td>
                                     <td className="px-6 py-4 text-right">
@@ -263,7 +270,7 @@ export default function RubricApproval() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-500 mb-1">Thời gian đệ trình</p>
-                                    <p className="font-semibold text-slate-800">{formatDate(selectedRubric.reviewedAt)}</p>
+                                    <p className="font-semibold text-slate-800">{formatDate(selectedRubric.submittedAt)}</p>
                                 </div>
                                 <div className="col-span-2">
                                     <p className="text-xs text-slate-500 mb-1">Trạng thái hiện tại</p>
@@ -275,7 +282,7 @@ export default function RubricApproval() {
                             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
                                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/50">
                                     <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                                        <Layers className="w-5 h-5 text-indigo-500" /> Bản xem trước Nội dung
+                                        <Layers className="w-5 h-5 text-indigo-500" /> So sánh nội dung cũ và version v{selectedRubric.versionNumber ?? 1}
                                     </h4>
                                     <Button variant="outline" size="sm" className="h-8 text-xs font-medium">
                                         Xem chi tiết <ChevronRight className="w-3 h-3 ml-1"/>
@@ -283,7 +290,9 @@ export default function RubricApproval() {
                                 </div>
 
 
-                                <RubricPreview rubricId={selectedRubric.rubricId} />
+                                <div className="p-4">
+                                    <RubricVersionDiff rubricId={selectedRubric.rubricId} />
+                                </div>
                             </div>
 
                             {selectedRubric.status === 'PENDING' ? (
@@ -327,7 +336,7 @@ export default function RubricApproval() {
                                         onClick={() => handleAction('APPROVE')}
                                         className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 font-bold shadow-sm"
                                     >
-                                        Phê duyệt Rubric
+                                        {isDean ? 'Phê duyệt Rubric' : 'Phê duyệt version'}
                                     </Button>
                                 </>
                             )}

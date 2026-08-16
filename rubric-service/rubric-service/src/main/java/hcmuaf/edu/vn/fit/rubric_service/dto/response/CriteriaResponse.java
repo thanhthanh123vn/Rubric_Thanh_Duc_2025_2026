@@ -2,6 +2,8 @@ package hcmuaf.edu.vn.fit.rubric_service.dto.response;
 
 import lombok.*;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -13,5 +15,9 @@ public class CriteriaResponse {
 
     private String name;
 
+    private String description;
+
     private Float weight;
+
+    private List<RubricLevelResponse> levels;
 }

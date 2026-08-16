@@ -55,6 +55,14 @@ export interface RubricResponse {
     criteria: RubricCriterion[];
     levels?: RubricLevel[];
     criterionLevelDescriptors?: CriterionLevelDescriptor[];
+    facultyId?: string | null;
+    lecturerId?: string | null;
+    rubricType?: "FACULTY" | "LECTURER_VARIANT";
+    visibility?: "FACULTY" | "PRIVATE";
+    rootRubricId?: string | null;
+    parentRubricId?: string | null;
+    versionNumber?: number;
+    status?: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 }
 
 type RawRecord = Record<string, unknown>;
@@ -146,11 +154,23 @@ const normalizeRubric = (raw: RawRecord): RubricResponse => {
         criteria,
         levels,
         criterionLevelDescriptors,
+        facultyId: raw.facultyId ? String(raw.facultyId) : null,
+        lecturerId: raw.lecturerId ? String(raw.lecturerId) : null,
+        rubricType: raw.rubricType as RubricResponse["rubricType"],
+        visibility: raw.visibility as RubricResponse["visibility"],
+        rootRubricId: raw.rootRubricId ? String(raw.rootRubricId) : null,
+        parentRubricId: raw.parentRubricId ? String(raw.parentRubricId) : null,
+        versionNumber: toNumber(raw.versionNumber, 1),
+        status: raw.status as RubricResponse["status"],
     };
 };
 
 export const getAllRubric = () => {
     return rubricServiceApi.get("/rubrics");
+};
+
+export const getMyRubrics = () => {
+    return rubricServiceApi.get("/rubrics/me");
 };
 
 export const getRubricDetail = async (rubricId: string): Promise<RubricResponse> => {
@@ -208,3 +228,45 @@ export const getRubricMatrix = () => {
 export const updateRubricMatrix = (payload : any) => {
     return rubricServiceApi.post('/rubric-matrices',payload);
 }
+
+export const cloneRubricVersion = (
+    sourceRubricId: string,
+    payload: { rubricName?: string; description?: string } = {},
+) => {
+    return rubricServiceApi.post(`/rubrics/${sourceRubricId}/clone`, payload);
+};
+
+export const submitRubricVersion = (rubricId: string) => {
+    return rubricServiceApi.put(`/rubrics/${rubricId}/submit`);
+};
+
+export const getRubricForEdit = async (rubricId: string) => {
+    const response = await rubricServiceApi.get(`/rubrics/${rubricId}`);
+    const raw = response.data as RawRecord;
+    return {
+        rubricId: String(raw.rubricId ?? rubricId),
+        rubricName: String(raw.rubricName ?? raw.name ?? ""),
+        description: String(raw.description ?? ""),
+        courseId: raw.courseId ? String(raw.courseId) : undefined,
+        criteria: Array.isArray(raw.criteria) ? raw.criteria.map((item) => {
+            const criterion = item as RawRecord;
+            return {
+                id: String(criterion.criteriaId ?? criterion.id ?? ""),
+                name: String(criterion.criteriaName ?? criterion.name ?? ""),
+                description: String(criterion.description ?? ""),
+                cloId: criterion.cloId ? String(criterion.cloId) : null,
+                weight: toNumber(criterion.weight),
+                levels: Array.isArray(criterion.levels) ? criterion.levels.map((levelItem, index) => {
+                    const level = levelItem as RawRecord;
+                    return {
+                        id: String(level.levelId ?? level.id ?? ""),
+                        name: String(level.levelName ?? level.name ?? ""),
+                        description: String(level.description ?? ""),
+                        score: toNumber(level.score),
+                        orderIndex: index + 1,
+                    };
+                }) : [],
+            };
+        }) : [],
+    };
+};

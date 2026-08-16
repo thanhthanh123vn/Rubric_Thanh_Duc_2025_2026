@@ -1,7 +1,8 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { updateRubricMatrix } from "@/features/rubric/rubricApi.ts";
+import { rubricApi } from "@/api/RubricApi.ts";
+import type { CourseOption } from "@/features/rubric/rubricApi.ts";
 import RubricMatrixPreview, {
     type MatrixCriterionDraft,
     type MatrixLevelDraft,
@@ -32,6 +33,12 @@ export interface RubricMatrixResponse {
     criteriaCount: number;
     totalWeight: number;
     status: string;
+    approvalStatus?: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
+    courseId?: string | null;
+    rubricType?: "FACULTY" | "LECTURER_VARIANT";
+    rootRubricId?: string | null;
+    parentRubricId?: string | null;
+    versionNumber?: number;
     rows: RubricMatrixRow[];
 }
 
@@ -40,6 +47,7 @@ export interface CloOption {
     cloCode: string;
     cloName: string;
     bloomLevel?: string;
+    courseId?: string;
 }
 
 export interface RubricOption {
@@ -51,6 +59,7 @@ export interface RubricOption {
 
 interface MatrixEditorDraft {
     id: string;
+    courseId: string;
     name: string;
     description: string;
     status: string;
@@ -61,7 +70,7 @@ type Props = {
     open: boolean;
     selectedMatrix: RubricMatrixResponse | null;
     clos: CloOption[];
-    rubrics: RubricOption[];
+    courses: CourseOption[];
     onClose: () => void;
     onSaved?: () => Promise<void> | void;
 };
@@ -99,6 +108,7 @@ const createDraftFromMatrix = (matrix: RubricMatrixResponse | null): MatrixEdito
     if (!matrix) {
         return {
             id: `draft-${Date.now()}`,
+            courseId: "",
             name: "",
             description: "",
             status: "Nhap",
@@ -108,6 +118,7 @@ const createDraftFromMatrix = (matrix: RubricMatrixResponse | null): MatrixEdito
 
     return {
         id: matrix.id,
+        courseId: matrix.courseId ?? "",
         name: matrix.name,
         description: matrix.description,
         status: matrix.status,
@@ -133,7 +144,7 @@ export default function RubricMatrixEditor({
     open,
     selectedMatrix,
     clos,
-    rubrics,
+    courses,
     onClose,
     onSaved,
 }: Props) {
@@ -176,6 +187,10 @@ export default function RubricMatrixEditor({
     const cloLabels = useMemo(
         () => new Map(clos.map((clo) => [clo.cloId, `${clo.cloCode} - ${clo.cloName}`])),
         [clos],
+    );
+    const availableClos = useMemo(
+        () => clos.filter((clo) => !draft.courseId || !clo.courseId || clo.courseId === draft.courseId),
+        [clos, draft.courseId],
     );
     const getCloLabel = (cloId: string) => cloLabels.get(cloId) || cloId;
 
@@ -305,6 +320,19 @@ export default function RubricMatrixEditor({
     }
 
     const handleSave = async () => {
+        const isValid = draft.name.trim() !== ""
+            && draft.courseId !== ""
+            && Math.abs(totalWeight - 100) < PERCENT_RATIO_EPSILON
+            && draft.criteria.length > 0
+            && draft.criteria.every((criterion) =>
+                criterion.name.trim() !== "" && criterion.cloId !== "" && criterion.levels.length > 0,
+            );
+
+        if (!isValid) {
+            toast.error("Vui lòng nhập đủ tên, học phần, CLO, cấp độ và tổng trọng số 100%.");
+            return;
+        }
+
         const loadingMessage = selectedMatrix
             ? "Dang chinh sua ma tran rubric..."
             : "Dang tao ma tran rubric...";
@@ -322,14 +350,14 @@ export default function RubricMatrixEditor({
             setSaveMessage(loadingMessage);
 
             const payload = {
-                id: draft.id,
-                name: draft.name,
+                rubricName: draft.name.trim(),
+                courseId: draft.courseId,
                 description: draft.description,
-                status: draft.status,
+                submitForApproval: true,
                 criteria: draft.criteria.map((criterion) => ({
                     id: criterion.id,
                     name: criterion.name,
-                    weight: criterion.weight,
+                    weight: Number(criterion.weight) / 100,
                     cloId: criterion.cloId,
                     levels: sortLevels(criterion.levels).map((level) => ({
                         id: level.id,
@@ -341,7 +369,9 @@ export default function RubricMatrixEditor({
                 })),
             };
 
-            const res = await updateRubricMatrix(payload);
+            const res = selectedMatrix
+                ? await rubricApi.createVersion(selectedMatrix.id, payload)
+                : await rubricApi.createRubric(payload);
 
             console.log("Luu thanh cong:", res.data);
             await onSaved?.();
@@ -367,7 +397,7 @@ export default function RubricMatrixEditor({
                             Rubric Matrix Editor
                         </p>
                         <h2 className="mt-1 text-2xl font-bold text-slate-900">
-                            {selectedMatrix ? "Chỉnh sửa ma trận" : "Tạo ma trận mới"}
+                            {selectedMatrix ? `Tạo version v${(selectedMatrix.versionNumber ?? 1) + 1}` : "Tạo rubric mới"}
                         </h2>
 
                     </div>
@@ -383,30 +413,41 @@ export default function RubricMatrixEditor({
 
                 <div className="mt-6 grid gap-4 lg:grid-cols-4">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:col-span-2">
-                        <label className="text-sm font-medium text-slate-700">Chọn rubric nền</label>
-                        <select
-                            value={draft.id}
-                            onChange={(event) => {
-                                const matched = rubrics.find((item) => item.id === event.target.value);
-                                if (!matched) {
-                                    return;
-                                }
+                        <label className="text-sm font-medium text-slate-700">Tên rubric</label>
+                        <input
+                            value={draft.name}
+                            onChange={(event) => updateDraft("name", event.target.value)}
+                            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                            placeholder="Ví dụ: Rubric đồ án cuối kỳ"
+                        />
+                        <label className="mt-4 block text-sm font-medium text-slate-700">Mô tả</label>
+                        <textarea
+                            value={draft.description}
+                            onChange={(event) => updateDraft("description", event.target.value)}
+                            className="mt-2 min-h-20 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                        />
+                    </div>
 
-                                updateDraft("id", matched.id);
-                                updateDraft("name", matched.name);
-                                updateDraft("description", matched.description);
-                            }}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <label className="text-sm font-medium text-slate-700">Học phần</label>
+                        <select
+                            value={draft.courseId}
+                            onChange={(event) => updateDraft("courseId", event.target.value)}
+                            disabled={Boolean(selectedMatrix?.courseId)}
                             className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                         >
-                            <option value={draft.id}>{draft.name || "Rubric hien tai"}</option>
-                            {rubrics
-                                .filter((item) => item.id !== draft.id)
-                                .map((rubric) => (
-                                    <option key={rubric.id} value={rubric.id}>
-                                        {rubric.name}
+                            <option value="">Chọn học phần</option>
+                            {courses.map((course) => (
+                                    <option key={course.courseId} value={course.courseId}>
+                                        {course.courseCode ? `${course.courseCode} - ` : ""}{course.courseName}
                                     </option>
                                 ))}
                         </select>
+                        {selectedMatrix ? (
+                            <p className="mt-3 text-xs font-medium text-amber-700">
+                                Bản hiện tại được giữ nguyên; version mới phải chờ trưởng khoa duyệt.
+                            </p>
+                        ) : null}
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -491,7 +532,7 @@ export default function RubricMatrixEditor({
                                                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                                             >
                                                 <option value="">Chon CLO</option>
-                                                {clos.map((clo) => (
+                                                {availableClos.map((clo) => (
                                                     <option key={clo.cloId} value={clo.cloId}>
                                                         {clo.cloCode} - {clo.cloName}
                                                     </option>
@@ -554,7 +595,7 @@ export default function RubricMatrixEditor({
                         className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-70"
                         onClick={handleSave}
                     >
-                        Lưu ma trận
+                        {selectedMatrix ? "Tạo version & gửi duyệt" : "Tạo rubric & gửi duyệt"}
                     </button>
                 </div>
             </div>

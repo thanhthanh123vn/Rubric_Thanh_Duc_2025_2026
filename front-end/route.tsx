@@ -47,7 +47,6 @@ import MainLecturerLayout from "@/pages/mainlecturer/MainLecturerLayout.tsx";
 import MainLecturerOverview from "@/pages/mainlecturer/MainLecturerOverview.tsx";
 import CLOManagement from "@/pages/mainlecturer/CLOManagement.tsx";
 import CLODetail from "@/pages/mainlecturer/CLODetail.tsx";
-import RubricBuilder from "@/pages/mainlecturer/RubricBuilder.tsx";
 import RubricDetail from "@/pages/mainlecturer/RubricDetail.tsx";
 import RubricMatrix from "@/pages/mainlecturer/RubricMatrix.tsx";
 import SemesterManagement from "@/pages/mainlecturer/SemesterManagement.tsx";
@@ -340,10 +339,10 @@ export const router = createBrowserRouter([
                     {index: true, Component: MainLecturerOverview},
                     {path: "clo", Component: CLOManagement},
                     {path: "clo/:cloId", Component: CLODetail},
-                    {path: "rubric", Component: RubricBuilder},
+                    {path: "rubric", Component: RubricMatrix},
                     {path: "rubric/:rubricId", Component: RubricDetail},
                     {path: "notifications", Component: AdminBroadcastPage},
-                    {path: "rubric-matrix", Component: RubricMatrix},
+                    {path: "rubric-matrix", loader: () => redirect("/mainlecturer/rubric")},
                     {path: "semester", Component: SemesterManagement},
                     {path: "assign", Component: CourseAssignment},
                 ],

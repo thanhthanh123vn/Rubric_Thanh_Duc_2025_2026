@@ -22,7 +22,6 @@ const pendingTasks = [
 const quickActions = [
   { label: "Tạo CLO", description: "Khai báo chuẩn đầu ra mới", icon: Target, path: "/mainlecturer/clo" },
   { label: "Tạo Rubric", description: "Thiết kế bộ tiêu chí chấm", icon: Plus, path: "/mainlecturer/rubric" },
-  { label: "Ma trận Rubric", description: "Kiểm tra liên kết CLO", icon: Grid3X3, path: "/mainlecturer/rubric-matrix" },
   { label: "Gửi thông báo", description: "Thông tin tới giảng viên", icon: Megaphone, path: "/mainlecturer/notifications" },
 ] as const;
 

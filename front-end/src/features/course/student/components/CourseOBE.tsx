@@ -2,23 +2,13 @@ import React, { useEffect, useState } from "react";
 import Header from "../../../../components/home/Header";
 import Sidebar from "./Sidebar";
 import { courseService } from "@/features/course/courseApi";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import Banner from "@/components/common/Banner";
+import { getBannerColor } from "@/utils/colorUtils";
 
-const Banner = () => {
-    return (
-        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-2xl p-6 mb-6 shadow-sm">
-            <h2 className="text-2xl font-semibold">
-                TMDT Ca 2 thứ 3 phòng RD306
-            </h2>
-            <p className="text-sm opacity-90 mt-1">
-                Tiến độ OBE của bạn
-            </p>
-        </div>
-    );
-};
 
-// ================= OVERALL =================
-const OverallProgress = ({ value }) => {
+const OverallProgress = ({ value }: { value: number }) => {
     return (
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6">
             <p className="text-gray-700 font-medium">Tiến độ tổng</p>
@@ -37,8 +27,8 @@ const OverallProgress = ({ value }) => {
     );
 };
 
-// ================= CLO ITEM =================
-const CLOItem = ({ clo }) => {
+//  CLO ITEM
+const CLOItem = ({ clo }: { clo: any }) => {
     const progress = clo.progressPercent || 0;
 
     const getColor = () => {
@@ -82,8 +72,8 @@ const CLOItem = ({ clo }) => {
     );
 };
 
-// ================= CLO LIST =================
-const CLOList = ({ clos }) => {
+//  CLO LIST
+const CLOList = ({ clos }: { clos: any[] }) => {
     return (
         <div className="mb-6">
             <h3 className="font-semibold text-gray-800 mb-3">
@@ -97,8 +87,8 @@ const CLOList = ({ clos }) => {
     );
 };
 
-// ================= SUGGESTION =================
-const SuggestionBox = ({ clos }) => {
+// SUGGESTION
+const SuggestionBox = ({ clos }: { clos: any[] }) => {
     const weakClos = clos.filter((c) => c.progressPercent < 50);
 
     return (
@@ -124,19 +114,30 @@ const SuggestionBox = ({ clos }) => {
     );
 };
 
-// ================= MAIN =================
+//  MAIN
 const CourseOBE = () => {
     const { id: offeringId } = useParams();
+    const navigate = useNavigate();
 
-    const [clos, setClos] = useState([]);
+    const [clos, setClos] = useState<any[]>([]);
+    const [course, setCourse] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const bannerColor = offeringId ? getBannerColor(offeringId) : "emerald";
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await courseService.getOBEProgressByStudent(offeringId);
-                console.log(res)
-                setClos(res);
+                setLoading(true);
+                // Lấy thông tin OBE và thông tin khóa học cùng lúc
+                const [obeRes, courseRes] = await Promise.all([
+                    courseService.getOBEProgressByStudent(offeringId),
+                    courseService.getCourseById(offeringId)
+                ]);
+
+                setClos(obeRes);
+                setCourse(courseRes);
             } catch (err) {
                 console.error("OBE error:", err);
             } finally {
@@ -157,18 +158,41 @@ const CourseOBE = () => {
             : 0;
 
     return (
-        <div className="bg-gray-50 min-h-screen">
-            <Header />
+        <div className="bg-gray-50 min-h-screen flex flex-col">
+            <Header onMenuClick={() => setIsMobileMenuOpen(true)} />
 
-            <div className="flex">
-                <Sidebar />
+            <div className="flex flex-1 flex-col lg:flex-row">
 
-                <div className="flex-1 p-4 lg:p-6">
-                    <div className="max-w-3xl mx-auto">
-                        <Banner />
+                <div className="w-full lg:w-72 shrink-0">
+                    <Sidebar
+                        isOpen={isMobileMenuOpen}
+                        onClose={() => setIsMobileMenuOpen(false)}
+                    />
+                </div>
+
+                <div className="flex-1 p-4 lg:p-8 w-full">
+                    {/* Bỏ max-w-3xl, sử dụng max-w-6xl để trải đều màn hình */}
+                    <div className="w-full max-w-6xl mx-auto">
+
+                        {/*/!* Nút quay lại *!/*/}
+                        {/*<button*/}
+                        {/*    onClick={() => navigate(`/course/${offeringId}`)}*/}
+                        {/*    className="flex items-center gap-2 text-gray-600 hover:text-emerald-700 mb-6 transition-colors font-medium w-fit"*/}
+                        {/*>*/}
+                        {/*    <ArrowLeft size={20} />*/}
+                        {/*    <span>Quay lại bảng tin lớp học</span>*/}
+                        {/*</button>*/}
+
+                        <Banner
+                            title={course?.course?.courseName || "Đang tải dữ liệu lớp học..."}
+                            description={`Tiến độ OBE của bạn ${course ? `- ${course.semester} (${course.year})` : ""}`}
+                            color={bannerColor}
+                        />
 
                         {loading ? (
-                            <p>Loading OBE...</p>
+                            <div className="flex justify-center my-8">
+                                <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
                         ) : (
                             <>
                                 <OverallProgress value={overallProgress} />

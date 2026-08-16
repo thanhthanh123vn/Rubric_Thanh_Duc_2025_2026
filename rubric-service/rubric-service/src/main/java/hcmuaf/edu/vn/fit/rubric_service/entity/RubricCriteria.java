@@ -33,6 +33,9 @@ public class RubricCriteria {
     @Column(name = "criteria_name", length = 255)
     private String criteriaName;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "weight")
     private Float weight;
 

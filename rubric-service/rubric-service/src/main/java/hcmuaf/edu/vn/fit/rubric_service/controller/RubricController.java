@@ -4,6 +4,7 @@ import hcmuaf.edu.vn.fit.rubric_service.client.ClientIpUtil;
 import hcmuaf.edu.vn.fit.rubric_service.client.CourseClient;
 import hcmuaf.edu.vn.fit.rubric_service.client.UserClient;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricApprovalRequest;
+import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricCloneRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.RubricRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.SystemLogRequest;
 import hcmuaf.edu.vn.fit.rubric_service.dto.response.*;
@@ -29,28 +30,120 @@ public class RubricController {
     private RubricService rubricService;
     private final CourseClient courseClient;
     @GetMapping
-    public List<RubricResponse> getAll() {
-        return rubricService.getAllRubrics();
+    public List<RubricResponse> getAll(
+            @RequestHeader(value = "X-User-Id", required = false) String userId
+    ) {
+        return rubricService.getAllRubrics(userId);
     }
     @GetMapping("/count")
     public long getCount() {
-        return rubricService.getAllRubrics().size();
+        return rubricService.getAllRubrics(null).size();
+    }
+    @GetMapping("/me")
+    public List<RubricResponse> getMyRubrics(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        return rubricService.getMyRubrics(userId);
     }
     @GetMapping("/matrix")
-    public ResponseEntity<List<RubricMatrixResponse>> getRubricMatrices() {
-        return ResponseEntity.ok(rubricService.getRubricMatrices());
+    public ResponseEntity<List<RubricMatrixResponse>> getRubricMatrices(
+            @RequestHeader(value = "X-User-Id", required = false) String userId
+    ) {
+        return ResponseEntity.ok(rubricService.getRubricMatrices(userId));
     }
 
     @GetMapping("/matrix/{rubricId}")
     public ResponseEntity<RubricMatrixResponse> getRubricMatrixDetail(
-            @PathVariable String rubricId
+            @PathVariable String rubricId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId
     ) {
-        return ResponseEntity.ok(rubricService.getRubricMatrixDetail(rubricId));
+        return ResponseEntity.ok(rubricService.getRubricMatrixDetail(rubricId, userId));
     }
 
     @GetMapping("/{id}")
-    public Rubric getById(@PathVariable String id) {
-        return rubricService.getById(id);
+    public Rubric getById(
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId
+    ) {
+        return rubricService.getById(id, userId);
+    }
+
+    @PostMapping("/{sourceRubricId}/clone")
+    public ResponseEntity<?> cloneRubric(
+            @PathVariable String sourceRubricId,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody(required = false) RubricCloneRequest request
+    ) {
+        try {
+            Rubric cloned = rubricService.cloneRubric(sourceRubricId, userId, request);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Đã tạo version riêng và gửi Trưởng khoa duyệt",
+                    "data", cloned
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PutMapping("/{rubricId}/submit")
+    public ResponseEntity<?> submitRubric(
+            @PathVariable String rubricId,
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        try {
+            Rubric submitted = rubricService.submitForApproval(rubricId, userId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Đã gửi rubric cho Trưởng khoa duyệt",
+                    "data", submitted
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/{rubricId}/versions")
+    public ResponseEntity<?> createEditedVersion(
+            @PathVariable String rubricId,
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody RubricRequest request
+    ) {
+        try {
+            Rubric version = rubricService.createEditedVersion(rubricId, userId, request);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Đã tạo version v" + version.getVersionNumber() + " và gửi Trưởng khoa duyệt",
+                    "data", version
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @GetMapping("/{rubricId}/versions")
+    public ResponseEntity<List<RubricResponse>> getVersionHistory(
+            @PathVariable String rubricId,
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        return ResponseEntity.ok(rubricService.getVersionHistory(rubricId, userId));
+    }
+
+    @GetMapping("/{rubricId}/comparison")
+    public ResponseEntity<RubricComparisonResponse> compareVersions(
+            @PathVariable String rubricId,
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        return ResponseEntity.ok(rubricService.compareVersions(rubricId, userId));
     }
 
 //    @PostMapping

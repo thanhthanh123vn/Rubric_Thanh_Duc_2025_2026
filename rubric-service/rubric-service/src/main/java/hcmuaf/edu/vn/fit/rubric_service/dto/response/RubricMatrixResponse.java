@@ -11,6 +11,12 @@ public class RubricMatrixResponse {
     private String id;
     private String name;
     private String description;
+    private String courseId;
+    private String rubricType;
+    private String rootRubricId;
+    private String parentRubricId;
+    private Integer versionNumber;
+    private String approvalStatus;
 
     private int courses;
     private int cloCount;

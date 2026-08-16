@@ -1,16 +1,15 @@
-import { Edit2, Eye, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit2, Eye, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import RubricMatrixEditor, {
     type CloOption,
     type RubricMatrixResponse,
-    type RubricOption,
 } from "@/features/rubric/components/RubricMatrixEditor";
 import RubricSamplePreview from "@/features/rubric/components/RubricSamplePreview.tsx";
 import type {
     MatrixCriterionDraft,
     MatrixLevelDraft,
 } from "@/features/rubric/components/RubricMatrixPreview.tsx";
-import { getAllClo, getAllRubric, getRubricMatrix } from "@/features/rubric/rubricApi";
+import { getAllClo, getCourseOptions, getRubricMatrix, type CourseOption } from "@/features/rubric/rubricApi";
 
 const PERCENT_RATIO_EPSILON = 0.0001;
 
@@ -56,8 +55,9 @@ const matrixToPreviewCriteria = (matrix: RubricMatrixResponse | null): MatrixCri
 
 export default function RubricMatrix() {
     const [matrices, setMatrices] = useState<RubricMatrixResponse[]>([]);
-    const [rubrics, setRubrics] = useState<RubricOption[]>([]);
+    const [courses, setCourses] = useState<CourseOption[]>([]);
     const [clos, setClos] = useState<CloOption[]>([]);
+    const [expandedRoots, setExpandedRoots] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selectedMatrix, setSelectedMatrix] = useState<RubricMatrixResponse | null>(null);
@@ -67,6 +67,17 @@ export default function RubricMatrix() {
         [clos],
     );
     const getCloLabel = (cloId: string) => cloLabels.get(cloId) || cloId;
+    const versionGroups = useMemo(() => {
+        const groups = new Map<string, RubricMatrixResponse[]>();
+        matrices.forEach((matrix) => {
+            const rootId = matrix.rootRubricId || matrix.id;
+            groups.set(rootId, [...(groups.get(rootId) || []), matrix]);
+        });
+        return [...groups.entries()].map(([rootId, versions]) => ({
+            rootId,
+            versions: versions.sort((a, b) => (b.versionNumber ?? 1) - (a.versionNumber ?? 1)),
+        }));
+    }, [matrices]);
 
     const fetchRubricMatrix = async () => {
         try {
@@ -85,16 +96,9 @@ export default function RubricMatrix() {
 
     const fetchOptions = async () => {
         try {
-            const [cloRes, rubricRes] = await Promise.all([getAllClo(), getAllRubric()]);
+            const [cloRes, courseOptions] = await Promise.all([getAllClo(), getCourseOptions()]);
             setClos(Array.isArray(cloRes.data) ? cloRes.data : []);
-            setRubrics(
-                (Array.isArray(rubricRes.data) ? rubricRes.data : []).map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    description: item.description,
-                    totalWeight: item.totalWeight,
-                })),
-            );
+            setCourses(courseOptions);
         } catch (error) {
             console.error("Lỗi khi tải tùy chọn ma trận rubric:", error);
         }
@@ -153,7 +157,7 @@ export default function RubricMatrix() {
                         Ánh xạ tiêu chí
                     </p>
                     <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                        Ma trận Rubric
+                        Rubric
                     </h3>
                 </div>
 
@@ -162,14 +166,17 @@ export default function RubricMatrix() {
                     className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
                 >
                     <Plus className="h-5 w-5" />
-                    Ma trận mới
+                    Tạo Rubric
                 </button>
             </div>
 
             <div className="space-y-4">
-                {matrices.map((matrix) => (
+                {versionGroups.map(({ rootId, versions }) => {
+                    const matrix = versions[0];
+                    const expanded = expandedRoots.has(rootId);
+                    return (
                     <div
-                        key={matrix.id}
+                        key={rootId}
                         className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md"
                     >
                         <div className="flex items-start justify-between">
@@ -177,6 +184,54 @@ export default function RubricMatrix() {
                                 <h4 className="text-lg font-bold text-slate-900">
                                     {matrix.name}
                                 </h4>
+                                <button
+                                    type="button"
+                                    onClick={() => setExpandedRoots((current) => {
+                                        const next = new Set(current);
+                                        next.has(rootId) ? next.delete(rootId) : next.add(rootId);
+                                        return next;
+                                    })}
+                                    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-indigo-700"
+                                >
+                                    {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    {versions.length} version · hiện tại v{matrix.versionNumber ?? 1}
+                                </button>
+
+                                {expanded ? (
+                                    <div className="relative mt-3 max-w-2xl border-l-2 border-slate-200 pl-5">
+                                        <div className="space-y-3">
+                                            {versions.map((version, index) => (
+                                                <button
+                                                    key={version.id}
+                                                    type="button"
+                                                    onClick={() => openPreview(version)}
+                                                    className="relative flex w-full items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left shadow-sm hover:border-indigo-300 hover:bg-indigo-50/40"
+                                                >
+                                                    <span className="absolute -left-[1.72rem] top-4 h-3 w-3 rounded-full border-2 border-white bg-slate-400 ring-1 ring-slate-300" />
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-sm font-semibold text-slate-800">
+                                                            v{version.versionNumber ?? 1} · {version.name}
+                                                        </span>
+                                                        <span className="mt-1 block text-xs text-slate-500">
+                                                            {index === 0 ? "Version mới nhất" : `Từ ${version.parentRubricId ?? "rubric gốc"}`}
+                                                        </span>
+                                                    </span>
+                                                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                                        version.approvalStatus === "APPROVED"
+                                                            ? "bg-emerald-100 text-emerald-700"
+                                                            : version.approvalStatus === "PENDING"
+                                                                ? "bg-amber-100 text-amber-700"
+                                                                : version.approvalStatus === "REJECTED"
+                                                                    ? "bg-rose-100 text-rose-700"
+                                                                    : "bg-slate-100 text-slate-600"
+                                                    }`}>
+                                                        {{ DRAFT: "Bản nháp", PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối" }[version.approvalStatus ?? "DRAFT"]}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 <p className="mt-1 text-sm text-slate-500">
                                     {matrix.description}
@@ -221,14 +276,14 @@ export default function RubricMatrix() {
                                 <div className="mt-4">
                                     <span
                                         className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                                            matrix.status === "Hoàn tất"
+                                            matrix.approvalStatus === "APPROVED"
                                                 ? "bg-green-100 text-green-700"
-                                                : matrix.status === "Chờ duyệt"
+                                                : matrix.approvalStatus === "PENDING"
                                                     ? "bg-amber-100 text-amber-700"
                                                     : "bg-slate-100 text-slate-700"
                                         }`}
                                     >
-                                        {matrix.status}
+                                        {{ DRAFT: "Bản nháp", PENDING: "Chờ trưởng khoa duyệt", APPROVED: "Đã duyệt", REJECTED: "Bị từ chối" }[matrix.approvalStatus ?? "DRAFT"]}
                                     </span>
                                 </div>
                             </div>
@@ -243,13 +298,10 @@ export default function RubricMatrix() {
 
                                 <button
                                     onClick={() => openEditor(matrix)}
+                                    disabled={matrix.approvalStatus === "PENDING"}
                                     className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
                                 >
                                     <Edit2 className="h-5 w-5" />
-                                </button>
-
-                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600">
-                                    <Trash2 className="h-5 w-5" />
                                 </button>
                             </div>
                         </div>
@@ -327,14 +379,15 @@ export default function RubricMatrix() {
                             </table>
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             <RubricMatrixEditor
                 open={showModal}
                 selectedMatrix={selectedMatrix}
                 clos={clos}
-                rubrics={rubrics}
+                courses={courses}
                 onClose={closeEditor}
                 onSaved={handleMatrixSaved}
             />

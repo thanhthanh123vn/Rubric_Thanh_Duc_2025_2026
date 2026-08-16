@@ -26,6 +26,7 @@ export interface Level {
 type CriteriaType = {
     id?: string;
     name: string;
+    description?: string;
     weight: number;
     cloId: string | null;
     levels?: Level[];
@@ -118,6 +119,7 @@ export default function CreateRubricModal({
             rubric.criteria.map((item) => ({
                 id: item.id,
                 name: item.name,
+                description: item.description,
                 cloId: item.cloId,
                 weight: Number(item.weight) * 100,
                 levels: item.levels || [],
@@ -173,6 +175,7 @@ export default function CreateRubricModal({
             criteria: criteria.map((item) => ({
                 id: item.id || "",
                 name: item.name,
+                description: item.description,
                 cloId: item.cloId,
                 weight: Number(item.weight) / 100,
                 levels: item.levels || [],
@@ -183,8 +186,8 @@ export default function CreateRubricModal({
         setIsSubmitting(true);
         try {
             if (rubric?.rubricId) {
-                // await rubricApi.updateRubric(rubric.rubricId, payload);
-                toast.success("Cập nhật Rubric thành công!");
+                await rubricApi.createVersion(rubric.rubricId, payload);
+                toast.success("Đã tạo version mới và gửi Trưởng khoa duyệt!");
             } else {
                 await rubricApi.createRubric(payload);
                 toast.success(submitForApproval ? "Đã gửi Rubric đi phê duyệt!" : "Đã lưu bản nháp Rubric thành công!");
@@ -400,15 +403,17 @@ export default function CreateRubricModal({
                     >
                         Hủy bỏ
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => handleSubmit(false)}
-                        disabled={totalWeight !== 100 || isSubmitting || isFetchingData}
-                        className="flex items-center rounded-xl bg-slate-200 px-6 py-2.5 font-semibold text-slate-700 hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-                    >
-                        {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
-                        Lưu bản nháp
-                    </button>
+                    {!rubric && (
+                        <button
+                            type="button"
+                            onClick={() => handleSubmit(false)}
+                            disabled={totalWeight !== 100 || isSubmitting || isFetchingData}
+                            className="flex items-center rounded-xl bg-slate-200 px-6 py-2.5 font-semibold text-slate-700 hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                        >
+                            {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
+                            Lưu bản nháp
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={() => handleSubmit(true)}
@@ -416,7 +421,7 @@ export default function CreateRubricModal({
                         className="flex items-center rounded-xl bg-indigo-600 px-6 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
-                        {rubric ? "Cập nhật & Gửi duyệt" : "Tạo mới & Gửi duyệt"}
+                        {rubric ? "Tạo version & Gửi duyệt" : "Tạo mới & Gửi duyệt"}
                     </button>
                 </div>
             </div>

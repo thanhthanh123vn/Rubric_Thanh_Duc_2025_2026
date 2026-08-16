@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS rubric_approval_requests (
     rubric_id VARCHAR(50) NOT NULL,
     revision_number INT UNSIGNED NOT NULL DEFAULT 1,
     submitted_by VARCHAR(50) NOT NULL,
-    required_reviewer_role ENUM('DEAN') NOT NULL DEFAULT 'DEAN',
+    required_reviewer_role ENUM('DEAN', 'HEAD_OF_DEPARTMENT') NOT NULL DEFAULT 'DEAN',
     status ENUM('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')
         NOT NULL DEFAULT 'PENDING',
     requested_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -101,6 +101,11 @@ CREATE TABLE IF NOT EXISTS rubric_approval_requests (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_520_ci;
+
+-- CREATE TABLE IF NOT EXISTS khong thay doi enum cua database da migrate truoc do.
+ALTER TABLE rubric_approval_requests
+    MODIFY COLUMN required_reviewer_role
+        ENUM('DEAN', 'HEAD_OF_DEPARTMENT') NOT NULL DEFAULT 'DEAN';
 
 SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
 FROM information_schema.COLUMNS

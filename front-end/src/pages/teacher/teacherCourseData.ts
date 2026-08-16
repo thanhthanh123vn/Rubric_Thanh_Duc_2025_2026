@@ -76,7 +76,7 @@ export const teacherCourseMenu = [
       { key: 'create-exam', label: 'Tạo đề thi', path: 'create-exam' },
       { key: 'exam-list', label: 'Danh sách đề thi', path: 'exam-list' },
 
-      { key: 'grading-final', label: 'Nhập điểm cuối kỳ', path: 'grading-final' }
+
 
 
     ],
@@ -107,5 +107,5 @@ export const teacherCourseMenu = [
       { key: 'outcome-report', label: 'Báo cáo chuẩn đầu ra', path: 'outcomes' },
     ],
   },
-  { key: 'notifications', icon: Bell, label: 'Thông Báo', path: 'notifications' },
+  { key: 'notifications', icon: Bell, label: ' Gửi Thông Báo', path: 'notifications' },
 ];

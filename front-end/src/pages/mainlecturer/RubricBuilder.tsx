@@ -1,8 +1,10 @@
 import { Copy, Plus, Settings, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import CreateRubricModal from "@/features/rubric/components/CreateRubricModal.tsx";
-import { getAllRubric } from "@/features/rubric/rubricApi.ts";
+import { cloneRubricVersion, getMyRubrics } from "@/features/rubric/rubricApi.ts";
+import RubricVersionList from "@/pages/mainlecturer/RubricVersionList.tsx";
 
 type CriteriaType = {
     id: string;
@@ -16,6 +18,9 @@ type RubricType = {
     description: string;
     totalWeight: number;
     criteria: CriteriaType[];
+    rubricType?: "FACULTY" | "LECTURER_VARIANT";
+    versionNumber?: number;
+    status?: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 };
 
 const PERCENT_RATIO_EPSILON = 0.0001;
@@ -30,12 +35,13 @@ const formatPercent = (value: number) => {
     return `${rounded}%`;
 };
 
-export default function RubricBuilder() {
+function LegacyRubricBuilder() {
     const [rubrics, setRubrics] = useState<RubricType[]>([]);
     const [showModal, setShowModal] = useState(false);
+    const [cloningId, setCloningId] = useState<string | null>(null);
      const fetchAllRubrics = async () => {
         try {
-            const res = await getAllRubric();
+            const res = await getMyRubrics();
             return Array.isArray(res.data) ? res.data : [];
         } catch (error) {
             console.error("Lỗi lấy danh sách rubric:", error);
@@ -50,6 +56,19 @@ export default function RubricBuilder() {
 
         void loadData();
     }, []);
+
+    const handleClone = async (rubric: RubricType) => {
+        try {
+            setCloningId(rubric.id);
+            await cloneRubricVersion(rubric.id);
+            setRubrics(await fetchAllRubrics());
+            toast.success("Đã tạo rubric version và gửi Trưởng khoa duyệt");
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Không thể tạo rubric version");
+        } finally {
+            setCloningId(null);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -77,6 +96,16 @@ export default function RubricBuilder() {
                         <div className="flex items-start justify-between">
                             <div className="flex-1">
                                 <h4 className="font-bold text-slate-900">{rubric.name}</h4>
+                                <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
+                                    <span className={`rounded-full px-2.5 py-1 ${rubric.rubricType === "LECTURER_VARIANT" ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700"}`}>
+                                        {rubric.rubricType === "LECTURER_VARIANT" ? "Bản riêng" : "Rubric chung"} · v{rubric.versionNumber ?? 1}
+                                    </span>
+                                    {rubric.status && (
+                                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">
+                                            {rubric.status}
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="mt-2 text-sm text-slate-600">{rubric.description}</p>
                             </div>
 
@@ -116,9 +145,17 @@ export default function RubricBuilder() {
                                 Chi tiết
                             </Link>
 
-                            <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700">
-                                <Copy className="h-5 w-5" />
-                            </button>
+                            {rubric.rubricType !== "LECTURER_VARIANT" && rubric.status === "APPROVED" && (
+                                <button
+                                    type="button"
+                                    disabled={cloningId === rubric.id}
+                                    onClick={() => void handleClone(rubric)}
+                                    title="Tạo version riêng từ rubric này"
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700 disabled:cursor-wait disabled:opacity-50"
+                                >
+                                    <Copy className="h-5 w-5" />
+                                </button>
+                            )}
 
                             <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600">
                                 <Trash2 className="h-5 w-5" />
@@ -135,5 +172,9 @@ export default function RubricBuilder() {
             }} />}
         </div>
     );
+}
+
+export default function RubricBuilder() {
+    return <RubricVersionList />;
 }
 

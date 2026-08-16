@@ -9,8 +9,7 @@ import {
 export const mainLecturerModuleLinks = [
   { label: 'Tổng quan', path: '/mainlecturer', icon: LayoutDashboard },
   { label: 'Quản lý CLO', path: '/mainlecturer/clo', icon: Target },
-  { label: 'Tạo Rubric', path: '/mainlecturer/rubric', icon: BookOpen },
-  { label: 'Ma trận Rubric', path: '/mainlecturer/rubric-matrix', icon: Grid3X3 },
+  { label: 'Rubric', path: '/mainlecturer/rubric', icon: Grid3X3 },
   { label: 'Phân công Học kì', path: '/mainlecturer/semester', icon: Calendar },
   { label: 'Gửi Thông Báo', path: '/mainlecturer/notifications', icon: Bell },
 ];

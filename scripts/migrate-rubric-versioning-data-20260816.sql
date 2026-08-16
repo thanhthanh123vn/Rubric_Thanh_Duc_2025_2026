@@ -1,7 +1,7 @@
 -- Chuan hoa du lieu Rubric sau khi da chay migration schema versioning.
 -- Du lieu hien tai:
 --   R1/R2/R3: rubric chinh thuc dung chung trong khoa.
---   R4: bien the rieng cua L001, clone tu R2 va dang cho Truong khoa duyet.
+--   R4: bien the rieng cua giang vien chinh L002, clone tu R2 va dang cho Truong bo mon duyet.
 
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_520_ci;
 SET SQL_SAFE_UPDATES = 0;
@@ -31,23 +31,23 @@ SET rubric_type = 'FACULTY',
     submitted_at = NULL
 WHERE rubric_id IN ('R1', 'R2', 'R3');
 
--- R4 la bien the rieng v1 cua L001, bat nguon truc tiep tu rubric R2.
+-- R4 la bien the rieng v1 cua giang vien chinh L002, bat nguon truc tiep tu rubric R2.
 -- PENDING chi co thoi diem nop; reviewed_at phai de NULL den khi duoc xu ly.
 UPDATE rubrics
 SET faculty_id = COALESCE(faculty_id, 'F001'),
-    lecturer_id = 'L001',
+    lecturer_id = 'L002',
     rubric_type = 'LECTURER_VARIANT',
     visibility = 'PRIVATE',
     root_rubric_id = 'R2',
     parent_rubric_id = 'R2',
-    version_number = 1,
+    version_number = 2,
     submitted_at = COALESCE(submitted_at, reviewed_at, created_at),
-    reviewed_at = NULL,
-    reviewed_by = NULL,
-    feedback = NULL
+    reviewed_at = IF(status = 'PENDING', NULL, reviewed_at),
+    reviewed_by = IF(status = 'PENDING', NULL, reviewed_by),
+    feedback = IF(status = 'PENDING', NULL, feedback)
 WHERE rubric_id = 'R4';
 
--- Khoi tao yeu cau duyet cho bien the R4; Truong khoa la vai tro bat buoc.
+-- Khoi tao yeu cau duyet cho bien the R4; Truong bo mon la vai tro bat buoc.
 INSERT INTO rubric_approval_requests (
     approval_request_id,
     rubric_id,
@@ -65,7 +65,7 @@ SELECT
     r.rubric_id,
     1,
     l.user_id,
-    'DEAN',
+    'HEAD_OF_DEPARTMENT',
     'PENDING',
     COALESCE(r.submitted_at, r.created_at),
     NULL,
@@ -82,11 +82,15 @@ ON DUPLICATE KEY UPDATE
         rubric_approval_requests.status,
         VALUES(status)
     ),
-    requested_at = VALUES(requested_at);
+    requested_at = IF(
+        rubric_approval_requests.status IN ('APPROVED', 'REJECTED', 'CANCELLED'),
+        rubric_approval_requests.requested_at,
+        VALUES(requested_at)
+    );
 
 COMMIT;
 
--- Kiem tra ket qua: R4 phai PRIVATE/PENDING va co dung mot yeu cau duyet DEAN.
+-- Kiem tra ket qua: R4 phai PRIVATE/PENDING va co dung mot yeu cau duyet HEAD_OF_DEPARTMENT.
 SELECT
     rubric_id,
     faculty_id,
