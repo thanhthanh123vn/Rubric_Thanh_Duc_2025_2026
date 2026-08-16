@@ -221,9 +221,9 @@ export default function StudentExamListPage() {
     };
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-            <aside className="hidden md:block w-64 shrink-0 border-r bg-white h-screen sticky top-0 overflow-y-auto">
+
                 <Sidebar />
-            </aside>
+
 
             <main className="flex-1 min-w-0 flex flex-col w-full">
                 <Header />

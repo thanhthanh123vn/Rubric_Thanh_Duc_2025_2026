@@ -270,18 +270,18 @@ function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { i
     };
 
   useEffect(() => {
-    console.log("🔥 WebSocket effect chạy");
+    console.log(" WebSocket effect chạy");
     console.log("postId:", item?.raw?.postId);
 
     if (!item?.raw?.postId) {
-      console.log("❌ Không có postId");
+      console.log(" Không có postId");
       return;
     }
 
     const token = localStorage.getItem("token");
 
     if (!token) {
-      console.log("❌ Không có token");
+      console.log(" Không có token");
       return;
     }
 
@@ -290,8 +290,8 @@ function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { i
         import.meta.env.VITE_WS_URL ||
         "http://localhost:8080";
 
-    console.log("🌐 WS URL:", wsUrl);
-    console.log("📌 Post ID:", item.raw.postId);
+    console.log(" WS URL:", wsUrl);
+    console.log(" Post ID:", item.raw.postId);
 
     const stompClient = new Client({
       webSocketFactory: () => {
@@ -314,14 +314,14 @@ function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { i
 
       onConnect: () => {
         console.log(
-            `✅ === ĐÃ KẾT NỐI COMMENT: ${item.raw.postId} ===`
+            `ĐÃ KẾT NỐI COMMENT: ${item.raw.postId} ===`
         );
 
         stompClient.subscribe(
             `/topic/posts/${item.raw.postId}/comments`,
             (payload) => {
               console.log(
-                  "💬 Nhận comment:",
+                  " Nhận comment:",
                   payload.body
               );
 
@@ -341,13 +341,13 @@ function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { i
 
                       const next = Array.from(map.values());
 
-                      console.log("🔥 localComments SAU KHI WS:", next);
+                      console.log(" localComments SAU KHI WS:", next);
 
                       return next;
                   });
               } catch (error) {
                 console.error(
-                    "❌ Parse comment lỗi:",
+                    " Parse comment lỗi:",
                     error
                 );
               }
@@ -357,7 +357,7 @@ function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { i
 
       onStompError: (frame) => {
         console.error(
-            "❌ STOMP ERROR:",
+            " STOMP ERROR:",
             frame.headers["message"],
             frame.body
         );
@@ -365,21 +365,21 @@ function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { i
 
       onWebSocketError: (error) => {
         console.error(
-            "❌ WEBSOCKET ERROR:",
+            "WEBSOCKET ERROR:",
             error
         );
       },
 
       onWebSocketClose: () => {
         console.log(
-            "🔌 WebSocket đã đóng"
+            " WebSocket đã đóng"
         );
       },
     });
 
     stompClientRef.current = stompClient;
 
-    console.log("🚀 activate WebSocket...");
+    console.log(" activate WebSocket...");
 
     stompClient.activate();
 
@@ -636,7 +636,7 @@ export default function TeacherCourseOverview() {
   }, [id]);
 
 
-  // TÍCH HỢP WEBSOCKET REAL-TIME GIỐNG VIEW SINH VIÊN
+  // TÍCH HỢP WEBSOCKET REAL-TIME
 
 
   // useEffect(() => {

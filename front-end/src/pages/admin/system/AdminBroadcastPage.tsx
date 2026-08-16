@@ -18,7 +18,7 @@ import { useAppSelector } from "@/hooks/useAppSelector.ts"; // Đảm bảo bạ
 
 // Mapping tên hiển thị cho các Role
 const ROLE_LABELS: Record<string, string> = {
-    ALL: "Tất cả người dùng hệ thống",
+    ALL: "Tất cả",
     DEAN: "Tất cả Trưởng Khoa",
     HEAD_OF_DEPARTMENT: "Tất cả Trưởng Bộ Môn",
     MAIN_LECTURER: "Tất cả Giảng Viên Chính",
@@ -160,12 +160,7 @@ export default function AdminBroadcastPage() {
                                         <SelectValue placeholder="Chọn nhóm người nhận" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-white z-50 rounded-xl shadow-lg border-gray-100">
-                                        <SelectItem
-                                            value="ALL"
-                                            className="py-2.5 cursor-pointer"
-                                        >
-                                            Tất cả
-                                        </SelectItem>
+
 
                                         {allowedRoles.map((role) => (
                                             <SelectItem

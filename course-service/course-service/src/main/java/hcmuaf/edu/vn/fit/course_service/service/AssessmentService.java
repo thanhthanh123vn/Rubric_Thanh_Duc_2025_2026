@@ -71,7 +71,7 @@ public class AssessmentService {
                 dto.setAssessmentId(item[0] != null ? item[0].toString() : null);
                 dto.setAssessmentName(item[1] != null ? item[1].toString() : null);
                 dto.setAssessmentType(item[2] != null ? item[2].toString() : null);
-                dto.setWeight(item[3] != null ? ((Number) item[3]).floatValue() : null);
+//               dto.setWeight(item[3] != null ? ((Number) item[3]).floatValue() : null);
 
                 dto.setEndTime((Timestamp) item[4]);
                 if(item[5] != null){

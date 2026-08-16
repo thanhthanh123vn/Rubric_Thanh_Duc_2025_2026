@@ -91,14 +91,14 @@ const CreatePostBox = ({ onPostSuccess, fullName, avatarUrl }: { onPostSuccess: 
     );
 };
 
-const UpcomingBox = () => {
-    return (
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-6">
-            <p className="text-gray-800 font-medium">Sắp đến hạn</p>
-            <p className="text-sm text-gray-500 mt-1">Tuyệt vời, không có bài tập nào sắp đến hạn!</p>
-        </div>
-    );
-};
+// const UpcomingBox = () => {
+//     return (
+//         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-6">
+//             <p className="text-gray-800 font-medium">Sắp đến hạn</p>
+//             <p className="text-sm text-gray-500 mt-1">Tuyệt vời, không có bài tập nào sắp đến hạn!</p>
+//         </div>
+//     );
+// };
 
 const AssignmentPost = ({ assessmentId, assessmentName, endTime, createdAt, offeringId, lecturerName }: any) => {
     const navigate = useNavigate();
@@ -658,9 +658,9 @@ const ClassroomContent = () => {
 
                         <CreatePostBox onPostSuccess={fetchData} fullName={user.fullName} avatarUrl={user.avatarUrl} />
 
-                        <div className="hidden md:block mb-4">
-                            <UpcomingBox />
-                        </div>
+                        {/*<div className="hidden md:block mb-4">*/}
+                        {/*    <UpcomingBox />*/}
+                        {/*</div>*/}
 
                         <div className="space-y-4">
                             {feed.length === 0 ? (
