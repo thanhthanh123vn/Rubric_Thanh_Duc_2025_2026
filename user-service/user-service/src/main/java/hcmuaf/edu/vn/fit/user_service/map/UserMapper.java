@@ -17,5 +17,6 @@ public interface UserMapper {
     User toUser(RegisterRequest request);
 
     @Mapping(target = "fullName", ignore = true)
+
     UserResponse toUserResponse(User user);
 }

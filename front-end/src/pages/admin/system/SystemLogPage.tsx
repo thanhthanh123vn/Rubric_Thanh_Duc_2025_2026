@@ -102,7 +102,7 @@ export default function SystemLogPage() {
         <div className="p-4 md:p-6 bg-slate-50 min-h-screen">
             <div className="max-w-7xl mx-auto space-y-6">
 
-                {/* Header */}
+                {/* Header đồng bộ: Chữ 2xl, đoạn mô tả text-sm */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -121,8 +121,8 @@ export default function SystemLogPage() {
                     </button>
                 </div>
 
-                {/* Filters & Search */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
+                {/* Filters & Search: Nút bấm text-sm, Padding rộng rãi */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
                         {["ALL", "INFO", "WARN", "ERROR"].map(level => (
                             <button
@@ -145,7 +145,7 @@ export default function SystemLogPage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Tìm kiếm nội dung, action, user..."
-                            className="w-full pl-9 pr-10 h-11 bg-slate-50 border border-slate-200 text-sm rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:bg-white outline-none transition-all"
+                            className="w-full pl-9 pr-10 h-10 bg-slate-50 border border-slate-200 text-sm rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:bg-white outline-none transition-all"
                         />
                         {searchQuery && (
                             <button
@@ -159,7 +159,7 @@ export default function SystemLogPage() {
                     </form>
                 </div>
 
-                {/* Log Table */}
+                {/* Log Table: Table header text-xs, Content text-sm */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
@@ -177,7 +177,7 @@ export default function SystemLogPage() {
                                 <tr>
                                     <td colSpan={5} className="text-center py-16">
                                         <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto" />
-                                        <p className="text-slate-500 mt-3 font-medium">Đang tải dữ liệu log...</p>
+                                        <p className="text-slate-500 mt-3 text-sm font-medium">Đang tải dữ liệu log...</p>
                                     </td>
                                 </tr>
                             ) : logs.length === 0 ? (
@@ -186,7 +186,7 @@ export default function SystemLogPage() {
                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
                                             <Search className="w-8 h-8 text-slate-300" />
                                         </div>
-                                        <p className="text-slate-500 font-medium">Không tìm thấy nhật ký hệ thống nào.</p>
+                                        <p className="text-slate-500 text-sm font-medium">Không tìm thấy nhật ký hệ thống nào.</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -205,11 +205,12 @@ export default function SystemLogPage() {
                                             {renderLevelBadge(log.level)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="font-mono text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded">
+                                            <span
+                                                className="font-mono text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded">
                                                 {log.action}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-700 font-mono text-xs truncate max-w-xs">
+                                        <td className="px-6 py-4 text-slate-600 text-sm leading-5 truncate max-w-sm">
                                             {log.message}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -218,7 +219,7 @@ export default function SystemLogPage() {
                                                 className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors shadow-sm"
                                                 title="Xem chi tiết"
                                             >
-                                                <Eye className="w-4 h-4" />
+                                                <Eye className="w-4 h-4"/>
                                             </button>
                                         </td>
                                     </tr>
@@ -241,7 +242,7 @@ export default function SystemLogPage() {
                                     setSize(Number(e.target.value));
                                     setPage(0);
                                 }}
-                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-indigo-500 cursor-pointer"
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-indigo-500 cursor-pointer text-sm"
                             >
                                 <option value={10}>10 dòng / trang</option>
                                 <option value={20}>20 dòng / trang</option>
@@ -270,7 +271,7 @@ export default function SystemLogPage() {
                 </div>
             </div>
 
-            {/* ================= MODAL CHI TIẾT LOG (Giữ nguyên như phần trước) ================= */}
+            {/* ================= MODAL CHI TIẾT LOG ================= */}
             {selectedLog && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95">
@@ -303,7 +304,7 @@ export default function SystemLogPage() {
                                     </div>
                                     <div>
                                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Hành động (Action)</p>
-                                        <p className="text-sm font-mono font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded inline-block">
+                                        <p className="text-sm font-mono font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded inline-block">
                                             {selectedLog.action}
                                         </p>
                                     </div>

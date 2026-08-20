@@ -105,6 +105,7 @@ import StaffAccountManagementPage from "@/pages/StaffAccountManagementPage.tsx";
 import StaffProfilePage from "@/pages/StaffProfilePage.tsx";
 import AdminBroadcastPage from "@/pages/admin/system/AdminBroadcastPage.tsx";
 import NotificationPage from "@/features/course/student/components/NotificationPage.tsx";
+import NotificationManagement from "@/pages/NotificationManagement.tsx";
 
 
 export const router = createBrowserRouter([
@@ -292,7 +293,20 @@ export const router = createBrowserRouter([
                             {path: "groups", Component: TeacherCourseGroups},
                             {path: "grading", Component: TeacherAssessmentList},
                             {path: "assessment/:assessmentId/grading", Component: TeacherGrading},
-                            {path: "notifications", Component: AdminBroadcastPage},
+                            {
+                                path: "notifications",
+
+                                children: [
+                                    {
+                                        path: "send",
+                                        Component: AdminBroadcastPage,
+                                    },
+                                    {
+                                        path: "sent",
+                                        Component: NotificationManagement,
+                                    },
+                                ],
+                            },
                             {
                                 path: "projects",
                                 loader: async ({params}) => redirect(`/teacher/course/${params.id}/groups`),
@@ -342,7 +356,20 @@ export const router = createBrowserRouter([
                     {path: "clo/:cloId", Component: CLODetail},
                     {path: "rubric", Component: RubricBuilder},
                     {path: "rubric/:rubricId", Component: RubricDetail},
-                    {path: "notifications", Component: AdminBroadcastPage},
+                    {
+                        path: "notifications",
+
+                        children: [
+                            {
+                                path: "send",
+                                Component: AdminBroadcastPage,
+                            },
+                            {
+                                path: "sent",
+                                Component: NotificationManagement,
+                            },
+                        ],
+                    },
                     {path: "rubric-matrix", Component: RubricMatrix},
                     {path: "semester", Component: SemesterManagement},
                     {path: "assign", Component: CourseAssignment},
@@ -402,7 +429,20 @@ export const router = createBrowserRouter([
                     {path: "/admin/grading", Component: StudentTranscript},
                     {path: "/admin/notifications", Component: AdminBroadcastPage},
                     {path: "courses/assessments", Component: AssessmentManagement},
+                    {
+                        path: "notifications",
 
+                        children: [
+                            {
+                                path: "send",
+                                Component: AdminBroadcastPage,
+                            },
+                            {
+                                path: "sent",
+                                Component: NotificationManagement,
+                            },
+                        ],
+                    },
                     {path: "classes/list", Component: CourseOfferingManagement},
                 ],
             },
@@ -419,10 +459,24 @@ export const router = createBrowserRouter([
                     {index: true, Component: DeanDashboard},
                     {path: "rubrics", Component: RubricApproval},
                     {path: "reports", Component: FacultyReport},
-                    {path: "notifications", Component: AdminBroadcastPage},
+                    {
+                        path: "notifications",
+
+                        children: [
+                            {
+                                path: "send",
+                                Component: AdminBroadcastPage,
+                            },
+                            {
+                                path: "sent",
+                                Component: NotificationManagement,
+                            },
+                        ],
+                    },
                     {path: "courses", Component: CourseManagement},
                     {path: "obe", Component: DepartmentOBE},
                     {path: "obe/:id/analytics", Component: TeacherOBEAnalytics},
+
                 ],
             },
         ],
@@ -446,7 +500,20 @@ export const router = createBrowserRouter([
                     {path: "assessments", Component: AssessmentManagement},
                     {path: "assessments/:id", Component: AssessmentDetailAdmin},
                     {path: "offerings", Component: CourseOfferingManagement},
-                    {path: "notifications", Component: AdminBroadcastPage},
+                    {
+                        path: "notifications",
+
+                        children: [
+                            {
+                                path: "send",
+                                Component: AdminBroadcastPage,
+                            },
+                            {
+                                path: "sent",
+                                Component: NotificationManagement,
+                            },
+                        ],
+                    },
                 ],
             },
         ],

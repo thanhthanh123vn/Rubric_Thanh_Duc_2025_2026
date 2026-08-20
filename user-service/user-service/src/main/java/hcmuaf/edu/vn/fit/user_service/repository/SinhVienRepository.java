@@ -18,4 +18,6 @@ public interface SinhVienRepository extends JpaRepository<SinhVien, String> {
             "LOWER(s.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(s.phoneNumber) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<SinhVien> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    Optional<SinhVien> findByUser_UserId(String userId);
 }

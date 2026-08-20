@@ -11,7 +11,7 @@ import authService from "@/user/api/authService.ts";
 export default function AdminLayout() {
     const location = useLocation();
 
-    // --- STATE QUẢN LÝ POPUP THÔNG TIN ADMIN ---
+
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 

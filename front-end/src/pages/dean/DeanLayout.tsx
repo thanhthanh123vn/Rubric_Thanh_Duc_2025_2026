@@ -9,7 +9,7 @@ import {
     BookOpen,
     LogOut,
     Bell,
-    UserPlus
+    UserPlus, Send, Inbox, ChevronDown
 } from 'lucide-react';
 import authService from "@/user/api/authService.ts";
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -21,9 +21,24 @@ const deanModuleLinks = [
     { path: '/dean/obe', label: 'Phân Tích OBE', icon: ClipboardCheck },
     { path: '/dean/reports', label: 'Báo cáo chất lượng', icon: BarChart3 },
     { path: '/dean/courses', label: 'Quản lý Môn học', icon: BookOpen },
-    { path: '/dean/notifications', label: 'Gửi Thông Báo', icon: Bell },
+    {
+        label: 'Thông Báo',
+        path: '/dean/notifications',
+        icon: Bell,
+        subItems: [
+            {
+                label: 'Gửi thông báo',
+                path: '/dean/notifications/send',
+                icon: Send
+            },
+            {
+                label: 'Thông báo đã gửi',
+                path: '/dean/notifications/sent',
+                icon: Inbox
+            }
+        ]
+    }
 ];
-
 export default function DeanLayout() {
     const location = useLocation();
     const router = useNavigate();
@@ -37,7 +52,14 @@ export default function DeanLayout() {
     const currentUser = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
     const inDetailView = location.pathname.includes('/detail/');
+    const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
 
+    const toggleSubMenu = (label: string) => {
+        setOpenMenus((prev) => ({
+            ...prev,
+            [label]: !prev[label]
+        }));
+    };
     // Đóng menu khi click ra ngoài
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -126,24 +148,71 @@ export default function DeanLayout() {
                         </div>
 
                         {/* Navigation Menu */}
+                        {/* Navigation Menu */}
                         <nav className="mt-6 space-y-1.5 flex-1">
-                            {deanModuleLinks.map((item) => (
-                                <NavLink
-                                    key={item.path}
-                                    to={item.path}
-                                    end={item.path === '/dean'}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 ${
-                                            isActive
-                                                ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50 translate-x-1'
-                                                : 'text-slate-600 hover:bg-slate-100/60 hover:text-indigo-700'
-                                        }`
-                                    }
-                                >
-                                    <item.icon className="h-5 w-5" />
-                                    <span>{item.label}</span>
-                                </NavLink>
-                            ))}
+                            {deanModuleLinks.map((item) => {
+                                const hasSubItems = item.subItems && item.subItems.length > 0;
+                                const isSubMenuOpen = openMenus[item.label];
+
+                                // Nếu có menu con
+                                if (hasSubItems) {
+                                    return (
+                                        <div key={item.label} className="space-y-1">
+                                            <button
+                                                onClick={() => toggleSubMenu(item.label)}
+                                                className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 text-slate-600 hover:bg-slate-100/60 hover:text-indigo-700`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <item.icon className="h-5 w-5" />
+                                                    <span>{item.label}</span>
+                                                </div>
+                                                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubMenuOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {/* Render SubItems */}
+                                            {isSubMenuOpen && (
+                                                <div className="ml-5 mt-1 space-y-1 border-l border-slate-200 pl-4">
+                                                    {item.subItems!.map((subItem) => (
+                                                        <NavLink
+                                                            key={subItem.path}
+                                                            to={subItem.path}
+                                                            className={({ isActive }) =>
+                                                                `flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                                                                    isActive
+                                                                        ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50'
+                                                                        : 'text-slate-500 hover:bg-slate-100/60 hover:text-indigo-700'
+                                                                }`
+                                                            }
+                                                        >
+                                                            {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                                            <span>{subItem.label}</span>
+                                                        </NavLink>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }
+
+                                // Nếu không có menu con (Link bình thường)
+                                return (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        end={item.path === '/dean'}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 ${
+                                                isActive
+                                                    ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100/50 translate-x-1'
+                                                    : 'text-slate-600 hover:bg-slate-100/60 hover:text-indigo-700'
+                                            }`
+                                        }
+                                    >
+                                        <item.icon className="h-5 w-5" />
+                                        <span>{item.label}</span>
+                                    </NavLink>
+                                );
+                            })}
                         </nav>
                         {/* Đã xóa nút đăng xuất khỏi Sidebar */}
                     </aside>

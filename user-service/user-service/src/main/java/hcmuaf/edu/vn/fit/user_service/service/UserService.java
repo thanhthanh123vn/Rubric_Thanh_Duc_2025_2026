@@ -83,32 +83,32 @@ public class UserService {
         String avatarUrl = null;
 
         if ("STUDENT".equals(user.getRole())) {
-            Optional<SinhVien> sv = svRepository.findById(id);
+            Optional<SinhVien> sv = svRepository.findByUser_UserId(id);
             if (sv.isPresent()) {
                 fullName = sv.get().getFullName();
                 avatarUrl = user.getAvatarUrl();
             }
-        } else if ("TEACHER".equals(user.getRole())) {
-            Optional<Lecturer> lec = lecturerRepository.findById(id);
+        } else if ("TEACHER".equalsIgnoreCase(user.getRole())) {
+            Optional<Lecturer> lec = lecturerRepository.findByUser_UserId(id);
             if (lec.isPresent()) {
                 fullName = lec.get().getFullName();
                 avatarUrl = user.getAvatarUrl();
             }
         }else if ("MAIN_LECTURER".equals(user.getRole())) {
-            Optional<Lecturer> lec = lecturerRepository.findById(id);
+            Optional<Lecturer> lec = lecturerRepository.findByUser_UserId(id);
             if (lec.isPresent()) {
                 fullName = lec.get().getFullName();
 
                 avatarUrl = user.getAvatarUrl();
             }
         }else if("DEAN".equals(user.getRole())) {
-            Optional<Lecturer> lec = lecturerRepository.findById(id);
+            Optional<Lecturer> lec = lecturerRepository.findByUser_UserId(id);
             if (lec.isPresent()) {
                 fullName = lec.get().getFullName();
                 avatarUrl = user.getAvatarUrl();
             }
         }else if("HEAD_OF_DEPARTMENT".equals(user.getRole())) {
-            Optional<Lecturer> lec = lecturerRepository.findById(id);
+            Optional<Lecturer> lec = lecturerRepository.findByUser_UserId(id);
             if (lec.isPresent()) {
                 fullName = lec.get().getFullName();
                 avatarUrl = user.getAvatarUrl();

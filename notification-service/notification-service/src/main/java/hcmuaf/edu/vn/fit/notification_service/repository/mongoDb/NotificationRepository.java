@@ -11,7 +11,7 @@ public interface NotificationRepository extends MongoRepository<Notification, St
     List<Notification> findByOwnerId(String ownerId);
 
     List<Notification> findByOwnerIdAndIsReadFalse(String ownerId);
-
+    List<Notification> findBySenderIdOrderByCreatedAtDesc(String senderId);
     long countByOwnerIdAndIsReadFalse(String ownerId);
 
     @Transactional

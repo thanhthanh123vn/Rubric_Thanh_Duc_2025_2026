@@ -4,8 +4,9 @@ import {
     LayoutDashboard, Users, BookOpen, Settings, LogOut, ChevronRight,
     GraduationCap, UserCheck, ShieldCheck, Key, List, FileText,
     Calendar, ClipboardList, CheckCircle, TableProperties, Settings2,
-    BarChartBig, Table, Building2, Building, Network, Bell, PieChart, Shield, Library, FileSpreadsheet
+    BarChartBig, Table, Building2, Building, Network, Bell, PieChart, Shield, Library, FileSpreadsheet, Send, Inbox
 } from 'lucide-react';
+
 import {
     Sidebar,
     SidebarContent,
@@ -71,7 +72,7 @@ const menuGroups = [
                 icon: Library,
                 subItems: [
                     { title: 'Danh sách Lớp', url: '/admin/classes/list', icon: List },
-                    { title: 'Thời khóa biểu', url: '/admin/classes/schedule', icon: Calendar }
+                    // { title: 'Thời khóa biểu', url: '/admin/classes/schedule', icon: Calendar }
                 ]
             }
         ]
@@ -114,7 +115,23 @@ const menuGroups = [
             { title: 'Báo cáo & Thống kê', url: '/admin/reports', icon: PieChart },
             { title: 'Cài đặt hệ thống', url: '/admin/settings', icon: Settings },
             { title: 'Logs', url: '/admin/logs', icon: Shield },
-            { title: 'Gửi thông báo', url: '/admin/notifications', icon: Bell },
+            {
+                title: 'Thông Báo',
+                url: '/admin/notifications',
+                icon: Bell,
+                subItems: [
+                    {
+                        title: 'Gửi thông báo',
+                        url: '/admin/notifications/send',
+                        icon: Send
+                    },
+                    {
+                        title: 'Thông báo đã gửi',
+                        url: '/admin/notifications/sent',
+                        icon: Inbox
+                    }
+                ]
+            }
             // { title: 'In Bảng Điểm', url: '/admin/grading', icon: FileSpreadsheet },
         ]
     }

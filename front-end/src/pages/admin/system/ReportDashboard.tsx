@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { courseOfferingService } from "@/features/course/student/api/courseOfferinService.ts";
 import type { CourseOfferingResponse } from "@/pages/admin/api/type.ts";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 
 const pieChartData = [
     { name: 'Đạt', value: 85 },
@@ -61,7 +64,54 @@ export default function ReportDashboard() {
         setFiltered(result);
     }, [q, semesterFilter, offerings]);
 
+    const handleExportReport = () => {
+        if (filtered.length === 0) {
+            toast.warning("Không có dữ liệu để xuất báo cáo!");
+            return;
+        }
 
+        try {
+            // 1. Chuẩn bị dữ liệu (Map sang format tiếng Việt)
+            const exportData = filtered.map((o, index) => ({
+                "STT": index + 1,
+                "Mã lớp HP": o.offeringId || "",
+                "Tên lớp HP": o.offeringName || "",
+                "Môn học": `${o.course?.courseCode || ''} - ${o.course?.courseName || ''}`,
+                "Học kỳ": o.semester || "",
+                "Sĩ số tối đa": o.maxStudents || 0
+            }));
+
+            // 2. Tạo worksheet từ mảng JSON
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+            // 3. Tùy chỉnh độ rộng cột cho đẹp
+            const wscols = [
+                { wch: 5 },  // STT
+                { wch: 15 }, // Mã lớp HP
+                { wch: 35 }, // Tên lớp HP
+                { wch: 40 }, // Môn học
+                { wch: 15 }, // Học kỳ
+                { wch: 15 }, // Sĩ số
+            ];
+            worksheet['!cols'] = wscols;
+
+            // 4. Khởi tạo workbook và gắn sheet vào
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "DanhSachLopHocPhan");
+
+            // 5. Xuất file
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const dataBlob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+            const fileName = `BaoCao_LopHocPhan_${semesterFilter === 'all' ? 'TatCa' : semesterFilter}.xlsx`;
+            saveAs(dataBlob, fileName);
+
+            toast.success("Đã xuất báo cáo Excel thành công!");
+        } catch (error) {
+            console.error("Lỗi khi xuất file:", error);
+            toast.error("Có lỗi xảy ra khi xuất báo cáo.");
+        }
+    };
     const barChartData = filtered.map(o => ({
 
         name: o.course?.courseName || o.offeringName || "Không rõ tên",
@@ -204,7 +254,10 @@ export default function ReportDashboard() {
                                 className="w-full sm:w-64 pl-9 pr-4 h-10 bg-white border border-slate-200 text-sm rounded-lg focus:border-emerald-500 outline-none shadow-sm"
                             />
                         </div>
-                        <Button className="bg-slate-800 hover:bg-slate-900 text-white h-10 rounded-lg text-sm px-4">
+                        <Button
+                            onClick={handleExportReport}
+                            className="bg-slate-800 hover:bg-slate-900 text-white h-10 rounded-lg text-sm px-4"
+                        >
                             <Download className="w-4 h-4 mr-2" />
                             Xuất báo cáo
                         </Button>

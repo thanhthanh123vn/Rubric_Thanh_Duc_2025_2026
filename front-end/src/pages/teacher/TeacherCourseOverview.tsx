@@ -226,7 +226,7 @@ function MaterialCard({
 
 
 function TopicCard({ item, currentUserAvatar, currentUserName, refreshKey }: { item: Extract<FeedItem, { type: "post" }>; currentUserAvatar?: string; currentUserName?: string; refreshKey: number }) {
-  const [showComments, setShowComments] = useState(true);
+  const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [localComments, setLocalComments] = useState<any[]>(item.comments || []);

@@ -1,4 +1,4 @@
-import api from "@/services/axiosConfig.ts";
+import {api} from "@/services/axiosConfig.ts";
 import type {Department} from "@/api/lecturerApi.ts";
 
 export const facultyService = {

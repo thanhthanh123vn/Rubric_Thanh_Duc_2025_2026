@@ -3,7 +3,7 @@ import {
   Grid3X3,
   LayoutDashboard,
   Target,
-  Calendar, Bell,
+  Calendar, Bell, Send, Inbox,
 } from 'lucide-react';
 
 export const mainLecturerModuleLinks = [
@@ -12,7 +12,23 @@ export const mainLecturerModuleLinks = [
   { label: 'Tạo Rubric', path: '/mainlecturer/rubric', icon: BookOpen },
   { label: 'Ma trận Rubric', path: '/mainlecturer/rubric-matrix', icon: Grid3X3 },
   { label: 'Phân công Học kì', path: '/mainlecturer/semester', icon: Calendar },
-  { label: 'Gửi Thông Báo', path: '/mainlecturer/notifications', icon: Bell },
+  {
+    label: 'Thông Báo',
+    path: '/mainlecturer/notifications',
+    icon: Bell,
+    subItems: [
+      {
+        label: 'Gửi thông báo',
+        path: '/mainlecturer/notifications/send',
+        icon: Send
+      },
+      {
+        label: 'Thông báo đã gửi',
+        path: '/mainlecturer/notifications/sent',
+        icon: Inbox
+      }
+    ]
+  }
 ];
 
 export const quickStats = [

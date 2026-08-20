@@ -339,7 +339,7 @@ const Post = ({ postId, id, username, fullName, avatarUrl, createdAt, content, c
 
         return () => {
             console.log(
-                `🔌 [WebSocket] Đóng kết nối comment bài viết: ${currentPostId}`
+                ` [WebSocket] Đóng kết nối comment bài viết: ${currentPostId}`
             );
 
             stompClient.deactivate();
@@ -355,7 +355,7 @@ const Post = ({ postId, id, username, fullName, avatarUrl, createdAt, content, c
         try {
             setLoading(true);
 
-            // Gửi API tạo comment. (Backend sẽ tự động broadcast qua socket)
+
             await courseService.createComment(currentPostId, commentInput, replyingTo?.id);
 
             setCommentInput("");
@@ -385,7 +385,7 @@ const Post = ({ postId, id, username, fullName, avatarUrl, createdAt, content, c
 
         safeComments.forEach((c) => {
             const cId = c.commentId || c.id;
-            const pId = c.parentId || c.parentCommentId; // Bắt 2 trường hợp tên biến backend
+            const pId = c.parentId || c.parentCommentId;
             const node = map.get(cId);
 
             if (node) {
@@ -417,7 +417,7 @@ const Post = ({ postId, id, username, fullName, avatarUrl, createdAt, content, c
                 </div>
                 <div className="flex-1">
                     <div className="flex items-baseline gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{cmtDisplayName}</p>
+                        <p className="text-sm font-semibold text-slate-900">{cmt.fullName}</p>
                         <p className="text-xs text-slate-500">
                             {new Date(cmt.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                         </p>

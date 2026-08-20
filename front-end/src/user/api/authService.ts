@@ -1,4 +1,4 @@
-import api from '../../services/axiosConfig.ts';
+import {api} from '../../services/axiosConfig.ts';
 import type {LoginRequest, LoginResponse, RegisterRequest} from './types';
 import {data} from "autoprefixer";
 

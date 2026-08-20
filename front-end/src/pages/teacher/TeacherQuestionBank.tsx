@@ -247,9 +247,10 @@ export default function TeacherQuestionBank() {
 
   // --- LOGIC LỌC DỮ LIỆU HIỂN THỊ TẠI BẢNG ---
   const filteredQuestions = questions.filter(q => {
+
     const matchSearch = q.content.toLowerCase().includes(searchTerm.toLowerCase());
     const matchDifficulty = filterDifficulty ? q.difficulty === filterDifficulty : true;
-    const matchClo = filterClo ? q.cloIds?.some((c: any) => c.cloCode === filterClo || c.cloName === filterClo) : true;
+    const matchClo = filterClo ? q.cloIds?.some((c: any) => c === filterClo || c.cloName === filterClo) : true;
     return matchSearch && matchDifficulty && matchClo;
   });
 
@@ -269,9 +270,19 @@ export default function TeacherQuestionBank() {
           </div>
 
           <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3">
-            <Button variant="outline"
-                    className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-600 border-slate-200 shadow-sm">
-              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600"/>
+            <Button
+                variant="outline"
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = "/templates/cauhoitn.xlsx";
+                  link.download = "cauhoitn.xlsx";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-600 border-slate-200 shadow-sm"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-600" />
               <span className="hidden sm:inline">Mẫu Excel</span>
               <span className="sm:hidden">Template</span>
             </Button>
