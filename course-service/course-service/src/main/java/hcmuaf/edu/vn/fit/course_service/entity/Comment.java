@@ -1,11 +1,14 @@
+// File: hcmuaf.edu.vn.fit.course_service.entity.Comment.java
 package hcmuaf.edu.vn.fit.course_service.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
-import java.sql.Timestamp;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import java.time.Instant;
+import java.util.Date;
 
-@Entity
-@Table(name = "comments")
+@Document(collection = "comments")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,23 +16,22 @@ import java.sql.Timestamp;
 public class Comment {
 
     @Id
-    @Column(name = "comment_id", length = 50)
-    private String commentId;
+    private String id;
 
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
-    private Topic topic;
+    @Field("post_id")
+    private String postId;
 
-
-    @Column(name = "user_id", length = 50)
+    @Field("user_id")
     private String userId;
 
-    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
-    @Column(name = "parent_id")
+
+    @Field("parent_id")
     private String parentId;
-    @Column(name = "created_at", nullable = false, updatable = false)
+
+
+    @Field("created_at")
     @Builder.Default
-    private Timestamp createdAt = new Timestamp(System.currentTimeMillis());
+    private Date createdAt = Date.from(Instant.now());
 }

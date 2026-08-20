@@ -43,6 +43,7 @@ public class SecurityConfig {
                                 .requestMatchers("/ws/**").permitAll()
                                 .requestMatchers("/ws-notifications/**").permitAll()
                         .requestMatchers("/api/v1/user-service/users/admin/**").hasRole("ADMIN")
+                                .requestMatchers("/api/v1/user-service/settings/**").hasRole("ADMIN")
                                 .requestMatchers(HttpMethod.GET,
                                         "/api/v1/user-service/lecturer/**")
                                 .authenticated()

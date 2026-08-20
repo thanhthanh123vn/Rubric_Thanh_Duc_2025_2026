@@ -11,6 +11,7 @@ import type {
     MatrixLevelDraft,
 } from "@/features/rubric/components/RubricMatrixPreview.tsx";
 import { getAllClo, getAllRubric, getRubricMatrix } from "@/features/rubric/rubricApi";
+import { useAppSelector } from "@/hooks/useAppSelector.ts"; // Import hook lấy thông tin user
 
 const PERCENT_RATIO_EPSILON = 0.0001;
 
@@ -55,6 +56,17 @@ const matrixToPreviewCriteria = (matrix: RubricMatrixResponse | null): MatrixCri
 };
 
 export default function RubricMatrix() {
+    // Lấy thông tin user hiện tại để kiểm tra quyền
+    const { user: reduxUser } = useAppSelector((state: any) => state.auth);
+    let user = reduxUser;
+    if (!user) {
+        const localUser = localStorage.getItem("user");
+        if (localUser) {
+            user = JSON.parse(localUser);
+        }
+    }
+    const isAdmin = user?.role === "ADMIN";
+
     const [matrices, setMatrices] = useState<RubricMatrixResponse[]>([]);
     const [rubrics, setRubrics] = useState<RubricOption[]>([]);
     const [clos, setClos] = useState<CloOption[]>([]);
@@ -148,13 +160,16 @@ export default function RubricMatrix() {
                     </h3>
                 </div>
 
-                <button
-                    onClick={() => openEditor(null)}
-                    className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
-                >
-                    <Plus className="h-5 w-5" />
-                    Ma trận mới
-                </button>
+                {/* Ẩn nút "Ma trận mới" nếu là Admin */}
+                {!isAdmin && (
+                    <button
+                        onClick={() => openEditor(null)}
+                        className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
+                    >
+                        <Plus className="h-5 w-5" />
+                        Ma trận mới
+                    </button>
+                )}
             </div>
 
             <div className="space-y-4">
@@ -228,20 +243,30 @@ export default function RubricMatrix() {
                                 <button
                                     onClick={() => openPreview(matrix)}
                                     className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
+                                    title="Xem chi tiết"
                                 >
                                     <Eye className="h-5 w-5" />
                                 </button>
 
-                                <button
-                                    onClick={() => openEditor(matrix)}
-                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
-                                >
-                                    <Edit2 className="h-5 w-5" />
-                                </button>
+                                {/* Ẩn nút "Sửa" và "Xóa" nếu là Admin */}
+                                {!isAdmin && (
+                                    <>
+                                        <button
+                                            onClick={() => openEditor(matrix)}
+                                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
+                                            title="Sửa ma trận"
+                                        >
+                                            <Edit2 className="h-5 w-5" />
+                                        </button>
 
-                                <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600">
-                                    <Trash2 className="h-5 w-5" />
-                                </button>
+                                        <button
+                                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600"
+                                            title="Xóa ma trận"
+                                        >
+                                            <Trash2 className="h-5 w-5" />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -321,6 +346,7 @@ export default function RubricMatrix() {
                 ))}
             </div>
 
+            {/* Component Editor chỉ bật lên khi bấm Sửa/Thêm Mới - Không cần chặn bên trong nếu đã chặn nút bấm bên ngoài */}
             <RubricMatrixEditor
                 open={showModal}
                 selectedMatrix={selectedMatrix}

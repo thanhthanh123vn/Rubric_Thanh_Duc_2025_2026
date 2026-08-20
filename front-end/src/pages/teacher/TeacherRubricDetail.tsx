@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Target, LayoutList, Scale, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 import { getRubricById, updateRubric } from "@/pages/mainlecturer/api/RubricAPI.ts";
+import { useAppSelector } from "@/hooks/useAppSelector.ts"; // Thêm import này
 
 interface CriteriaResponse {
     id: string;
@@ -21,6 +22,19 @@ interface RubricDetailResponse {
 export default function TeacherRubricDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+
+    // Lấy thông tin user hiện tại để kiểm tra quyền
+    const { user: reduxUser } = useAppSelector((state: any) => state.auth);
+    let user = reduxUser;
+    if (!user) {
+        const localUser = localStorage.getItem("user");
+        if (localUser) {
+            user = JSON.parse(localUser);
+        }
+    }
+
+    // Kiểm tra xem có phải là ADMIN không
+    const isAdmin = user?.role === "ADMIN";
 
     const [rubric, setRubric] = useState<RubricDetailResponse | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
@@ -117,19 +131,22 @@ export default function TeacherRubricDetail() {
                 </div>
 
                 <div className="flex gap-2">
-                    {!isEditing ? (
-                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
-                            <Edit2 className="w-4 h-4" /> Chỉnh sửa
-                        </button>
-                    ) : (
-                        <>
-                            <button onClick={() => setIsEditing(false)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300">
-                                <X className="w-4 h-4" /> Hủy
+                    {/* CHỈ HIỂN THỊ CÁC NÚT THAO TÁC NẾU KHÔNG PHẢI LÀ ADMIN */}
+                    {!isAdmin && (
+                        !isEditing ? (
+                            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
+                                <Edit2 className="w-4 h-4" /> Chỉnh sửa
                             </button>
-                            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                                <Save className="w-4 h-4" /> {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
-                            </button>
-                        </>
+                        ) : (
+                            <>
+                                <button onClick={() => setIsEditing(false)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300">
+                                    <X className="w-4 h-4" /> Hủy
+                                </button>
+                                <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                                    <Save className="w-4 h-4" /> {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                                </button>
+                            </>
+                        )
                     )}
                 </div>
             </div>

@@ -1,6 +1,7 @@
 package hcmuaf.edu.vn.fit.notification_service.controller;
 
 import hcmuaf.edu.vn.fit.notification_service.config.UserPrincipal;
+import hcmuaf.edu.vn.fit.notification_service.dto.request.EmailNotificationRequest;
 import hcmuaf.edu.vn.fit.notification_service.dto.request.NotificationRequest;
 import hcmuaf.edu.vn.fit.notification_service.dto.response.NotificationResponse;
 import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/notification-service")
@@ -49,7 +52,7 @@ public class NotificationController {
     @GetMapping("/getNotification/me")
     public List<NotificationResponse> getUserNotifications(@RequestHeader("X-User-Id") String userId) {
 
-        return service.getUserNotifications(userId); // Gọi hàm đã được update ở Bước 2
+        return service.getUserNotifications(userId);
     }
 
     // Giao bài tập cho nhiều sinh viên
@@ -115,7 +118,7 @@ public class NotificationController {
         return ResponseEntity.ok("Đã đánh dấu tất cả là đã đọc");
     }
 
-    // Xóa thông báo
+
     @DeleteMapping("/{notificationId}")
     public ResponseEntity<?> deleteNotification(@PathVariable String notificationId) {
         try {
@@ -171,6 +174,49 @@ public class NotificationController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi khi gửi thông báo: " + e.getMessage());
         }
+    }
+    @PostMapping("/send-email")
+    public ResponseEntity<?> sendEmail(
+            @RequestBody EmailNotificationRequest request) {
+
+        service.sendEmailNotification(
+                request.toEmail(),
+                request.subject(),
+                request.content()
+        );
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "success", true,
+                        "message", "Đã xử lý gửi email"
+                )
+        );
+    }
+    @PutMapping("/{notificationId}")
+    public ResponseEntity<?> updateNotification(
+            @PathVariable String notificationId,
+            @RequestBody Map<String, String> requestBody) {
+        try {
+
+            String title = requestBody.get("title");
+
+
+            String content = requestBody.get("content");
+            if (content == null) {
+                content = requestBody.get("message");
+            }
+
+
+            NotificationResponse updatedNotification = service.updateNotification(notificationId, title, content);
+
+            return ResponseEntity.ok(updatedNotification);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi cập nhật thông báo: " + e.getMessage());
+        }
+    }
+    @GetMapping("/getNotification/sent")
+    public List<NotificationResponse> getSentNotifications(@RequestHeader("X-User-Id") String userId) {
+        return service.getSentNotifications(userId);
     }
 
 }

@@ -21,4 +21,6 @@ public interface LecturerRepository extends JpaRepository<Lecturer, String> {
     Optional<String> findUserIdById(@Param("lecturerId") String lecturerId);
     List<Lecturer> findByDepartment_DepartmentName(String departmentName);
     Long countLecturerByDepartment_departmentName(String department);
+
+
 }

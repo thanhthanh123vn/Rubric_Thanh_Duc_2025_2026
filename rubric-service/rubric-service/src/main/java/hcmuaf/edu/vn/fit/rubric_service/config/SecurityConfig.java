@@ -31,9 +31,9 @@ public class SecurityConfig {
                         // Quyền QUẢN TRỊ & GIẢNG VIÊN
                         // (Tạo mới, chỉnh sửa, xóa Rubric và các Criteria/Tiêu chí)
 
-                        .requestMatchers(HttpMethod.POST, "/api/v1/rubric-service/**").hasAnyRole("ADMIN", "LECTURER", "MAIN_LECTURER")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/rubric-service/**").hasAnyRole("ADMIN", "LECTURER", "MAIN_LECTURER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/rubric-service/**").hasAnyRole("ADMIN", "LECTURER", "MAIN_LECTURER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/rubric-service/**").hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER","HEAD_OF_DEPARTMENT")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/rubric-service/**").hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER","HEAD_OF_DEPARTMENT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/rubric-service/**").hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER","HEAD_OF_DEPARTMENT")
 
                         // Quyền CHUNG (Đã xác thực)
                         // Sinh viên cần được phép GET Rubric để xem chi tiết các tiêu chí chấm điểm của bài tập/môn học

@@ -1,9 +1,8 @@
-import { CheckCircle2, Edit3, Layers3, Target } from 'lucide-react';
+import { CheckCircle2, Edit3, Layers3, Target, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getAllClo, getAllRubric } from '@/features/rubric/rubricApi';
-import {useNavigate} from "react-router-dom";
-import {useAppSelector} from "@/hooks/useAppSelector.ts";
-
+import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
 
 interface Clo {
   cloCode: string;
@@ -25,7 +24,7 @@ export default function TeacherRubric() {
   const [rubricTemplates, setRubricTemplates] = useState<RubricDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
-  const { user:reduxUser } = useAppSelector((state) => state.auth);
+  const { user: reduxUser } = useAppSelector((state) => state.auth);
 
   let user = reduxUser;
   if (!user) {
@@ -34,6 +33,7 @@ export default function TeacherRubric() {
       user = JSON.parse(localUser);
     }
   }
+
   useEffect(() => {
     const fetchRubricData = async () => {
       try {
@@ -91,7 +91,6 @@ export default function TeacherRubric() {
                     </span>
                         </div>
                         <div className="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
-
                           <div className="h-full rounded-full bg-emerald-500" style={{ width: `50%` }} />
                         </div>
                       </div>
@@ -107,7 +106,10 @@ export default function TeacherRubric() {
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-xl font-bold text-slate-900">Rubric Builder</h4>
-                <p className="mt-1 text-sm text-slate-500">Tao, sua, luu va tai su dung mau</p>
+                {/* Đổi mô tả nếu là Admin */}
+                <p className="mt-1 text-sm text-slate-500">
+                  {user?.role === "ADMIN" ? "Xem danh sach va chi tiet mau" : "Tao, sua, luu va tai su dung mau"}
+                </p>
               </div>
               <Layers3 className="h-5 w-5 text-cyan-600" />
             </div>
@@ -117,29 +119,39 @@ export default function TeacherRubric() {
                   <div className="text-center text-slate-500 py-4">Đang tải Rubrics...</div>
               ) : rubricTemplates.length > 0 ? (
                   rubricTemplates.map((template) => (
-                      <div key={template.id || template.name}  onClick={() =>
-                          navigate(
-                              user?.role === "ADMIN"
-                                  ? `/admin/rubrics/list/${template.id}`
-                                  : `/teacher/rubric/${template.id}`
-                          )
-                      }  className="rounded-2xl border border-slate-200 p-4 hover:border-emerald-200 transition-colors">
+                      <div
+                          key={template.id || template.name}
+                          onClick={() =>
+                              navigate(
+                                  user?.role === "ADMIN"
+                                      ? `/admin/rubrics/list/${template.id}`
+                                      : `/teacher/rubric/${template.id}`
+                              )
+                          }
+                          className="rounded-2xl border border-slate-200 p-4 hover:border-emerald-200 transition-colors cursor-pointer"
+                      >
                         <div className="flex items-center justify-between gap-4">
                           <div>
                             <p className="font-semibold text-slate-900">{template.name}</p>
-                            {/* Tạm ẩn trọng số hoặc thay bằng dữ liệu mô tả */}
                             <p className="mt-1 text-sm text-slate-500 line-clamp-1">{template.description}</p>
                           </div>
-                          <button className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
-                            <Edit3 className="h-4 w-4" />
-                          </button>
+
+                          {/* Ẩn nút Edit nếu là ADMIN, thay bằng nút Eye (Xem) hoặc ẩn hoàn toàn */}
+                          {user?.role !== "ADMIN" ? (
+                              <button className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                          ) : (
+                              <button className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                                <Eye className="h-4 w-4" />
+                              </button>
+                          )}
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {/* Sử dụng trường defaultType làm tag, nếu có thêm thẻ từ API thì map() ở đây */}
                           {template.defaultType && (
                               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                        {template.defaultType}
-                      </span>
+                                {template.defaultType}
+                              </span>
                           )}
                         </div>
                       </div>

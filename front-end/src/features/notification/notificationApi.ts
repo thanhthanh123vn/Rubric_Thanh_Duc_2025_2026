@@ -20,12 +20,30 @@ export const notificationApi = {
         const response = await notificationServiceApi.get<NotificationItem[]>(`/getNotification/me`);
         return response.data;
     },
-
+    getNotificationsSent: async () => {
+        const response = await notificationServiceApi.get<NotificationItem[]>(`/getNotification/sent`);
+        return response.data;
+    },
 
     markAsRead: (notificationId: string) => {
         return notificationServiceApi.put(`/${notificationId}/read`);
     },
     markAllAsRead: () => {
         return notificationServiceApi.put(`/user/read-all`);
-    }
+    },
+    deleteNotification: async (notificationId: string) => {
+        return await notificationServiceApi.delete(`/${notificationId}`);
+    },
+    updateNotification: async (notificationId: string, data: { title: string; content: string }) => {
+        const response = await notificationServiceApi.put(`/${notificationId}`, data);
+        return response.data;
+    },
+    broadcastNotification: (data: {
+        title: string;
+        message: string;
+        recipientRole: string;
+    }) => {
+        return notificationServiceApi.post("/notifications/broadcast", data);
+    },
+
 };

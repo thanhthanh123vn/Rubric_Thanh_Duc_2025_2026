@@ -12,7 +12,7 @@ import {
     Target,
     LogOut,
     Menu,
-    UserPlus // Đã thêm icon này
+    UserPlus, Bell, Send, Inbox, ChevronDown // Đã thêm icon này
 } from 'lucide-react';
 
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -27,7 +27,23 @@ const deptHeadLinks = [
     { path: '/department/clo', label: 'Chuẩn CLO', icon: Target },
     { path: '/department/obe', label: 'Phân tích chuẩn đầu ra OBE', icon: BarChart3 },
     { path: '/department/question-banks', label: 'Ngân Hàng Câu Hỏi', icon: Database },
-    { path: '/department/notifications', label: 'Gửi Thông Báo', icon: Target},
+    {
+        label: 'Thông Báo',
+        path: '/department/notifications',
+        icon: Bell,
+        subItems: [
+            {
+                label: 'Gửi thông báo',
+                path: '/department/notifications/send',
+                icon: Send
+            },
+            {
+                label: 'Thông báo đã gửi',
+                path: '/department/notifications/sent',
+                icon: Inbox
+            }
+        ]
+    }
 ];
 
 export default function DepartmentHeadLayout() {
@@ -42,7 +58,14 @@ export default function DepartmentHeadLayout() {
     const currentUser = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
     const inDetailView = location.pathname.split('/').length > 6;
+    const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
 
+    const toggleSubMenu = (label: string) => {
+        setOpenMenus((prev) => ({
+            ...prev,
+            [label]: !prev[label]
+        }));
+    };
     // Đóng menu khi click ra ngoài
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -141,9 +164,56 @@ export default function DepartmentHeadLayout() {
                         </div>
 
                         {/* Navigation Menu */}
+                        {/* Navigation Menu */}
                         <nav className="mt-6 space-y-1.5 flex-1">
                             {deptHeadLinks.map((item: any) => {
+                                const hasSubItems = item.subItems && item.subItems.length > 0;
+                                const isSubMenuOpen = openMenus[item.label];
                                 const isActive = checkIsActive(item.path);
+
+                                // NẾU CÓ MENU CON
+                                if (hasSubItems) {
+                                    return (
+                                        <div key={item.label} className="space-y-1">
+                                            {/* Nút bấm cha để xổ menu con (Không phải Link) */}
+                                            <button
+                                                onClick={() => toggleSubMenu(item.label)}
+                                                className={`flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 text-slate-600 hover:bg-slate-100/60 hover:text-teal-700`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <item.icon className="h-5 w-5" />
+                                                    <span>{item.label}</span>
+                                                </div>
+                                                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubMenuOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {/* Danh sách menu con */}
+                                            {isSubMenuOpen && (
+                                                <div className="ml-5 mt-1 space-y-1 border-l border-slate-200 pl-4">
+                                                    {item.subItems.map((subItem: any) => {
+                                                        const isSubActive = checkIsActive(subItem.path);
+                                                        return (
+                                                            <Link
+                                                                key={subItem.path}
+                                                                to={subItem.path}
+                                                                className={`flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                                                                    isSubActive
+                                                                        ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100/50'
+                                                                        : 'text-slate-500 hover:bg-slate-100/60 hover:text-teal-700'
+                                                                }`}
+                                                            >
+                                                                {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                                                <span>{subItem.label}</span>
+                                                            </Link>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }
+
+                                // NẾU KHÔNG CÓ MENU CON (Menu đơn)
                                 return (
                                     <Link
                                         key={item.path}
