@@ -12,7 +12,7 @@ import {
     Target,
     LogOut,
     Menu,
-    UserPlus, Bell, Send, Inbox, ChevronDown // Đã thêm icon này
+    UserPlus, Bell, Send, Inbox, ChevronDown, Presentation // Đã thêm icon này
 } from 'lucide-react';
 
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -27,6 +27,7 @@ const deptHeadLinks = [
     { path: '/department/clo', label: 'Chuẩn CLO', icon: Target },
     { path: '/department/obe', label: 'Phân tích chuẩn đầu ra OBE', icon: BarChart3 },
     { path: '/department/question-banks', label: 'Ngân Hàng Câu Hỏi', icon: Database },
+    { label: 'Chế độ Giảng viên', path: '/teacher', icon: Presentation },
     {
         label: 'Thông Báo',
         path: '/department/notifications',
@@ -215,18 +216,31 @@ export default function DepartmentHeadLayout() {
 
                                 // NẾU KHÔNG CÓ MENU CON (Menu đơn)
                                 return (
-                                    <Link
-                                        key={item.path}
-                                        to={item.path}
-                                        className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 ${
-                                            isActive
-                                                ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100/50 translate-x-1'
-                                                : 'text-slate-600 hover:bg-slate-100/60 hover:text-teal-700'
-                                        }`}
-                                    >
-                                        <item.icon className="h-5 w-5" />
-                                        <span>{item.label}</span>
-                                    </Link>
+                                    item.path === '/teacher' ? (
+                                        <a
+                                            key={item.path}
+                                            href={item.path}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 text-slate-600 hover:bg-slate-100/60 hover:text-teal-700"
+                                        >
+                                            <item.icon className="h-5 w-5" />
+                                            <span>{item.label}</span>
+                                        </a>
+                                    ) : (
+                                        <Link
+                                            key={item.path}
+                                            to={item.path}
+                                            className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 ${
+                                                isActive
+                                                    ? 'bg-teal-50 text-teal-700 shadow-sm border border-teal-100/50 translate-x-1'
+                                                    : 'text-slate-600 hover:bg-slate-100/60 hover:text-teal-700'
+                                            }`}
+                                        >
+                                            <item.icon className="h-5 w-5" />
+                                            <span>{item.label}</span>
+                                        </Link>
+                                    )
                                 );
                             })}
                         </nav>
