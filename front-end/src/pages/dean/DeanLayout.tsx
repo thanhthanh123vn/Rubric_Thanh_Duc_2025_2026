@@ -9,7 +9,7 @@ import {
     BookOpen,
     LogOut,
     Bell,
-    UserPlus, Send, Inbox, ChevronDown
+    UserPlus, Send, Inbox, ChevronDown, Presentation
 } from 'lucide-react';
 import authService from "@/user/api/authService.ts";
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -21,6 +21,7 @@ const deanModuleLinks = [
     { path: '/dean/obe', label: 'Phân Tích OBE', icon: ClipboardCheck },
     { path: '/dean/reports', label: 'Báo cáo chất lượng', icon: BarChart3 },
     { path: '/dean/courses', label: 'Quản lý Môn học', icon: BookOpen },
+    { label: 'Chế độ Giảng viên', path: '/teacher', icon: Presentation },
     {
         label: 'Thông Báo',
         path: '/dean/notifications',
@@ -194,7 +195,22 @@ export default function DeanLayout() {
                                     );
                                 }
 
-                                // Nếu không có menu con (Link bình thường)
+
+                                if (item.path === '/teacher') {
+                                    return (
+                                        <a
+                                            key={item.path}
+                                            href="/teacher"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all duration-200 text-slate-600 hover:bg-slate-100/60 hover:text-indigo-700"
+                                        >
+                                            <item.icon className="h-5 w-5" />
+                                            <span>{item.label}</span>
+                                        </a>
+                                    );
+                                }
+
                                 return (
                                     <NavLink
                                         key={item.path}

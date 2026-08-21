@@ -4,7 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { mainLecturerModuleLinks } from './mainLecturerData';
 
 export default function MainLecturerSidebar() {
-    // State quản lý việc đóng/mở của các menu có subItems
+
     const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
 
     const toggleSubMenu = (label: string) => {
@@ -78,7 +78,22 @@ export default function MainLecturerSidebar() {
                             );
                         }
 
-                        // 2. NẾU KHÔNG CÓ MENU CON (Link bình thường)
+
+                        if (item.path === '/teacher') {
+                            return (
+                                <a
+                                    key={item.path}
+                                    href="/teacher"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all text-slate-600 hover:bg-green-50 hover:text-green-700"
+                                >
+                                    <item.icon className="h-4 w-4" />
+                                    <span>{item.label}</span>
+                                </a>
+                            );
+                        }
+
                         return (
                             <NavLink
                                 key={item.path}
@@ -125,22 +140,37 @@ export default function MainLecturerSidebar() {
                         ));
                     }
 
-                    // Tab bình thường
+
+                    if (item.path === '/teacher') {
+                        return (
+                            <a
+                                key={item.path}
+                                href="/teacher"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all text-slate-600 hover:bg-green-50 hover:text-green-700"
+                            >
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                            </a>
+                        );
+                    }
+
                     return (
                         <NavLink
                             key={item.path}
                             to={item.path}
                             end={item.path === '/mainlecturer'}
                             className={({ isActive }) =>
-                                `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
+                                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
                                     isActive
-                                        ? 'border-green-200 bg-green-50 text-green-700'
-                                        : 'border-slate-200 bg-white text-slate-600'
+                                        ? 'bg-green-50 text-green-700'
+                                        : 'text-slate-600 hover:bg-green-50 hover:text-green-700'
                                 }`
                             }
                         >
                             <item.icon className="h-4 w-4" />
-                            {item.label}
+                            <span>{item.label}</span>
                         </NavLink>
                     );
                 })}

@@ -117,39 +117,49 @@ export default function LoginPage() {
 
             let targetPath = "/dashboard";
 
-            switch (data.role) {
-                case "ADMIN":
-                    targetPath = "/admin";
-                    break;
+                switch (data.role) {
+                    case "ADMIN":
+                        targetPath = "/admin";
+                        break;
 
-                case "HEAD_OF_DEPARTMENT":
-                    targetPath = "/department";
-                    break;
-                case "DEAN":
-                    targetPath = "/dean";
-                    break;
+                    case "HEAD_OF_DEPARTMENT":
+                        targetPath = "/department";
+                        break;
+                    case "DEAN":
+                        targetPath = "/dean";
+                        break;
 
-                case "MAIN_LECTURER":
-                    targetPath = "/mainlecturer";
-                    break;
+                    case "MAIN_LECTURER":
+                        targetPath = "/mainlecturer";
+                        break;
 
-                case "TEACHER":
-                    targetPath = "/teacher";
-                    break;
+                    case "TEACHER":
+                        targetPath = "/teacher";
+                        break;
 
-                case "STUDENT":
-                    targetPath = "/dashboard";
-                    break;
+                    case "STUDENT":
+                        targetPath = "/dashboard";
+                        break;
 
-                default:
-                    targetPath = "/login";
-            }
+                    default:
+                        targetPath = "/login";
+                        }
 
             navigate(targetPath);
 
+<<<<<<< Updated upstream
         } catch (error: unknown) {
             if (axios.isAxiosError<ErrorResponse>(error)) {
                 const message = error.response?.data?.message;
+=======
+
+
+
+        } catch (error: any) {
+            const message =
+                error.response?.data?.message ||
+                "Sai tài khoản hoặc mật khẩu!";
+>>>>>>> Stashed changes
 
                 if (message && isLockedMessage(message)) {
                     toast.warning("Tài khoản bị khóa", {

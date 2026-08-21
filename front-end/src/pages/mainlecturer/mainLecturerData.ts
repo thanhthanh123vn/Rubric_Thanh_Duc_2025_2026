@@ -3,7 +3,7 @@ import {
   Grid3X3,
   LayoutDashboard,
   Target,
-  Calendar, Bell, Send, Inbox,
+  Calendar, Bell, Send, Inbox, Presentation,
 } from 'lucide-react';
 
 export const mainLecturerModuleLinks = [
@@ -11,6 +11,7 @@ export const mainLecturerModuleLinks = [
   { label: 'Quản lý CLO', path: '/mainlecturer/clo', icon: Target },
   { label: 'Rubric', path: '/mainlecturer/rubric', icon: Grid3X3 },
   { label: 'Phân công Học kì', path: '/mainlecturer/semester', icon: Calendar },
+  { label: 'Chế độ Giảng viên', path: '/teacher', icon: Presentation },
   {
     label: 'Thông Báo',
     path: '/mainlecturer/notifications',

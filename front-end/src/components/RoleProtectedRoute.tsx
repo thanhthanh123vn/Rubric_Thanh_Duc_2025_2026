@@ -6,18 +6,29 @@ interface RoleProtectedRouteProps {
     allowedRoles: string[];
 }
 
-
 const RoleProtectedRoute = ({ allowedRoles = [] }: RoleProtectedRouteProps) => {
     const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
-
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
 
+    const userRole = user?.role ?? "";
 
-    if (!allowedRoles.includes(user?.role ?? "")) {
-        switch (user?.role) {
+    // 1. Kiểm tra xem user có quyền khớp chính xác với yêu cầu không
+    const hasExactRole = allowedRoles.includes(userRole);
+
+
+    // Khai báo nhóm các chức vụ có thực hiện công tác giảng dạy
+    const teachingRoles = ["TEACHER", "LECTURER", "MAIN_LECTURER", "HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DEAN", "ADMIN"];
+
+
+    const isTeacherRoute = allowedRoles.includes("TEACHER") || allowedRoles.includes("LECTURER");
+    const canAccessAsTeacher = isTeacherRoute && teachingRoles.includes(userRole);
+
+
+    if (!hasExactRole && !canAccessAsTeacher) {
+        switch (userRole) {
             case "ADMIN": return <Navigate to="/admin" replace />;
             case "DEAN": return <Navigate to="/dean" replace />;
             case "DEPARTMENT_HEAD":
