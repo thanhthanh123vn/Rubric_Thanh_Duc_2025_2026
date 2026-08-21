@@ -7,6 +7,7 @@ import hcmuaf.edu.vn.fit.notification_service.dto.response.NotificationResponse;
 import hcmuaf.edu.vn.fit.notification_service.dto.response.SinhVienResponse;
 import hcmuaf.edu.vn.fit.notification_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.notification_service.entity.Notification;
+import hcmuaf.edu.vn.fit.notification_service.entity.SystemSetting;
 import hcmuaf.edu.vn.fit.notification_service.entity.enums.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,8 @@ public class NotificationService {
 
     @Autowired
     private JavaMailSender mailSender;
+    @Autowired
+    private SystemSettingService systemSettingService;
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -262,24 +265,32 @@ public class NotificationService {
 
     // Lấy thông báo theo ownerId
     public List<NotificationResponse> getUserNotifications(String userId) {
-        List<Notification> notifications = repo.findByOwnerIdOrderByCreatedAtDesc(userId);
+        List<Notification> notifications =
+                repo.findByOwnerIdOrderByCreatedAtDesc(userId);
 
         return notifications.stream().map(notif -> {
             NotificationResponse dto = new NotificationResponse();
+
             dto.setId(notif.getId());
             dto.setTitle(notif.getTitle());
             dto.setContent(notif.getContent());
             dto.setRead(notif.isRead());
 
-            // SỬA LỖI NULL POINTER EXCEPTION TẠI ĐÂY
-            Instant createdAt = notif.getCreatedAt() != null ? notif.getCreatedAt() : Instant.now();
-            dto.setCreatedAt(notif.getCreatedAt());
 
+            Instant createdAt = notif.getCreatedAt() != null
+                    ? notif.getCreatedAt()
+                    : Instant.now();
+
+            dto.setCreatedAt(createdAt);
             dto.setReferenceUrl(notif.getReferenceUrl());
             dto.setCourseId(notif.getCourseId());
+
             dto.setNotificationType(
-                    notif.getNotificationType() != null ? notif.getNotificationType().name() : null
+                    notif.getNotificationType() != null
+                            ? notif.getNotificationType().name()
+                            : null
             );
+
             dto.setSenderId(notif.getSenderId());
 
             try {
@@ -289,6 +300,7 @@ public class NotificationService {
 
                     try {
                         UserResponse user = userClient.getUser(senderId);
+
                         if (user != null && user.getFullName() != null) {
                             dto.setSenderName(user.getFullName());
                             dto.setSenderAvatar(user.getAvatarUrl());
@@ -299,9 +311,15 @@ public class NotificationService {
 
                     if (!isFound) {
                         try {
-                            LecturerResponse lecturer = userClient.getLecturer(senderId);
-                            if (lecturer != null && lecturer.getFullName() != null) {
-                                UserResponse userResponse = userClient.getUser(lecturer.getUserId());
+                            LecturerResponse lecturer =
+                                    userClient.getLecturer(senderId);
+
+                            if (lecturer != null &&
+                                    lecturer.getFullName() != null) {
+
+                                UserResponse userResponse =
+                                        userClient.getUser(lecturer.getUserId());
+
                                 dto.setSenderName(userResponse.getFullName());
                                 dto.setSenderAvatar(userResponse.getAvatarUrl());
                                 isFound = true;
@@ -316,12 +334,16 @@ public class NotificationService {
                 } else {
                     dto.setSenderName("Hệ thống LMS");
                 }
+
             } catch (Exception e) {
-                System.err.println("Lỗi khi lấy thông tin người gửi: " + e.getMessage());
+                System.err.println(
+                        "Lỗi khi lấy thông tin người gửi: " + e.getMessage()
+                );
                 dto.setSenderName("Hệ thống LMS");
             }
 
             return dto;
+
         }).collect(Collectors.toList());
     }
 
@@ -378,7 +400,8 @@ public class NotificationService {
         dto.setRead(notif.isRead());
         dto.setOwnerId(notif.getOwnerId());
         Instant createdAt = notif.getCreatedAt() != null ? notif.getCreatedAt() : Instant.now();
-        dto.setCreatedAt(notif.getCreatedAt());
+        dto.setCreatedAt(createdAt);
+
         dto.setReferenceUrl(notif.getReferenceUrl());
         dto.setSenderId(notif.getSenderId());
 
@@ -422,6 +445,102 @@ public class NotificationService {
         }
 
         return dto;
+    }
+
+    public void sendEmailNotification(String toEmail, String subject, String content) {
+
+        SystemSetting settings = systemSettingService.getSettings();
+
+
+        if (!settings.isEmailNotifications()) {
+            log.info("Chức năng Thông báo Email đang bị TẮT. Đã bỏ qua việc gửi email tới: {}", toEmail);
+            return; // Dừng lại, không gửi
+        }
+
+        try {
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("22130260@st.hcmuaf.edu.vn");
+            message.setTo(toEmail);
+            message.setSubject(subject);
+            message.setText(content);
+
+            mailSender.send(message);
+            log.info("Đã gửi email thành công tới: {}", toEmail);
+
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email: {}", e.getMessage());
+        }
+    }
+    @Transactional
+    public NotificationResponse updateNotification(String notificationId, String newTitle, String newContent) {
+
+        Notification notification = repo.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông báo với ID: " + notificationId));
+
+
+        if (newTitle != null && !newTitle.trim().isEmpty()) {
+            notification.setTitle(newTitle);
+        }
+
+        if (newContent != null && !newContent.trim().isEmpty()) {
+            notification.setContent(newContent);
+        }
+
+
+        Notification updatedNotification = repo.save(notification);
+
+
+        return mapToResponse(updatedNotification);
+    }
+    // Lấy thông báo do user ĐÃ GỬI (dựa vào sender_id)
+    public List<NotificationResponse> getSentNotifications(String senderId) {
+        // Truy vấn dựa vào senderId thay vì ownerId
+        List<Notification> notifications = repo.findBySenderIdOrderByCreatedAtDesc(senderId);
+
+        return notifications.stream().map(notif -> {
+            NotificationResponse dto = new NotificationResponse();
+
+            dto.setId(notif.getId());
+            dto.setTitle(notif.getTitle());
+            dto.setContent(notif.getContent());
+            dto.setRead(notif.isRead());
+
+            Instant createdAt = notif.getCreatedAt() != null
+                    ? notif.getCreatedAt()
+                    : Instant.now();
+
+            dto.setCreatedAt(createdAt);
+            dto.setReferenceUrl(notif.getReferenceUrl());
+            dto.setCourseId(notif.getCourseId());
+
+            dto.setNotificationType(
+                    notif.getNotificationType() != null
+                            ? notif.getNotificationType().name()
+                            : null
+            );
+
+            // Gán thông tin người gửi và người nhận
+            dto.setSenderId(notif.getSenderId());
+            dto.setOwnerId(notif.getOwnerId()); // Gắn thêm người nhận để phía FE biết thông báo này gửi cho ai
+
+            // Thông tin sender trong trường hợp này chính là user đang đăng nhập (giảng viên)
+            // Bạn có thể bỏ qua bước gọi sang userClient để tối ưu hiệu năng,
+            // hoặc giữ nguyên logic cũ nếu muốn DTO trả về đầy đủ Avatar và Tên
+            try {
+                UserResponse user = userClient.getUser(senderId);
+                if (user != null && user.getFullName() != null) {
+                    dto.setSenderName(user.getFullName());
+                    dto.setSenderAvatar(user.getAvatarUrl());
+                } else {
+                    dto.setSenderName("Hệ thống LMS");
+                }
+            } catch (Exception e) {
+                dto.setSenderName("Hệ thống LMS");
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 
 }

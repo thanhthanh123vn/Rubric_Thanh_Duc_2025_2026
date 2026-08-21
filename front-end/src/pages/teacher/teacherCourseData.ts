@@ -108,5 +108,22 @@ export const teacherCourseMenu = [
       { key: 'outcome-report', label: 'Báo cáo chuẩn đầu ra', path: 'outcomes' },
     ],
   },
-  { key: 'notifications', icon: Bell, label: ' Gửi Thông Báo', path: 'notifications' },
+  {
+    key: 'notifications',
+    icon: Bell,
+    label: 'Thông Báo',
+    path: 'notifications',
+    children: [
+      {
+        key: 'send-notification',
+        label: 'Gửi thông báo',
+        path: 'send'
+      },
+      {
+        key: 'sent-notifications',
+        label: 'Thông báo đã gửi',
+        path: 'sent'
+      }
+    ]
+  }
 ];

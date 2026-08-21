@@ -1,7 +1,8 @@
-import {useEffect, useMemo, useRef, useState} from "react";
-import {Download, FileSpreadsheet, Loader2, Save, Upload} from "lucide-react";
-import {useParams} from "react-router-dom";
-import {toast} from "sonner";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Download, FileSpreadsheet, Loader2, Save, Upload, Search } from "lucide-react"; // Import thêm Search
+import { useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
 
 import {
     courseService,
@@ -28,14 +29,14 @@ function parseScore(value: string) {
 }
 
 function errorMessage(error: unknown) {
-    const candidate = error as {response?: {data?: {message?: string} | string}};
+    const candidate = error as { response?: { data?: { message?: string } | string } };
     const data = candidate.response?.data;
     if (typeof data === "string") return data;
     return data?.message || "Có lỗi xảy ra. Vui lòng thử lại.";
 }
 
 export default function TeacherGradeEntry() {
-    const {id: offeringId} = useParams<{id: string}>();
+    const { id:offeringId } = useParams();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(true);
     const [savingConfig, setSavingConfig] = useState(false);
@@ -45,6 +46,20 @@ export default function TeacherGradeEntry() {
     const [attendanceWeight, setAttendanceWeight] = useState("10");
     const [assignmentWeight, setAssignmentWeight] = useState("40");
     const [rows, setRows] = useState<EditableScore[]>([]);
+
+    // State dùng cho Tìm kiếm và Lọc
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterIncomplete, setFilterIncomplete] = useState(false);
+
+    const { user: reduxUser } = useAppSelector((state: any) => state.auth);
+    let user = reduxUser;
+    if (!user) {
+        const localUser = localStorage.getItem("user");
+        if (localUser) {
+            user = JSON.parse(localUser);
+        }
+    }
+    const isAdmin = user?.role === "ADMIN";
 
     const applyGradebook = (data: CourseGradebook) => {
         setGradebook(data);
@@ -78,13 +93,33 @@ export default function TeacherGradeEntry() {
         const attendance = Number(attendanceWeight) || 0;
         const assignment = Number(assignmentWeight) || 0;
         const component = Math.round((attendance + assignment) * 10) / 10;
-        return {attendance, assignment, component, exam: Math.round((100 - component) * 10) / 10};
+        return { attendance, assignment, component, exam: Math.round((100 - component) * 10) / 10 };
     }, [attendanceWeight, assignmentWeight]);
 
+    // Xử lý logic Tìm kiếm và Lọc sinh viên chưa nhập đủ điểm
+    const filteredRows = useMemo(() => {
+        return rows.filter((row) => {
+            // 1. Kiểm tra tìm kiếm theo Tên hoặc MSSV
+            const matchesSearch =
+                row.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                row.studentId.toLowerCase().includes(searchTerm.toLowerCase());
+
+            // 2. Kiểm tra điều kiện "Chưa nhập đủ điểm" (1 trong 3 cột điểm bị bỏ trống)
+            const isIncomplete = !row.attendanceScore || !row.assignmentScore || !row.examScore;
+
+            if (filterIncomplete && !isIncomplete) {
+                return false; // Đang bật bộ lọc "Chưa nhập đủ điểm" nhưng SV này đã nhập đủ thì ẩn đi
+            }
+
+            return matchesSearch;
+        });
+    }, [rows, searchTerm, filterIncomplete]);
+
     const updateRow = (studentId: string, field: "attendanceScore" | "assignmentScore" | "examScore", value: string) => {
+        if (isAdmin) return;
         if (value && !/^\d{0,2}(\.\d{0,1})?$/.test(value)) return;
         setRows((current) => current.map((row) =>
-            row.studentId === studentId ? {...row, [field]: value} : row));
+            row.studentId === studentId ? { ...row, [field]: value } : row));
     };
 
     const calculatedTotal = (row: EditableScore) => {
@@ -116,7 +151,7 @@ export default function TeacherGradeEntry() {
     };
 
     const saveConfig = async () => {
-        if (!offeringId) return;
+        if (!offeringId || isAdmin) return;
         if (weights.attendance < 0 || weights.assignment < 0 || weights.component > 100) {
             toast.error("Tổng tỷ trọng chuyên cần và bài tập phải nằm trong khoảng 0% đến 100%.");
             return;
@@ -137,7 +172,7 @@ export default function TeacherGradeEntry() {
     };
 
     const saveScores = async () => {
-        if (!offeringId || !validateRows()) return;
+        if (!offeringId || !validateRows() || isAdmin) return;
         const payload: GradebookScorePayload[] = rows.map((row) => ({
             studentId: row.studentId,
             attendanceScore: parseScore(row.attendanceScore),
@@ -156,6 +191,7 @@ export default function TeacherGradeEntry() {
     };
 
     const importExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (isAdmin) return;
         const file = event.target.files?.[0];
         if (!file || !offeringId) return;
         if (!/\.(xlsx|xls)$/i.test(file.name)) {
@@ -203,28 +239,71 @@ export default function TeacherGradeEntry() {
         </div>;
     }
 
-    return <div className="space-y-6">
-        <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">Quản lý điểm</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-900">Nhập điểm học phần</h1>
-            <p className="mt-1 text-sm text-slate-500">
-                Cấu hình tỷ trọng, nhập điểm trực tiếp hoặc cập nhật hàng loạt bằng Excel.
-            </p>
-        </div>
-
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3"><FileSpreadsheet className="h-5 w-5 text-emerald-600" /><div><h2 className="font-bold text-slate-900">Bảng nhập điểm</h2><p className="text-sm text-slate-500">{rows.length} sinh viên</p></div></div>
-                <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Download className="h-4 w-4" />Tải file mẫu</button>
-                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={importing} className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60">{importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}Import Excel</button>
-                    <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={importExcel} className="hidden" />
-                    <button type="button" onClick={saveScores} disabled={savingScores} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">{savingScores ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Lưu bảng điểm</button>
-                </div>
+    return (
+        <div className="space-y-6">
+            <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">Quản lý điểm</p>
+                <h1 className="mt-2 text-2xl font-bold text-slate-900">
+                    {isAdmin ? "Xem bảng điểm học phần" : "Nhập điểm học phần"}
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                    {isAdmin ? "Quản trị viên chỉ có quyền xem dữ liệu bảng điểm." : "Cấu hình tỷ trọng, nhập điểm trực tiếp hoặc cập nhật hàng loạt bằng Excel."}
+                </p>
             </div>
-            <div className="max-h-[650px] overflow-auto">
-                <table className="min-w-full border-collapse text-sm">
-                    <thead className="sticky top-0 z-20 bg-emerald-50">
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                        <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+                        <div>
+                            <h2 className="font-bold text-slate-900">Bảng nhập điểm</h2>
+                            <p className="text-sm text-slate-500">{filteredRows.length} sinh viên {filteredRows.length !== rows.length && "(đã lọc)"}</p>
+                        </div>
+                    </div>
+                    {!isAdmin && (
+                        <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                <Download className="h-4 w-4" />Tải file mẫu
+                            </button>
+                            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={importing} className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60">
+                                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}Import Excel
+                            </button>
+                            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={importExcel} className="hidden" />
+                            <button type="button" onClick={saveScores} disabled={savingScores} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60">
+                                {savingScores ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Lưu bảng điểm
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* THANH TÌM KIẾM VÀ LỌC */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-slate-200 bg-slate-50/50 p-4">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm MSSV hoặc Tên..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        />
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={filterIncomplete}
+                            onChange={(e) => setFilterIncomplete(e.target.checked)}
+                            className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        <span className="text-sm font-medium text-slate-700 hover:text-emerald-700 transition-colors">
+                            Chỉ hiện sinh viên chưa nhập đủ điểm
+                        </span>
+                    </label>
+                </div>
+
+                <div className="max-h-[650px] overflow-auto">
+                    <table className="min-w-full border-collapse text-sm">
+                        <thead className="sticky top-0 z-20 bg-emerald-50">
                         <tr>
                             <th rowSpan={2} className="w-14 border-b border-r border-slate-300 px-3 py-3">STT</th>
                             <th rowSpan={2} className="min-w-32 border-b border-r border-slate-300 px-3 py-3 text-left">MSSV</th>
@@ -241,36 +320,40 @@ export default function TeacherGradeEntry() {
                             <th className="min-w-40 border-b border-r border-slate-300 px-2 py-2">
                                 <div className="flex items-center justify-center gap-2">
                                     <span>Chuyên cần</span>
-                                    <input aria-label="Tỷ trọng điểm chuyên cần" type="number" min="0" max="100" step="0.1" value={attendanceWeight} onChange={(event) => setAttendanceWeight(event.target.value)} onBlur={() => void saveConfig()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} className="h-8 w-16 rounded-md border border-emerald-300 bg-white px-2 text-center font-bold outline-none focus:ring-2 focus:ring-emerald-200" />
+                                    <input disabled={isAdmin} aria-label="Tỷ trọng điểm chuyên cần" type="number" min="0" max="100" step="0.1" value={attendanceWeight} onChange={(event) => setAttendanceWeight(event.target.value)} onBlur={() => void saveConfig()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} className="h-8 w-16 rounded-md border border-emerald-300 bg-white px-2 text-center font-bold outline-none focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-100 disabled:text-gray-500" />
                                     <span>%</span>
                                 </div>
                             </th>
                             <th className="min-w-40 border-b border-r border-slate-300 px-2 py-2">
                                 <div className="flex items-center justify-center gap-2">
                                     <span>Bài tập</span>
-                                    <input aria-label="Tỷ trọng điểm bài tập" type="number" min="0" max="100" step="0.1" value={assignmentWeight} onChange={(event) => setAssignmentWeight(event.target.value)} onBlur={() => void saveConfig()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} className="h-8 w-16 rounded-md border border-emerald-300 bg-white px-2 text-center font-bold outline-none focus:ring-2 focus:ring-emerald-200" />
+                                    <input disabled={isAdmin} aria-label="Tỷ trọng điểm bài tập" type="number" min="0" max="100" step="0.1" value={assignmentWeight} onChange={(event) => setAssignmentWeight(event.target.value)} onBlur={() => void saveConfig()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} className="h-8 w-16 rounded-md border border-emerald-300 bg-white px-2 text-center font-bold outline-none focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-100 disabled:text-gray-500" />
                                     <span>%</span>
                                 </div>
                             </th>
                         </tr>
-                    </thead>
-                    <tbody>{rows.map((row, index) => {
-                        const saved = gradebook?.students.find((student) => student.studentId === row.studentId);
-                        return <tr key={row.studentId} className="odd:bg-white even:bg-slate-50/60">
-                            <td className="border-b border-r border-slate-200 px-3 py-2 text-center text-slate-500">{index + 1}</td>
-                            <td className="border-b border-r border-slate-200 px-3 py-2 font-mono font-medium">{row.studentId}</td>
-                            <td className="border-b border-r border-slate-200 px-3 py-2 font-medium text-slate-800">{row.fullName}</td>
-                            <td className="border-b border-r border-slate-200 p-1.5"><input id={`attendance-score-${row.studentId}`} aria-label={`Điểm chuyên cần ${row.studentId}`} inputMode="decimal" value={row.attendanceScore} onChange={(event) => updateRow(row.studentId, "attendanceScore", event.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="0 - 10" /></td>
-                            <td className="border-b border-r border-slate-200 p-1.5"><input aria-label={`Điểm bài tập ${row.studentId}`} inputMode="decimal" value={row.assignmentScore} onChange={(event) => updateRow(row.studentId, "assignmentScore", event.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="0 - 10" /></td>
-                            <td className="border-b border-r border-slate-200 p-1.5"><input aria-label={`Điểm thi ${row.studentId}`} inputMode="decimal" value={row.examScore} onChange={(event) => updateRow(row.studentId, "examScore", event.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" placeholder="0 - 10" /></td>
-                            <td className="border-b border-r border-slate-200 px-3 py-2 text-center font-bold text-emerald-700">{calculatedTotal(row)}</td>
-                            <td className="border-b border-r border-slate-200 px-3 py-2 text-center font-bold text-slate-700">{saved?.letterGrade || "--"}</td>
-                        </tr>;
-                    })}</tbody>
-                </table>
-                {rows.length === 0 ? <div className="py-16 text-center text-sm text-slate-500">Lớp học phần chưa có sinh viên.</div> : null}
-            </div>
-        </section>
-
-    </div>;
+                        </thead>
+                        <tbody>{filteredRows.map((row, index) => {
+                            const saved = gradebook?.students.find((student) => student.studentId === row.studentId);
+                            return <tr key={row.studentId} className="odd:bg-white even:bg-slate-50/60">
+                                <td className="border-b border-r border-slate-200 px-3 py-2 text-center text-slate-500">{index + 1}</td>
+                                <td className="border-b border-r border-slate-200 px-3 py-2 font-mono font-medium">{row.studentId}</td>
+                                <td className="border-b border-r border-slate-200 px-3 py-2 font-medium text-slate-800">{row.fullName}</td>
+                                <td className="border-b border-r border-slate-200 p-1.5"><input disabled={isAdmin} id={`attendance-score-${row.studentId}`} aria-label={`Điểm chuyên cần ${row.studentId}`} inputMode="decimal" value={row.attendanceScore} onChange={(event) => updateRow(row.studentId, "attendanceScore", event.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-transparent disabled:border-transparent disabled:text-gray-700" placeholder="0 - 10" /></td>
+                                <td className="border-b border-r border-slate-200 p-1.5"><input disabled={isAdmin} aria-label={`Điểm bài tập ${row.studentId}`} inputMode="decimal" value={row.assignmentScore} onChange={(event) => updateRow(row.studentId, "assignmentScore", event.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-transparent disabled:border-transparent disabled:text-gray-700" placeholder="0 - 10" /></td>
+                                <td className="border-b border-r border-slate-200 p-1.5"><input disabled={isAdmin} aria-label={`Điểm thi ${row.studentId}`} inputMode="decimal" value={row.examScore} onChange={(event) => updateRow(row.studentId, "examScore", event.target.value)} className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-center font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 disabled:bg-transparent disabled:border-transparent disabled:text-gray-700" placeholder="0 - 10" /></td>
+                                <td className="border-b border-r border-slate-200 px-3 py-2 text-center font-bold text-emerald-700">{calculatedTotal(row)}</td>
+                                <td className="border-b border-r border-slate-200 px-3 py-2 text-center font-bold text-slate-700">{saved?.letterGrade || "--"}</td>
+                            </tr>;
+                        })}</tbody>
+                    </table>
+                    {filteredRows.length === 0 ? (
+                        <div className="py-16 text-center text-sm text-slate-500">
+                            {rows.length === 0 ? "Lớp học phần chưa có sinh viên." : "Không tìm thấy sinh viên nào khớp với điều kiện lọc."}
+                        </div>
+                    ) : null}
+                </div>
+            </section>
+        </div>
+    );
 }

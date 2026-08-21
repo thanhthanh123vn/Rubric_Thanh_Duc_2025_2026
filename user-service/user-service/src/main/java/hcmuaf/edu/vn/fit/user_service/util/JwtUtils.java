@@ -12,11 +12,14 @@ import java.util.Date;
 
 @Component
 public class JwtUtils {
-    @Value("${SECRET_KEY}")
-    private  String SECRET_KEY ;
-    private final long EXPIRATION_TIME = 86400000;
-    private final long ACCESS_TOKEN_EXPIRATION = 86400000; // 1 ngày
-    private final long REFRESH_TOKEN_EXPIRATION = 604800000;
+    @Value("${app.jwt.secret}")
+    private String SECRET_KEY;
+
+    @Value("${app.jwt.access-token-expiration}")
+    private long ACCESS_TOKEN_EXPIRATION;
+
+    @Value("${app.jwt.refresh-token-expiration}")
+    private long REFRESH_TOKEN_EXPIRATION;
     public Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.trim().getBytes());
     }
@@ -28,7 +31,7 @@ public class JwtUtils {
                 .claim("userId", userId)
                 .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
                 .signWith(getSigningKey())
                 .
                 compact();

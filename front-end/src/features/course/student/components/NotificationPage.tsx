@@ -8,6 +8,7 @@ import { connectWebSocket } from "@/notification/WebSocketNotication";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import Header from "@/components/home/Header";
 import Sidebar from "@/features/course/student/components/Sidebar.tsx";
+import {toast} from "sonner";
 
 
 const formatTimeAgo = (timestamp: string) => {
@@ -135,9 +136,10 @@ export default function NotificationPage() {
         try {
             await notificationApi.deleteNotification(id);
             setNotifications(prev => prev.filter(n => n.id !== id));
+            toast.success("Đã xóa thông báo");
         } catch (error) {
-            console.error("Lỗi xóa thông báo:", error);
-            alert("Không thể xóa thông báo này.");
+            console.error("Lỗi khi xóa thông báo:", error);
+            toast.error("Không thể xóa thông báo lúc này");
         }
     };
 

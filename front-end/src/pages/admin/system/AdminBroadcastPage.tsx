@@ -50,11 +50,11 @@ export default function AdminBroadcastPage() {
             case "ADMIN":
                 return ["ALL", "DEAN", "HEAD_OF_DEPARTMENT", "MAIN_LECTURER", "TEACHER", "STUDENT"];
             case "DEAN":
-                return ["HEAD_OF_DEPARTMENT", "MAIN_LECTURER", "TEACHER", "STUDENT"];
+                return ["ALL","HEAD_OF_DEPARTMENT", "MAIN_LECTURER", "TEACHER", "STUDENT"];
             case "HEAD_OF_DEPARTMENT":
-                return ["MAIN_LECTURER", "TEACHER", "STUDENT"];
+                return ["ALL","MAIN_LECTURER", "TEACHER", "STUDENT"];
             case "MAIN_LECTURER":
-                return ["TEACHER", "STUDENT"];
+                return ["ALL","TEACHER", "STUDENT"];
             case "TEACHER":
                 return ["STUDENT"];
             default:

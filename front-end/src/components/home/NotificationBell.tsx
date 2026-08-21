@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,11 +16,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { notificationApi } from "@/features/notification/notificationApi";
 import { connectWebSocket } from "@/notification/WebSocketNotication";
 import { useAppSelector } from "@/hooks/useAppSelector";
+import { toast } from "sonner"; // Thêm toast để thông báo khi xóa thành công
 
 const formatTimeAgo = (timestamp: string) => {
     if (!timestamp) return "";
     const now = new Date();
     const past = new Date(timestamp);
+
+    // Xử lý lỗi Invalid Date do format dữ liệu
+    if (isNaN(past.getTime())) return "Gần đây";
+
     const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
 
     if (diffInSeconds < 60) return "Vừa xong";
@@ -50,58 +54,78 @@ export function NotificationBell() {
     }
 
     useEffect(() => {
-        let active = true;
-
-        const fetchNotifications = async () => {
-            try {
-                const response = await notificationApi.getNotifications();
-                const mappedNotifs = response.map((n: any) => {
-                    const readStatus = n.read === true || n.is_read === 1 || n.is_read === true || n.isRead === true;
-                    return {
-                        id: n.id,
-                        title: n.title,
-                        content: n.content || n.message,
-                        isRead: readStatus,
-                        is_read: readStatus ? 1 : 0,
-                        createdAt: n.created_at || n.createdAt,
-                        referenceUrl: n.reference_url || n.referenceUrl,
-                        senderAvatar: n.avatar_url || n.senderAvatar,
-                        senderName: n.sender_id || n.senderName
-                    };
-                });
-
-                const sortedNotifs = mappedNotifs.sort((a: any, b: any) =>
-                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                );
-                if (active) setNotifications(sortedNotifs);
-            } catch (error) {
-                console.error("Lỗi lấy thông báo:", error);
-            }
-        };
-
-        void fetchNotifications();
-        return () => {
-            active = false;
-        };
+        fetchNotifications();
     }, [user?.userId]);
+
+    const fetchNotifications = async () => {
+        try {
+            const response = await notificationApi.getNotifications();
+
+
+            const data =  response;
+
+            const mappedNotifs = data.map((n: any) => {
+                const readStatus = n.read === true || n.is_read === 1 || n.is_read === true || n.isRead === true;
+
+                // Parse createdAt, xử lý MongoDB "$date"
+                let parsedCreatedAt = n.created_at || n.createdAt;
+                if (parsedCreatedAt && typeof parsedCreatedAt === 'object' && parsedCreatedAt.$date) {
+                    parsedCreatedAt = parsedCreatedAt.$date;
+                }
+
+                return {
+                    id: n.id || n._id, // Support MongoDB _id
+                    title: n.title,
+                    content: n.content || n.message,
+                    isRead: readStatus,
+                    is_read: readStatus ? 1 : 0,
+                    createdAt: parsedCreatedAt,
+                    referenceUrl: n.reference_url || n.referenceUrl,
+                    senderAvatar: n.avatar_url || n.senderAvatar,
+                    senderName: n.sender_id || n.senderName
+                };
+            });
+
+            const sortedNotifs = mappedNotifs.sort((a: any, b: any) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            setNotifications(sortedNotifs);
+        } catch (error) {
+            console.error("Lỗi lấy thông báo:", error);
+        }
+    };
 
     useEffect(() => {
         if (user?.userId) {
             const stompClient = connectWebSocket(user.userId, (newNotif: any) => {
                 const readStatus = newNotif.read === true || newNotif.is_read === 1 || newNotif.is_read === true || newNotif.isRead === true;
+
+                // Parse createdAt cho real-time
+                let parsedCreatedAt = newNotif.created_at || newNotif.createdAt || new Date().toISOString();
+                if (typeof parsedCreatedAt === 'object' && parsedCreatedAt.$date) {
+                    parsedCreatedAt = parsedCreatedAt.$date;
+                }
+
                 const mappedRealtimeNotif = {
-                    id: newNotif.id,
+                    id: newNotif.id || newNotif._id,
                     title: newNotif.title,
                     content: newNotif.content || newNotif.message,
                     isRead: readStatus,
                     is_read: readStatus ? 1 : 0,
-                    createdAt: newNotif.created_at || newNotif.createdAt || new Date().toISOString(),
+                    createdAt: parsedCreatedAt,
                     referenceUrl: newNotif.reference_url || newNotif.referenceUrl,
                     senderAvatar: newNotif.avatar_url || newNotif.senderAvatar,
                     senderName: newNotif.sender_id || newNotif.senderName
                 };
 
-                setNotifications((prev) => [mappedRealtimeNotif, ...prev]);
+                // FIX LỖI 2 THÔNG BÁO: Kiểm tra trùng id trước khi set
+                setNotifications((prev) => {
+                    const isExist = prev.some(n => n.id === mappedRealtimeNotif.id);
+                    if (isExist) {
+                        return prev;
+                    }
+                    return [mappedRealtimeNotif, ...prev];
+                });
             });
             return () => {
                 if (stompClient && stompClient.connected) {
@@ -156,7 +180,19 @@ export function NotificationBell() {
         }
     };
 
-    // Component nhỏ cho từng item
+    // HÀM XỬ LÝ XÓA THÔNG BÁO
+    const handleDeleteNotification = async (e: React.MouseEvent, notificationId: string) => {
+        e.stopPropagation(); // Ngăn việc bấm xóa mà lại nhảy link chuyển trang
+        try {
+            await notificationApi.deleteNotification(notificationId);
+            setNotifications(prev => prev.filter(n => n.id !== notificationId));
+            toast.success("Đã xóa thông báo");
+        } catch (error) {
+            console.error("Lỗi xóa thông báo:", error);
+            toast.error("Không thể xóa thông báo lúc này");
+        }
+    };
+
     const renderNotificationItem = (n: any) => (
         <DropdownMenuItem
             key={n.id}
@@ -170,14 +206,13 @@ export function NotificationBell() {
             <div className="relative shrink-0">
                 <Avatar className={`h-12 w-12 sm:h-14 sm:w-14 border ${n.is_read === 0 ? "border-blue-200" : "border-gray-200"} transition-colors`}>
                     <AvatarImage src={n.senderAvatar || ""} alt="Avatar" className="object-cover" />
-                    {/* Tone màu cũ cho Avatar fallback */}
                     <AvatarFallback className="bg-blue-100 text-blue-700 font-bold text-lg">
                         {n.senderName ? n.senderName.charAt(0).toUpperCase() : "N"}
                     </AvatarFallback>
                 </Avatar>
             </div>
 
-            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden pr-2">
                 <span className={`text-[14px] sm:text-[15px] leading-tight mb-0.5 transition-colors ${n.is_read === 0 ? "font-bold text-gray-900" : "font-semibold text-gray-700"}`}>
                     {n.title || "Thông báo hệ thống"}
                 </span>
@@ -189,11 +224,18 @@ export function NotificationBell() {
                 </span>
             </div>
 
-            <div className="shrink-0 ml-1 w-3 flex justify-center items-center">
-                {/* Chấm tròn báo chưa đọc màu xanh dương */}
+            {/* Cột hiển thị chấm xanh (chưa đọc) HOẶC nút xóa (khi hover) */}
+            <div className="shrink-0 w-6 flex flex-col items-center justify-center gap-2">
                 {n.is_read === 0 && (
-                    <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm ring-4 ring-blue-100/50" />
+                    <div className="w-2.5 h-2.5 bg-blue-600 rounded-full shadow-sm ring-4 ring-blue-100/50 group-hover:hidden" />
                 )}
+                <button
+                    onClick={(e) => handleDeleteNotification(e, n.id)}
+                    className={`p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all ${n.is_read === 0 ? 'hidden group-hover:block' : 'opacity-0 group-hover:opacity-100'}`}
+                    title="Xóa thông báo"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
             </div>
         </DropdownMenuItem>
     );
@@ -214,7 +256,6 @@ export function NotificationBell() {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
-
                 className="w-[calc(100vw-32px)] sm:w-[400px] rounded-2xl shadow-xl border border-gray-100 p-0 overflow-hidden z-[100] bg-white"
                 align="end"
                 sideOffset={8}
@@ -239,7 +280,6 @@ export function NotificationBell() {
                 <Tabs defaultValue="unread" className="w-full">
                     <div className="px-4 py-2 border-b border-gray-100 bg-white">
                         <TabsList className="grid w-full grid-cols-2 h-10 bg-gray-50/80 p-1 rounded-xl">
-                            {/* Định dạng Tab active mang tone xanh blue */}
                             <TabsTrigger
                                 value="unread"
                                 className="text-sm rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm transition-all font-medium"

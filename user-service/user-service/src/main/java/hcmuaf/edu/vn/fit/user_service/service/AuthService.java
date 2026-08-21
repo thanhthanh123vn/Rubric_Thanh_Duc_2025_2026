@@ -7,11 +7,13 @@ import hcmuaf.edu.vn.fit.user_service.dto.response.LoginResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.StudentProfileResponse;
 import hcmuaf.edu.vn.fit.user_service.dto.response.TokenResponse;
 import hcmuaf.edu.vn.fit.user_service.entity.Lecturer;
+import hcmuaf.edu.vn.fit.user_service.entity.LoginHistory;
 import hcmuaf.edu.vn.fit.user_service.entity.SinhVien;
 import hcmuaf.edu.vn.fit.user_service.entity.User;
 import hcmuaf.edu.vn.fit.user_service.map.SinhVienMapper;
 import hcmuaf.edu.vn.fit.user_service.map.UserMapper;
 import hcmuaf.edu.vn.fit.user_service.repository.LecturerRepository;
+import hcmuaf.edu.vn.fit.user_service.repository.LoginHistoryRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.UserRepository;
 import hcmuaf.edu.vn.fit.user_service.repository.SinhVienRepository; // Import chuẩn ở đây
 import hcmuaf.edu.vn.fit.user_service.util.JwtUtils;
@@ -28,6 +30,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.logging.Logger;
 
@@ -36,6 +40,7 @@ import java.util.logging.Logger;
 public class AuthService {
     private final UserRepository userRepository;
     private final SinhVienRepository svRepository;
+    private final LoginHistoryRepository loginHistoryRepository;
     private final LecturerRepository lecturerRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
@@ -44,6 +49,7 @@ public class AuthService {
     private final HttpSession session;
     private final SinhVienMapper svMapper;
     private final StringRedisTemplate redisTemplate;
+    private final LoginHistoryService loginHistoryService;
 
         @Transactional
         public void register(RegisterRequest request) {
@@ -66,7 +72,10 @@ public class AuthService {
             svRepository.save(sv);
         }
 
-    public LoginResponse login(LoginRequest request) {
+    public LoginResponse login(
+            LoginRequest request,
+            String ipAddress,
+            String userAgent) {
 
         String identifier = request.identifier().trim();
         String attemptKey = "login_attempts:" + identifier;
@@ -108,6 +117,8 @@ public class AuthService {
             if (attempts != null && attempts >= 5) {
                 redisTemplate.opsForValue().set(lockKey, "LOCKED", Duration.ofMinutes(5)); // Khóa 5 phút
                 redisTemplate.delete(attemptKey); // Xóa bộ đếm
+
+
                 throw new IllegalArgumentException("Bạn đã nhập sai 5 lần. Tài khoản bị khóa 5 phút.");
             }
 
@@ -116,6 +127,13 @@ public class AuthService {
 
 
         redisTemplate.delete(attemptKey);
+        loginHistoryService.recordLogin(
+                user.getUserId(),
+                user.getEmail(),
+                user.getUsername(),
+                ipAddress,
+                userAgent
+        );
 
         StudentProfileResponse studentProfile = null;
         LecturerProfileResponse lecturerProfile = null;

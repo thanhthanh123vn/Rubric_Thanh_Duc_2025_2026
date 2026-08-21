@@ -71,7 +71,18 @@ public class AuthController {
             @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
 
-        LoginResponse response = authService.login(request);
+
+        String ip = ClientIpUtil.getClientIp(httpRequest);
+
+        String userAgent =
+                httpRequest.getHeader("User-Agent");
+
+        LoginResponse response =
+                authService.login(
+                        request,
+                        ip,
+                        userAgent
+                );
 
 //        String ip = ClientIpUtil.getClientIp(httpRequest);
 //

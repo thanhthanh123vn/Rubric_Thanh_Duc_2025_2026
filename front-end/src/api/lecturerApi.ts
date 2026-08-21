@@ -1,4 +1,4 @@
-import api, {courseApi} from "@/services/axiosConfig.ts";
+import {api, courseApi} from "@/services/axiosConfig.ts";
 import type {PostResponse} from "@/api/type.ts";
 export interface Department {
     departmentId: string;

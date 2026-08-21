@@ -79,6 +79,9 @@ export default function LoginPage() {
             // const displayEmail = data.student.email || data.lecturer.email;
 
             localStorage.setItem('token', data.token);
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken);
+            }
             localStorage.setItem('user', JSON.stringify({
                 userId: data.userId,
                 role: data.role,
@@ -104,7 +107,8 @@ export default function LoginPage() {
 
 
                 },
-                token: data.token
+                token: data.token,
+                refreshToken: data.refreshToken,
             }));
 
             toast.success("Đăng nhập thành công", {

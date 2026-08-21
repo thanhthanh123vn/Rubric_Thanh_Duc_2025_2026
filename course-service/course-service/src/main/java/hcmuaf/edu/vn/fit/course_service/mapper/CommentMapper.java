@@ -1,7 +1,5 @@
 package hcmuaf.edu.vn.fit.course_service.mapper;
 
-
-
 import hcmuaf.edu.vn.fit.course_service.dto.request.CommentRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.CommentResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.AssessmentComment;
@@ -13,12 +11,12 @@ import org.mapstruct.Mapping;
 public interface CommentMapper {
 
 
-    @Mapping(source = "topic.postId", target = "postId")
+    @Mapping(source = "id", target = "commentId")
     CommentResponse toResponse(Comment comment);
 
 
-    @Mapping(target = "commentId", ignore = true)
-    @Mapping(target = "topic", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "postId", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     Comment toEntity(CommentRequest request);

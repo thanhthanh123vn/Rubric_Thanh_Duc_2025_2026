@@ -33,7 +33,7 @@ public class SecurityConfig {
 
                         // Chỉ Admin hoặc System mới được tạo thông báo hệ thống (Global Broadcast)
                         .requestMatchers(HttpMethod.POST, "/api/v1/notification-service/notifications/broadcast").hasAnyRole("ADMIN","TEACHER","DEAN","MAIN_TEACHER","HEAD_OF_DEPARTMENT")
-
+                        .requestMatchers("/api/v1/notification-service/settings/**").hasAnyRole("ADMIN")
                         // Các API lấy thông báo của cá nhân yêu cầu Authenticated
                         .requestMatchers("/api/v1/notification-service/getNotification/**").authenticated()
                         .requestMatchers("/api/v1/notification-service/notifications/**").authenticated()
