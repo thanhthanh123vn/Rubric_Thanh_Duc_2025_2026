@@ -37,12 +37,12 @@ public class SecurityConfig {
                         // Các API lấy thông báo của cá nhân yêu cầu Authenticated
                         .requestMatchers("/api/v1/notification-service/getNotification/**").authenticated()
                         .requestMatchers("/api/v1/notification-service/notifications/**").authenticated()
-
+                        .requestMatchers("/api/v1/notification-service/").authenticated()
 
                         // Gửi Bài Tập Về Nhà
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/notification-service/homework-assigned-multiple")
-                        .hasAnyRole("STUDENT", "TEACHER", "DEAN", "MAIN_TEACHER","ADMIN")
+                        .hasAnyRole("STUDENT", "TEACHER", "DEAN", "MAIN_TEACHER")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

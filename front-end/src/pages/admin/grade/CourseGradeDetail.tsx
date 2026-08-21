@@ -4,27 +4,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { courseOfferingService } from "@/features/course/student/api/courseOfferinService.ts";
-import {courseService} from "@/features/course/courseApi.ts";
-
-type GradebookStudent = {
-    studentId: string;
-    studentName: string;
-    attendanceScore: number | null;
-    assignmentScore: number | null;
-    componentScore: number | null;
-    examScore: number | null;
-    finalScore: number | null;
-    letterGrade?: string;
-};
-
-type CourseGradebook = {
-    offeringId: string;
-    attendanceWeight: number;
-    assignmentWeight: number;
-    componentWeight: number;
-    examWeight: number;
-    students: GradebookStudent[];
-};
+import {courseService, type CourseGradebook} from "@/features/course/courseApi.ts";
 
 export default function CourseGradeDetail() {
     const { offeringId } = useParams();

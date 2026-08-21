@@ -23,9 +23,8 @@ const sinhVienService = {
     },
 
 
-    deleteSinhVien: async (formData: Partial<StudentProfile>): Promise<StudentProfile> => {
-        const response = await api.put<StudentProfile>('/admin/student', formData);
-        return response.data;
+    deleteSinhVien: async (studentId: string): Promise<void> => {
+        await api.delete(`/admin/student/${studentId}`);
     },
 
     updateProfile: async (formData: Partial<StudentProfile>): Promise<StudentProfile> => {

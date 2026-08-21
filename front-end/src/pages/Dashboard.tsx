@@ -53,7 +53,7 @@ const Dashboard = () => {
           id: course.offeringId,
           courseTitle: `${course.courseName} - ${course.courseCode}`,
           lecturerName: course.lecturerName,
-          obeProgress: Math.floor(Math.random() * 40) + 60,
+          obeProgress: Number(course.obeProgress || 0),
           semester: `${course.semester} - ${course.academicYear}`,
           colorClass: colorClasses[index % colorClasses.length]
         }));

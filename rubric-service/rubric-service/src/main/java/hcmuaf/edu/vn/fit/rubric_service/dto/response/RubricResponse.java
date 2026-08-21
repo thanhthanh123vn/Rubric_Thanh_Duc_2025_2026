@@ -15,6 +15,24 @@ public class RubricResponse {
 
     private String description;
 
+    private String facultyId;
+
+    private String lecturerId;
+
+    private String rubricType;
+
+    private String visibility;
+
+    private String rootRubricId;
+
+    private String parentRubricId;
+
+    private Integer versionNumber;
+
+    private boolean currentHead;
+
+    private String status;
+
     private Float totalWeight;
 
     private List<CriteriaResponse> criteria;

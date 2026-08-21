@@ -24,6 +24,7 @@ export interface MatrixValidationItem {
 
 type Props = {
     criteria: MatrixCriterionDraft[];
+    getCloLabel: (cloId: string) => string;
     validationItems: MatrixValidationItem[];
     sortLevels: (levels: MatrixLevelDraft[]) => MatrixLevelDraft[];
     onAddLevel: (criterionId: string) => void;
@@ -39,6 +40,7 @@ type Props = {
 
 export default function RubricMatrixPreview({
                                                 criteria,
+                                                getCloLabel,
                                                 validationItems,
                                                 sortLevels,
                                                 onAddLevel,
@@ -90,7 +92,7 @@ export default function RubricMatrixPreview({
                                 <p className="font-semibold text-slate-900">{criterion.name || "Tiêu chí chưa đặt tên"}</p>
                                 <p className="mt-1 text-xs text-slate-500">Trọng số {criterion.weight}%</p>
                                 <p className="mt-2 text-xs text-indigo-600">
-                                    {criterion.cloId || "Chưa gắn CLO"}
+                                    {criterion.cloId ? getCloLabel(criterion.cloId) : "Chưa gắn CLO"}
                                 </p>
                             </td>
 

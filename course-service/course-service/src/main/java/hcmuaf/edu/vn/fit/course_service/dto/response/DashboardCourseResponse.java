@@ -16,5 +16,7 @@ public class DashboardCourseResponse {
     private String academicYear;
     private String lecturerName;
     private String academicTitle;
+    private String bannerColor;
+    private int obeProgress;
 
 }

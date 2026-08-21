@@ -880,7 +880,7 @@ export default function CourseEvaluations() {
         <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
         <main className="flex-1 p-4 lg:p-6">
-          <div className="mx-auto max-w-6xl space-y-6">
+          <div className="mx-auto max-w-[1312px] space-y-6">
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>

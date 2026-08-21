@@ -57,7 +57,7 @@ const Sidebar = ({ isOpen, onClose }: any) => {
             color: colorClasses[index % colorClasses.length],
             // Giữ lại các trường này nếu bạn cần dùng ở chỗ khác
             lecturerName: course.lecturerName,
-            obeProgress: Math.floor(Math.random() * 40) + 60,
+            obeProgress: Number(course.obeProgress || 0),
           };
         });
 

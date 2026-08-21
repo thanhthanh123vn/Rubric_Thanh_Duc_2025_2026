@@ -11,6 +11,8 @@ public class CriterionRequest {
 
     private String name;
 
+    private String description;
+
     private Float weight;
 
     private String cloId;

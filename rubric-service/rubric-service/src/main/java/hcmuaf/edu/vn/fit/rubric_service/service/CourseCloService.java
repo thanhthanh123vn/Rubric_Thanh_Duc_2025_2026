@@ -2,106 +2,93 @@ package hcmuaf.edu.vn.fit.rubric_service.service;
 
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.CloRequest;
 import hcmuaf.edu.vn.fit.rubric_service.entity.CourseCloEntity;
-import hcmuaf.edu.vn.fit.rubric_service.entity.CourseCloMapEntity;
-import hcmuaf.edu.vn.fit.rubric_service.repository.CourseCloMapRepository;
 import hcmuaf.edu.vn.fit.rubric_service.repository.CourseCloRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class CourseCloService {
 
-    @Autowired
-    private CourseCloRepository courseCloRepository;
-
-    @Autowired
-    private CourseCloMapRepository courseCloMapRepository;
+    private final CourseCloRepository courseCloRepository;
 
     public List<CourseCloEntity> getAll() {
         return courseCloRepository.findAll();
     }
 
-    @Transactional
-    public CourseCloEntity createClo(CloRequest req) {
+    public List<CourseCloEntity> getByCourseId(String courseId) {
+        return courseCloRepository.findByCourseIdOrderByCloCodeAsc(requireCourseId(courseId));
+    }
 
-        courseCloRepository.findByCloCode(req.getCloCode())
+    public CourseCloEntity getById(String cloId) {
+        return courseCloRepository.findById(cloId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy CLO"));
+    }
+
+    @Transactional
+    public CourseCloEntity createClo(CloRequest request) {
+        String courseId = requireCourseId(request.getCourseId());
+        String cloCode = requireCloCode(request.getCloCode());
+
+        courseCloRepository.findByCourseIdAndCloCode(courseId, cloCode)
                 .ifPresent(clo -> {
-                    throw new RuntimeException("Mã CLO đã tồn tại");
+                    throw new RuntimeException("Mã CLO đã tồn tại trong khóa học này");
                 });
 
-
-        CourseCloEntity courseCloEntity = CourseCloEntity.builder()
-                .cloCode(req.getCloCode())
-                .cloName(req.getCloName())
-                .description(req.getDescription())
-                .bloomLevel(req.getBloomLevel())
+        CourseCloEntity clo = CourseCloEntity.builder()
+                .courseId(courseId)
+                .cloCode(cloCode)
+                .cloName(requireCloName(request.getCloName()))
+                .description(request.getDescription())
+                .bloomLevel(request.getBloomLevel())
                 .build();
 
-        CourseCloEntity savedClo = courseCloRepository.save(courseCloEntity);
-        syncCourseMappings(savedClo, extractCourseIds(req));
-
-        return courseCloRepository.findById(savedClo.getCloId()).orElse(savedClo);
+        return courseCloRepository.save(clo);
     }
 
     @Transactional
-    public CourseCloEntity updateClo(String cloId, CloRequest req) {
-        CourseCloEntity existingClo = courseCloRepository.findById(cloId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy CLO"));
+    public CourseCloEntity updateClo(String cloId, CloRequest request) {
+        CourseCloEntity existingClo = getById(cloId);
+        String courseId = requireCourseId(request.getCourseId());
+        String cloCode = requireCloCode(request.getCloCode());
 
-        courseCloRepository.findByCloCodeAndCloIdNot(req.getCloCode(), cloId)
+        if (!courseId.equals(existingClo.getCourseId())) {
+            throw new RuntimeException("Không thể chuyển CLO sang khóa học khác");
+        }
+
+        courseCloRepository.findByCourseIdAndCloCodeAndCloIdNot(courseId, cloCode, cloId)
                 .ifPresent(clo -> {
-                    throw new RuntimeException("Mã CLO đã tồn tại");
+                    throw new RuntimeException("Mã CLO đã tồn tại trong khóa học này");
                 });
 
-        existingClo.setCloCode(req.getCloCode());
-        existingClo.setCloName(req.getCloName());
-        existingClo.setDescription(req.getDescription());
-        existingClo.setBloomLevel(req.getBloomLevel());
-
-        CourseCloEntity savedClo = courseCloRepository.save(existingClo);
-        syncCourseMappings(savedClo, extractCourseIds(req));
-
-        return courseCloRepository.findById(savedClo.getCloId()).orElse(savedClo);
+        existingClo.setCloCode(cloCode);
+        existingClo.setCloName(requireCloName(request.getCloName()));
+        existingClo.setDescription(request.getDescription());
+        existingClo.setBloomLevel(request.getBloomLevel());
+        return courseCloRepository.save(existingClo);
     }
 
-    private List<String> extractCourseIds(CloRequest req) {
-        List<String> courseIds = new ArrayList<>();
-
-        if (req.getCourseIds() != null) {
-            courseIds.addAll(req.getCourseIds());
+    private String requireCourseId(String courseId) {
+        if (courseId == null || courseId.isBlank()) {
+            throw new IllegalArgumentException("CLO phải thuộc một khóa học");
         }
-
-        if (req.getCourseId() != null && !req.getCourseId().isBlank()) {
-            courseIds.add(req.getCourseId());
-        }
-
-        return courseIds.stream()
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(courseId -> !courseId.isBlank())
-                .distinct()
-                .toList();
+        return courseId.trim();
     }
 
-    private void syncCourseMappings(CourseCloEntity clo, List<String> courseIds) {
-        courseCloMapRepository.deleteByClo_CloId(clo.getCloId());
-
-        if (courseIds.isEmpty()) {
-            return;
+    private String requireCloCode(String cloCode) {
+        if (cloCode == null || cloCode.isBlank()) {
+            throw new IllegalArgumentException("Mã CLO không được để trống");
         }
+        return cloCode.trim().toUpperCase();
+    }
 
-        List<CourseCloMapEntity> mappingEntities = courseIds.stream()
-                .map(courseId -> CourseCloMapEntity.builder()
-                        .courseId(courseId)
-                        .clo(clo)
-                        .build())
-                .toList();
-
-        courseCloMapRepository.saveAll(mappingEntities);
+    private String requireCloName(String cloName) {
+        if (cloName == null || cloName.isBlank()) {
+            throw new IllegalArgumentException("Tên CLO không được để trống");
+        }
+        return cloName.trim();
     }
 }

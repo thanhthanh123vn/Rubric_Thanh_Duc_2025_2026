@@ -18,21 +18,11 @@ SET @offering_id = 'O001';
 SET @course_id = 'C001';
 
 -- ---------------------------------------------------------
--- 1. Dam bao CLO1 thuoc mon C001 va co trong course_clo_map
+-- 1. Dam bao CLO1 thuoc duy nhat mon C001
 -- ---------------------------------------------------------
 UPDATE course_clo
 SET course_id = @course_id
 WHERE clo_id = 'CLO1';
-
-INSERT INTO course_clo_map (course_id, clo_id)
-SELECT @course_id, 'CLO1'
-FROM DUAL
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM course_clo_map
-    WHERE course_id = @course_id
-      AND clo_id = 'CLO1'
-);
 
 -- ---------------------------------------------------------
 -- 2. Gan course_id cho cac CLO dang ton tai nhung bi NULL
@@ -48,23 +38,6 @@ WHERE clo_id IN (
     'd3bc40af-22d0-43b6-a065-9e4a3216e5e6'
 )
 AND course_id IS NULL;
-
-INSERT INTO course_clo_map (course_id, clo_id)
-SELECT @course_id, c.clo_id
-FROM course_clo c
-WHERE c.clo_id IN (
-    '5d1b8375-b60a-4fdb-8569-5a790fd6188d',
-    '5dde1db3-a7ff-4c73-9cdf-c75f477798c5',
-    '72f408ae-d368-4e64-adce-c3574c288242',
-    '75466f1d-44cb-491f-bdb4-b803a7b6db34',
-    'd3bc40af-22d0-43b6-a065-9e4a3216e5e6'
-)
-AND NOT EXISTS (
-    SELECT 1
-    FROM course_clo_map m
-    WHERE m.course_id = @course_id
-      AND m.clo_id = c.clo_id
-);
 
 -- ---------------------------------------------------------
 -- 3. Dong bo rubric_id cho assessment dua theo submissions

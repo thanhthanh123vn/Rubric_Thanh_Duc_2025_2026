@@ -92,7 +92,6 @@ public class AssessmentService {
                 Double fallbackTotalScore = dto.getSubmissionId() != null
                         ? getRubricFallbackTotalScore(dto.getAssessmentId(), studentId)
                         : null;
-
                 dto.setCalculatedScore(
                         roundToSingleDecimal(resolveDisplayedTotalScore(
                                 gradeDetail != null ? gradeDetail.getTotalScore() : null,
@@ -619,14 +618,11 @@ public class AssessmentService {
             Long submittedCount = submissionRepository.countByAssessmentId(assessment.getAssessmentId());
             response.setSubmittedCount(submittedCount);
 
-
             try {
-
                 Long gradedCount = gradingClient.getGradedCount(assessment.getAssessmentId());
                 response.setGradedCount(gradedCount);
-                response.setPendingCount(submittedCount - gradedCount);
+                response.setPendingCount(Math.max(0L, submittedCount - gradedCount));
             } catch (Exception e) {
-
                 response.setGradedCount(0L);
                 response.setPendingCount(submittedCount);
             }
@@ -864,7 +860,11 @@ public class AssessmentService {
 
     public List<CourseOfferingResponse> getOfferingsByCourseId(String courseId) {
         List<CourseOffering> offerings = courseOfferingRepository.findByCourse_CourseId(courseId);
-        CourseResponse courseResponse = courseMapper.toCourseResponse(offerings.getFirst().getCourse());
+        if (offerings.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        CourseResponse courseResponse = courseMapper.toCourseResponse(offerings.get(0).getCourse());
 
 
 

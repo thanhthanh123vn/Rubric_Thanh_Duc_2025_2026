@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, Globe, Lock, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -33,6 +33,8 @@ const SHARE_PERMISSION_OPTIONS = [
 
 export default function     BankQuestions() {
     const navigate = useNavigate();
+    const { id: courseOfferingId } = useParams<{ id: string }>();
+    const inCourseDetail = Boolean(courseOfferingId);
 
     const [courses, setCourses] = useState<any[]>([]);
     const [myBanks, setMyBanks] = useState<BankItem[]>([]);
@@ -57,7 +59,7 @@ export default function     BankQuestions() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [courseOfferingId]);
 
     const enrichBanks = async (banks: QuestionBankResponse[], owned: boolean) => {
         const withCounts = await Promise.all(
@@ -82,7 +84,7 @@ export default function     BankQuestions() {
             const [coursesData, myBanksData, publicBanksData] = await Promise.all([
                 courseService.getTeacherCourses(),
                 questionBankApi.getMyQuestionBanks(),
-                questionBankApi.getPublicQuestionBanks(),
+                inCourseDetail ? Promise.resolve([]) : questionBankApi.getPublicQuestionBanks(),
             ]);
 
             setCourses(coursesData || []);
@@ -97,7 +99,9 @@ export default function     BankQuestions() {
     };
 
     const displayedBanks = useMemo(() => {
-        const source = activeTab === 'my' ? myBanks : publicBanks;
+        const source = inCourseDetail
+            ? myBanks.filter((bank) => bank.offeringId === courseOfferingId)
+            : activeTab === 'my' ? myBanks : publicBanks;
         const q = searchTerm.trim().toLowerCase();
 
         if (!q) return source;
@@ -107,7 +111,7 @@ export default function     BankQuestions() {
                 .filter(Boolean)
                 .some((value) => value!.toString().toLowerCase().includes(q))
         );
-    }, [activeTab, myBanks, publicBanks, searchTerm]);
+    }, [activeTab, courseOfferingId, inCourseDetail, myBanks, publicBanks, searchTerm]);
 
     const handleManageBank = (bank: BankItem) => {
         if (bank.owned) {
@@ -120,7 +124,7 @@ export default function     BankQuestions() {
 
     const resetCreateForm = () => {
         setBankName("");
-        setSelectedCourseForBank("");
+        setSelectedCourseForBank(courseOfferingId || "");
         setIsPublicBank(false);
         setSharePermissions(['VIEW']);
     };
@@ -212,7 +216,9 @@ console.log(courses);
                             Ngân hàng câu hỏi
                         </h2>
                         <p className="mt-2 text-sm text-gray-500 sm:text-base">
-                            Tách riêng kho của bạn và kho công cộng để chia sẻ câu hỏi giữa các giảng viên.
+                            {inCourseDetail
+                                ? 'Quản lý các kho câu hỏi thuộc học phần đang mở.'
+                                : 'Tách riêng kho của bạn và kho công cộng để chia sẻ câu hỏi giữa các giảng viên.'}
                         </p>
                     </div>
 
@@ -225,8 +231,8 @@ console.log(courses);
                     </button>
                 </div>
 
-                <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_auto]">
-                    <div className="flex flex-wrap gap-3">
+                <div className={`mb-6 gap-4 ${inCourseDetail ? 'flex justify-end' : 'grid lg:grid-cols-[1fr_auto]'}`}>
+                    {!inCourseDetail ? <div className="flex flex-wrap gap-3">
                         <button
                             type="button"
                             onClick={() => setActiveTab('my')}
@@ -253,7 +259,7 @@ console.log(courses);
                             Kho công cộng
                             <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs">{publicBanks.length}</span>
                         </button>
-                    </div>
+                    </div> : null}
 
                     <div className="relative min-w-[280px]">
                         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -384,19 +390,25 @@ console.log(courses);
                     <form onSubmit={handleSubmitCreateBank} className="space-y-4">
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-700">Chọn môn học</label>
-                            <select
-                                required
-                                value={selectedCourseForBank}
-                                onChange={(e) => setSelectedCourseForBank(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            >
-                                <option value="" disabled>-- Chọn học phần --</option>
-                                {courses.map((course) => (
-                                    <option key={course.offeringId} value={course.offeringId}>
-                                        {course.courseName} ({course.offeringId})
-                                    </option>
-                                ))}
-                            </select>
+                            {inCourseDetail ? (
+                                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-800">
+                                    {courses.find((course) => course.offeringId === courseOfferingId)?.courseName || 'Học phần'} ({courseOfferingId})
+                                </div>
+                            ) : (
+                                <select
+                                    required
+                                    value={selectedCourseForBank}
+                                    onChange={(e) => setSelectedCourseForBank(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                >
+                                    <option value="" disabled>-- Chọn học phần --</option>
+                                    {courses.map((course) => (
+                                        <option key={course.offeringId} value={course.offeringId}>
+                                            {course.courseName} ({course.offeringId})
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
 
                         <div>

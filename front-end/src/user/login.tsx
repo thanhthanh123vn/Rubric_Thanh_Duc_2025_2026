@@ -13,7 +13,23 @@ import { toast } from "sonner";
 
 import { setCredentials } from '../authSlice';
 import {useAppDispatch} from "@/hooks/useAppDispatch.ts";
+import axios from "axios";
 type UserRole = "student" | "teacher"
+
+type ErrorResponse = {
+    message?: string;
+};
+
+const isLockedMessage = (message: string) => {
+    const normalizedMessage = message
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+    return normalizedMessage.includes("bi khoa")
+        || normalizedMessage.includes("tam khoa")
+        || normalizedMessage.includes("locked");
+};
 
 
 export default function LoginPage() {
@@ -25,6 +41,7 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [rememberMe, setRememberMe] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -35,15 +52,21 @@ export default function LoginPage() {
 
         // validate chung
         if (!currentIdentifier || !password) {
-            alert("Nhập đủ tài khoản và mật khẩu!");
+            toast.error("Đăng nhập thất bại", {
+                description: "Vui lòng nhập đầy đủ tài khoản và mật khẩu.",
+            });
             return;
         }
 
         //  rule: teacher chỉ được dùng email
         if (role === "teacher" && !isEmail(currentIdentifier)) {
-            alert("Giảng viên phải đăng nhập bằng email!");
+            toast.error("Đăng nhập thất bại", {
+                description: "Giảng viên phải đăng nhập bằng email.",
+            });
             return;
         }
+
+        setIsSubmitting(true);
 
         try {
             const data = await authService.login({
@@ -67,6 +90,7 @@ export default function LoginPage() {
                 studentId: data.student?.studentId,
                 lecturerId: data.lecturer?.lecturerId,
                 email: data.email,
+                locked: false,
             }));
 
             dispatch(setCredentials({
@@ -78,6 +102,7 @@ export default function LoginPage() {
                     studentId: data.student?.studentId,
                     lecturerId: data.lecturer?.lecturerId,
                     email: data.email,
+                    locked: false,
 
 
 
@@ -86,9 +111,9 @@ export default function LoginPage() {
                 refreshToken: data.refreshToken,
             }));
 
-            console.log("DISPATCH XONG");
-
-            alert(`Đăng nhập thành công! Chào ${displayName}`);
+            toast.success("Đăng nhập thành công", {
+                description: `Chào mừng ${displayName || "bạn"} quay trở lại!`,
+            });
 
 
             let targetPath = "/dashboard";
@@ -123,12 +148,31 @@ export default function LoginPage() {
 
             navigate(targetPath);
 
-        } catch (error: any) {
-            const message =
-                error.response?.data?.message ||
-                "Sai tài khoản hoặc mật khẩu!";
+        } catch (error: unknown) {
+            if (axios.isAxiosError<ErrorResponse>(error)) {
+                const message = error.response?.data?.message;
 
-           toast.error(message);
+                if (message && isLockedMessage(message)) {
+                    toast.warning("Tài khoản bị khóa", {
+                        description: message,
+                        duration: 6000,
+                    });
+                } else if (error.response?.status === 400 || error.response?.status === 401) {
+                    toast.error("Đăng nhập thất bại", {
+                        description: message || "Tài khoản hoặc mật khẩu không chính xác.",
+                    });
+                } else {
+                    toast.error("Đã xảy ra lỗi", {
+                        description: message || "Không thể kết nối đến hệ thống. Vui lòng thử lại sau.",
+                    });
+                }
+            } else {
+                toast.error("Đã xảy ra lỗi", {
+                    description: "Không thể đăng nhập lúc này. Vui lòng thử lại sau.",
+                });
+            }
+        } finally {
+            setIsSubmitting(false);
         }
     };
     const handleWithGoogle = (e: React.FormEvent) => {
@@ -321,9 +365,10 @@ export default function LoginPage() {
                         {/* Submit Button */}
                         <Button
                             type="submit"
+                            disabled={isSubmitting}
                             className="w-full h-12 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-base font-semibold shadow-lg shadow-emerald-700/25 transition-all duration-200"
                         >
-                            Đăng nhập
+                            {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
                         </Button>
                         <div className="relative my-6">
                             <div className="absolute inset-0 flex items-center"><span

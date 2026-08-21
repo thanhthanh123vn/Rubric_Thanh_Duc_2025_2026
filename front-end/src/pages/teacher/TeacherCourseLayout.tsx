@@ -1,15 +1,32 @@
-import { BookOpen, ChevronDown, ChevronLeft, GraduationCap, PanelLeft, Users2 } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronLeft, GraduationCap, LogOut, PanelLeft, Settings, User, Users2 } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { type TeacherCourseItem, teacherCourseMenu } from './teacherCourseData';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import courseService from '@/pages/admin/api/courseService.ts';
 import { NotificationBell } from '@/components/home/NotificationBell.tsx';
+import authService from '@/user/api/authService.ts';
+import Banner from '@/components/common/Banner.tsx';
+import type { CourseOfferingResponse } from '@/pages/admin/api/type.ts';
+import { resolveBannerColor } from '@/utils/colorUtils.ts';
+import { courseService as courseDataService } from '@/features/course/courseApi.ts';
+import { clampObeProgress } from '@/utils/obeUtils.ts';
 
 export default function TeacherCourseLayout() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<TeacherCourseItem[]>([]);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [offeringDetails, setOfferingDetails] = useState<CourseOfferingResponse | null>(null);
+  const [obeProgress, setObeProgress] = useState(0);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const account = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}') as { fullName?: string; email?: string; avatarUrl?: string };
+    } catch {
+      return {};
+    }
+  })();
   const [expandedMenu, setExpandedMenu] = useState<string | null>(() =>
     teacherCourseMenu.find(
       (item) => item.children && location.pathname.startsWith(`/teacher/course/${id}/${item.path}`),
@@ -29,12 +46,63 @@ export default function TeacherCourseLayout() {
     fetchCourses();
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    if (!id) return undefined;
+    courseService.getOffering(id)
+      .then((data) => { if (active) setOfferingDetails(data); })
+      .catch((error) => console.error('Lỗi khi tải giao diện lớp học:', error));
+
+    const updateAppearance = (event: Event) => {
+      const detail = (event as CustomEvent<CourseOfferingResponse>).detail;
+      if (detail?.offeringId === id) setOfferingDetails(detail);
+    };
+    window.addEventListener('course-banner-updated', updateAppearance);
+    return () => {
+      active = false;
+      window.removeEventListener('course-banner-updated', updateAppearance);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let active = true;
+    if (!id) return undefined;
+    courseDataService.getOBEProgress(id)
+      .then((data) => {
+        if (active) setObeProgress(clampObeProgress(Number(data?.overallProgress || 0)));
+      })
+      .catch(() => { if (active) setObeProgress(0); });
+    return () => { active = false; };
+  }, [id, location.pathname]);
+
+  useEffect(() => {
+    const closeMenu = (event: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setShowAccountMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', closeMenu);
+    return () => document.removeEventListener('mousedown', closeMenu);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Lỗi khi đăng xuất:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+    }
+  };
+
   const course = courses.find((item) => item.offeringId === id);
 
   return (
-    <div className="min-h-[calc(100vh-2rem)] rounded-[2rem] bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6f3_100%)] font-sans antialiased">
-      <div className="mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-[1600px] gap-6 px-0 py-0 xl:grid-cols-[320px_1fr]">
-        <aside className="hidden overflow-hidden rounded-l-[2rem] border-r border-white/60 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl xl:flex xl:flex-col">
+    <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.12),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef6f3_100%)] font-sans antialiased">
+      <div className="mx-auto grid h-screen w-full max-w-[1600px] px-0 py-0 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="sticky top-0 hidden h-screen overflow-hidden border-r border-white/60 bg-white/90 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl xl:flex xl:flex-col">
           <div className="border-b border-slate-200 p-6">
             <Link
               to="/teacher"
@@ -53,6 +121,14 @@ export default function TeacherCourseLayout() {
                   <p className="text-xs uppercase tracking-[0.22em] text-emerald-50/80">Học phần</p>
                   <h2 className="mt-1 text-lg font-bold leading-tight">{course?.courseName || 'Học phần'}</h2>
                 </div>
+                <Link
+                  to={`/teacher/course/${id}/settings`}
+                  aria-label="Mở cài đặt lớp học"
+                  title="Cài đặt lớp học"
+                  className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white/70"
+                >
+                  <Settings className="h-5 w-5" />
+                </Link>
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
@@ -61,10 +137,10 @@ export default function TeacherCourseLayout() {
               </div>
               <div className="mt-4 flex items-center justify-between text-sm text-emerald-50/90">
                 <span>{course?.semester || 'Học kỳ'}</span>
-                <span>{course?.obeProgress || 0}% OBE</span>
+                <span>{obeProgress}% OBE</span>
               </div>
               <div className="mt-2 h-2 rounded-full bg-white/20">
-                <div className="h-2 rounded-full bg-white" style={{ width: `${course?.obeProgress || 0}%` }} />
+                <div className="h-2 rounded-full bg-white" style={{ width: `${obeProgress}%` }} />
               </div>
             </div>
           </div>
@@ -75,16 +151,10 @@ export default function TeacherCourseLayout() {
             </p>
             <nav className="space-y-1">
               {teacherCourseMenu.map((item) => {
-                const to =
-                    item.key === "questions"
-                        ? `/teacher/questions`
-                        : item.path
-                            ? `/teacher/course/${id}/${item.path}`
-                            : `/teacher/course/${id}`;
+                const to = item.path
+                    ? `/teacher/course/${id}/${item.path}`
+                    : `/teacher/course/${id}`;
 
-                const isQuestionActive =
-                    item.key === "questions" &&
-                    location.pathname.includes("/questions");
                 if (item.children) {
                   const isExpanded = expandedMenu === item.key;
                   const isParentActive = location.pathname.startsWith(`/teacher/course/${id}/${item.path}`);
@@ -132,7 +202,7 @@ export default function TeacherCourseLayout() {
                         end={item.path === ""}
                         className={({ isActive }) =>
                             `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
-                                isActive || isQuestionActive
+                                isActive
                                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
                                     : "text-slate-600 hover:bg-slate-50 hover:text-emerald-700"
                             }`
@@ -159,8 +229,8 @@ export default function TeacherCourseLayout() {
           </div>
         </aside>
 
-        <div className="min-w-0 bg-white/75 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl xl:rounded-r-[2rem]">
-          <header className="border-b border-slate-200/70 bg-white/80 px-4 py-4 md:px-6 md:py-5 xl:px-8">
+        <div className="h-screen min-w-0 overflow-y-auto bg-white/75 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+          <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur-xl md:px-6 md:py-5 xl:px-8">
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 <Link
@@ -169,14 +239,6 @@ export default function TeacherCourseLayout() {
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
-                <div className="min-w-0 truncate">
-                  <p className="truncate text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">
-                    Chi tiết học phần
-                  </p>
-                  <h3 className="truncate text-lg font-bold text-slate-900 md:text-2xl">
-                    {course?.courseTitle || 'Học phần'}
-                  </h3>
-                </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
@@ -185,14 +247,44 @@ export default function TeacherCourseLayout() {
                 {/*</div>*/}
 
                 <div className="hidden items-center gap-3 md:flex">
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                      {course?.lecturerName ? course.lecturerName.charAt(0).toUpperCase() : 'T'}
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500">Giảng viên phụ trách</p>
-                      <p className="font-semibold text-slate-900">{course?.lecturerName || 'Chưa cập nhật'}</p>
-                    </div>
+                  <div className="relative" ref={accountMenuRef}>
+                    <button
+                      type="button"
+                      aria-expanded={showAccountMenu}
+                      onClick={() => setShowAccountMenu((current) => !current)}
+                      className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-left shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/50"
+                    >
+                      <div className="flex h-10 w-10 overflow-hidden items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                        {account.avatarUrl ? <img src={account.avatarUrl} alt="" className="h-full w-full object-cover" /> :
+                          (course?.lecturerName ? course.lecturerName.charAt(0).toUpperCase() : 'T')}
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Giảng viên phụ trách</p>
+                        <p className="font-semibold text-slate-900">{course?.lecturerName || 'Chưa cập nhật'}</p>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 text-slate-400 transition ${showAccountMenu ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {showAccountMenu ? (
+                      <div className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                        <div className="border-b border-slate-100 px-3 py-3">
+                          <p className="truncate font-semibold text-slate-900">{account.fullName || course?.lecturerName}</p>
+                          <p className="mt-0.5 truncate text-xs text-slate-500">{account.email || 'Tài khoản giảng viên'}</p>
+                        </div>
+                        <Link to="/teacher/profile" onClick={() => setShowAccountMenu(false)}
+                          className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700">
+                          <User className="h-4 w-4" /> Thông tin cá nhân
+                        </Link>
+                        <Link to="/teacher/profile/forgot-password" onClick={() => setShowAccountMenu(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700">
+                          <Settings className="h-4 w-4" /> Cài đặt tài khoản
+                        </Link>
+                        <button type="button" onClick={handleLogout}
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50">
+                          <LogOut className="h-4 w-4" /> Đăng xuất
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
@@ -209,7 +301,7 @@ export default function TeacherCourseLayout() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-500">OBE</p>
-                      <p className="font-semibold text-slate-900">{course?.obeProgress || 0}%</p>
+                      <p className="font-semibold text-slate-900">{obeProgress}%</p>
                     </div>
                   </div>
                 </div>
@@ -265,6 +357,12 @@ export default function TeacherCourseLayout() {
           </header>
 
           <main className="p-4 md:p-6 xl:p-8">
+            <Banner
+              title={course?.courseTitle || offeringDetails?.course?.courseName || 'Học phần'}
+              description={`Giảng viên: ${course?.lecturerName || offeringDetails?.lecturers?.map((item) => item.lecturerName).join(', ') || 'Chưa cập nhật'} - Mã lớp: ${id || ''}`}
+              color={resolveBannerColor(id || '', offeringDetails?.bannerColor || course?.bannerColor)}
+              imageUrl={offeringDetails?.bannerImageUrl}
+            />
             <Outlet />
           </main>
         </div>

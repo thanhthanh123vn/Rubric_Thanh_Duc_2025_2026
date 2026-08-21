@@ -49,6 +49,12 @@ public class RubricMatrixMapper {
                 .id(rubric.getRubricId())
                 .name(rubric.getRubricName())
                 .description(rubric.getDescription())
+                .courseId(rubric.getCourseId())
+                .rubricType(rubric.getRubricType() == null ? null : rubric.getRubricType().name())
+                .rootRubricId(rubric.getRootRubricId())
+                .parentRubricId(rubric.getParentRubricId())
+                .versionNumber(rubric.getVersionNumber())
+                .approvalStatus(rubric.getStatus() == null ? null : rubric.getStatus().name())
 
                 // TODO: sau này count theo course_offerings hoặc assessments
                 .courses(0)

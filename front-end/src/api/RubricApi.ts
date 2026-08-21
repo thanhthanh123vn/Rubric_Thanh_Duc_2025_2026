@@ -57,6 +57,20 @@ export const rubricApi = {
         return rubricServiceApi.post('/rubrics', data);
     },
 
+    createVersion: (rubricId: string, data: CreateRubricPayload) => {
+        return rubricServiceApi.post(`/rubrics/${rubricId}/versions`, data);
+    },
+
+    getComparison: async (rubricId: string) => {
+        const response = await rubricServiceApi.get(`/rubrics/${rubricId}/comparison`);
+        return response.data;
+    },
+
+    getVersions: async (rubricId: string) => {
+        const response = await rubricServiceApi.get(`/rubrics/${rubricId}/versions`);
+        return response.data;
+    },
+
     getMyRubrics: () => {
         return rubricServiceApi.get('/rubrics/me');
     },

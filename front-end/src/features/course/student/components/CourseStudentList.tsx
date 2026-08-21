@@ -6,7 +6,7 @@ import { courseService } from "@/features/course/courseApi.ts";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import Banner from "@/components/common/Banner";
-import { getBannerColor } from "@/utils/colorUtils";
+import { resolveBannerColor } from "@/utils/colorUtils";
 
 const StudentItem = ({ student }: { student: Type }) => {
     return (
@@ -108,7 +108,7 @@ const StudentContent = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [course, setCourse] = useState<any>(null);
 
-    const bannerColor = offeringId ? getBannerColor(offeringId) : "emerald";
+    const bannerColor = offeringId ? resolveBannerColor(offeringId, course?.bannerColor) : "emerald";
 
     useEffect(() => {
         if (offeringId) {
@@ -138,7 +138,7 @@ const StudentContent = () => {
                 {/* CONTENT */}
                 <div className="flex-1 p-4 lg:p-8 w-full">
                     {/* Nới rộng khoảng trắng: max-w-3xl -> max-w-6xl */}
-                    <div className="w-full max-w-6xl mx-auto">
+                    <div className="w-full max-w-[1312px] mx-auto">
 
                         {/* Nút quay lại */}
                         {/*<button*/}
@@ -153,6 +153,7 @@ const StudentContent = () => {
                             title={course?.course?.courseName || "Đang tải dữ liệu lớp học..."}
                             description={`Danh sách sinh viên ${course ? `- ${course.semester} (${course.year})` : ""}`}
                             color={bannerColor}
+                            imageUrl={course?.bannerImageUrl}
                         />
 
                         {/* Danh sách sinh viên */}

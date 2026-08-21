@@ -211,7 +211,7 @@ export default function RubricDetail() {
                         </div>
 
                         <Link
-                            to="/mainlecturer/rubric-matrix"
+                            to="/mainlecturer/rubric"
                             className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
                         >
                             Chinh sua trong Rubric Matrix
@@ -280,7 +280,7 @@ export default function RubricDetail() {
                     </div>
 
                     <Link
-                        to="/mainlecturer/rubric-matrix"
+                        to="/mainlecturer/rubric"
                         className="inline-flex items-center gap-2 text-sm font-semibold text-green-700 hover:text-green-800"
                     >
                         Mo Rubric Matrix

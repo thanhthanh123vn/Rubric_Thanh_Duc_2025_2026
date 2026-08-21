@@ -1,13 +1,16 @@
 package hcmuaf.edu.vn.fit.rubric_service.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.List;
-
 @Entity
-@Table(name = "course_clo")
+@Table(
+        name = "course_clo",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_course_clo_course_code",
+                columnNames = {"course_id", "clo_code"}
+        )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,7 +23,10 @@ public class CourseCloEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String cloId;
 
-    @Column(name = "clo_code", nullable = false, unique = true, length = 20)
+    @Column(name = "course_id", nullable = false, length = 50)
+    private String courseId;
+
+    @Column(name = "clo_code", nullable = false, length = 20)
     private String cloCode;
 
     @Column(name = "clo_name", nullable = false, length = 255)
@@ -31,9 +37,4 @@ public class CourseCloEntity {
 
     @Column(name = "bloom_level", length = 50)
     private String bloomLevel;
-
-
-    @OneToMany(mappedBy = "clo")
-    @JsonManagedReference
-    private List<CourseCloMapEntity> courseMappings;
 }

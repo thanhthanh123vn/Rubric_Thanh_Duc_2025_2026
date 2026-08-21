@@ -1,5 +1,5 @@
 import {api} from '../../services/axiosConfig.ts';
-import type {LoginRequest, LoginResponse, RegisterRequest} from './types';
+import type {LecturerProfile, LoginRequest, LoginResponse, RegisterRequest} from './types';
 import {data} from "autoprefixer";
 
 const authService = {
@@ -29,8 +29,8 @@ const authService = {
 
         return !!token;
     },
-    getProfileLecturer: async ()=>{
-        const response = await api.get<LoginResponse>('/lecturer/profile/me');
+    getProfileLecturer: async (): Promise<LecturerProfile> =>{
+        const response = await api.get<LecturerProfile>('/lecturer/profile/me');
         return response.data;
 
     },

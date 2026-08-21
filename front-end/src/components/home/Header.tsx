@@ -1,13 +1,15 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {Menu, Plus, Bell, LogOut, UserPlus} from 'lucide-react'; // Đã thêm import Bell
-import {useLocation, useNavigate} from "react-router-dom";
+import {useContext, useEffect, useRef, useState} from 'react';
+import {BarChart3, CalendarDays, LogOut, Menu, Plus, UserPlus, UserRound} from 'lucide-react';
+import {useLocation, useNavigate, useParams} from "react-router-dom";
 
 import {enrollCourse} from "@/features/course/courseApi.ts";
 import {toast} from "sonner";
 import sinhVienService from "@/pages/admin/api/sinhVienService.ts";
 import {NotificationBell} from "@/components/home/NotificationBell.tsx";
 import authService from "@/user/api/authService.ts";
-import {useAppDispatch} from "@/hooks/useAppDispatch.ts";
+import {courseService} from "@/features/course/courseApi.ts";
+import {StudentCourseLayoutContext} from "@/features/course/student/components/StudentCourseLayoutContext.ts";
+import { calculateStudentObeProgress } from '@/utils/obeUtils.ts';
 
 interface UserInfo {
     studentId: string;
@@ -18,9 +20,11 @@ interface UserInfo {
 interface HeaderProps {
     onMenuClick?: () => void;
     onEnrollSuccess?: () => void;
+    layoutRoot?: boolean;
 }
 
-const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
+const Header = ({ onMenuClick, onEnrollSuccess, layoutRoot = false }: HeaderProps) => {
+    const insideCourseLayout = useContext(StudentCourseLayoutContext);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [user, setUser] = useState<UserInfo | null>(null);
@@ -31,6 +35,13 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     const router = useNavigate();
     const location = useLocation();
     const navigate = useNavigate();
+    const {id: courseId} = useParams();
+    const inCourse = location.pathname.startsWith('/course/') && Boolean(courseId);
+    const [courseName, setCourseName] = useState('Học phần');
+    const [courseCode, setCourseCode] = useState('');
+    const [courseLecturer, setCourseLecturer] = useState('Chưa cập nhật');
+    const [courseTerm, setCourseTerm] = useState('Chưa cập nhật');
+    const [courseProgress, setCourseProgress] = useState(0);
     const [formData, setFormData] = useState({
         fullName: '',
         avatarUrl:'',
@@ -82,8 +93,34 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const dispatch = useAppDispatch();
+    useEffect(() => {
+        let active = true;
+        if (!inCourse || !courseId) return undefined;
 
+        courseService.getCourseById(courseId).then((data) => {
+            if (!active) return;
+            setCourseName(data?.course?.courseName || data?.courseName || 'Học phần');
+            setCourseCode(data?.course?.courseCode || data?.courseCode || courseId);
+            setCourseLecturer(data?.lecturers?.map((lecturer: any) => lecturer.lecturerName).filter(Boolean).join(', ') || data?.lecturerName || 'Chưa cập nhật');
+            setCourseTerm([data?.semester, data?.year].filter(Boolean).join(' · ') || 'Chưa cập nhật');
+        }).catch(() => {
+            if (active) setCourseCode(courseId);
+        });
+
+        courseService.getOBEProgressByStudent(courseId).then((items) => {
+            if (!active) return;
+            setCourseProgress(calculateStudentObeProgress(items));
+        }).catch(() => {
+            if (active) setCourseProgress(0);
+        });
+
+        return () => { active = false; };
+    }, [courseId, inCourse]);
+
+
+    if (insideCourseLayout && !layoutRoot) {
+        return <span data-student-course-legacy-header className="hidden" />;
+    }
 
     const handleLogout = async () => {
         try {
@@ -102,13 +139,12 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     if (!user) {
 
             return (
-                <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                    <div className="relative w-12 h-12">
-                        <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
-                        <div className="absolute inset-0 rounded-full border-4 border-purple-600 border-t-transparent animate-spin"></div>
-                    </div>
-                    <p className="text-gray-500 text-sm">Đang tải dữ liệu...</p>
-                </div>
+                <>
+                    <header className={`${layoutRoot ? "sticky top-0 h-24 w-full" : inCourse ? "fixed left-0 right-0 top-0 h-24 lg:left-72 lg:right-auto lg:w-[calc(100vw-18rem)] lg:max-w-[1312px]" : "sticky top-0 min-h-[72px]"} z-30 flex items-center border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-xl lg:px-8`}>
+                        <div className="h-5 w-44 animate-pulse rounded-full bg-slate-200" />
+                    </header>
+                    {inCourse && !layoutRoot && <div aria-hidden="true" className="h-24 shrink-0" />}
+                </>
             );
 
     }
@@ -122,7 +158,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     const handleEnrollClick = async () => {
         setIsEnrolling(true);
         try {
-            const response = await enrollCourse(offeringId);
+            await enrollCourse(offeringId);
             toast.success("Ghi danh thành công!");
 
             setShowJoinClass(false);
@@ -141,22 +177,70 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
     };
 
     return (
+        <>
         <header
-            className="bg-white border-b border-gray-200 px-4 lg:px-8 py-3 lg:py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm lg:shadow-none">
+            className={`${layoutRoot ? "sticky top-0 h-24 w-full" : inCourse ? "fixed left-0 right-0 top-0 h-24 lg:left-72 lg:right-auto lg:w-[calc(100vw-18rem)] lg:max-w-[1312px]" : "sticky top-0 min-h-[72px]"} z-30 flex items-center justify-between gap-4 border-b border-slate-200/70 bg-white/95 px-4 py-4 shadow-sm backdrop-blur-xl md:px-6 md:py-5 xl:px-8`}>
 
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
                 <button
-                    onClick={onMenuClick}
-                    className="p-1.5 lg:hidden text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => {
+                        if (onMenuClick) onMenuClick();
+                        else window.dispatchEvent(new Event('student-course-sidebar:open'));
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:bg-slate-50 lg:hidden"
+                    aria-label="Mở menu lớp học"
                 >
-                    <Menu size={24}/>
+                    <Menu size={21}/>
                 </button>
-                <div onClick={() => navigate("/dashboard")} className="font-bold text-emerald-700 text-lg sm:text-xl hidden lg:block hover:cursor-pointer">
-                    Hệ thống Đánh giá OBE
-                </div>
+                {inCourse ? (
+                    <>
+                        <div className="min-w-0">
+                            <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                                <h1 className="truncate text-lg font-bold text-slate-900 md:text-2xl">{courseName}</h1>
+                                {courseCode && <span className="hidden shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 lg:inline-flex">{courseCode}</span>}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <button onClick={() => navigate("/dashboard")} className="text-left text-lg font-bold text-emerald-700 transition hover:text-emerald-800 sm:text-xl">
+                        Hệ thống Đánh giá OBE
+                    </button>
+                )}
             </div>
 
-            <div className="flex items-center gap-3 relative" ref={menuRef}>
+            <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-3" ref={menuRef}>
+
+                {inCourse && (
+                    <div className="hidden items-center gap-3 xl:flex">
+                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                                <UserRound className="h-5 w-5"/>
+                            </div>
+                            <div className="max-w-44">
+                                <p className="text-xs text-slate-500">Giảng viên phụ trách</p>
+                                <p className="truncate font-semibold text-slate-900">{courseLecturer}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
+                                <CalendarDays className="h-5 w-5"/>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500">Học kỳ</p>
+                                <p className="font-semibold text-slate-900">{courseTerm}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+                                <BarChart3 className="h-5 w-5"/>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500">Tiến độ OBE</p>
+                                <p className="font-semibold text-slate-900">{courseProgress}%</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Nút Tham gia lớp học */}
                 {location.pathname === '/dashboard' && (
@@ -169,12 +253,7 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                     </button>
                 )}
 
-                {/* Nút Thông báo (Chuông) */}
-                <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors mr-1">
-                    <NotificationBell />
-
-
-                </button>
+                <NotificationBell />
 
                 {/* Modal Tham gia lớp học (Không làm mờ) */}
                 {showJoinClass && (
@@ -230,21 +309,18 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                 {/* Nút Avatar */}
                 <button
                     onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full overflow-hidden bg-emerald-600 text-white flex items-center justify-center font-bold text-base lg:text-lg hover:ring-4 hover:ring-gray-100 transition-all focus:outline-none"
+                    className="flex items-center gap-2 rounded-full p-0.5 pr-0 text-left transition hover:bg-slate-50 focus:outline-none sm:pr-2"
+                    aria-label="Mở menu tài khoản"
                 >
-
-                    {formData.avatarUrl && formData.avatarUrl.trim() !== "" && !imageError ? (
-                        <img
-                            src={formData.avatarUrl}
-                            alt="Avatar"
-                            className="w-full h-full object-cover rounded-full"
-                            onError={() => {
-                                setImageError(true);
-                            }}
-                        />
-                    ) : (
-                        getInitial(formData.fullName)
-                    )}
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-base font-bold text-white ring-2 ring-emerald-50 lg:h-10 lg:w-10">
+                        {formData.avatarUrl && formData.avatarUrl.trim() !== "" && !imageError ? (
+                            <img src={formData.avatarUrl} alt="Avatar" className="h-full w-full rounded-full object-cover" onError={() => setImageError(true)}/>
+                        ) : getInitial(formData.fullName)}
+                    </span>
+                    <span className="hidden max-w-36 sm:block">
+                        <span className="block truncate text-sm font-semibold text-slate-800">{formData.fullName || user.studentId}</span>
+                        <span className="block text-[11px] text-slate-500">Sinh viên</span>
+                    </span>
                 </button>
 
                 {/* Profile Menu Popup */}
@@ -316,6 +392,8 @@ const Header = ({ onMenuClick, onEnrollSuccess }: HeaderProps) => {
                 )}
             </div>
         </header>
+        {inCourse && !layoutRoot && <div aria-hidden="true" className="h-24 shrink-0" />}
+        </>
     );
 };
 

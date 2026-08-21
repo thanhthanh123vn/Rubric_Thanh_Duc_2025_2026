@@ -93,4 +93,6 @@ export interface CourseOfferingResponse {
     startDate: string;
     endDate: string;
     status: string;
+    bannerColor?: string;
+    bannerImageUrl?: string;
 }

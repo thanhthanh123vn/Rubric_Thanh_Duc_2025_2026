@@ -21,6 +21,15 @@ export type CourseGradebook = {
     students: GradebookStudent[];
 };
 
+export type StudentOBEProgress = {
+    cloId: string;
+    cloCode: string;
+    cloDescription: string;
+    totalWeight: number | null;
+    achievedScore: number | null;
+    progressPercent: number | null;
+};
+
 export type GradebookScorePayload = {
     studentId: string;
     attendanceScore: number | null;
@@ -154,7 +163,7 @@ export const courseService = {
         return response.data;
     },
 
-    getOBEProgressByStudent : async (offeringId: string) => {
+    getOBEProgressByStudent : async (offeringId: string): Promise<StudentOBEProgress[]> => {
             const response = await courseApi.get(`/courses/offering/${offeringId}/OBE`)
             return response.data;
     },

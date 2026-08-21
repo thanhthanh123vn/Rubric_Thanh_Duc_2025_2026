@@ -28,6 +28,8 @@ public class CourseOfferingResponse {
     private LocalDate startDate;
     private LocalDate endDate;
     private String status;
+    private String bannerColor;
+    private String bannerImageUrl;
 
     private List<LecturerInfo> lecturers;
 }

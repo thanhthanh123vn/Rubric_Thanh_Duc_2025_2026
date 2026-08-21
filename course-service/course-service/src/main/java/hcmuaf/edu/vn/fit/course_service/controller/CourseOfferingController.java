@@ -13,9 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/course-service/courses-offering")
@@ -101,6 +104,46 @@ public class CourseOfferingController {
             String userName = httpServletRequest.getHeader("X-User-Username");
             systemLogService.writeLog("ERROR", "Update CourseOffering", "Lỗi khi Cập nhật Học Phần: " + e.getMessage(), userName, ip);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PatchMapping("/{offeringId}/banner-color")
+    public ResponseEntity<?> updateBannerColor(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String offeringId,
+            @RequestBody Map<String, String> request) {
+        try {
+            return ResponseEntity.ok(courseOfferingService.updateBannerColor(
+                    offeringId, userId, request.get("bannerColor")));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/{offeringId}/banner-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadBannerImage(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String offeringId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            return ResponseEntity.ok(courseOfferingService.uploadBannerImage(offeringId, userId, file));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{offeringId}/banner-image")
+    public ResponseEntity<?> removeBannerImage(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable String offeringId) {
+        try {
+            return ResponseEntity.ok(courseOfferingService.removeBannerImage(offeringId, userId));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
         }
     }
 

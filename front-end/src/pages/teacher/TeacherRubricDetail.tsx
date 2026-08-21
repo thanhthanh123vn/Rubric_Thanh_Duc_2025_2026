@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Target, LayoutList, Scale, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 import { getRubricById, updateRubric } from "@/pages/mainlecturer/api/RubricAPI.ts";
-import { useAppSelector } from "@/hooks/useAppSelector.ts"; // Thêm import này
+import { getAllClo, type CloResponse } from "@/features/rubric/rubricApi.ts";
 
 interface CriteriaResponse {
     id: string;
     cloId: string;
-    criteriaName: string;
+    name: string;
     weight: number;
 }
 
@@ -23,20 +23,8 @@ export default function TeacherRubricDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    // Lấy thông tin user hiện tại để kiểm tra quyền
-    const { user: reduxUser } = useAppSelector((state: any) => state.auth);
-    let user = reduxUser;
-    if (!user) {
-        const localUser = localStorage.getItem("user");
-        if (localUser) {
-            user = JSON.parse(localUser);
-        }
-    }
-
-    // Kiểm tra xem có phải là ADMIN không
-    const isAdmin = user?.role === "ADMIN";
-
     const [rubric, setRubric] = useState<RubricDetailResponse | null>(null);
+    const [clos, setClos] = useState<CloResponse[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
     const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -48,9 +36,13 @@ export default function TeacherRubricDetail() {
             if (!id) return;
             try {
                 setLoading(true);
-                const response = await getRubricById(id);
+                const [response, cloResponse] = await Promise.all([
+                    getRubricById(id),
+                    getAllClo().catch(() => null),
+                ]);
                 setRubric(response.data);
                 setEditedCriteria(response.data.criteria || []);
+                setClos(Array.isArray(cloResponse?.data) ? cloResponse.data : []);
             } catch (error) {
                 console.error("Lỗi khi tải chi tiết Rubric:", error);
             } finally {
@@ -60,12 +52,22 @@ export default function TeacherRubricDetail() {
         fetchRubricDetail();
     }, [id]);
 
+    const cloNameById = useMemo(
+        () => new Map(clos.map((clo) => [clo.cloId, clo.cloName])),
+        [clos],
+    );
+
+    const getCloName = (cloId: string) => {
+        if (!cloId) return 'Chưa gắn CLO';
+        return cloNameById.get(cloId) || 'CLO không xác định';
+    };
+
 
     const handleAddCriteria = () => {
         const newCriteria: CriteriaResponse = {
             id: `new-${Date.now()}`,
             cloId: '',
-            criteriaName: '',
+            name: '',
             weight: 0
         };
         setEditedCriteria([...editedCriteria, newCriteria]);
@@ -131,22 +133,19 @@ export default function TeacherRubricDetail() {
                 </div>
 
                 <div className="flex gap-2">
-                    {/* CHỈ HIỂN THỊ CÁC NÚT THAO TÁC NẾU KHÔNG PHẢI LÀ ADMIN */}
-                    {!isAdmin && (
-                        !isEditing ? (
-                            <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
-                                <Edit2 className="w-4 h-4" /> Chỉnh sửa
+                    {!isEditing ? (
+                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
+                            <Edit2 className="w-4 h-4" /> Chỉnh sửa
+                        </button>
+                    ) : (
+                        <>
+                            <button onClick={() => setIsEditing(false)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300">
+                                <X className="w-4 h-4" /> Hủy
                             </button>
-                        ) : (
-                            <>
-                                <button onClick={() => setIsEditing(false)} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300">
-                                    <X className="w-4 h-4" /> Hủy
-                                </button>
-                                <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                                    <Save className="w-4 h-4" /> {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
-                                </button>
-                            </>
-                        )
+                            <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                                <Save className="w-4 h-4" /> {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
@@ -191,7 +190,7 @@ export default function TeacherRubricDetail() {
                             <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
                             <tr>
                                 <th className="px-4 py-3 rounded-tl-xl font-semibold w-1/2">Tên tiêu chí</th>
-                                <th className="px-4 py-3 font-semibold">Mã CLO</th>
+                                <th className="px-4 py-3 font-semibold">Tên CLO</th>
                                 <th className="px-4 py-3 font-semibold text-right">Trọng số (%)</th>
                                 {isEditing && <th className="px-4 py-3 rounded-tr-xl w-10"></th>}
                             </tr>
@@ -201,16 +200,24 @@ export default function TeacherRubricDetail() {
                                 <tr key={item.id} className="hover:bg-slate-50 group">
                                     <td className="px-4 py-3">
                                         {isEditing ? (
-                                            <input type="text" value={item.criteriaName} onChange={(e) => handleCriteriaChange(index, 'criteriaName', e.target.value)} className="w-full border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Nhập tên tiêu chí..." />
+                                            <input type="text" value={item.name} onChange={(e) => handleCriteriaChange(index, 'name', e.target.value)} className="w-full border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Nhập tên tiêu chí..." />
                                         ) : (
-                                            <span className="font-medium text-slate-800">{item.criteriaName}</span>
+                                            <span className="font-medium text-slate-800">{item.name}</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
                                         {isEditing ? (
-                                            <input type="text" value={item.cloId} onChange={(e) => handleCriteriaChange(index, 'cloId', e.target.value)} className="w-24 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="CLO..." />
+                                            <select value={item.cloId} onChange={(e) => handleCriteriaChange(index, 'cloId', e.target.value)} className="w-full min-w-48 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                <option value="">Chưa gắn CLO</option>
+                                                {item.cloId && !cloNameById.has(item.cloId) ? (
+                                                    <option value={item.cloId}>CLO không xác định</option>
+                                                ) : null}
+                                                {clos.map((clo) => (
+                                                    <option key={clo.cloId} value={clo.cloId}>{clo.cloName}</option>
+                                                ))}
+                                            </select>
                                         ) : (
-                                            <span className="rounded-md bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">{item.cloId || 'N/A'}</span>
+                                            <span className="rounded-md bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">{getCloName(item.cloId)}</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-right">

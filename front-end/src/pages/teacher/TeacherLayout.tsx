@@ -14,7 +14,10 @@ export default function TeacherLayout() {
         <div className="flex min-w-0 flex-1 flex-col">
           {!inCourseDetail ? <TeacherHeader /> : null}
 
-          <main className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-6 md:py-8 xl:px-8">
+          <main className={inCourseDetail
+            ? "h-screen flex-1 overflow-hidden"
+            : "flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-6 md:py-8 xl:px-8"
+          }>
             <Outlet />
             {!inCourseDetail && (
               <div className="fixed bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-2 shadow-xl shadow-slate-200/60 backdrop-blur-xl xl:hidden">

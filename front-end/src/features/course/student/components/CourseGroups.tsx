@@ -1560,7 +1560,7 @@ const CourseGroups = () => {
       const [studentData, groupData, assessmentData] = await Promise.all([
         courseService.getStudentsByOffering(offeringId),
         groupService.getMyGroups(offeringId, currentUserId),
-        // courseService.getAssessmentByOffering(offeringId),
+        courseService.getAssessmentByOffering(offeringId),
       ]);
 console.log(groupData);
       setStudents(studentData || []);
@@ -1630,7 +1630,7 @@ console.log(groupData);
       <div className="flex">
         <Sidebar />
         <div className="flex-1 p-4 pb-20 lg:p-6">
-          <div className="mx-auto max-w-6xl space-y-6">
+          <div className="mx-auto max-w-[1312px] space-y-6">
             <Banner />
 
             {isLoading ? (

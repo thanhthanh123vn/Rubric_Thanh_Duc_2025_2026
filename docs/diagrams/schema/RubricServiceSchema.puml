@@ -40,27 +40,43 @@ database "rubric_db" {
     * score: float
   }
 
-  entity "course_clos" as course_clos {
+  entity "course_clo" as course_clo {
     * clo_id: varchar <<PK>>
     --
+    * course_id: varchar <<REF>>
     * clo_code: varchar
     * clo_name: varchar
     description: text
     bloom_level: varchar
   }
 
-  entity "course_clo_maps" as course_clo_maps {
-    * id: bigint <<PK>>
+  entity "program" as program {
+    * program_id: varchar <<PK>>
     --
-    * course_id: varchar <<REF>>
-    * clo_id: varchar <<FK>>
+    * program_code: varchar
+    * program_name: varchar
+  }
+
+  entity "program_plo" as program_plo {
+    * plo_id: varchar <<PK>>
+    --
+    * program_id: varchar <<FK>>
+    * plo_code: varchar
+    * plo_name: varchar
+  }
+
+  entity "clo_plo_mapping" as clo_plo_mapping {
+    * clo_id: varchar <<PK, FK>>
+    * plo_id: varchar <<PK, FK>>
   }
 }
 
 rubrics ||--|{ rubric_criteria
 rubric_criteria ||--|{ rubric_levels
-course_clos ||--o{ rubric_criteria
-course_clos ||--o{ course_clo_maps
+course_clo ||--o{ rubric_criteria
+program ||--o{ program_plo
+course_clo ||--o{ clo_plo_mapping
+program_plo ||--o{ clo_plo_mapping
 
 legend bottom
   course_id và lecturer_id là tham chiếu logic.

@@ -17,6 +17,7 @@ export interface TeacherCourseItem {
   rubricCount?: number;
   assignmentCount?: number;
   colorClass?: string;
+  bannerColor?: string;
 }
 
 export const teacherCourses: TeacherCourseItem[] = [
@@ -66,7 +67,7 @@ export const teacherCourseMenu = [
   { key: 'students', icon: Users, label: 'Sinh viên', path: 'students' },
   { key: 'assignments', icon: ClipboardList, label: 'Bài tập', path: 'assignments' },
   { key: 'rubric', icon: FileText, label: 'Rubric', path: 'rubric' },
-  { key: 'questions', icon: ClipboardList, label: 'Câu hỏi', path: 'questions' },
+  { key: 'questions', icon: ClipboardList, label: 'Ngân hàng câu hỏi', path: 'questions' },
   {
     key: 'exams',
     icon: FileEdit,

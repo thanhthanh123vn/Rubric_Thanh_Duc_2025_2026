@@ -8,6 +8,7 @@ type Props = {
     description: string;
     criteria: MatrixCriterionDraft[];
     totalWeight: number;
+    getCloLabel: (cloId: string) => string;
     sortLevels: (levels: MatrixLevelDraft[]) => MatrixLevelDraft[];
     onClose: () => void;
 };
@@ -18,6 +19,7 @@ export default function RubricSamplePreview({
                                                 description,
                                                 criteria,
                                                 totalWeight,
+                                                getCloLabel,
                                                 sortLevels,
                                                 onClose,
                                             }: Props) {
@@ -48,6 +50,7 @@ export default function RubricSamplePreview({
                                 description={description}
                                 criteria={criteria}
                                 totalWeight={totalWeight}
+                                getCloLabel={getCloLabel}
                                 sortLevels={sortLevels}
                             />
 
@@ -133,7 +136,7 @@ export default function RubricSamplePreview({
                                                         {criterion.name || "Tiêu chí chưa đặt tên"}
                                                     </h4>
                                                     <p className="mt-2 text-sm text-slate-500">
-                                                        Tên CLO: {criterion.cloId || "Chưa gắn CLO"}
+                                                        Tên CLO: {criterion.cloId ? getCloLabel(criterion.cloId) : "Chưa gắn CLO"}
                                                     </p>
                                                     <p className="mt-3 text-sm font-medium text-emerald-700">
                                                         Trọng số: {criterion.weight}%

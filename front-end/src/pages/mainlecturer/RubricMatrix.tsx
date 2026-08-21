@@ -1,17 +1,16 @@
-import { Edit2, Eye, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronDown, ChevronRight, Edit2, Eye, Plus, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import RubricMatrixEditor, {
     type CloOption,
     type RubricMatrixResponse,
-    type RubricOption,
 } from "@/features/rubric/components/RubricMatrixEditor";
 import RubricSamplePreview from "@/features/rubric/components/RubricSamplePreview.tsx";
 import type {
     MatrixCriterionDraft,
     MatrixLevelDraft,
 } from "@/features/rubric/components/RubricMatrixPreview.tsx";
-import { getAllClo, getAllRubric, getRubricMatrix } from "@/features/rubric/rubricApi";
-import { useAppSelector } from "@/hooks/useAppSelector.ts"; // Import hook lấy thông tin user
+import { getAllClo, getCourseOptions, getRubricMatrix, revertRubricHead, type CourseOption } from "@/features/rubric/rubricApi";
 
 const PERCENT_RATIO_EPSILON = 0.0001;
 
@@ -56,29 +55,32 @@ const matrixToPreviewCriteria = (matrix: RubricMatrixResponse | null): MatrixCri
 };
 
 export default function RubricMatrix() {
-    // Lấy thông tin user hiện tại để kiểm tra quyền
-    const { user: reduxUser } = useAppSelector((state: any) => state.auth);
-    let user = reduxUser;
-    if (!user) {
-        const localUser = localStorage.getItem("user");
-        if (localUser) {
-            user = JSON.parse(localUser);
-        }
-    }
-    const isAdmin = user?.role === "ADMIN";
-
     const [matrices, setMatrices] = useState<RubricMatrixResponse[]>([]);
-    const [rubrics, setRubrics] = useState<RubricOption[]>([]);
+    const [courses, setCourses] = useState<CourseOption[]>([]);
     const [clos, setClos] = useState<CloOption[]>([]);
+    const [expandedRoots, setExpandedRoots] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [selectedMatrix, setSelectedMatrix] = useState<RubricMatrixResponse | null>(null);
     const [previewMatrix, setPreviewMatrix] = useState<RubricMatrixResponse | null>(null);
-
-    useEffect(() => {
-        void fetchRubricMatrix();
-        void fetchOptions();
-    }, []);
+    const [movingHeadId, setMovingHeadId] = useState<string | null>(null);
+    const [localHeads, setLocalHeads] = useState<Record<string, string>>({});
+    const cloLabels = useMemo(
+        () => new Map(clos.map((clo) => [clo.cloId, `${clo.cloCode} - ${clo.cloName}`])),
+        [clos],
+    );
+    const getCloLabel = (cloId: string) => cloLabels.get(cloId) || cloId;
+    const versionGroups = useMemo(() => {
+        const groups = new Map<string, RubricMatrixResponse[]>();
+        matrices.forEach((matrix) => {
+            const rootId = matrix.rootRubricId || matrix.id;
+            groups.set(rootId, [...(groups.get(rootId) || []), matrix]);
+        });
+        return [...groups.entries()].map(([rootId, versions]) => ({
+            rootId,
+            versions: versions.sort((a, b) => (b.versionNumber ?? 1) - (a.versionNumber ?? 1)),
+        }));
+    }, [matrices]);
 
     const fetchRubricMatrix = async () => {
         try {
@@ -86,6 +88,16 @@ export default function RubricMatrix() {
             const res = await getRubricMatrix();
             const nextMatrices = Array.isArray(res.data) ? res.data : [];
             setMatrices(nextMatrices);
+            const rootsConfirmedByServer = new Set(
+                nextMatrices
+                    .filter((matrix: RubricMatrixResponse) => matrix.currentHead)
+                    .map((matrix: RubricMatrixResponse) => matrix.rootRubricId || matrix.id),
+            );
+            if (rootsConfirmedByServer.size > 0) {
+                setLocalHeads((current) => Object.fromEntries(
+                    Object.entries(current).filter(([rootId]) => !rootsConfirmedByServer.has(rootId)),
+                ));
+            }
             return nextMatrices;
         } catch (error) {
             console.error("Lỗi khi tải ma trận rubric:", error);
@@ -97,20 +109,22 @@ export default function RubricMatrix() {
 
     const fetchOptions = async () => {
         try {
-            const [cloRes, rubricRes] = await Promise.all([getAllClo(), getAllRubric()]);
+            const [cloRes, courseOptions] = await Promise.all([getAllClo(), getCourseOptions()]);
             setClos(Array.isArray(cloRes.data) ? cloRes.data : []);
-            setRubrics(
-                (Array.isArray(rubricRes.data) ? rubricRes.data : []).map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    description: item.description,
-                    totalWeight: item.totalWeight,
-                })),
-            );
+            setCourses(courseOptions);
         } catch (error) {
             console.error("Lỗi khi tải tùy chọn ma trận rubric:", error);
         }
     };
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            void fetchRubricMatrix();
+            void fetchOptions();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, []);
 
     const openEditor = (matrix: RubricMatrixResponse | null) => {
         setSelectedMatrix(matrix);
@@ -128,6 +142,22 @@ export default function RubricMatrix() {
 
     const closePreview = () => {
         setPreviewMatrix(null);
+    };
+
+    const moveHead = async (version: RubricMatrixResponse) => {
+        if (!window.confirm(`Chuyển HEAD về v${version.versionNumber ?? 1}? Các version và nhánh vẫn được giữ nguyên.`)) return;
+        try {
+            setMovingHeadId(version.id);
+            await revertRubricHead(version.id);
+            const rootId = version.rootRubricId || version.id;
+            setLocalHeads((current) => ({ ...current, [rootId]: version.id }));
+            await fetchRubricMatrix();
+            toast.success(`Đã chuyển HEAD về v${version.versionNumber ?? 1}`);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Không thể chuyển HEAD");
+        } finally {
+            setMovingHeadId(null);
+        }
     };
 
     const handleMatrixSaved = async () => {
@@ -156,26 +186,29 @@ export default function RubricMatrix() {
                         Ánh xạ tiêu chí
                     </p>
                     <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                        Ma trận Rubric
+                        Rubric
                     </h3>
                 </div>
 
-                {/* Ẩn nút "Ma trận mới" nếu là Admin */}
-                {!isAdmin && (
-                    <button
-                        onClick={() => openEditor(null)}
-                        className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Ma trận mới
-                    </button>
-                )}
+                <button
+                    onClick={() => openEditor(null)}
+                    className="flex items-center gap-2 rounded-lg bg-green-700 px-4 py-2 font-medium text-white hover:bg-green-800"
+                >
+                    <Plus className="h-5 w-5" />
+                    Tạo Rubric
+                </button>
             </div>
 
             <div className="space-y-4">
-                {matrices.map((matrix) => (
+                {versionGroups.map(({ rootId, versions }) => {
+                    const headId = localHeads[rootId]
+                        || versions.find((version) => version.currentHead)?.id
+                        || versions[0].id;
+                    const matrix = versions.find((version) => version.id === headId) || versions[0];
+                    const expanded = expandedRoots.has(rootId);
+                    return (
                     <div
-                        key={matrix.id}
+                        key={rootId}
                         className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md"
                     >
                         <div className="flex items-start justify-between">
@@ -183,6 +216,79 @@ export default function RubricMatrix() {
                                 <h4 className="text-lg font-bold text-slate-900">
                                     {matrix.name}
                                 </h4>
+                                <button
+                                    type="button"
+                                    onClick={() => setExpandedRoots((current) => {
+                                        const next = new Set(current);
+                                        next.has(rootId) ? next.delete(rootId) : next.add(rootId);
+                                        return next;
+                                    })}
+                                    className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-indigo-700"
+                                >
+                                    {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    {versions.length} version · hiện tại v{matrix.versionNumber ?? 1}
+                                </button>
+
+                                {expanded ? (
+                                    <div className="relative mt-3 max-w-2xl border-l-2 border-slate-200 pl-5">
+                                        <div className="space-y-3">
+                                            {versions.map((version) => {
+                                                const isCurrentHead = version.id === headId;
+                                                return (
+                                                <div
+                                                    key={version.id}
+                                                    onClick={() => openPreview(version)}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter" || event.key === " ") openPreview(version);
+                                                    }}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    className="relative flex w-full items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left shadow-sm hover:border-indigo-300 hover:bg-indigo-50/40"
+                                                >
+                                                    <span className={`absolute -left-[1.72rem] top-4 h-3 w-3 rounded-full border-2 border-white ring-1 ${isCurrentHead ? "bg-green-600 ring-green-300" : "bg-slate-400 ring-slate-300"}`} />
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-sm font-semibold text-slate-800">
+                                                            v{version.versionNumber ?? 1} · {version.name}
+                                                        </span>
+                                                        <span className="mt-1 block text-xs text-slate-500">
+                                                            {isCurrentHead ? "HEAD hiện tại" : `Từ ${version.parentRubricId ?? "rubric gốc"}`}
+                                                        </span>
+                                                    </span>
+                                                    <span className="ml-auto flex shrink-0 items-center gap-2">
+                                                    {isCurrentHead ? (
+                                                        <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">HEAD</span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            disabled={movingHeadId === version.id}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                void moveHead(version);
+                                                            }}
+                                                            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                                                        >
+                                                            <RotateCcw className="h-3.5 w-3.5" />
+                                                            Revert
+                                                        </button>
+                                                    )}
+                                                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                                        version.approvalStatus === "APPROVED"
+                                                            ? "bg-emerald-100 text-emerald-700"
+                                                            : version.approvalStatus === "PENDING"
+                                                                ? "bg-amber-100 text-amber-700"
+                                                                : version.approvalStatus === "REJECTED"
+                                                                    ? "bg-rose-100 text-rose-700"
+                                                                    : "bg-slate-100 text-slate-600"
+                                                    }`}>
+                                                        {{ DRAFT: "Bản nháp", PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối" }[version.approvalStatus ?? "DRAFT"]}
+                                                    </span>
+                                                    </span>
+                                                </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 <p className="mt-1 text-sm text-slate-500">
                                     {matrix.description}
@@ -227,14 +333,14 @@ export default function RubricMatrix() {
                                 <div className="mt-4">
                                     <span
                                         className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                                            matrix.status === "Hoàn tất"
+                                            matrix.approvalStatus === "APPROVED"
                                                 ? "bg-green-100 text-green-700"
-                                                : matrix.status === "Chờ duyệt"
+                                                : matrix.approvalStatus === "PENDING"
                                                     ? "bg-amber-100 text-amber-700"
                                                     : "bg-slate-100 text-slate-700"
                                         }`}
                                     >
-                                        {matrix.status}
+                                        {{ DRAFT: "Bản nháp", PENDING: "Chờ trưởng khoa duyệt", APPROVED: "Đã duyệt", REJECTED: "Bị từ chối" }[matrix.approvalStatus ?? "DRAFT"]}
                                     </span>
                                 </div>
                             </div>
@@ -243,30 +349,17 @@ export default function RubricMatrix() {
                                 <button
                                     onClick={() => openPreview(matrix)}
                                     className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
-                                    title="Xem chi tiết"
                                 >
                                     <Eye className="h-5 w-5" />
                                 </button>
 
-                                {/* Ẩn nút "Sửa" và "Xóa" nếu là Admin */}
-                                {!isAdmin && (
-                                    <>
-                                        <button
-                                            onClick={() => openEditor(matrix)}
-                                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
-                                            title="Sửa ma trận"
-                                        >
-                                            <Edit2 className="h-5 w-5" />
-                                        </button>
-
-                                        <button
-                                            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-red-600"
-                                            title="Xóa ma trận"
-                                        >
-                                            <Trash2 className="h-5 w-5" />
-                                        </button>
-                                    </>
-                                )}
+                                <button
+                                    onClick={() => openEditor(matrix)}
+                                    disabled={matrix.approvalStatus === "PENDING"}
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-green-700"
+                                >
+                                    <Edit2 className="h-5 w-5" />
+                                </button>
                             </div>
                         </div>
 
@@ -306,7 +399,7 @@ export default function RubricMatrix() {
                                             className="border-b border-slate-100 hover:bg-slate-50"
                                         >
                                             <td className="px-4 py-2 font-medium text-slate-900">
-                                                {row.cloId ?? "Chưa gán CLO"}
+                                                {row.cloId ? getCloLabel(row.cloId) : "Chưa gán CLO"}
                                             </td>
 
                                             <td className="px-4 py-2 text-slate-600">
@@ -343,15 +436,15 @@ export default function RubricMatrix() {
                             </table>
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* Component Editor chỉ bật lên khi bấm Sửa/Thêm Mới - Không cần chặn bên trong nếu đã chặn nút bấm bên ngoài */}
             <RubricMatrixEditor
                 open={showModal}
                 selectedMatrix={selectedMatrix}
                 clos={clos}
-                rubrics={rubrics}
+                courses={courses}
                 onClose={closeEditor}
                 onSaved={handleMatrixSaved}
             />
@@ -362,6 +455,7 @@ export default function RubricMatrix() {
                 description={previewMatrix?.description ?? ""}
                 criteria={matrixToPreviewCriteria(previewMatrix)}
                 totalWeight={previewMatrix ? normalizeWeight(previewMatrix.totalWeight) : 0}
+                getCloLabel={getCloLabel}
                 sortLevels={sortLevels}
                 onClose={closePreview}
             />

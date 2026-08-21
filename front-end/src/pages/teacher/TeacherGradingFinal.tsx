@@ -113,7 +113,7 @@ export default function TeacherGradingFinal() {
             }
 
             // Bỏ comment để gọi API lưu xuống DB
-            await gradingApi.saveGrades({ examId: examId!, grades: payload });
+            await gradingApi.saveGrades({ assessmentId: assessmentId!, grades: payload });
 
             console.log("Dữ liệu gửi lên server:", payload);
             toast.success('Lưu bảng điểm thành công!');

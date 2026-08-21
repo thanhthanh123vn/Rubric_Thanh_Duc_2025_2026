@@ -13,6 +13,12 @@ export interface LecturerProfile {
     department?: string;
     academicTitle?: string;
     email?:string;
+    avatarUrl?: string;
+    dateOfBirth?: string;
+    cccd?: string;
+    gender?: string;
+    phoneNumber?: string;
+    address?: string;
 }
 
 export interface LoginResponse {
