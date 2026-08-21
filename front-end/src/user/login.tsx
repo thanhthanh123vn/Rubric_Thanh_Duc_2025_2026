@@ -108,7 +108,6 @@ export default function LoginPage() {
 
                 },
                 token: data.token,
-                refreshToken: data.refreshToken,
             }));
 
             toast.success("Đăng nhập thành công", {
