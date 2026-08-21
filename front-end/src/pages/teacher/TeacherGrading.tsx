@@ -19,6 +19,7 @@ import {
     X,
 } from "lucide-react";
 import { getRubricMatrixById } from "@/api/RubricApi";
+import { getAllClo, type CloResponse } from "@/features/rubric/rubricApi.ts";
 import {
     createFeedbackTemplate,
     deleteFeedbackTemplate,
@@ -249,6 +250,7 @@ export default function TeacherGrading() {
     const [assessment, setAssessment] = useState<AssessmentSummary | null>(null);
     const [groups, setGroups] = useState<GroupResponse[]>([]);
     const [rubric, setRubric] = useState<RubricDTO | null>(null);
+    const [clos, setClos] = useState<CloResponse[]>([]);
     const [activeSubmission, setActiveSubmission] = useState<SubmissionStatusDTO | null>(null);
     const [criteriaScores, setCriteriaScores] = useState<Record<string, number>>({});
     const [selectedLevels, setSelectedLevels] = useState<Record<string, string>>({});
@@ -331,6 +333,35 @@ export default function TeacherGrading() {
     useEffect(() => {
         void loadFeedbackLibrary();
     }, []);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadClos = async () => {
+            try {
+                const response = await getAllClo();
+                if (active) setClos(Array.isArray(response.data) ? response.data : []);
+            } catch (error) {
+                console.error("Không thể tải danh sách CLO:", error);
+                if (active) setClos([]);
+            }
+        };
+
+        void loadClos();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const cloNameById = useMemo(
+        () => new Map(clos.map((clo) => [clo.cloId, clo.cloName])),
+        [clos],
+    );
+
+    const getCloName = (cloId: string) => {
+        if (!cloId) return "Chưa gắn CLO";
+        return cloNameById.get(cloId) || "CLO không xác định";
+    };
 
     useEffect(() => {
         if (!activeSubmission) {
@@ -1165,7 +1196,7 @@ export default function TeacherGrading() {
                                                                     {rubric.rows.map((row) => (
                                                                         <div key={row.criteriaId} className="rounded-2xl border border-slate-200 bg-white p-4">
                                                                             <div className="flex items-start justify-between gap-3">
-                                                                                <div><span className="text-xs font-bold text-emerald-700">{row.cloId}</span><p className="mt-1 text-sm font-bold text-slate-900">{row.criteriaName}</p></div>
+                                                                                <div><span className="text-xs font-bold text-emerald-700">{getCloName(row.cloId)}</span><p className="mt-1 text-sm font-bold text-slate-900">{row.criteriaName}</p></div>
                                                                                 <span className="text-xs font-semibold text-slate-500">{row.weight}</span>
                                                                             </div>
                                                                             {row.levels?.length ? (
@@ -1753,7 +1784,7 @@ export default function TeacherGrading() {
                                                     >
                                                         <div className="flex flex-wrap items-center gap-2">
                               <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                                {row.cloId}
+                                {getCloName(row.cloId)}
                               </span>
                                                             <span className="text-sm font-medium text-slate-500">
                                 Trọng số: {row.weight}

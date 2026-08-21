@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Target, LayoutList, Scale, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
 import { getRubricById, updateRubric } from "@/pages/mainlecturer/api/RubricAPI.ts";
+import { getAllClo, type CloResponse } from "@/features/rubric/rubricApi.ts";
 
 interface CriteriaResponse {
     id: string;
@@ -23,6 +24,7 @@ export default function TeacherRubricDetail() {
     const navigate = useNavigate();
 
     const [rubric, setRubric] = useState<RubricDetailResponse | null>(null);
+    const [clos, setClos] = useState<CloResponse[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
     const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -34,9 +36,13 @@ export default function TeacherRubricDetail() {
             if (!id) return;
             try {
                 setLoading(true);
-                const response = await getRubricById(id);
+                const [response, cloResponse] = await Promise.all([
+                    getRubricById(id),
+                    getAllClo().catch(() => null),
+                ]);
                 setRubric(response.data);
                 setEditedCriteria(response.data.criteria || []);
+                setClos(Array.isArray(cloResponse?.data) ? cloResponse.data : []);
             } catch (error) {
                 console.error("Lỗi khi tải chi tiết Rubric:", error);
             } finally {
@@ -45,6 +51,16 @@ export default function TeacherRubricDetail() {
         };
         fetchRubricDetail();
     }, [id]);
+
+    const cloNameById = useMemo(
+        () => new Map(clos.map((clo) => [clo.cloId, clo.cloName])),
+        [clos],
+    );
+
+    const getCloName = (cloId: string) => {
+        if (!cloId) return 'Chưa gắn CLO';
+        return cloNameById.get(cloId) || 'CLO không xác định';
+    };
 
 
     const handleAddCriteria = () => {
@@ -174,7 +190,7 @@ export default function TeacherRubricDetail() {
                             <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
                             <tr>
                                 <th className="px-4 py-3 rounded-tl-xl font-semibold w-1/2">Tên tiêu chí</th>
-                                <th className="px-4 py-3 font-semibold">Mã CLO</th>
+                                <th className="px-4 py-3 font-semibold">Tên CLO</th>
                                 <th className="px-4 py-3 font-semibold text-right">Trọng số (%)</th>
                                 {isEditing && <th className="px-4 py-3 rounded-tr-xl w-10"></th>}
                             </tr>
@@ -191,9 +207,17 @@ export default function TeacherRubricDetail() {
                                     </td>
                                     <td className="px-4 py-3">
                                         {isEditing ? (
-                                            <input type="text" value={item.cloId} onChange={(e) => handleCriteriaChange(index, 'cloId', e.target.value)} className="w-24 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="CLO..." />
+                                            <select value={item.cloId} onChange={(e) => handleCriteriaChange(index, 'cloId', e.target.value)} className="w-full min-w-48 border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                                <option value="">Chưa gắn CLO</option>
+                                                {item.cloId && !cloNameById.has(item.cloId) ? (
+                                                    <option value={item.cloId}>CLO không xác định</option>
+                                                ) : null}
+                                                {clos.map((clo) => (
+                                                    <option key={clo.cloId} value={clo.cloId}>{clo.cloName}</option>
+                                                ))}
+                                            </select>
                                         ) : (
-                                            <span className="rounded-md bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">{item.cloId || 'N/A'}</span>
+                                            <span className="rounded-md bg-cyan-50 px-2 py-1 text-xs font-semibold text-cyan-700">{getCloName(item.cloId)}</span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-right">

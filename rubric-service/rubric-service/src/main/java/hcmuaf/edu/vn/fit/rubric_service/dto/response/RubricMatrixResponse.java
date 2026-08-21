@@ -16,6 +16,7 @@ public class RubricMatrixResponse {
     private String rootRubricId;
     private String parentRubricId;
     private Integer versionNumber;
+    private boolean currentHead;
     private String approvalStatus;
 
     private int courses;

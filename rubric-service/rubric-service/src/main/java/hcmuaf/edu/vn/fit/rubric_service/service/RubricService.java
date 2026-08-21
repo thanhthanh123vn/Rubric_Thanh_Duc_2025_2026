@@ -8,6 +8,7 @@ import hcmuaf.edu.vn.fit.rubric_service.entity.Rubric;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricApprovalRecord;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricCriteria;
 import hcmuaf.edu.vn.fit.rubric_service.entity.RubricLevel;
+import hcmuaf.edu.vn.fit.rubric_service.entity.RubricVersionHead;
 import hcmuaf.edu.vn.fit.rubric_service.entity.enums.ApprovalRequestStatus;
 import hcmuaf.edu.vn.fit.rubric_service.entity.enums.ApprovalReviewerRole;
 import hcmuaf.edu.vn.fit.rubric_service.entity.enums.RubricStatus;
@@ -18,6 +19,7 @@ import hcmuaf.edu.vn.fit.rubric_service.repository.RubricCriteriaRepository;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricLevelRepository;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import hcmuaf.edu.vn.fit.rubric_service.repository.RubricApprovalRecordRepository;
+import hcmuaf.edu.vn.fit.rubric_service.repository.RubricVersionHeadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +32,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 @Slf4j
 @Service
@@ -43,6 +47,7 @@ public class RubricService {
     private final RubricCriteriaRepository rubricCriteriaRepository;
     private final RubricLevelRepository rubricLevelRepository;
     private final RubricApprovalRecordRepository approvalRecordRepository;
+    private final RubricVersionHeadRepository versionHeadRepository;
     private static final Comparator<RubricLevel> LEVEL_SCORE_DESC_COMPARATOR =
             Comparator.comparing(
                     RubricLevel::getScore,
@@ -67,10 +72,8 @@ public class RubricService {
     @Transactional(readOnly = true)
     public List<RubricResponse> getMyRubrics(String userId) {
         LecturerResponse lecturer = requireLecturer(userId);
-        return rubricRepository.findManageableByLecturer(lecturer.getLecturerId())
-                .stream()
-                .map(this::toRubricResponse)
-                .toList();
+        List<Rubric> rubrics = rubricRepository.findManageableByLecturer(lecturer.getLecturerId());
+        return markCurrentHeads(rubrics, lecturer.getLecturerId());
     }
 
     @Transactional(readOnly = true)
@@ -80,9 +83,7 @@ public class RubricService {
                 ? rubricRepository.findPublishedFacultyRubrics()
                 : rubricRepository.findManageableByLecturer(lecturerId);
 
-        return rubrics.stream()
-                .map(this::toMatrixResponse)
-                .toList();
+        return markCurrentMatrixHeads(rubrics, lecturerId);
     }
 
     public RubricMatrixResponse getRubricMatrixDetail(String rubricId, String userId) {
@@ -308,6 +309,7 @@ public class RubricService {
         }
 
         createApprovalRecord(savedVariant, userId);
+        moveHead(rootRubricId, lecturer.getLecturerId(), savedVariant.getRubricId());
         return rubricRepository.findWithCriteriaAndLevelsByRubricId(savedVariant.getRubricId())
                 .orElse(savedVariant);
     }
@@ -355,6 +357,7 @@ public class RubricService {
         Rubric savedVersion = rubricRepository.save(version);
         saveCriteria(request.getCriteria(), savedVersion);
         createApprovalRecord(savedVersion, userId);
+        moveHead(rootRubricId, lecturer.getLecturerId(), savedVersion.getRubricId());
         return rubricRepository.findWithCriteriaAndLevelsByRubricId(savedVersion.getRubricId())
                 .orElse(savedVersion);
     }
@@ -383,10 +386,34 @@ public class RubricService {
         String rootRubricId = selected.getRootRubricId() == null
                 ? selected.getRubricId()
                 : selected.getRootRubricId();
-        return rubricRepository.findVersionHistory(rootRubricId, lecturer.getLecturerId())
-                .stream()
-                .map(this::toRubricResponse)
-                .toList();
+        return markCurrentHeads(
+                rubricRepository.findVersionHistory(rootRubricId, lecturer.getLecturerId()),
+                lecturer.getLecturerId()
+        );
+    }
+
+    @Transactional
+    public RubricResponse revertHead(String rubricId, String userId) {
+        UserResponse requester = userClient.getUser(userId);
+        if (requester == null || !"MAIN_LECTURER".equals(requester.getRole())) {
+            throw new SecurityException("Chỉ giảng viên chính được chuyển HEAD của rubric.");
+        }
+
+        LecturerResponse lecturer = requireLecturer(userId);
+        Rubric selected = getVisibleRubric(rubricId, userId);
+        if (selected.getRubricType() == RubricType.LECTURER_VARIANT
+                && !Objects.equals(selected.getLecturerId(), lecturer.getLecturerId())) {
+            throw new SecurityException("Bạn không thể chuyển HEAD sang nhánh rubric của giảng viên khác.");
+        }
+
+        String rootRubricId = selected.getRootRubricId() == null
+                ? selected.getRubricId()
+                : selected.getRootRubricId();
+        moveHead(rootRubricId, lecturer.getLecturerId(), selected.getRubricId());
+
+        RubricResponse response = toRubricResponse(selected);
+        response.setCurrentHead(true);
+        return response;
     }
 
     @Transactional
@@ -566,6 +593,92 @@ public class RubricService {
                                 .build())
                         .toList())
                 .build();
+    }
+
+    private List<RubricResponse> markCurrentHeads(List<Rubric> rubrics, String lecturerId) {
+        var availableRubricIds = rubrics.stream()
+                .map(Rubric::getRubricId)
+                .collect(Collectors.toSet());
+        Map<String, String> storedHeads = versionHeadRepository.findByLecturerId(lecturerId).stream()
+                .collect(Collectors.toMap(
+                        RubricVersionHead::getRootRubricId,
+                        RubricVersionHead::getRubricId,
+                        (first, second) -> second
+                ));
+        Map<String, Rubric> fallbackHeads = rubrics.stream()
+                .collect(Collectors.toMap(
+                        this::rootIdOf,
+                        Function.identity(),
+                        (first, second) -> compareVersion(first, second) >= 0 ? first : second
+                ));
+
+        return rubrics.stream().map(rubric -> {
+            String rootRubricId = rootIdOf(rubric);
+            String headRubricId = storedHeads.get(rootRubricId);
+            if (headRubricId == null || !availableRubricIds.contains(headRubricId)) {
+                headRubricId = fallbackHeads.get(rootRubricId).getRubricId();
+            }
+            RubricResponse response = toRubricResponse(rubric);
+            response.setCurrentHead(rubric.getRubricId().equals(headRubricId));
+            return response;
+        }).toList();
+    }
+
+    private List<RubricMatrixResponse> markCurrentMatrixHeads(List<Rubric> rubrics, String lecturerId) {
+        Map<String, String> storedHeads = lecturerId == null
+                ? Map.of()
+                : versionHeadRepository.findByLecturerId(lecturerId).stream()
+                        .collect(Collectors.toMap(
+                                RubricVersionHead::getRootRubricId,
+                                RubricVersionHead::getRubricId,
+                                (first, second) -> second
+                        ));
+        Map<String, Rubric> fallbackHeads = rubrics.stream()
+                .collect(Collectors.toMap(
+                        this::rootIdOf,
+                        Function.identity(),
+                        (first, second) -> compareVersion(first, second) >= 0 ? first : second
+                ));
+        var availableRubricIds = rubrics.stream()
+                .map(Rubric::getRubricId)
+                .collect(Collectors.toSet());
+
+        return rubrics.stream().map(rubric -> {
+            String rootRubricId = rootIdOf(rubric);
+            String headRubricId = storedHeads.get(rootRubricId);
+            if (headRubricId == null || !availableRubricIds.contains(headRubricId)) {
+                headRubricId = fallbackHeads.get(rootRubricId).getRubricId();
+            }
+            RubricMatrixResponse response = toMatrixResponse(rubric);
+            response.setCurrentHead(rubric.getRubricId().equals(headRubricId));
+            return response;
+        }).toList();
+    }
+
+    private int compareVersion(Rubric first, Rubric second) {
+        int versionComparison = Comparator.nullsFirst(Integer::compareTo)
+                .compare(first.getVersionNumber(), second.getVersionNumber());
+        if (versionComparison != 0) {
+            return versionComparison;
+        }
+        return Comparator.nullsFirst(LocalDateTime::compareTo)
+                .compare(first.getCreatedAt(), second.getCreatedAt());
+    }
+
+    private String rootIdOf(Rubric rubric) {
+        return rubric.getRootRubricId() == null ? rubric.getRubricId() : rubric.getRootRubricId();
+    }
+
+    private void moveHead(String rootRubricId, String lecturerId, String rubricId) {
+        RubricVersionHead head = versionHeadRepository
+                .findByRootRubricIdAndLecturerId(rootRubricId, lecturerId)
+                .orElseGet(() -> RubricVersionHead.builder()
+                        .headId(newId("RVH"))
+                        .rootRubricId(rootRubricId)
+                        .lecturerId(lecturerId)
+                        .build());
+        head.setRubricId(rubricId);
+        versionHeadRepository.save(head);
     }
 
     private Rubric getVisibleRubric(String rubricId, String userId) {

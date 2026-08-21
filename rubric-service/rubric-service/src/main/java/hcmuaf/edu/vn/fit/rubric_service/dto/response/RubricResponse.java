@@ -29,6 +29,8 @@ public class RubricResponse {
 
     private Integer versionNumber;
 
+    private boolean currentHead;
+
     private String status;
 
     private Float totalWeight;

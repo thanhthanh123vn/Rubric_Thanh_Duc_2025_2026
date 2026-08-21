@@ -82,7 +82,7 @@ export default function StudentCourseMaterials() {
 
                 {/* CONTENT CÓ THỂ CUỘN (SCROLL) ĐƯỢC */}
                 <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    <div className="w-full max-w-7xl mx-auto space-y-6">
+                    <div className="w-full max-w-[1312px] mx-auto space-y-6">
 
                         {/* HEADER & THANH TÌM KIẾM */}
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-2xl shadow-sm border border-slate-200">

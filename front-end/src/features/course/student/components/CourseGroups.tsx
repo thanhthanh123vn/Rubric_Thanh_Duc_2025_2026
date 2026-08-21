@@ -1630,7 +1630,7 @@ console.log(groupData);
       <div className="flex">
         <Sidebar />
         <div className="flex-1 p-4 pb-20 lg:p-6">
-          <div className="mx-auto max-w-6xl space-y-6">
+          <div className="mx-auto max-w-[1312px] space-y-6">
             <Banner />
 
             {isLoading ? (

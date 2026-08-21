@@ -39,6 +39,7 @@ export interface RubricMatrixResponse {
     rootRubricId?: string | null;
     parentRubricId?: string | null;
     versionNumber?: number;
+    currentHead?: boolean;
     rows: RubricMatrixRow[];
 }
 

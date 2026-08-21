@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import postService from "@/api/postService.ts";
 import {X, Send, MessageSquare, ArrowLeft} from "lucide-react";
 import Banner from "@/components/common/Banner";
-import { getBannerColor } from "@/utils/colorUtils";
+import { resolveBannerColor } from "@/utils/colorUtils";
 const getInitial = (name?: string) => {
     if (!name) return "U";
     const words = name.trim().split(' ');
@@ -602,18 +602,7 @@ const navigate = useNavigate();
             setLoading(false);
         }
     };
-    const bannerColors = [
-        "blue",
-        "emerald",
-        "purple",
-        "pink",
-        "orange",
-        "cyan",
-        "indigo",
-        "red",
-    ];
-
-    const bannerColor = offeringId ? getBannerColor(offeringId) : "emerald";
+    const bannerColor = offeringId ? resolveBannerColor(offeringId, course?.bannerColor) : "emerald";
     const loadMorePosts = async () => {
         if (!hasMorePosts || !offeringId) return;
         try {
@@ -704,7 +693,7 @@ const navigate = useNavigate();
                 {/* Nội dung chính */}
                 <div className="flex-1 p-4 lg:p-8 w-full">
 
-                    <div className="w-full max-w-6xl mx-auto">
+                    <div className="w-full max-w-[1312px] mx-auto">
 
 
 
@@ -716,6 +705,7 @@ const navigate = useNavigate();
                                 course?.lecturers?.map((l: any) => l.lecturerName).join(", ") || ""
                             } - Mã lớp: ${offeringId}`}
                             color={bannerColor}
+                            imageUrl={course?.bannerImageUrl}
                         />
 
                         {/* LAYOUT 2 CỘT TẠI ĐÂY */}

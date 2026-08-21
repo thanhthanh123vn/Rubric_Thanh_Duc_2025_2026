@@ -79,6 +79,26 @@ const courseService = {
     createOffering: (courseId: string, data: any) => {
         return courseApi.post(`/courses-offering/${courseId}/offerings`, data);
     },
+    getOffering: async (offeringId: string): Promise<CourseOfferingResponse> => {
+        const response = await courseApi.get(`/courses-offering/${offeringId}/offerings`);
+        return response.data;
+    },
+    updateBannerColor: async (offeringId: string, bannerColor: string): Promise<CourseOfferingResponse> => {
+        const response = await courseApi.patch(`/courses-offering/${offeringId}/banner-color`, { bannerColor });
+        return response.data;
+    },
+    uploadBannerImage: async (offeringId: string, file: File): Promise<CourseOfferingResponse> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await courseApi.post(`/courses-offering/${offeringId}/banner-image`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
+    removeBannerImage: async (offeringId: string): Promise<CourseOfferingResponse> => {
+        const response = await courseApi.delete(`/courses-offering/${offeringId}/banner-image`);
+        return response.data;
+    },
     getCoursesByDepartment: async (department: string) => {
 
         const response = await courseApi.get(`/courses/department/${department}`);

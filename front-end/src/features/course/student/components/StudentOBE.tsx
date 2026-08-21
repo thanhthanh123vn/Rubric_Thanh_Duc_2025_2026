@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import LMSLayout from "@/app/lms-layout";
 import { Button } from "@/components/ui/button";
 import { Printer, Target, Award, CheckCircle2, BookOpen, BarChart3 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/hooks/useAppSelector.ts";
 import { toast } from "sonner";
+import { courseService } from '@/features/course/courseApi.ts';
 
 interface OBEEvaluationItem {
     id: string;
@@ -16,7 +16,6 @@ interface OBEEvaluationItem {
 }
 
 export default function StudentOBE() {
-    const navigate = useNavigate();
     const { user: reduxUser } = useAppSelector((state) => state.auth);
 
     let user = reduxUser;
@@ -27,13 +26,40 @@ export default function StudentOBE() {
         }
     }
 
-    const [loading, setLoading] = useState<boolean>(false);
-    const [obeData, setObeData] = useState<OBEEvaluationItem[]>([
-        { id: '1', code: 'CLO 1', name: 'Nắm vững kiến thức nền tảng và chuyên ngành CNTT', attainment: 85.0, bloomLevel: 'Applying', status: 'Đạt' },
-        { id: '2', code: 'CLO 2', name: 'Kỹ năng lập trình Full-stack & Xây dựng hệ thống', attainment: 78.5, bloomLevel: 'Analyzing', status: 'Đạt' },
-        { id: '3', code: 'CLO 3', name: 'Khả năng phân tích dữ liệu và áp dụng giải thuật', attainment: 82.0, bloomLevel: 'Evaluating', status: 'Đạt' },
-        { id: '4', code: 'CLO 4', name: 'Kỹ năng làm việc nhóm, quản lý dự án & tài liệu hóa', attainment: 90.0, bloomLevel: 'Creating', status: 'Xuất sắc' },
-    ]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [obeData, setObeData] = useState<OBEEvaluationItem[]>([]);
+
+    useEffect(() => {
+        let active = true;
+        const loadObeData = async () => {
+            try {
+                setLoading(true);
+                const courses = await courseService.getDashboardCourses();
+                const results = await Promise.all((courses || []).map(async (course: any) => {
+                    const items = await courseService.getOBEProgressByStudent(course.offeringId);
+                    return (items || []).map((item) => {
+                        const attainment = Math.round(Number(item.progressPercent || 0) * 10) / 10;
+                        return {
+                            id: `${course.offeringId}-${item.cloId}`,
+                            code: item.cloCode || 'CLO',
+                            name: `${course.courseName || 'Học phần'} · ${item.cloDescription || 'Chưa có mô tả'}`,
+                            attainment,
+                            bloomLevel: '—',
+                            status: attainment >= 70 ? 'Đạt tốt' : attainment >= 50 ? 'Đạt' : 'Chưa đạt',
+                        } as OBEEvaluationItem;
+                    });
+                }));
+                if (active) setObeData(results.flat());
+            } catch (error) {
+                console.error('Lỗi tải báo cáo OBE:', error);
+                if (active) toast.error('Không thể tải dữ liệu OBE cá nhân.');
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+        void loadObeData();
+        return () => { active = false; };
+    }, []);
 
     const handlePrint = () => {
         window.print();
@@ -43,6 +69,7 @@ export default function StudentOBE() {
     const overallAttainment = obeData.length > 0
         ? (obeData.reduce((sum, item) => sum + item.attainment, 0) / obeData.length).toFixed(1)
         : "0.0";
+    const overallPassed = Number(overallAttainment) >= 50;
 
     return (
         <LMSLayout>
@@ -93,10 +120,12 @@ export default function StudentOBE() {
                         <div className="flex"><span className="w-32 font-semibold text-slate-600">Họ và tên:</span> <span className="font-bold uppercase text-slate-900">{user?.fullName || "Nguyễn Văn Thạnh"}</span></div>
                         <div className="flex"><span className="w-32 font-semibold text-slate-600">Mã sinh viên:</span> <span className="font-mono font-medium">{user?.studentId || "22130260"}</span></div>
                         <div className="flex"><span className="w-32 font-semibold text-slate-600">Ngành học:</span> <span>Công nghệ Thông tin</span></div>
-                        <div className="flex"><span className="w-32 font-semibold text-slate-600">Đánh giá chung:</span> <span className="font-bold text-emerald-700">{overallAttainment}% (Đạt chuẩn OBE)</span></div>
+                        <div className="flex"><span className="w-32 font-semibold text-slate-600">Đánh giá chung:</span> <span className={`font-bold ${overallPassed ? 'text-emerald-700' : 'text-rose-600'}`}>{overallAttainment}% ({overallPassed ? 'Đạt chuẩn OBE' : 'Chưa đạt chuẩn OBE'})</span></div>
                     </div>
 
                     {/* Bảng chi tiết mức độ đạt chuẩn đầu ra */}
+                    {loading ? <div className="rounded-xl bg-slate-50 p-6 text-center text-sm text-slate-500">Đang tải dữ liệu OBE...</div> : null}
+                    {!loading && obeData.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Chưa có dữ liệu OBE để lập báo cáo.</div> : null}
                     <div className="overflow-x-auto mb-6">
                         <table className="w-full text-sm border-collapse border border-slate-800">
                             <thead>

@@ -25,4 +25,5 @@ public class TeacherCourseResponse {
     private String status;
     private String startDate;
     private String endDate;
+    private String bannerColor;
 }

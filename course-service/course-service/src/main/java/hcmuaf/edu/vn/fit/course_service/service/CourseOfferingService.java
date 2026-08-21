@@ -16,11 +16,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,10 +33,89 @@ public class CourseOfferingService {
     private final CourseRepository courseRepository;
     private final CourseMapper courseMapper;
     private final UserClient userClient;
+    private final S3Service s3Service;
 
 
 
     private static final Logger log = LoggerFactory.getLogger(CourseOfferingService.class);
+    private static final Set<String> BANNER_COLORS = Set.of(
+            "blue", "emerald", "purple", "pink", "orange", "cyan", "indigo", "red"
+    );
+
+    @Transactional
+    public CourseOfferingResponse updateBannerColor(String offeringId, String userId, String bannerColor) {
+        if (bannerColor == null || !BANNER_COLORS.contains(bannerColor)) {
+            throw new IllegalArgumentException("Màu banner không hợp lệ");
+        }
+
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
+        LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
+        if (lecturer == null || lecturer.getLecturerId() == null
+                || offering.getLecturerIds() == null
+                || !offering.getLecturerIds().contains(lecturer.getLecturerId())) {
+            throw new SecurityException("Bạn không phải giảng viên của lớp học phần này");
+        }
+
+        offering.setBannerColor(bannerColor);
+        return mapToResponse(courseOfferingRepository.save(offering));
+    }
+
+    @Transactional
+    public CourseOfferingResponse uploadBannerImage(String offeringId, String userId, MultipartFile file) {
+        CourseOffering offering = getOwnedOffering(offeringId, userId);
+        if (file == null || file.isEmpty() || file.getContentType() == null
+                || !file.getContentType().startsWith("image/")) {
+            throw new IllegalArgumentException("Vui lòng chọn một tệp hình ảnh hợp lệ");
+        }
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("Ảnh banner không được vượt quá 5 MB");
+        }
+
+        String oldImageUrl = offering.getBannerImageUrl();
+        try {
+            offering.setBannerImageUrl(s3Service.uploadFile(file));
+            CourseOfferingResponse response = mapToResponse(courseOfferingRepository.save(offering));
+            if (oldImageUrl != null && !oldImageUrl.isBlank()) {
+                try {
+                    s3Service.deleteFile(oldImageUrl);
+                } catch (Exception e) {
+                    log.warn("Không thể xóa ảnh banner cũ: {}", oldImageUrl, e);
+                }
+            }
+            return response;
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể tải ảnh banner lên", e);
+        }
+    }
+
+    @Transactional
+    public CourseOfferingResponse removeBannerImage(String offeringId, String userId) {
+        CourseOffering offering = getOwnedOffering(offeringId, userId);
+        String oldImageUrl = offering.getBannerImageUrl();
+        offering.setBannerImageUrl(null);
+        CourseOfferingResponse response = mapToResponse(courseOfferingRepository.save(offering));
+        if (oldImageUrl != null && !oldImageUrl.isBlank()) {
+            try {
+                s3Service.deleteFile(oldImageUrl);
+            } catch (Exception e) {
+                log.warn("Không thể xóa ảnh banner: {}", oldImageUrl, e);
+            }
+        }
+        return response;
+    }
+
+    private CourseOffering getOwnedOffering(String offeringId, String userId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
+        LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
+        if (lecturer == null || lecturer.getLecturerId() == null
+                || offering.getLecturerIds() == null
+                || !offering.getLecturerIds().contains(lecturer.getLecturerId())) {
+            throw new SecurityException("Bạn không phải giảng viên của lớp học phần này");
+        }
+        return offering;
+    }
 
     public List<CourseOfferingResponse> getOfferingsByCourseId(String courseId) {
         List<CourseOffering> offerings = courseOfferingRepository.findByCourse_CourseId(courseId);
@@ -128,6 +209,8 @@ public class CourseOfferingService {
                 .startDate(entity.getStartDate())
                 .endDate(entity.getEndDate())
                 .status(entity.getStatus())
+                .bannerColor(entity.getBannerColor())
+                .bannerImageUrl(entity.getBannerImageUrl())
                 .build();
     }
 

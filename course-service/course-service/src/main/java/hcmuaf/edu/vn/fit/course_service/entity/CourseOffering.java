@@ -48,6 +48,12 @@ public class CourseOffering {
     @Builder.Default
     private String status = "OPEN";
 
+    @Column(name = "banner_color", length = 20)
+    private String bannerColor;
+
+    @Column(name = "banner_image_url", length = 1000)
+    private String bannerImageUrl;
+
     @Column(name = "attendance_score_weight")
     @Builder.Default
     private Double attendanceScoreWeight = 10.0;

@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+/* Compatibility layer while student course pages migrate to the shared course layout. */
+.student-course-content [class~="lg:w-72"]:has(> [data-student-course-legacy-sidebar]),
+.student-course-content [class~="md:w-64"]:has(> [data-student-course-legacy-sidebar]),
+.student-course-content [class~="fixed"]:has(> [data-student-course-legacy-header]) {
+  display: none !important;
+}

@@ -10,7 +10,7 @@ import type { AppDispatch, RootState } from "@/app/store.ts";
 import { courseService } from "../../courseApi.ts";
 import { ArrowLeft } from "lucide-react";
 import Banner from "@/components/common/Banner";
-import { getBannerColor } from "@/utils/colorUtils";
+import { resolveBannerColor } from "@/utils/colorUtils";
 
 const CourseAssignments = () => {
     const dispatch = useDispatch<AppDispatch>();
@@ -20,7 +20,7 @@ const CourseAssignments = () => {
     // Thêm state để quản lý tên khóa học và menu mobile
     const [course, setCourse] = useState<any>(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const bannerColor = offeringId ? getBannerColor(offeringId) : "emerald";
+    const bannerColor = offeringId ? resolveBannerColor(offeringId, course?.bannerColor) : "emerald";
     const { data, loading } = useSelector(
         (state: RootState) => state.assessment
     );
@@ -56,7 +56,7 @@ const CourseAssignments = () => {
                         {/* Nội dung chính */}
                         <div className="flex-1 p-4 lg:p-8 w-full">
                             {/* Đổi từ max-w-3xl thành max-w-6xl để trải rộng màn hình */}
-                            <div className="w-full max-w-6xl mx-auto">
+                            <div className="w-full max-w-[1312px] mx-auto">
 
                                 {/*/!* Nút quay lại *!/*/}
                                 {/*<button*/}
@@ -71,6 +71,7 @@ const CourseAssignments = () => {
                                     title={course?.course?.courseName || "Đang tải dữ liệu lớp học..."}
                                     description={`Giảng viên: ${course?.lecturers?.map((l: any) => l.lecturerName).join(", ") || ""} - Mã lớp: ${offeringId}`}
                                     color={bannerColor}
+                                    imageUrl={course?.bannerImageUrl}
                                 />
 
                                 {loading && (

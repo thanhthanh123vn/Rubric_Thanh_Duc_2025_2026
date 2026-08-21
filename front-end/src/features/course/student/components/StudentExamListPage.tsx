@@ -228,7 +228,7 @@ export default function StudentExamListPage() {
             <main className="flex-1 min-w-0 flex flex-col w-full">
                 <Header />
 
-                <div className="p-4 md:p-6 space-y-6 flex-1 max-w-7xl mx-auto w-full">
+                <div className="p-4 md:p-6 space-y-6 flex-1 max-w-[1312px] mx-auto w-full">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Bài thi của tôi</h1>

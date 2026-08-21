@@ -1,5 +1,6 @@
-import { ChevronDown, ChevronRight, Edit2, Eye, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit2, Eye, Plus, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import RubricMatrixEditor, {
     type CloOption,
     type RubricMatrixResponse,
@@ -9,7 +10,7 @@ import type {
     MatrixCriterionDraft,
     MatrixLevelDraft,
 } from "@/features/rubric/components/RubricMatrixPreview.tsx";
-import { getAllClo, getCourseOptions, getRubricMatrix, type CourseOption } from "@/features/rubric/rubricApi";
+import { getAllClo, getCourseOptions, getRubricMatrix, revertRubricHead, type CourseOption } from "@/features/rubric/rubricApi";
 
 const PERCENT_RATIO_EPSILON = 0.0001;
 
@@ -62,6 +63,8 @@ export default function RubricMatrix() {
     const [showModal, setShowModal] = useState(false);
     const [selectedMatrix, setSelectedMatrix] = useState<RubricMatrixResponse | null>(null);
     const [previewMatrix, setPreviewMatrix] = useState<RubricMatrixResponse | null>(null);
+    const [movingHeadId, setMovingHeadId] = useState<string | null>(null);
+    const [localHeads, setLocalHeads] = useState<Record<string, string>>({});
     const cloLabels = useMemo(
         () => new Map(clos.map((clo) => [clo.cloId, `${clo.cloCode} - ${clo.cloName}`])),
         [clos],
@@ -85,6 +88,16 @@ export default function RubricMatrix() {
             const res = await getRubricMatrix();
             const nextMatrices = Array.isArray(res.data) ? res.data : [];
             setMatrices(nextMatrices);
+            const rootsConfirmedByServer = new Set(
+                nextMatrices
+                    .filter((matrix: RubricMatrixResponse) => matrix.currentHead)
+                    .map((matrix: RubricMatrixResponse) => matrix.rootRubricId || matrix.id),
+            );
+            if (rootsConfirmedByServer.size > 0) {
+                setLocalHeads((current) => Object.fromEntries(
+                    Object.entries(current).filter(([rootId]) => !rootsConfirmedByServer.has(rootId)),
+                ));
+            }
             return nextMatrices;
         } catch (error) {
             console.error("Lỗi khi tải ma trận rubric:", error);
@@ -131,6 +144,22 @@ export default function RubricMatrix() {
         setPreviewMatrix(null);
     };
 
+    const moveHead = async (version: RubricMatrixResponse) => {
+        if (!window.confirm(`Chuyển HEAD về v${version.versionNumber ?? 1}? Các version và nhánh vẫn được giữ nguyên.`)) return;
+        try {
+            setMovingHeadId(version.id);
+            await revertRubricHead(version.id);
+            const rootId = version.rootRubricId || version.id;
+            setLocalHeads((current) => ({ ...current, [rootId]: version.id }));
+            await fetchRubricMatrix();
+            toast.success(`Đã chuyển HEAD về v${version.versionNumber ?? 1}`);
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Không thể chuyển HEAD");
+        } finally {
+            setMovingHeadId(null);
+        }
+    };
+
     const handleMatrixSaved = async () => {
         const nextMatrices = await fetchRubricMatrix();
 
@@ -172,7 +201,10 @@ export default function RubricMatrix() {
 
             <div className="space-y-4">
                 {versionGroups.map(({ rootId, versions }) => {
-                    const matrix = versions[0];
+                    const headId = localHeads[rootId]
+                        || versions.find((version) => version.currentHead)?.id
+                        || versions[0].id;
+                    const matrix = versions.find((version) => version.id === headId) || versions[0];
                     const expanded = expandedRoots.has(rootId);
                     return (
                     <div
@@ -200,23 +232,46 @@ export default function RubricMatrix() {
                                 {expanded ? (
                                     <div className="relative mt-3 max-w-2xl border-l-2 border-slate-200 pl-5">
                                         <div className="space-y-3">
-                                            {versions.map((version, index) => (
-                                                <button
+                                            {versions.map((version) => {
+                                                const isCurrentHead = version.id === headId;
+                                                return (
+                                                <div
                                                     key={version.id}
-                                                    type="button"
                                                     onClick={() => openPreview(version)}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter" || event.key === " ") openPreview(version);
+                                                    }}
+                                                    role="button"
+                                                    tabIndex={0}
                                                     className="relative flex w-full items-center justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left shadow-sm hover:border-indigo-300 hover:bg-indigo-50/40"
                                                 >
-                                                    <span className="absolute -left-[1.72rem] top-4 h-3 w-3 rounded-full border-2 border-white bg-slate-400 ring-1 ring-slate-300" />
+                                                    <span className={`absolute -left-[1.72rem] top-4 h-3 w-3 rounded-full border-2 border-white ring-1 ${isCurrentHead ? "bg-green-600 ring-green-300" : "bg-slate-400 ring-slate-300"}`} />
                                                     <span className="min-w-0">
                                                         <span className="block truncate text-sm font-semibold text-slate-800">
                                                             v{version.versionNumber ?? 1} · {version.name}
                                                         </span>
                                                         <span className="mt-1 block text-xs text-slate-500">
-                                                            {index === 0 ? "Version mới nhất" : `Từ ${version.parentRubricId ?? "rubric gốc"}`}
+                                                            {isCurrentHead ? "HEAD hiện tại" : `Từ ${version.parentRubricId ?? "rubric gốc"}`}
                                                         </span>
                                                     </span>
-                                                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                                    <span className="ml-auto flex shrink-0 items-center gap-2">
+                                                    {isCurrentHead ? (
+                                                        <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">HEAD</span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            disabled={movingHeadId === version.id}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                void moveHead(version);
+                                                            }}
+                                                            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 px-2.5 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+                                                        >
+                                                            <RotateCcw className="h-3.5 w-3.5" />
+                                                            Revert
+                                                        </button>
+                                                    )}
+                                                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                                                         version.approvalStatus === "APPROVED"
                                                             ? "bg-emerald-100 text-emerald-700"
                                                             : version.approvalStatus === "PENDING"
@@ -227,8 +282,10 @@ export default function RubricMatrix() {
                                                     }`}>
                                                         {{ DRAFT: "Bản nháp", PENDING: "Chờ duyệt", APPROVED: "Đã duyệt", REJECTED: "Từ chối" }[version.approvalStatus ?? "DRAFT"]}
                                                     </span>
-                                                </button>
-                                            ))}
+                                                    </span>
+                                                </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ) : null}

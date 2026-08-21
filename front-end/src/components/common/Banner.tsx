@@ -1,36 +1,35 @@
 import React from 'react';
+import { bannerColorClasses, type BannerColor, isBannerColor } from '@/utils/colorUtils';
 
 
 export interface BannerProps {
     title: string;
     description?: string;
     color?: string;
+    imageUrl?: string | null;
 }
 
-const Banner: React.FC<BannerProps> = ({ title, description, color = "emerald" }) => {
-    const colorClasses: Record<string, string> = {
-        blue: "from-blue-500 to-blue-600",
-        emerald: "from-emerald-500 to-emerald-600",
-        purple: "from-purple-500 to-purple-600",
-        pink: "from-pink-500 to-pink-600",
-        orange: "from-orange-500 to-orange-600",
-        cyan: "from-cyan-500 to-cyan-600",
-        indigo: "from-indigo-500 to-indigo-600",
-        red: "from-red-500 to-red-600",
-    };
+const Banner: React.FC<BannerProps> = ({ title, description, color = "emerald", imageUrl }) => {
+    const selectedColor: BannerColor = isBannerColor(color) ? color : 'emerald';
 
     return (
         <div
-            className={`bg-gradient-to-r ${
-                colorClasses[color] || colorClasses.emerald
+            className={`relative overflow-hidden bg-gradient-to-r ${
+                bannerColorClasses[selectedColor]
             } text-white rounded-2xl p-6 mb-4 md:mb-6 shadow-sm`}
         >
-            <h2 className="text-2xl md:text-3xl font-semibold">
+            {imageUrl ? (
+                <>
+                    <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-slate-950/45" />
+                </>
+            ) : null}
+            <h2 className="relative text-2xl md:text-3xl font-semibold">
                 {title}
             </h2>
 
             {description && (
-                <p className="text-base md:text-lg opacity-90 mt-1">
+                <p className="relative text-base md:text-lg opacity-90 mt-1">
                     {description}
                 </p>
             )}

@@ -24,6 +24,7 @@ import TeacherCourseAssignments from "@/pages/teacher/TeacherCourseAssignments";
 import TeacherCourseRubric from "@/pages/teacher/TeacherCourseRubric";
 import TeacherCourseOBE from "@/pages/teacher/TeacherCourseOBE";
 import TeacherCourseGroups from "@/pages/teacher/TeacherCourseGroups";
+import TeacherCourseSettings from "@/pages/teacher/TeacherCourseSettings";
 import TeacherCourses from "@/pages/teacher/TeacherCourses";
 import TeacherAssessmentList from "@/pages/teacher/TeacherAssessmentList.tsx";
 import CreateQrAttendancePage from "@/pages/teacher/CreateQrAttendancePage";
@@ -104,6 +105,7 @@ import StaffAccountManagementPage from "@/pages/StaffAccountManagementPage.tsx";
 import StaffProfilePage from "@/pages/StaffProfilePage.tsx";
 import AdminBroadcastPage from "@/pages/admin/system/AdminBroadcastPage.tsx";
 import NotificationPage from "@/features/course/student/components/NotificationPage.tsx";
+import StudentCourseLayout from "@/features/course/student/components/StudentCourseLayout.tsx";
 
 
 export const router = createBrowserRouter([
@@ -126,67 +128,28 @@ export const router = createBrowserRouter([
             },
             {
                 path: "/course/:id",
-                Component: CourseDetail,
+                Component: StudentCourseLayout,
+                children: [
+                    {index: true, Component: CourseDetail},
+                    {path: "students", Component: CourseStudentList},
+                    {path: "obe", Component: CourseOBE},
+                    {path: "assignments", Component: CourseAssignments},
+                    {path: "document", Component: StudentCourseMaterials},
+                    {path: "my-exams", Component: StudentExamListPage},
+                    {path: "my-exams/:examId/submit", Component: StudentExamSubmittedPage},
+                    {path: "document/materials/:postId", Component: MaterialDetail},
+                    {path: "evaluations", Component: CourseEvaluations},
+                    {path: "groups", Component: CourseGroups},
+                    {path: "assignments/:assignmentId", Component: AssignmentDetailPost},
+                    {path: "createGroup", Component: CreateGroup},
+                    {path: "notifications", Component: NotificationPage},
+                    {path: "my-exams/:examId", Component: StudentTakeExamPage},
+                    {path: "my-exams/:examId/result", Component: StudentExamResultPage},
+                ],
             },
             {path: "rubrics", Component: StudentRubric},
             {path: "rubric/:id", Component: StudentRubricDetail},
             {path: "obe-reports", Component: StudentOBE},
-            {
-                path: "/course/:id/students",
-                Component: CourseStudentList,
-            },
-            {
-                path: "/course/:id/obe",
-                Component: CourseOBE,
-            },
-            {
-                path: "/course/:id/assignments",
-                Component: CourseAssignments,
-            },
-            {
-                path: "/course/:id/document",
-                Component: StudentCourseMaterials,
-            },
-            {
-                path: "/course/:id/my-exams",
-                Component: StudentExamListPage,
-            },
-            {
-                path: "/course/:id/my-exams/:examId/submit",
-                Component: StudentExamSubmittedPage,
-            },
-            {
-                path: "/course/:id/document/materials/:postId",
-                Component: MaterialDetail,
-            },
-            {
-                path: "/course/:id/evaluations",
-                Component: CourseEvaluations,
-            },
-            {
-                path: "/course/:id/groups",
-                Component: CourseGroups,
-            },
-            {
-                path: "/course/:id/assignments/:assignmentId",
-                Component: AssignmentDetailPost,
-            },
-            {
-                path: "/course/:id/createGroup",
-                Component: CreateGroup
-            },
-            {
-                path: "/course/:id/notifications",
-                Component: NotificationPage,
-            },
-            {
-                path: "/course/:id/my-exams/:examId",
-                Component: StudentTakeExamPage,
-            },
-            {
-                path: "/course/:id/my-exams/:examId/result",
-                Component: StudentExamResultPage,
-            },
             {
                 path: "/profile",
                 Component: AccountManagement,
@@ -247,6 +210,7 @@ export const router = createBrowserRouter([
 
 
                             {index: true, Component: TeacherCourseOverview},
+                            {path: "settings", Component: TeacherCourseSettings},
                             {path: "students", Component: TeacherCourseStudents},
                             {path: "assignments", Component: TeacherCourseAssignments},
                             {
@@ -283,6 +247,7 @@ export const router = createBrowserRouter([
                                     redirect(`/teacher/course/${params.id}/assessment/${params.assessmentId}/grading`),
                             },
                             {path: "rubric", Component: TeacherCourseRubric},
+                            {path: "questions", Component: CourseList},
                             {path: "rubric/:id", Component: TeacherRubricDetail},
                             {path: "questions/bank/:bankId", Component: TeacherQuestionBank},
                             {path: "obe", Component: TeacherCourseOBE},

@@ -41,6 +41,7 @@ public class CourseService {
     private final SyllarbusMapper syllarbusMapper;
     private final SyllabusFileMapper syllabusFileMapper;
     private final SyllabusFileRepository syllabusFileRepository;
+    private final OBEService obeService;
 
     public Page<CourseResponse> getAllCourses(String keyword, Pageable pageable) {
         Page<Course> courses;
@@ -149,6 +150,8 @@ public class CourseService {
             res.setCredits(course != null ? course.getCredits() : 0);
             res.setSemester(offering.getSemester());
             res.setAcademicYear(offering.getAcademicYear());
+            res.setBannerColor(offering.getBannerColor());
+            res.setObeProgress(getStudentObeProgress(offering.getOfferingId(), studentId));
 
             // Lấy tên giảng viên đầu tiên làm đại diện cho Dashboard Student
             String primaryLecturerName = "Unknown Lecturer";
@@ -349,6 +352,8 @@ public class CourseService {
             res.setAcademicTitle(academicTitle);
             res.setSemester(offering.getSemester());
             res.setAcademicYear(offering.getAcademicYear());
+            res.setBannerColor(offering.getBannerColor());
+            res.setObeProgress(getLecturerObeProgress(offering.getOfferingId()));
 
             res.setLecturerName(lecturerName); // Hiện tên user đang login cho dashboard của họ
             return res;
@@ -383,13 +388,37 @@ public class CourseService {
                     .courseTitle(offering.getCourse().getCourseName())
                     .semester(offering.getSemester() + " " + offering.getAcademicYear()) // Sửa lại cho linh hoạt
                     .studentCount(studentCount)
-                    .obeProgress(0)
+                    .obeProgress(getLecturerObeProgress(offering.getOfferingId()))
                     .lecturerName(finalLecturerName)
                     .status(offering.getStatus())
                     .startDate(offering.getStartDate() != null ? offering.getStartDate().toString() : null)
                     .endDate(offering.getEndDate() != null ? offering.getEndDate().toString() : null)
+                    .bannerColor(offering.getBannerColor())
                     .build();
         }).collect(Collectors.toList());
+    }
+
+    private int getStudentObeProgress(String offeringId, String studentId) {
+        try {
+            List<OBEProgressResponse> items = obeService.getOBEProgressByStudentId(offeringId, studentId);
+            double achieved = items.stream().mapToDouble(item -> Optional.ofNullable(item.getAchievedScore()).orElse(0.0)).sum();
+            double totalWeight = items.stream().mapToDouble(item -> Optional.ofNullable(item.getTotalWeight()).orElse(0.0)).sum();
+            return totalWeight > 0 ? clampProgress(achieved / totalWeight * 100) : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private int getLecturerObeProgress(String offeringId) {
+        try {
+            return clampProgress(obeService.getOBEForLecturer(offeringId).getOverallProgress());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private int clampProgress(double value) {
+        return (int) Math.round(Math.min(100, Math.max(0, value)));
     }
     public List<CourseResponse> getCoursesByDepartment(String department) {
         List<Course> courses = courseRepo.findByDepartment(department);

@@ -62,6 +62,7 @@ export interface RubricResponse {
     rootRubricId?: string | null;
     parentRubricId?: string | null;
     versionNumber?: number;
+    currentHead?: boolean;
     status?: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 }
 
@@ -161,6 +162,7 @@ const normalizeRubric = (raw: RawRecord): RubricResponse => {
         rootRubricId: raw.rootRubricId ? String(raw.rootRubricId) : null,
         parentRubricId: raw.parentRubricId ? String(raw.parentRubricId) : null,
         versionNumber: toNumber(raw.versionNumber, 1),
+        currentHead: Boolean(raw.currentHead),
         status: raw.status as RubricResponse["status"],
     };
 };
@@ -238,6 +240,10 @@ export const cloneRubricVersion = (
 
 export const submitRubricVersion = (rubricId: string) => {
     return rubricServiceApi.put(`/rubrics/${rubricId}/submit`);
+};
+
+export const revertRubricHead = (rubricId: string) => {
+    return rubricServiceApi.put(`/rubrics/${rubricId}/head`);
 };
 
 export const getRubricForEdit = async (rubricId: string) => {

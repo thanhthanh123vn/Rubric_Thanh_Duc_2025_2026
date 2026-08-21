@@ -138,6 +138,26 @@ public class RubricController {
         return ResponseEntity.ok(rubricService.getVersionHistory(rubricId, userId));
     }
 
+    @PutMapping("/{rubricId}/head")
+    public ResponseEntity<?> revertHead(
+            @PathVariable String rubricId,
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        try {
+            RubricResponse head = rubricService.revertHead(rubricId, userId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Đã chuyển HEAD sang version v" + head.getVersionNumber(),
+                    "data", head
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
     @GetMapping("/{rubricId}/comparison")
     public ResponseEntity<RubricComparisonResponse> compareVersions(
             @PathVariable String rubricId,
