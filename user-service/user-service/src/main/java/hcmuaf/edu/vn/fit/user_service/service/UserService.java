@@ -227,7 +227,8 @@ public class UserService {
                 lecturer.getGender(),
                 lecturer.getCccd(),
                 lecturer.getPhoneNumber(),
-                lecturer.getAddress()
+                lecturer.getAddress(),
+                lecturer.getUser() == null ? null : lecturer.getUser().getRole()
         );
     }
     public LecturerResponse getProfile(String userId) {
@@ -261,7 +262,8 @@ public class UserService {
                 lecturer.getGender(),
                 lecturer.getCccd(),
                 lecturer.getPhoneNumber(),
-                lecturer.getAddress()
+                lecturer.getAddress(),
+                lecturer.getUser() == null ? null : lecturer.getUser().getRole()
         );
     }
     public LecturerResponse getLecturerByUserId(String userId) {
@@ -356,7 +358,8 @@ public class UserService {
                 updatedLecturer.getGender(),
                 updatedLecturer.getCccd(),
                 updatedLecturer.getPhoneNumber(),
-                updatedLecturer.getAddress()
+                updatedLecturer.getAddress(),
+                updatedLecturer.getUser() == null ? null : updatedLecturer.getUser().getRole()
         );
 
 

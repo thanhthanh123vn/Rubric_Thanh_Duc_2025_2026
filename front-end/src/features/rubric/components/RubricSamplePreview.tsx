@@ -164,7 +164,11 @@ export default function RubricSamplePreview({
                                                                         {level.name || `Mức ${index + 1}`}
                                                                     </p>
                                                                     <p className="mt-1 text-sm text-slate-600">
-                                                                        {level.score} điểm
+                                                                        {level.minScore === 0 && level.maxScore < 4
+                                                                            ? `<4 điểm`
+                                                                            : level.minScore === level.maxScore
+                                                                            ? `${level.maxScore} điểm`
+                                                                            : `${level.minScore} - ${level.maxScore} điểm`}
                                                                     </p>
                                                                 </div>
 

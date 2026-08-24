@@ -3,3 +3,4 @@
 .idea/
 .env.docker
 docker/mysql/init/*.sql
+backups/

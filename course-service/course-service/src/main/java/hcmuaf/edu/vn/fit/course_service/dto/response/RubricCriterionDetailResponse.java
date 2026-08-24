@@ -14,4 +14,5 @@ public class RubricCriterionDetailResponse {
     private String levelName;
     private Number score;
     private Number maxScore;
+    private Number rawScore;
 }

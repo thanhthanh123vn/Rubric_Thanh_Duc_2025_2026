@@ -46,19 +46,23 @@ public class AssessmentPaperController {
         }
     }
     @GetMapping("/getAllExams")
-    public ResponseEntity<List<AssessmentPaper>> getByLecturer(@RequestHeader("X-User-Id") String userId) {
+    public ResponseEntity<List<AssessmentPaper>> getByLecturer(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam(value = "offeringId", required = false) String offeringId) {
         if (userId == null || userId.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        List<AssessmentPaper> papers = assessmentPaperService.getAllByLecturer(userId);
+        List<AssessmentPaper> papers = assessmentPaperService.getAllByLecturer(userId, offeringId);
         return ResponseEntity.ok(papers);
     }
 
     @PostMapping("/{id}/publish")
-    public ResponseEntity<?> publishExam(@PathVariable String id) {
+    public ResponseEntity<?> publishExam(
+            @PathVariable String id,
+            @RequestHeader("X-User-Id") String userId) {
         try {
 
-            assessmentPaperService.publishExam(id);
+            assessmentPaperService.publishExam(id, userId);
             return ResponseEntity.ok(Map.of("message", "Giao đề thi thành công!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
@@ -79,24 +83,14 @@ public class AssessmentPaperController {
     @GetMapping("/{id}/detail")
     public ResponseEntity<?> getLecturerExamDetail(
             @PathVariable("id") String paperId,
-            @RequestHeader(value = "X-User-Id", required = false) String userId,       HttpServletRequest request ) {
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
 
         if (userId == null || userId.trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Thiếu thông tin người dùng");
         }
 
         try {
-
-            String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-            String currentToken = "";
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-             currentToken= authHeader.substring(7);
-
-
-
-            }
-
-            LecturerExamDetailResponse response = assessmentPaperService.getStudentExamToTake(paperId,userId,currentToken);
+            LecturerExamDetailResponse response = assessmentPaperService.getLecturerExamDetail(paperId, userId);
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));

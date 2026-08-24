@@ -296,6 +296,7 @@ public class GradingService {
                                 ? criteriaGrade.getLevelId().trim()
                                 : null)
                         .calculatedScore(criteriaGrade.getScoreAchieved())
+                        .rawScore(criteriaGrade.getRawScore())
                         .lecturerComment(null)
                         .gradedAt(LocalDateTime.now())
                         .build())

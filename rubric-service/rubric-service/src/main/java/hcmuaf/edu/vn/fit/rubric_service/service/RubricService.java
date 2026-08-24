@@ -121,6 +121,8 @@ public class RubricService {
                                                         .levelName(l.getLevelName())
                                                         .description(l.getDescription())
                                                         .score(l.getScore())
+                                                        .minScore(resolveMinScore(l))
+                                                        .maxScore(resolveMaxScore(l))
                                                         .build()
                                                 )
                                                 .toList()
@@ -199,7 +201,9 @@ public class RubricService {
                         .criteriaName(crDto.getName())
                         .description(crDto.getDescription())
                         .weight(crDto.getWeight())
-                        .cloId(crDto.getCloId())
+                        // Rubric cấp khoa là mẫu dùng chung. CLO thuộc học phần và
+                        // chỉ được ánh xạ khi rubric được áp dụng trong ngữ cảnh khóa học.
+                        .cloId(null)
                         .rubric(savedRubric)
                         .build();
 
@@ -218,7 +222,9 @@ public class RubricService {
                                 .criteria(savedCriteria)
                                 .levelName(lvlDto.getName())
                                 .description(lvlDto.getDescription())
-                                .score(lvlDto.getScore())
+                                .score(resolveMaxScore(lvlDto))
+                                .minScore(resolveMinScore(lvlDto))
+                                .maxScore(resolveMaxScore(lvlDto))
                                 .build();
 
                         levelEntities.add(levelEntity);
@@ -301,6 +307,8 @@ public class RubricService {
                                     .levelName(sourceLevel.getLevelName())
                                     .description(sourceLevel.getDescription())
                                     .score(sourceLevel.getScore())
+                                    .minScore(resolveMinScore(sourceLevel))
+                                    .maxScore(resolveMaxScore(sourceLevel))
                                     .build())
                             .toList();
                     rubricLevelRepository.saveAll(clonedLevels);
@@ -396,23 +404,45 @@ public class RubricService {
     public RubricResponse revertHead(String rubricId, String userId) {
         UserResponse requester = userClient.getUser(userId);
         if (requester == null || !"MAIN_LECTURER".equals(requester.getRole())) {
-            throw new SecurityException("Chỉ giảng viên chính được chuyển HEAD của rubric.");
+            throw new SecurityException("Chỉ giảng viên chính được khôi phục version rubric.");
         }
 
         LecturerResponse lecturer = requireLecturer(userId);
         Rubric selected = getVisibleRubric(rubricId, userId);
         if (selected.getRubricType() == RubricType.LECTURER_VARIANT
                 && !Objects.equals(selected.getLecturerId(), lecturer.getLecturerId())) {
-            throw new SecurityException("Bạn không thể chuyển HEAD sang nhánh rubric của giảng viên khác.");
+            throw new SecurityException("Bạn không thể khôi phục rubric của giảng viên khác.");
         }
 
         String rootRubricId = selected.getRootRubricId() == null
                 ? selected.getRubricId()
                 : selected.getRootRubricId();
-        moveHead(rootRubricId, lecturer.getLecturerId(), selected.getRubricId());
+        int nextVersion = rubricRepository.findMaxVersionNumber(rootRubricId) + 1;
+        Rubric restoredVersion = Rubric.builder()
+                .rubricId(newId("RB"))
+                .lecturerId(lecturer.getLecturerId())
+                .courseId(selected.getCourseId())
+                .facultyId(selected.getFacultyId())
+                .rubricName(selected.getRubricName())
+                .description(selected.getDescription())
+                .createdBy(lecturer.getFullName())
+                .rubricType(RubricType.LECTURER_VARIANT)
+                .visibility(RubricVisibility.PRIVATE)
+                .rootRubricId(rootRubricId)
+                .parentRubricId(selected.getRubricId())
+                .versionNumber(nextVersion)
+                .status(RubricStatus.PENDING)
+                .submittedAt(LocalDateTime.now())
+                .criteria(new HashSet<>())
+                .build();
+        Rubric savedVersion = rubricRepository.save(restoredVersion);
+        copyCriteriaAndLevels(selected, savedVersion);
+        createApprovalRecord(savedVersion, userId);
 
-        RubricResponse response = toRubricResponse(selected);
-        response.setCurrentHead(true);
+        Rubric restored = rubricRepository.findWithCriteriaAndLevelsByRubricId(savedVersion.getRubricId())
+                .orElse(savedVersion);
+        RubricResponse response = toRubricResponse(restored);
+        response.setCurrentHead(false);
         return response;
     }
 
@@ -448,12 +478,26 @@ public class RubricService {
     }
 
 
+    @Transactional(readOnly = true)
     public List<Rubric> getRubricsForApproval(String userId, String statusParam) {
-        RubricStatus status = RubricStatus.valueOf(statusParam.toUpperCase());
+        RubricStatus status;
+        try {
+            status = RubricStatus.valueOf(statusParam.toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Trạng thái rubric không hợp lệ: " + statusParam);
+        }
         UserResponse user = userClient.getUser(userId);
 
+        if (user == null) {
+            throw new SecurityException("Không xác định được tài khoản người duyệt.");
+        }
+
         if ("DEAN".equals(user.getRole())) {
-            return rubricRepository.findByStatusAndRubricType(status, RubricType.FACULTY);
+            List<String> facultyCourseIds = courseIdsForDeanFaculty(userId);
+            if (facultyCourseIds.isEmpty()) {
+                return List.of();
+            }
+            return rubricRepository.findByStatusAndCourseIdsIn(status, facultyCourseIds);
         } else if (isDepartmentHead(user)) {
             LecturerResponse lecturerResponse = userClient.getLecturerByUserId(userId);
             String department = lecturerResponse.getDepartment();
@@ -463,14 +507,68 @@ public class RubricService {
                     .collect(Collectors.toList());
 
             if (departmentCourseIds.isEmpty()) return List.of();
-            return rubricRepository.findByStatusAndRubricTypeAndCourseIdsIn(
-                    status,
-                    RubricType.LECTURER_VARIANT,
-                    departmentCourseIds
-            );
+            return rubricRepository.findByStatusAndCourseIdsIn(status, departmentCourseIds);
         } else {
             throw new SecurityException("Bạn không có quyền truy cập tính năng này.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<RubricVersionLogResponse> getVersionLogs(String userId) {
+        UserResponse requester = userClient.getUser(userId);
+        if (requester == null || !("DEAN".equals(requester.getRole()) || isDepartmentHead(requester))) {
+            throw new SecurityException("Bạn không có quyền xem nhật ký version rubric.");
+        }
+
+        List<RubricApprovalRecord> records = approvalRecordRepository.findAllByOrderByRequestedAtDesc();
+        Map<String, Rubric> rubricsById = rubricRepository.findAllById(records.stream()
+                        .map(RubricApprovalRecord::getRubricId)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(Rubric::getRubricId, Function.identity()));
+
+        var visibleCourseIds = isDepartmentHead(requester)
+                ? courseIdsForDepartmentHead(userId)
+                : null;
+        Map<String, String> userNames = new java.util.HashMap<>();
+
+        return records.stream()
+                .filter(record -> rubricsById.containsKey(record.getRubricId()))
+                .map(record -> Map.entry(record, rubricsById.get(record.getRubricId())))
+                .filter(entry -> visibleCourseIds == null || visibleCourseIds.contains(entry.getValue().getCourseId()))
+                .map(entry -> {
+                    RubricApprovalRecord record = entry.getKey();
+                    Rubric rubric = entry.getValue();
+                    Integer sourceVersion = rubric.getParentRubricId() == null
+                            ? null
+                            : rubricsById.containsKey(rubric.getParentRubricId())
+                                    ? rubricsById.get(rubric.getParentRubricId()).getVersionNumber()
+                                    : rubricRepository.findById(rubric.getParentRubricId())
+                                            .map(Rubric::getVersionNumber)
+                                            .orElse(null);
+                    return RubricVersionLogResponse.builder()
+                            .approvalRequestId(record.getApprovalRequestId())
+                            .rubricId(rubric.getRubricId())
+                            .rubricName(rubric.getRubricName())
+                            .courseId(rubric.getCourseId())
+                            .rubricType(rubric.getRubricType() == null ? null : rubric.getRubricType().name())
+                            .rootRubricId(rootIdOf(rubric))
+                            .parentRubricId(rubric.getParentRubricId())
+                            .sourceVersionNumber(sourceVersion)
+                            .versionNumber(rubric.getVersionNumber())
+                            .revisionNumber(record.getRevisionNumber())
+                            .status(record.getStatus().name())
+                            .submittedBy(record.getSubmittedBy())
+                            .submittedByName(resolveUserName(record.getSubmittedBy(), userNames))
+                            .requestedAt(record.getRequestedAt())
+                            .reviewedBy(record.getReviewedBy())
+                            .reviewedByName(resolveUserName(record.getReviewedBy(), userNames))
+                            .reviewedAt(record.getReviewedAt())
+                            .feedback(record.getFeedback())
+                            .build();
+                })
+                .toList();
     }
 
 
@@ -482,11 +580,17 @@ public class RubricService {
 
         boolean isVariant = rubric.getRubricType() == RubricType.LECTURER_VARIANT;
         if (isVariant) {
-            if (!isDepartmentHead(reviewer) || !isRubricInReviewerDepartment(reviewerId, rubric)) {
-                throw new SecurityException("Chỉ Trưởng bộ môn phụ trách học phần được phê duyệt rubric version.");
+            if (!(isDepartmentHead(reviewer) || "DEAN".equals(reviewer == null ? null : reviewer.getRole()))
+                    || !isRubricInApprovalScope(reviewerId, reviewer, rubric)) {
+                throw new SecurityException("Rubric không thuộc phạm vi học phần do bạn quản lý.");
             }
-        } else if (reviewer == null || !"DEAN".equals(reviewer.getRole())) {
-            throw new SecurityException("Chỉ Trưởng khoa được phê duyệt rubric dùng chung.");
+        } else {
+            if (reviewer == null || !("DEAN".equals(reviewer.getRole()) || isDepartmentHead(reviewer))) {
+                throw new SecurityException("Bạn không có quyền phê duyệt rubric.");
+            }
+            if (!isRubricInApprovalScope(reviewerId, reviewer, rubric)) {
+                throw new SecurityException("Rubric không thuộc phạm vi học phần do bạn quản lý.");
+            }
         }
 
         if (!rubric.getStatus().equals(RubricStatus.PENDING)) {
@@ -497,6 +601,9 @@ public class RubricService {
         if ("APPROVE".equalsIgnoreCase(request.getAction())) {
             rubric.setStatus(RubricStatus.APPROVED);
             rubric.setFeedback(null);
+            if (isVariant) {
+                moveHead(rootIdOf(rubric), rubric.getLecturerId(), rubric.getRubricId());
+            }
             approvalStatus = ApprovalRequestStatus.APPROVED;
         } else if ("REJECT".equalsIgnoreCase(request.getAction())) {
             if (request.getFeedback() == null || request.getFeedback().trim().isEmpty()) {
@@ -588,6 +695,8 @@ public class RubricService {
                                                 .levelName(level.getLevelName())
                                                 .description(level.getDescription())
                                                 .score(level.getScore())
+                                                .minScore(resolveMinScore(level))
+                                                .maxScore(resolveMaxScore(level))
                                                 .build())
                                         .toList())
                                 .build())
@@ -609,7 +718,7 @@ public class RubricService {
                 .collect(Collectors.toMap(
                         this::rootIdOf,
                         Function.identity(),
-                        (first, second) -> compareVersion(first, second) >= 0 ? first : second
+                        this::selectFallbackHead
                 ));
 
         return rubrics.stream().map(rubric -> {
@@ -637,7 +746,7 @@ public class RubricService {
                 .collect(Collectors.toMap(
                         this::rootIdOf,
                         Function.identity(),
-                        (first, second) -> compareVersion(first, second) >= 0 ? first : second
+                        this::selectFallbackHead
                 ));
         var availableRubricIds = rubrics.stream()
                 .map(Rubric::getRubricId)
@@ -663,6 +772,15 @@ public class RubricService {
         }
         return Comparator.nullsFirst(LocalDateTime::compareTo)
                 .compare(first.getCreatedAt(), second.getCreatedAt());
+    }
+
+    private Rubric selectFallbackHead(Rubric first, Rubric second) {
+        boolean firstApproved = first.getStatus() == RubricStatus.APPROVED;
+        boolean secondApproved = second.getStatus() == RubricStatus.APPROVED;
+        if (firstApproved != secondApproved) {
+            return firstApproved ? first : second;
+        }
+        return compareVersion(first, second) >= 0 ? first : second;
     }
 
     private String rootIdOf(Rubric rubric) {
@@ -694,6 +812,13 @@ public class RubricService {
         }
 
         UserResponse user = userClient.getUser(userId);
+        // Sinh viên được xem Rubric đã duyệt khi Rubric được gắn vào bài tập.
+        // ID Rubric chỉ được trả về trong dữ liệu chi tiết bài tập mà sinh viên có quyền truy cập.
+        if (user != null
+                && "STUDENT".equals(user.getRole())
+                && rubric.getStatus() == RubricStatus.APPROVED) {
+            return rubric;
+        }
         if (user != null && "DEAN".equals(user.getRole())) {
             return rubric;
         }
@@ -767,7 +892,39 @@ public class RubricService {
                                 .criteria(criterion)
                                 .levelName(level.getName())
                                 .description(level.getDescription())
-                                .score(level.getScore())
+                                .score(resolveMaxScore(level))
+                                .minScore(resolveMinScore(level))
+                                .maxScore(resolveMaxScore(level))
+                                .build())
+                        .toList());
+            }
+        }
+    }
+
+    private void copyCriteriaAndLevels(Rubric source, Rubric target) {
+        if (source.getCriteria() == null) {
+            return;
+        }
+        for (RubricCriteria sourceCriterion : source.getCriteria()) {
+            RubricCriteria copiedCriterion = rubricCriteriaRepository.save(RubricCriteria.builder()
+                    .criteriaId(newId("CR"))
+                    .rubric(target)
+                    .cloId(sourceCriterion.getCloId())
+                    .criteriaName(sourceCriterion.getCriteriaName())
+                    .description(sourceCriterion.getDescription())
+                    .weight(sourceCriterion.getWeight())
+                    .levels(new HashSet<>())
+                    .build());
+            if (sourceCriterion.getLevels() != null) {
+                rubricLevelRepository.saveAll(sourceCriterion.getLevels().stream()
+                        .map(sourceLevel -> RubricLevel.builder()
+                                .levelId(newId("LV"))
+                                .criteria(copiedCriterion)
+                                .levelName(sourceLevel.getLevelName())
+                                .description(sourceLevel.getDescription())
+                                .score(sourceLevel.getScore())
+                                .minScore(resolveMinScore(sourceLevel))
+                                .maxScore(resolveMaxScore(sourceLevel))
                                 .build())
                         .toList());
             }
@@ -805,6 +962,66 @@ public class RubricService {
                 || "DEPARTMENT_HEAD".equals(user.getRole()));
     }
 
+    private List<String> courseIdsForDepartmentHead(String userId) {
+        LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
+        if (lecturer == null || !hasText(lecturer.getDepartment())) {
+            return List.of();
+        }
+        return courseClient.getCoursesByDepartment(lecturer.getDepartment()).stream()
+                .map(CourseDto::getCourseId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private List<String> courseIdsForDeanFaculty(String userId) {
+        LecturerResponse dean = userClient.getLecturerByUserId(userId);
+        if (dean == null || !hasText(dean.getDepartment())) {
+            return List.of();
+        }
+
+        FacultyResponse faculty = userClient.getFacultyByDepartmentName(userId, dean.getDepartment());
+        if (faculty == null || !hasText(faculty.getFacultyName())) {
+            return List.of();
+        }
+
+        List<String> departments = userClient.getDepartmentNamesByFaculty(userId, faculty.getFacultyName());
+        if (departments == null || departments.isEmpty()) {
+            return List.of();
+        }
+
+        return departments.stream()
+                .filter(Objects::nonNull)
+                .flatMap(department -> courseClient.getCoursesByDepartment(department).stream())
+                .map(CourseDto::getCourseId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private String resolveUserName(String userId, Map<String, String> cache) {
+        if (!hasText(userId)) {
+            return null;
+        }
+        return cache.computeIfAbsent(userId, id -> {
+            try {
+                UserResponse user = userClient.getUser(id);
+                return user != null && hasText(user.getFullName()) ? user.getFullName() : id;
+            } catch (Exception ignored) {
+                return id;
+            }
+        });
+    }
+
+    private boolean isRubricInApprovalScope(String reviewerId, UserResponse reviewer, Rubric rubric) {
+        if (rubric == null || rubric.getCourseId() == null || reviewer == null) {
+            return false;
+        }
+        List<String> managedCourseIds = "DEAN".equals(reviewer.getRole())
+                ? courseIdsForDeanFaculty(reviewerId)
+                : courseIdsForDepartmentHead(reviewerId);
+        return managedCourseIds.contains(rubric.getCourseId());
+    }
+
     private boolean isRubricInReviewerDepartment(String reviewerId, Rubric rubric) {
         if (rubric.getCourseId() == null) {
             return false;
@@ -823,6 +1040,37 @@ public class RubricService {
     }
 
     // Hàm phụ trợ tính toán khoảng thời gian (10 phút trước, 2 giờ trước...)
+    private Float resolveMinScore(LevelRequest level) {
+        Float maxScore = level.getMaxScore() != null ? level.getMaxScore() : level.getScore();
+        Float minScore = level.getMinScore() != null ? level.getMinScore() : maxScore;
+        validateScoreRange(minScore, maxScore);
+        return minScore;
+    }
+
+    private Float resolveMaxScore(LevelRequest level) {
+        Float maxScore = level.getMaxScore() != null ? level.getMaxScore() : level.getScore();
+        Float minScore = level.getMinScore() != null ? level.getMinScore() : maxScore;
+        validateScoreRange(minScore, maxScore);
+        return maxScore;
+    }
+
+    private Float resolveMinScore(RubricLevel level) {
+        return level.getMinScore() != null ? level.getMinScore() : level.getScore();
+    }
+
+    private Float resolveMaxScore(RubricLevel level) {
+        return level.getMaxScore() != null ? level.getMaxScore() : level.getScore();
+    }
+
+    private void validateScoreRange(Float minScore, Float maxScore) {
+        if (minScore == null || maxScore == null) {
+            throw new IllegalArgumentException("Mỗi mức đánh giá phải có khoảng điểm");
+        }
+        if (minScore < 0 || maxScore > 10 || minScore > maxScore) {
+            throw new IllegalArgumentException("Khoảng điểm rubric phải nằm trong 0-10 và điểm đầu không lớn hơn điểm cuối");
+        }
+    }
+
     private String calculateTimeAgo(LocalDateTime pastTime) {
         if (pastTime == null) return "Gần đây";
 

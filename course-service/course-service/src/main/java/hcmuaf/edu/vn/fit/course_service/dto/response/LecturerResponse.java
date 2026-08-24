@@ -19,6 +19,7 @@ public class LecturerResponse {
             String cccd;
             String phoneNumber;
             String address;
+            String role;
 
     }
 

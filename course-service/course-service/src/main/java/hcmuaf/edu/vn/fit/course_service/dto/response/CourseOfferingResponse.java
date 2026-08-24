@@ -32,4 +32,6 @@ public class CourseOfferingResponse {
     private String bannerImageUrl;
 
     private List<LecturerInfo> lecturers;
+    private LecturerInfo mainLecturer;
+    private List<LecturerInfo> teachingAssistants;
 }

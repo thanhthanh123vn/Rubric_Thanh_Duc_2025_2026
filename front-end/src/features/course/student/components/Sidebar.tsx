@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import {
   BarChart3, Bell, BookOpen, CheckCircle2, ChevronDown, ChevronLeft,
   ClipboardList, FileText, FolderKanban, GraduationCap, LayoutDashboard,
-  PanelLeft, ReceiptText, TimerReset, Users, Users2, X,
+  PanelLeft, ReceiptText, Target, TimerReset, Users, Users2, X,
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 import { courseService } from "@/features/course/courseApi";
@@ -85,6 +85,7 @@ export default function ClassSidebar({ isOpen = false, onClose, layoutRoot = fal
         { key: "course-result", label: "Kết quả học phần", path: "evaluations", search: "?section=course-result", icon: GraduationCap },
       ],
     },
+    { key: "outcomes", icon: Target, label: "Chuẩn đầu ra khóa học", path: "outcomes" },
     { key: "obe", icon: BarChart3, label: "Tiến độ OBE", path: "obe" },
     { key: "groups", icon: Users2, label: "Nhóm của tôi", path: "groups" },
     { key: "students", icon: Users, label: "Thành viên lớp", path: "students" },

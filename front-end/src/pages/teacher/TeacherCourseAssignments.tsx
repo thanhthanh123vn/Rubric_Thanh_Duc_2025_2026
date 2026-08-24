@@ -1,6 +1,6 @@
 import {
     ClipboardList, Plus, UploadCloud, X, MoreVertical,
-    FileText, Loader2, ChevronDown, Clock, Paperclip, CheckCircle, Pencil, Trash2
+    FileText, Loader2, ChevronDown, Clock, Paperclip, CheckCircle, Pencil, Trash2, RefreshCw
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
@@ -22,6 +22,7 @@ export default function TeacherCourseAssignments() {
 
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isListLoading, setIsListLoading] = useState(false);
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
     const [file, setFile] = useState<File | null>(null);
@@ -57,11 +58,15 @@ export default function TeacherCourseAssignments() {
 
     const fetchAssignments = async () => {
         if (!offeringId) return;
+        setIsListLoading(true);
         try {
             const data = await assessmentService.getAssessmentsByOffering(offeringId);
-            setAssignments(data);
+            setAssignments(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Lỗi tải danh sách bài tập:", error);
+            toast.error("Không thể tải danh sách bài tập. Vui lòng thử lại.");
+        } finally {
+            setIsListLoading(false);
         }
     };
 
@@ -262,6 +267,16 @@ export default function TeacherCourseAssignments() {
                     <h4 className="mt-1 text-xl sm:text-2xl font-bold text-slate-900">Quản lý bài tập & Đánh giá</h4>
                 </div>
 
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button
+                        type="button"
+                        onClick={() => void fetchAssignments()}
+                        disabled={isListLoading}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isListLoading ? "animate-spin" : ""}`} />
+                        {isListLoading ? "Đang tải lại..." : "Tải lại"}
+                    </button>
                 {!isUploading && (
                     <button
                         onClick={() => {
@@ -274,6 +289,7 @@ export default function TeacherCourseAssignments() {
                         <span>Tạo bài tập mới</span>
                     </button>
                 )}
+                </div>
             </div>
 
             {/* FORM TẠO/SỬA BÀI TẬP */}
@@ -395,13 +411,20 @@ export default function TeacherCourseAssignments() {
 
             {/* DANH SÁCH BÀI TẬP */}
             <div className="mt-6 space-y-4">
-                {assignments.length === 0 && !isUploading && (
+                {isListLoading && (
+                    <div className="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-600">
+                        <Loader2 className="mb-3 h-7 w-7 animate-spin text-emerald-600" />
+                        Đang tải lại danh sách bài tập...
+                    </div>
+                )}
+
+                {!isListLoading && assignments.length === 0 && !isUploading && (
                     <p className="text-center text-slate-500 py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                         Chưa có dữ liệu bài tập/đánh giá nào trong khóa học này.
                     </p>
                 )}
 
-                {assignments.map((item, idx) => {
+                {!isListLoading && assignments.map((item, idx) => {
                     const endDate = new Date(item.endTime);
                     const isExpired = endDate < new Date();
                     const isExpanded = expandedIdx === idx;

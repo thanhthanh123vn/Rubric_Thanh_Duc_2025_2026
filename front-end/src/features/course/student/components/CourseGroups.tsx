@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -138,16 +139,30 @@ function ModalShell({
   children: ReactNode;
   widthClass?: string;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-5">
       <button
         type="button"
         aria-label="\u0110\u00f3ng"
         className="absolute inset-0 bg-slate-900/45 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      <div className={`relative z-10 flex max-h-[90vh] w-full ${widthClass} flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl`}>
-        <div className="border-b border-slate-100 px-5 py-4">
+      <div className={`relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full ${widthClass} flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-[28px]`}>
+        <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
@@ -158,9 +173,10 @@ function ModalShell({
             </Button>
           </div>
         </div>
-        <div className="overflow-y-auto p-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -920,7 +936,7 @@ function ChatPanel({
           onClose={onClose}
           widthClass="max-w-4xl"
       >
-        <div className="flex h-[65vh] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+        <div className="flex h-[min(68dvh,680px)] min-h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white sm:rounded-[24px]">
           <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-emerald-600" />

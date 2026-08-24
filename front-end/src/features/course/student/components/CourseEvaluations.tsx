@@ -15,6 +15,7 @@ import type { Assessment } from "@/features/course/student/assignmentSlice";
 import StudentAttendanceCheckIn from "@/features/course/student/components/StudentAttendanceCheckIn.tsx";
 import { assessmentCommentApi } from "@/features/course/student/api/AssignmentDetailPost.ts";
 import { getRubricById, type RubricDTO } from "@/api/RubricApi.ts";
+import { getClosByCourse, type CloResponse } from "@/features/rubric/rubricApi.ts";
 import type {
   AssessmentSubmission,
   GroupResponse,
@@ -127,6 +128,7 @@ export default function CourseEvaluations() {
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
   const [selectedAssessmentDetail, setSelectedAssessmentDetail] = useState<AssessmentSubmission | null>(null);
   const [selectedRubric, setSelectedRubric] = useState<RubricDTO | null>(null);
+  const [rubricClos, setRubricClos] = useState<CloResponse[]>([]);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [projectGroups, setProjectGroups] = useState<GroupResponse[]>([]);
@@ -212,6 +214,8 @@ export default function CourseEvaluations() {
 
   const courseTitle = course?.course?.courseName || course?.courseName || "Học phần";
 
+  const courseId = course?.course?.courseId || course?.courseId || null;
+
   const assignmentSummary = useMemo(() => {
     const graded = assignmentAssessments.filter((item) => item.calculatedScore !== null);
     const average =
@@ -251,22 +255,28 @@ export default function CourseEvaluations() {
         setSelectedAssessmentDetail(detail);
 
         if (detail?.rubricId) {
-          const rubricResponse = await getRubricById(detail.rubricId);
+          const [rubricResponse, cloResponse] = await Promise.all([
+            getRubricById(detail.rubricId),
+            courseId ? getClosByCourse(courseId).catch(() => null) : Promise.resolve(null),
+          ]);
           setSelectedRubric(rubricResponse.data || rubricResponse);
+          setRubricClos(Array.isArray(cloResponse?.data) ? cloResponse.data : []);
         } else {
           setSelectedRubric(null);
+          setRubricClos([]);
         }
       } catch (error) {
         console.error("Lỗi khi tải chi tiết đánh giá:", error);
         setSelectedAssessmentDetail(null);
         setSelectedRubric(null);
+        setRubricClos([]);
       } finally {
         setDetailLoading(false);
       }
     };
 
     void fetchAssessmentDetail();
-  }, [isDetailOpen, selectedAssessmentId]);
+  }, [courseId, isDetailOpen, selectedAssessmentId]);
 
   useEffect(() => {
     if (activeSection !== "project" || !offeringId || !currentUserId) return;
@@ -372,6 +382,7 @@ export default function CourseEvaluations() {
     setSelectedAssessmentId(assessmentId);
     setSelectedAssessmentDetail(null);
     setSelectedRubric(null);
+    setRubricClos([]);
     setIsDetailOpen(true);
   };
 
@@ -908,6 +919,7 @@ export default function CourseEvaluations() {
         selectedSummary={selectedSummary}
         selectedAssessmentDetail={selectedAssessmentDetail}
         selectedRubric={selectedRubric}
+        rubricClos={rubricClos}
         onClose={closeDetail}
       />
     </div>

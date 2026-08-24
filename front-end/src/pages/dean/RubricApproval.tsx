@@ -66,7 +66,7 @@ export default function RubricApproval() {
 
 
     useEffect(() => {
-        fetchRubrics(activeTab);
+        void fetchRubrics(activeTab);
     }, [activeTab]);
 
 

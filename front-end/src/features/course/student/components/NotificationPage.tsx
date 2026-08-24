@@ -9,6 +9,7 @@ import { useAppSelector } from "@/hooks/useAppSelector";
 import Header from "@/components/home/Header";
 import Sidebar from "@/features/course/student/components/Sidebar.tsx";
 import {toast} from "sonner";
+import {resolveNotificationReferenceUrl} from "@/features/notification/notificationRoutes";
 
 
 const formatTimeAgo = (timestamp: string) => {
@@ -58,6 +59,7 @@ export default function NotificationPage() {
                         is_read: readStatus ? 1 : 0,
                         createdAt: n.created_at || n.createdAt,
                         referenceUrl: n.reference_url || n.referenceUrl,
+                        courseId: n.course_id || n.courseId,
                         senderAvatar: n.avatar_url || n.senderAvatar,
                         senderName: n.sender_id || n.senderName
                     };
@@ -94,6 +96,7 @@ export default function NotificationPage() {
                 is_read: readStatus ? 1 : 0,
                 createdAt: newNotif.created_at || newNotif.createdAt || new Date().toISOString(),
                 referenceUrl: newNotif.reference_url || newNotif.referenceUrl,
+                courseId: newNotif.course_id || newNotif.courseId,
                 senderAvatar: newNotif.avatar_url || newNotif.senderAvatar,
                 senderName: newNotif.sender_id || newNotif.senderName
             };
@@ -119,7 +122,8 @@ export default function NotificationPage() {
                 console.error("Lỗi cập nhật trạng thái:", error);
             }
         }
-        if (n.referenceUrl) navigate(n.referenceUrl);
+        const destination = resolveNotificationReferenceUrl(n.referenceUrl);
+        if (destination) navigate(destination);
     };
 
     const handleMarkAllAsRead = async () => {

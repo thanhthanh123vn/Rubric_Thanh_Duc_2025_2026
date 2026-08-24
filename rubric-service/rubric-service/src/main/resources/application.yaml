@@ -15,9 +15,9 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/db_rubric?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    username: ${DB_NAME}
-    password: ${DB_PW}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/db_rubric_service?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:${DB_NAME:root}}
+    password: ${DB_PASSWORD:${DB_PW:}}
 
   jpa:
     hibernate:

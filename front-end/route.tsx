@@ -10,6 +10,7 @@ import LoginPage from "@/user/login";
 import CourseDetail from "@/features/course/student/components/CourseDetail";
 import CourseStudentList from "@/features/course/student/components/CourseStudentList";
 import CourseOBE from "@/features/course/student/components/CourseOBE";
+import StudentCourseOutcomes from "@/features/course/student/components/StudentCourseOutcomes";
 import CourseAssignments from "@/features/course/student/components/CourseAssignments";
 import CourseEvaluations from "@/features/course/student/components/CourseEvaluations";
 import CourseGroups from "@/features/course/student/components/CourseGroups";
@@ -62,6 +63,8 @@ import DeanLayout from "@/pages/dean/DeanLayout.tsx";
 import DeanDashboard from "@/pages/dean/DeanDashboard.tsx";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute.tsx";
 import RubricApproval from "@/pages/dean/RubricApproval.tsx";
+import SharedRubrics from "@/pages/dean/SharedRubrics.tsx";
+import RubricVersionHistory from "@/pages/dean/RubricVersionHistory.tsx";
 import FacultyReport from "@/pages/dean/FacultyReport.tsx";
 import DepartmentHeadLayout from "@/pages/department/DepartmentHeadLayout.tsx";
 import DepartmentDashboard from "@/pages/department/DepartmentDashboard.tsx";
@@ -70,6 +73,9 @@ import QuestionFormPage from "@/pages/department/QuestionFormPage.tsx";
 import ListQuestionBank from "@/pages/department/ListQuestionBank.tsx";
 import AssessmentDetailAdmin from "@/pages/admin/managarCourse/AssessmentDetailAdmin.tsx";
 import DepartmentOBE from "@/pages/department/DepartmentOBE.tsx";
+import CloPloApproval from "@/pages/department/CloPloApproval.tsx";
+import PloManagement from "@/pages/dean/PloManagement.tsx";
+import TeachingAssignmentManagement from "@/pages/TeachingAssignmentManagement.tsx";
 
 import AdminLayout from "@/pages/admin/AdminLayout.tsx";
 import FacultyManagement from "@/pages/admin/departments/FacultyManagement.tsx";
@@ -104,6 +110,7 @@ import StudentExamSubmittedPage from "@/features/course/student/components/Stude
 import StaffAccountManagementPage from "@/pages/StaffAccountManagementPage.tsx";
 import StaffProfilePage from "@/pages/StaffProfilePage.tsx";
 import AdminBroadcastPage from "@/pages/admin/system/AdminBroadcastPage.tsx";
+import NotificationManagement from "@/pages/NotificationManagement.tsx";
 import NotificationPage from "@/features/course/student/components/NotificationPage.tsx";
 import StudentCourseLayout from "@/features/course/student/components/StudentCourseLayout.tsx";
 
@@ -133,6 +140,7 @@ export const router = createBrowserRouter([
                     {index: true, Component: CourseDetail},
                     {path: "students", Component: CourseStudentList},
                     {path: "obe", Component: CourseOBE},
+                    {path: "outcomes", Component: StudentCourseOutcomes},
                     {path: "assignments", Component: CourseAssignments},
                     {path: "document", Component: StudentCourseMaterials},
                     {path: "my-exams", Component: StudentExamListPage},
@@ -256,7 +264,14 @@ export const router = createBrowserRouter([
                             {path: "groups", Component: TeacherCourseGroups},
                             {path: "grading", Component: TeacherAssessmentList},
                             {path: "assessment/:assessmentId/grading", Component: TeacherGrading},
-                            {path: "notifications", Component: AdminBroadcastPage},
+                            {
+                                path: "notifications",
+                                children: [
+                                    {index: true, Component: AdminBroadcastPage},
+                                    {path: "send", Component: AdminBroadcastPage},
+                                    {path: "sent", Component: NotificationManagement},
+                                ],
+                            },
                             {
                                 path: "projects",
                                 loader: async ({params}) => redirect(`/teacher/course/${params.id}/groups`),
@@ -306,7 +321,14 @@ export const router = createBrowserRouter([
                     {path: "clo/:cloId", Component: CLODetail},
                     {path: "rubric", Component: RubricMatrix},
                     {path: "rubric/:rubricId", Component: RubricDetail},
-                    {path: "notifications", Component: AdminBroadcastPage},
+                    {
+                        path: "notifications",
+                        children: [
+                            {index: true, Component: AdminBroadcastPage},
+                            {path: "send", Component: AdminBroadcastPage},
+                            {path: "sent", Component: NotificationManagement},
+                        ],
+                    },
                     {path: "rubric-matrix", loader: () => redirect("/mainlecturer/rubric")},
                     {path: "semester", Component: SemesterManagement},
                     {path: "assign", Component: CourseAssignment},
@@ -364,7 +386,14 @@ export const router = createBrowserRouter([
                     {path: "/admin/logs", Component: SystemLogPage},
                     {path: "/admin/broadcast", Component: AdminBroadcastPage},
                     {path: "/admin/grading", Component: StudentTranscript},
-                    {path: "/admin/notifications", Component: AdminBroadcastPage},
+                    {
+                        path: "notifications",
+                        children: [
+                            {index: true, Component: AdminBroadcastPage},
+                            {path: "send", Component: AdminBroadcastPage},
+                            {path: "sent", Component: NotificationManagement},
+                        ],
+                    },
                     {path: "courses/assessments", Component: AssessmentManagement},
 
                     {path: "classes/list", Component: CourseOfferingManagement},
@@ -381,12 +410,28 @@ export const router = createBrowserRouter([
                 element: <DeanLayout/>,
                 children: [
                     {index: true, Component: DeanDashboard},
-                    {path: "rubrics", Component: RubricApproval},
+                    {path: "rubrics", loader: () => redirect("/dean/rubrics/approvals")},
+                    {path: "rubrics/approvals", Component: RubricApproval},
+                    {path: "rubrics/shared", Component: SharedRubrics},
+                    {path: "rubrics/versions", Component: RubricVersionHistory},
                     {path: "reports", Component: FacultyReport},
-                    {path: "notifications", Component: AdminBroadcastPage},
+                    {
+                        path: "notifications",
+                        children: [
+                            {index: true, Component: AdminBroadcastPage},
+                            {path: "send", Component: AdminBroadcastPage},
+                            {path: "sent", Component: NotificationManagement},
+                        ],
+                    },
                     {path: "courses", Component: CourseManagement},
+                    {path: "assignments", Component: TeachingAssignmentManagement},
+                    {path: "assignments/view", Component: TeachingAssignmentManagement},
+                    {path: "assignments/records", Component: TeachingAssignmentManagement},
+                    {path: "assignments/approvals", Component: TeachingAssignmentManagement},
                     {path: "obe", Component: DepartmentOBE},
-                    {path: "obe/:id/analytics", Component: TeacherOBEAnalytics},
+                    {path: "plos", Component: PloManagement},
+                    {path: "clo", Component: CLOManagement},
+                    {path: "clo-plo-approvals", Component: CloPloApproval},
                 ],
             },
         ],
@@ -403,14 +448,26 @@ export const router = createBrowserRouter([
                     {path: "rubrics", Component: RubricApproval},
                     {path: "clo", Component: CLOManagement},
                     {path: "obe", Component: DepartmentOBE},
+                    {path: "obe/overview", Component: DepartmentOBE},
+                    {path: "obe/report", Component: DepartmentOBE},
                     {path: "obe/:id/analytics", Component: TeacherOBEAnalytics},
                     {path: "question-banks", Component: QuestionBankManagement},
                     {path: "question-banks/:id/form-question/:bankId", Component: TeacherQuestionBank},
                     {path: "questions/public/:id", Component: ListQuestionBank},
                     {path: "assessments", Component: AssessmentManagement},
                     {path: "assessments/:id", Component: AssessmentDetailAdmin},
-                    {path: "offerings", Component: CourseOfferingManagement},
-                    {path: "notifications", Component: AdminBroadcastPage},
+                    {path: "offerings", Component: TeachingAssignmentManagement},
+                    {path: "assignments", Component: TeachingAssignmentManagement},
+                    {path: "assignments/view", Component: TeachingAssignmentManagement},
+                    {path: "assignments/records", Component: TeachingAssignmentManagement},
+                    {
+                        path: "notifications",
+                        children: [
+                            {index: true, Component: AdminBroadcastPage},
+                            {path: "send", Component: AdminBroadcastPage},
+                            {path: "sent", Component: NotificationManagement},
+                        ],
+                    },
                 ],
             },
         ],

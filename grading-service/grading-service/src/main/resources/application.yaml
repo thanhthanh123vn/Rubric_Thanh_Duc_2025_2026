@@ -7,9 +7,9 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/db_rubric?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    username: ${DB_NAME}
-    password: ${DB_PW}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/db_grading?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:${DB_NAME:root}}
+    password: ${DB_PASSWORD:${DB_PW:}}
 
   jpa:
       hibernate:
@@ -25,13 +25,13 @@ spring:
         max-request-size: 20MB
 app:
   jwt:
-    secret: your_very_long_and_secret_key_22130260_thanh_nlu
+    secret: ${SECRET_KEY:your_very_long_and_secret_key_22130260_thanh_nlu}
     expiration: 86400000
-  eureka:
-    client:
-      service-url:
-        defaultZone: http://localhost:8761/eureka/
-      register-with-eureka: true
-      fetch-registry: true
-    instance:
-      prefer-ip-address: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true

@@ -1,15 +1,20 @@
-import { CheckCircle2, Edit3, Layers3, Target, Eye } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { getAllClo, getAllRubric } from '@/features/rubric/rubricApi';
+import {
+  BookOpen, CheckCircle2, Edit3, Eye, GraduationCap, Layers3, Target,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/hooks/useAppSelector.ts";
+import { toast } from "sonner";
 
-interface Clo {
-  cloCode: string;
-  cloName: string;
-  description: string;
-  bloomLevel: string;
-  courseId?: string;
+import { getAllRubric, getClosByCourse, type CloResponse } from "@/features/rubric/rubricApi";
+import { useAppSelector } from "@/hooks/useAppSelector.ts";
+import courseService from "@/pages/admin/api/courseService.ts";
+
+interface TeacherCourse {
+  courseId: string;
+  offeringId: string;
+  courseCode: string;
+  courseName: string;
+  semester?: string;
 }
 
 interface RubricDTO {
@@ -17,158 +22,183 @@ interface RubricDTO {
   name: string;
   description: string;
   defaultType?: string;
+  status?: string;
+}
+
+const cloStatusLabel: Record<string, string> = {
+  DRAFT: "Bản nháp",
+  PENDING_REVIEW: "Chờ duyệt",
+  APPROVED: "Đã duyệt",
+  REJECTED: "Bị từ chối",
+};
+
+const cloStatusClass: Record<string, string> = {
+  DRAFT: "bg-slate-100 text-slate-700",
+  PENDING_REVIEW: "bg-amber-100 text-amber-700",
+  APPROVED: "bg-emerald-100 text-emerald-700",
+  REJECTED: "bg-rose-100 text-rose-700",
+};
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: { message?: string } | string } }).response;
+    if (typeof response?.data === "string") return response.data;
+    if (response?.data?.message) return response.data.message;
+  }
+  return "Không thể tải dữ liệu. Vui lòng thử lại.";
 }
 
 export default function TeacherRubric() {
-  const [cloItems, setCloItems] = useState<Clo[]>([]);
+  const [courses, setCourses] = useState<TeacherCourse[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [cloItems, setCloItems] = useState<CloResponse[]>([]);
   const [rubricTemplates, setRubricTemplates] = useState<RubricDTO[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingPage, setLoadingPage] = useState(true);
+  const [loadingClos, setLoadingClos] = useState(false);
   const navigate = useNavigate();
-  const { user: reduxUser } = useAppSelector((state) => state.auth);
+  const reduxUser = useAppSelector((state) => state.auth.user);
+  const user = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
-  let user = reduxUser;
-  if (!user) {
-    const localUser = localStorage.getItem("user");
-    if (localUser) {
-      user = JSON.parse(localUser);
-    }
-  }
+  const selectedCourse = useMemo(
+    () => courses.find((course) => course.courseId === selectedCourseId) || null,
+    [courses, selectedCourseId],
+  );
 
   useEffect(() => {
-    const fetchRubricData = async () => {
-      try {
-        setLoading(true);
+    let active = true;
 
-        const [cloResponse, rubricResponse] = await Promise.all([
-          getAllClo(),
-          getAllRubric()
-        ]);
+    Promise.allSettled([courseService.getLecturerDashBoardCourses(), getAllRubric()])
+      .then(([courseResult, rubricResult]) => {
+        if (!active) return;
 
-        setCloItems(cloResponse.data);
-        setRubricTemplates(rubricResponse.data);
+        const courseResponse = courseResult.status === "fulfilled" ? courseResult.value : [];
+        const uniqueCourses = Array.from(
+          new Map(
+            ((Array.isArray(courseResponse) ? courseResponse : []) as TeacherCourse[])
+              .filter((course) => Boolean(course.courseId))
+              .map((course) => [course.courseId, course]),
+          ).values(),
+        );
 
-      } catch (error) {
-        console.error("Lỗi khi tải dữ liệu CLO và Rubric:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+        setCourses(uniqueCourses);
+        setSelectedCourseId((current) => current || uniqueCourses[0]?.courseId || "");
+        setRubricTemplates(
+          rubricResult.status === "fulfilled" && Array.isArray(rubricResult.value.data)
+            ? rubricResult.value.data
+            : [],
+        );
 
-    fetchRubricData();
+        if (courseResult.status === "rejected") toast.error(getErrorMessage(courseResult.reason));
+        if (rubricResult.status === "rejected") toast.error(getErrorMessage(rubricResult.reason));
+      })
+      .finally(() => {
+        if (active) setLoadingPage(false);
+      });
+
+    return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setCloItems([]);
+      return;
+    }
+
+    let active = true;
+    setLoadingClos(true);
+    getClosByCourse(selectedCourseId)
+      .then((response) => {
+        if (!active) return;
+        const rows = Array.isArray(response.data) ? response.data : [];
+        setCloItems(rows.filter((clo) => clo.courseId === selectedCourseId));
+      })
+      .catch((error) => {
+        if (!active) return;
+        setCloItems([]);
+        toast.error(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (active) setLoadingClos(false);
+      });
+
+    return () => { active = false; };
+  }, [selectedCourseId]);
+
+  if (loadingPage) {
+    return <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Đang tải dữ liệu CLO và Rubric...</div>;
+  }
+
   return (
-      <div className="space-y-6">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-600">Rubric module</p>
-          <h3 className="mt-1 text-2xl font-bold text-slate-900">Quan ly chuan dau ra va Rubric</h3>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          {/* Cột LO Mapping */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xl font-bold text-slate-900">LO mapping</h4>
-                <p className="mt-1 text-sm text-slate-500">Anh xa CLO voi tieu chi cham diem</p>
-              </div>
-              <Target className="h-5 w-5 text-emerald-600" />
-            </div>
-
-            <div className="mt-6 space-y-4">
-              {loading ? (
-                  <div className="text-center text-slate-500 py-4">Đang tải CLO...</div>
-              ) : cloItems.length > 0 ? (
-                  cloItems.map((item) => (
-                      <div key={item.cloCode} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{item.cloCode}</p>
-                            <p className="mt-1 font-semibold text-slate-900">{item.cloName}</p>
-                          </div>
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {item.bloomLevel}
-                    </span>
-                        </div>
-                        <div className="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
-                          <div className="h-full rounded-full bg-emerald-500" style={{ width: `50%` }} />
-                        </div>
-                      </div>
-                  ))
-              ) : (
-                  <div className="text-center text-slate-500 py-4">Chưa có dữ liệu CLO.</div>
-              )}
-            </div>
+    <div className="mx-auto w-full max-w-[1440px] space-y-5">
+      <section className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-7">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-emerald-700"><GraduationCap className="h-6 w-6" /></div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Chuẩn đầu ra và đánh giá</p>
+            <h1 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">CLO & Rubric</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Xem CLO riêng theo từng học phần và truy cập các Rubric phục vụ đánh giá.</p>
           </div>
 
-          {/* Cột Rubric Builder */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xl font-bold text-slate-900">Rubric Builder</h4>
-                {/* Đổi mô tả nếu là Admin */}
-                <p className="mt-1 text-sm text-slate-500">
-                  {user?.role === "ADMIN" ? "Xem danh sach va chi tiet mau" : "Tao, sua, luu va tai su dung mau"}
-                </p>
-              </div>
-              <Layers3 className="h-5 w-5 text-cyan-600" />
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {loading ? (
-                  <div className="text-center text-slate-500 py-4">Đang tải Rubrics...</div>
-              ) : rubricTemplates.length > 0 ? (
-                  rubricTemplates.map((template) => (
-                      <div
-                          key={template.id || template.name}
-                          onClick={() =>
-                              navigate(
-                                  user?.role === "ADMIN"
-                                      ? `/admin/rubrics/list/${template.id}`
-                                      : `/teacher/rubric/${template.id}`
-                              )
-                          }
-                          className="rounded-2xl border border-slate-200 p-4 hover:border-emerald-200 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <p className="font-semibold text-slate-900">{template.name}</p>
-                            <p className="mt-1 text-sm text-slate-500 line-clamp-1">{template.description}</p>
-                          </div>
-
-                          {/* Ẩn nút Edit nếu là ADMIN, thay bằng nút Eye (Xem) hoặc ẩn hoàn toàn */}
-                          {user?.role !== "ADMIN" ? (
-                              <button className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
-                                <Edit3 className="h-4 w-4" />
-                              </button>
-                          ) : (
-                              <button className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors">
-                                <Eye className="h-4 w-4" />
-                              </button>
-                          )}
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {template.defaultType && (
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                                {template.defaultType}
-                              </span>
-                          )}
-                        </div>
-                      </div>
-                  ))
-              ) : (
-                  <div className="text-center text-slate-500 py-4">Chưa có dữ liệu Rubric.</div>
-              )}
-            </div>
-
-            <div className="mt-4 rounded-2xl bg-emerald-50 p-4">
-              <p className="font-semibold text-emerald-800">Luu y</p>
-              <p className="mt-2 text-sm leading-6 text-emerald-700">
-                Moi rubric can tong trong so bang 100% va duoc gan CLO truoc khi luu.
-              </p>
-            </div>
-          </div>
+          <label className="w-full text-sm font-bold text-slate-700 lg:max-w-md">
+            Học phần đang xem
+            <select value={selectedCourseId} onChange={(event) => setSelectedCourseId(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 font-medium outline-none focus:border-emerald-500">
+              {courses.length === 0 ? <option value="">Chưa được phân công học phần</option> : null}
+              {courses.map((course) => <option key={course.courseId} value={course.courseId}>{course.courseCode} - {course.courseName}</option>)}
+            </select>
+          </label>
         </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-500">Học phần phụ trách</span><BookOpen className="h-5 w-5 text-emerald-600" /></div><p className="mt-3 text-2xl font-black text-slate-900">{courses.length}</p></div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-500">CLO học phần</span><Target className="h-5 w-5 text-blue-600" /></div><p className="mt-3 text-2xl font-black text-slate-900">{cloItems.length}</p></div>
+        <div className="col-span-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-1"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-500">Rubric khả dụng</span><Layers3 className="h-5 w-5 text-violet-600" /></div><p className="mt-3 text-2xl font-black text-slate-900">{rubricTemplates.length}</p></div>
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">{selectedCourse?.courseCode || "CLO"}</p><h2 className="mt-1 text-xl font-black text-slate-900">CLO của học phần</h2><p className="mt-1 text-sm text-slate-500">{selectedCourse?.courseName || "Chọn học phần để xem CLO"}</p></div>
+            <Target className="h-5 w-5 shrink-0 text-emerald-600" />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {loadingClos ? <div className="py-10 text-center text-sm text-slate-500">Đang tải CLO của học phần...</div> : null}
+            {!loadingClos && !selectedCourseId ? <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Tài khoản chưa được phân công học phần.</div> : null}
+            {!loadingClos && selectedCourseId && cloItems.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Học phần này chưa có CLO.</div> : null}
+            {!loadingClos && cloItems.map((item) => {
+              const status = item.approvalStatus || "DRAFT";
+              return (
+                <article key={item.cloId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">{item.cloCode}</p><h3 className="mt-1 font-bold text-slate-900">{item.cloName}</h3></div>
+                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${cloStatusClass[status] || cloStatusClass.DRAFT}`}>{cloStatusLabel[status] || status}</span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{item.description || "Chưa có mô tả."}</p>
+                  <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500"><CheckCircle2 className="h-4 w-4 text-blue-500" />Bloom: {item.bloomLevel || "Chưa xác định"}</div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-700">Thư viện đánh giá</p><h2 className="mt-1 text-xl font-black text-slate-900">Rubric khả dụng</h2><p className="mt-1 text-sm text-slate-500">Chọn Rubric để xem nội dung và tiêu chí đánh giá.</p></div>
+            <Layers3 className="h-5 w-5 shrink-0 text-violet-600" />
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {rubricTemplates.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Chưa có Rubric khả dụng.</div> : null}
+            {rubricTemplates.map((template) => (
+              <button type="button" key={template.id || template.name} onClick={() => navigate(user?.role === "ADMIN" ? `/admin/rubrics/list/${template.id}` : `/teacher/rubric/${template.id}`)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                <div className="min-w-0"><p className="font-bold text-slate-900">{template.name}</p><p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500">{template.description || "Chưa có mô tả."}</p>{template.defaultType ? <span className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{template.defaultType}</span> : null}</div>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">{user?.role === "ADMIN" ? <Eye className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}</span>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
+    </div>
   );
 }

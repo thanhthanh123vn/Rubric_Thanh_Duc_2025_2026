@@ -69,6 +69,20 @@ public class CourseOfferingController {
         return ResponseEntity.ok(courseOfferingService.getOfferings());
     }
 
+    @GetMapping("/leadership")
+    public ResponseEntity<?> getLeadershipOfferings(
+            @RequestHeader("X-User-Id") String userId) {
+        try {
+            return ResponseEntity.ok(courseOfferingService.getOfferingsForLeadership(userId));
+        } catch (SecurityException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", exception.getMessage()));
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", exception.getMessage()));
+        }
+    }
+
     @GetMapping("/faculty/{facultyName}")
     public ResponseEntity<List<CourseOfferingResponse>> getOfferingsByFaculty(
             @RequestHeader("X-User-Id") String userId,

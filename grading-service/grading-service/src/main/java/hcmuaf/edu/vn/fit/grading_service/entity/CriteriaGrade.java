@@ -7,4 +7,5 @@ public  class CriteriaGrade {
     private String criteriaId;
     private String levelId;
     private Double scoreAchieved;
+    private Double rawScore;
 }

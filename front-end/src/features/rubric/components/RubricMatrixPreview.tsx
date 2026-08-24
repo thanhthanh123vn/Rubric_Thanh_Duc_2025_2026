@@ -5,6 +5,8 @@ export interface MatrixLevelDraft {
     name: string;
     orderIndex: number;
     score: number;
+    minScore: number;
+    maxScore: number;
     description: string;
 }
 
@@ -115,7 +117,7 @@ export default function RubricMatrixPreview({
                                         <div className="space-y-4">
                                             {sortLevels(criterion.levels).map((level) => (
                                                 <article key={level.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                                    <div className="grid gap-4 lg:grid-cols-[1fr_110px_110px_48px]">
+                                                    <div className="grid gap-4 lg:grid-cols-[1fr_110px_110px_90px_48px]">
                                                         <div>
                                                             <label className="text-sm font-medium text-slate-700">Tên mức</label>
                                                             <input
@@ -129,12 +131,30 @@ export default function RubricMatrixPreview({
                                                         </div>
 
                                                         <div>
-                                                            <label className="text-sm font-medium text-slate-700">Điểm số</label>
+                                                            <label className="text-sm font-medium text-slate-700">Điểm từ</label>
                                                             <input
                                                                 type="number"
-                                                                value={level.score}
+                                                                min="0"
+                                                                max="10"
+                                                                step="0.1"
+                                                                value={level.minScore}
                                                                 onChange={(event) =>
-                                                                    onUpdateLevel(criterion.id, level.id, "score", Number(event.target.value))
+                                                                    onUpdateLevel(criterion.id, level.id, "minScore", Number(event.target.value))
+                                                                }
+                                                                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-sm font-medium text-slate-700">Đến điểm</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="10"
+                                                                step="0.1"
+                                                                value={level.maxScore}
+                                                                onChange={(event) =>
+                                                                    onUpdateLevel(criterion.id, level.id, "maxScore", Number(event.target.value))
                                                                 }
                                                                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                                                             />
@@ -144,6 +164,7 @@ export default function RubricMatrixPreview({
                                                             <label className="text-sm font-medium text-slate-700">Thứ tự</label>
                                                             <input
                                                                 type="number"
+                                                                min="1"
                                                                 value={level.orderIndex}
                                                                 onChange={(event) =>
                                                                     onUpdateLevel(criterion.id, level.id, "orderIndex", Number(event.target.value))

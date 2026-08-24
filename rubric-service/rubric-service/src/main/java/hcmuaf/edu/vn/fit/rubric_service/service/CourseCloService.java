@@ -3,6 +3,7 @@ package hcmuaf.edu.vn.fit.rubric_service.service;
 import hcmuaf.edu.vn.fit.rubric_service.dto.request.CloRequest;
 import hcmuaf.edu.vn.fit.rubric_service.entity.CourseCloEntity;
 import hcmuaf.edu.vn.fit.rubric_service.repository.CourseCloRepository;
+import hcmuaf.edu.vn.fit.rubric_service.repository.CourseCloMappingCleanupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import java.util.List;
 public class CourseCloService {
 
     private final CourseCloRepository courseCloRepository;
+    private final CourseCloMappingCleanupRepository mappingCleanupRepository;
 
     public List<CourseCloEntity> getAll() {
         return courseCloRepository.findAll();
@@ -52,6 +54,7 @@ public class CourseCloService {
     @Transactional
     public CourseCloEntity updateClo(String cloId, CloRequest request) {
         CourseCloEntity existingClo = getById(cloId);
+        requireEditable(existingClo);
         String courseId = requireCourseId(request.getCourseId());
         String cloCode = requireCloCode(request.getCloCode());
 
@@ -69,6 +72,24 @@ public class CourseCloService {
         existingClo.setDescription(request.getDescription());
         existingClo.setBloomLevel(request.getBloomLevel());
         return courseCloRepository.save(existingClo);
+    }
+
+    @Transactional
+    public void deleteClo(String cloId) {
+        CourseCloEntity clo = getById(cloId);
+        requireEditable(clo);
+        mappingCleanupRepository.deletePloMappings(cloId);
+        courseCloRepository.delete(clo);
+    }
+
+    private void requireEditable(CourseCloEntity clo) {
+        if ("PENDING_REVIEW".equals(clo.getApprovalStatus()) || "APPROVED".equals(clo.getApprovalStatus())) {
+            throw new IllegalStateException("Không thể chỉnh sửa CLO đang chờ duyệt hoặc đã duyệt.");
+        }
+        if ("REJECTED".equals(clo.getApprovalStatus())) {
+            clo.setApprovalStatus("DRAFT");
+            clo.setRejectionReason(null);
+        }
     }
 
     private String requireCourseId(String courseId) {

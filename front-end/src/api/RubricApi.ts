@@ -26,6 +26,27 @@ export interface CreateRubricPayload {
     criteria: CriteriaPayload[];
 }
 
+export interface RubricVersionLog {
+    approvalRequestId: string;
+    rubricId: string;
+    rubricName: string;
+    courseId?: string;
+    rubricType?: string;
+    rootRubricId?: string;
+    parentRubricId?: string | null;
+    sourceVersionNumber?: number | null;
+    versionNumber?: number;
+    revisionNumber?: number;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    submittedBy?: string;
+    submittedByName?: string;
+    requestedAt?: string;
+    reviewedBy?: string | null;
+    reviewedByName?: string | null;
+    reviewedAt?: string | null;
+    feedback?: string | null;
+}
+
 export const getRubricById = async (id: string) => {
     return rubricServiceApi.get(`/rubrics/${id}`);
 };
@@ -55,6 +76,11 @@ export const rubricApi = {
         courseId: string
     }) => {
         return rubricServiceApi.post('/rubrics', data);
+    },
+
+    getVersionLogs: async (): Promise<RubricVersionLog[]> => {
+        const response = await rubricServiceApi.get('/rubrics/version-logs');
+        return Array.isArray(response.data) ? response.data : [];
     },
 
     createVersion: (rubricId: string, data: CreateRubricPayload) => {

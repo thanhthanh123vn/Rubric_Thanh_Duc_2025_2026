@@ -214,7 +214,7 @@ export default function RubricSampleDownloadButton({
 
             const renderLevels = levels.length > 0
                 ? levels
-                : [{ id: "empty", name: "Chưa có mức", score: 0, description: "Tiêu chí này chưa có mức đánh giá.", orderIndex: 0 }];
+                : [{ id: "empty", name: "Chưa có mức", score: 0, minScore: 0, maxScore: 0, description: "Tiêu chí này chưa có mức đánh giá.", orderIndex: 0 }];
 
             const currentLevelWidth = (tableWidth - criteriaColumnWidth) / renderLevels.length;
 
@@ -249,7 +249,12 @@ export default function RubricSampleDownloadButton({
 
                 context.fillStyle = "#64748b";
                 context.font = "500 13px Arial";
-                context.fillText(`${level.score} diem`, cellX + currentLevelWidth / 2, currentY + 58);
+                const scoreRange = level.minScore === 0 && level.maxScore < 4
+                    ? "<4 diem"
+                    : level.minScore === level.maxScore
+                    ? `${level.maxScore} diem`
+                    : `${level.minScore} - ${level.maxScore} diem`;
+                context.fillText(scoreRange, cellX + currentLevelWidth / 2, currentY + 58);
 
                 context.fillStyle = "#475569";
                 context.font = "400 14px Arial";

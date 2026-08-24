@@ -3,8 +3,10 @@ package hcmuaf.edu.vn.fit.course_service.service;
 import hcmuaf.edu.vn.fit.course_service.client.UserClient;
 import hcmuaf.edu.vn.fit.course_service.dto.request.CourseOfferingRequest;
 import hcmuaf.edu.vn.fit.course_service.dto.response.CourseOfferingResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.FacultyResponse;
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerInfo; // Bổ sung class này
 import hcmuaf.edu.vn.fit.course_service.dto.response.LecturerResponse;
+import hcmuaf.edu.vn.fit.course_service.dto.response.UserResponse;
 import hcmuaf.edu.vn.fit.course_service.entity.Course;
 import hcmuaf.edu.vn.fit.course_service.entity.CourseOffering;
 import hcmuaf.edu.vn.fit.course_service.mapper.CourseMapper;
@@ -136,11 +138,28 @@ public class CourseOfferingService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy môn học với ID: " + courseId));
 
+        List<String> lecturerIds = request.getLecturerIds() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(request.getLecturerIds());
+        String mainLecturerId = request.getLecturerId() != null
+                ? request.getLecturerId()
+                : (lecturerIds.isEmpty() ? null : lecturerIds.getFirst());
+        if (mainLecturerId != null && !lecturerIds.contains(mainLecturerId)) {
+            lecturerIds.addFirst(mainLecturerId);
+        }
+        List<String> assistantIds = lecturerIds.stream()
+                .filter(id -> !id.equals(mainLecturerId))
+                .distinct()
+                .toList();
+
         CourseOffering offering = CourseOffering.builder()
                 .offeringId(UUID.randomUUID().toString())
                 .course(course)
                 .offeringName(request.getOfferingName())
-                .lecturerIds(request.getLecturerIds())
+                .lecturerId(mainLecturerId)
+                .mainLecturerId(mainLecturerId)
+                .lecturerIds(lecturerIds)
+                .teachingAssistantIds(new ArrayList<>(assistantIds))
                 .semester(request.getSemester())
                 .academicYear(request.getAcademicYear())
                 .maxStudents(request.getMaxStudents())
@@ -159,7 +178,25 @@ public class CourseOfferingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học phần với ID: " + offeringId));
 
         offering.setOfferingName(request.getOfferingName());
-        offering.setLecturerIds(request.getLecturerIds());
+        if (request.getLecturerIds() != null) {
+            List<String> lecturerIds = new ArrayList<>(request.getLecturerIds());
+            String previousMainLecturerId = resolveMainLecturerId(offering);
+            String mainLecturerId = request.getLecturerId() != null
+                    ? request.getLecturerId()
+                    : (lecturerIds.isEmpty() ? null : lecturerIds.getFirst());
+            List<String> assistantIds = lecturerIds.size() > 1
+                    ? lecturerIds.stream().filter(id -> !id.equals(mainLecturerId)).distinct().toList()
+                    : (java.util.Objects.equals(previousMainLecturerId, mainLecturerId)
+                    && offering.getTeachingAssistantIds() != null
+                    ? new ArrayList<>(offering.getTeachingAssistantIds()) : List.of());
+            List<String> managers = new ArrayList<>();
+            if (mainLecturerId != null) managers.add(mainLecturerId);
+            assistantIds.stream().filter(id -> !managers.contains(id)).forEach(managers::add);
+            offering.setLecturerId(mainLecturerId);
+            offering.setMainLecturerId(mainLecturerId);
+            offering.setTeachingAssistantIds(new ArrayList<>(assistantIds));
+            offering.setLecturerIds(managers);
+        }
         offering.setSemester(request.getSemester());
         offering.setAcademicYear(request.getAcademicYear());
         offering.setMaxStudents(request.getMaxStudents());
@@ -185,9 +222,14 @@ public class CourseOfferingService {
     private CourseOfferingResponse mapToResponse(CourseOffering entity) {
 
         List<LecturerInfo> lecturerInfos = new ArrayList<>();
+        String mainLecturerId = resolveMainLecturerId(entity);
+        List<String> assistantIds = resolveTeachingAssistantIds(entity, mainLecturerId);
+        List<String> managerIds = new ArrayList<>();
+        if (mainLecturerId != null) managerIds.add(mainLecturerId);
+        assistantIds.stream().filter(id -> !managerIds.contains(id)).forEach(managerIds::add);
 
-        if (entity.getLecturerIds() != null && !entity.getLecturerIds().isEmpty()) {
-            for (String lId : entity.getLecturerIds()) {
+        if (!managerIds.isEmpty()) {
+            for (String lId : managerIds) {
                 try {
                     LecturerResponse lecturer = userClient.getLecturer(lId);
                     lecturerInfos.add(new LecturerInfo(lId, lecturer.getFullName()));
@@ -203,6 +245,8 @@ public class CourseOfferingService {
                 .offeringName(entity.getOfferingName())
                 .course(courseMapper.toCourseResponse(entity.getCourse()))
                 .lecturers(lecturerInfos)
+                .mainLecturer(mainLecturerId == null ? null : getLecturerInfo(mainLecturerId))
+                .teachingAssistants(assistantIds.stream().map(this::getLecturerInfo).toList())
                 .semester(entity.getSemester())
                 .year(entity.getAcademicYear())
                 .maxStudents(entity.getMaxStudents())
@@ -214,6 +258,42 @@ public class CourseOfferingService {
                 .build();
     }
 
+    private String resolveMainLecturerId(CourseOffering offering) {
+        if (offering.getMainLecturerId() != null && !offering.getMainLecturerId().isBlank()) {
+            return offering.getMainLecturerId();
+        }
+        if (offering.getLecturerId() != null && !offering.getLecturerId().isBlank()) {
+            return offering.getLecturerId();
+        }
+        return offering.getLecturerIds() == null || offering.getLecturerIds().isEmpty()
+                ? null
+                : offering.getLecturerIds().getFirst();
+    }
+
+    private List<String> resolveTeachingAssistantIds(CourseOffering offering, String mainLecturerId) {
+        if (offering.getTeachingAssistantIds() != null && !offering.getTeachingAssistantIds().isEmpty()) {
+            return offering.getTeachingAssistantIds().stream()
+                    .filter(id -> !id.equals(mainLecturerId))
+                    .distinct()
+                    .toList();
+        }
+        if (offering.getLecturerIds() == null) return List.of();
+        return offering.getLecturerIds().stream()
+                .filter(id -> !id.equals(mainLecturerId))
+                .distinct()
+                .toList();
+    }
+
+    private LecturerInfo getLecturerInfo(String lecturerId) {
+        try {
+            LecturerResponse lecturer = userClient.getLecturer(lecturerId);
+            return new LecturerInfo(lecturerId, lecturer.getFullName());
+        } catch (Exception exception) {
+            log.error("Cannot load lecturer ID: {}", lecturerId, exception);
+            return new LecturerInfo(lecturerId, "Unknown lecturer");
+        }
+    }
+
     public List<CourseOfferingResponse> getOfferings() {
         List<CourseOffering> offerings = courseOfferingRepository.findAll();
 
@@ -221,6 +301,42 @@ public class CourseOfferingService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
+    public List<CourseOfferingResponse> getOfferingsForLeadership(String userId) {
+        UserResponse user = userClient.getUser(userId);
+        if (user == null) {
+            throw new SecurityException("Không xác định được tài khoản lãnh đạo.");
+        }
+
+        LecturerResponse lecturer = userClient.getLecturerByUserId(userId);
+        if (lecturer == null || lecturer.getDepartment() == null || lecturer.getDepartment().isBlank()) {
+            throw new IllegalStateException("Tài khoản lãnh đạo chưa được gắn với bộ môn.");
+        }
+
+        List<String> departmentNames;
+        if ("DEAN".equals(user.getRole())) {
+            FacultyResponse faculty = userClient.getFacultyByDepartmentName(userId, lecturer.getDepartment());
+            if (faculty == null || faculty.getFacultyName() == null || faculty.getFacultyName().isBlank()) {
+                throw new IllegalStateException("Không xác định được khoa của tài khoản Trưởng khoa.");
+            }
+            departmentNames = userClient.getDepartmentNamesByFaculty(userId, faculty.getFacultyName());
+        } else if ("HEAD_OF_DEPARTMENT".equals(user.getRole())
+                || "DEPARTMENT_HEAD".equals(user.getRole())) {
+            departmentNames = List.of(lecturer.getDepartment());
+        } else {
+            throw new SecurityException("Bạn không có quyền xem dữ liệu OBE cấp đơn vị.");
+        }
+
+        if (departmentNames == null || departmentNames.isEmpty()) {
+            return List.of();
+        }
+
+        return courseOfferingRepository.findByCourseDepartmentIn(departmentNames).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     public List<CourseOfferingResponse> getOfferingsByFaculty(String userId, String facultyName) {
 
         List<String> departmentNames = userClient.getDepartmentNamesByFaculty(userId, facultyName);
@@ -235,7 +351,7 @@ public class CourseOfferingService {
 
 
         return offerings.stream()
-                 .map(courseMapper::toOfferingResponse)
+                 .map(this::mapToResponse)
                 .toList();
     }
 }

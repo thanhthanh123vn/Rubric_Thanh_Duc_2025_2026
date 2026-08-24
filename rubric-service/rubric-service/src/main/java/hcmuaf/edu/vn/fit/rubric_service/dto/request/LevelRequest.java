@@ -13,5 +13,9 @@ public class LevelRequest {
 
     private Float score;
 
+    private Float minScore;
+
+    private Float maxScore;
+
     private String description;
 }

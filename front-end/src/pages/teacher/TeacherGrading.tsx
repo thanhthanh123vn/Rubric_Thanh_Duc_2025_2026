@@ -13,11 +13,13 @@ import {
     MessageSquareText,
     Pencil,
     Plus,
+    RefreshCw,
     Save,
     Search,
     Trash2,
     X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { getRubricMatrixById } from "@/api/RubricApi";
 import { getAllClo, type CloResponse } from "@/features/rubric/rubricApi.ts";
 import {
@@ -45,6 +47,8 @@ interface LevelDTO {
     levelName: string;
     description: string | null;
     score: number | null;
+    minScore: number | null;
+    maxScore: number | null;
 }
 
 interface RubricRowDTO {
@@ -66,6 +70,7 @@ interface CriteriaGradePayload {
     criteriaId: string;
     levelId: string | null;
     scoreAchieved: number;
+    rawScore: number;
 }
 
 type SubmissionFilter = "ALL" | "PENDING" | "GRADED" | "NOT_SUBMITTED";
@@ -121,6 +126,15 @@ const normalizeCriterionWeight = (weight?: number | null) => {
     const numericWeight = Number(weight ?? 0);
     if (!Number.isFinite(numericWeight) || numericWeight <= 0) return 0;
     return numericWeight > 1 ? numericWeight / 100 : numericWeight;
+};
+
+const levelMinScore = (level: LevelDTO) => Number(level.minScore ?? level.score ?? 0);
+const levelMaxScore = (level: LevelDTO) => Number(level.maxScore ?? level.score ?? 0);
+const formatLevelRange = (level: LevelDTO) => {
+    const min = levelMinScore(level);
+    const max = levelMaxScore(level);
+    if (min === 0 && max < 4) return `<${Math.ceil(max)}`;
+    return min === max ? formatScore(max) ?? "0.0" : `${min}-${max}`;
 };
 
 const SubmissionFilePreview = ({
@@ -534,16 +548,32 @@ export default function TeacherGrading() {
                 {
                     levelId?: string | null;
                     score?: number | null;
+                    rawScore?: number | null;
                 }
             >
         >((accumulator, criterion) => {
             accumulator[criterion.criteriaId] = {
                 levelId: criterion.levelId,
                 score: criterion.score,
+                rawScore: criterion.rawScore,
             };
             return accumulator;
         }, {});
     }, [activeSubmission]);
+
+    const getExistingRawScore = (row: RubricRowDTO) => {
+        const gradedCriterion = gradedCriteriaById[row.criteriaId];
+        if (gradedCriterion?.rawScore !== null && gradedCriterion?.rawScore !== undefined) {
+            return Number(gradedCriterion.rawScore);
+        }
+
+        const weightedScore = gradedCriterion?.score;
+        const weight = normalizeCriterionWeight(row.weight);
+        if (weightedScore === null || weightedScore === undefined) return null;
+        return weight > 0
+            ? roundToSingleDecimal(Math.min(10, Math.max(0, Number(weightedScore) / weight)))
+            : roundToSingleDecimal(Number(weightedScore));
+    };
 
     const totalScore = useMemo(() => {
         if (!rubric?.rows?.length) {
@@ -622,14 +652,14 @@ export default function TeacherGrading() {
         }
     };
 
-    const handleLevelSelect = (criteriaId: string, levelId: string, score: number | null) => {
+    const handleLevelSelect = (criteriaId: string, level: LevelDTO) => {
         setSelectedLevels((prev) => ({
             ...prev,
-            [criteriaId]: levelId,
+            [criteriaId]: level.levelId,
         }));
         setCriteriaScores((prev) => ({
             ...prev,
-            [criteriaId]: score || 0,
+            [criteriaId]: levelMaxScore(level),
         }));
     };
 
@@ -718,6 +748,7 @@ export default function TeacherGrading() {
             const selectedLevelId = selectedLevels[row.criteriaId] ?? gradedCriteriaById[row.criteriaId]?.levelId ?? null;
             const editedScore = criteriaScores[row.criteriaId];
             const existingWeightedScore = gradedCriteriaById[row.criteriaId]?.score;
+            const existingRawScore = getExistingRawScore(row);
 
             let calculatedScore: number | null = null;
 
@@ -737,6 +768,7 @@ export default function TeacherGrading() {
                 criteriaId: row.criteriaId,
                 levelId: selectedLevelId ?? null,
                 scoreAchieved: calculatedScore,
+                rawScore: roundToSingleDecimal(Number(editedScore ?? existingRawScore ?? 0)),
             }];
         });
     };
@@ -750,6 +782,20 @@ export default function TeacherGrading() {
         if (gradingMode === "RUBRIC" && !rubric) {
             alert("Không tải được rubric của bài đánh giá. Vui lòng thử tải lại trước khi chấm điểm.");
             return;
+        }
+
+        if (gradingMode === "RUBRIC" && rubric) {
+            const invalidRange = rubric.rows.some((row) => {
+                const selectedLevelId = selectedLevels[row.criteriaId] ?? gradedCriteriaById[row.criteriaId]?.levelId;
+                const selectedLevel = row.levels?.find((level) => level.levelId === selectedLevelId);
+                const score = criteriaScores[row.criteriaId];
+                return selectedLevel && score !== undefined
+                    && (score < levelMinScore(selectedLevel) || score > levelMaxScore(selectedLevel));
+            });
+            if (invalidRange) {
+                alert("Điểm nhập phải nằm trong khoảng của mức rubric đã chọn.");
+                return;
+            }
         }
 
         if (
@@ -792,16 +838,17 @@ export default function TeacherGrading() {
                 totalScore: displayedTotalScore,
                 generalComment: generalComment.trim(),
             })));
-            alert(
+            toast.success(
                 targetSubmissions.length > 1
                     ? `Đã chấm ${targetSubmissions.length} thành viên trong ${activeGroup?.groupName || "nhóm"}.`
                     : "Chấm điểm thành công!",
+                { description: `Điểm đã lưu: ${formatScore(displayedTotalScore) ?? "0.0"}/10` },
             );
             await loadSubmissions();
             setGradingView("feedback");
         } catch (error) {
             console.error("Lỗi khi lưu điểm:", error);
-            alert("Lỗi khi lưu điểm");
+            toast.error("Không thể lưu điểm", { description: "Vui lòng kiểm tra dữ liệu và thử lại." });
         } finally {
             setSaving(false);
         }
@@ -884,9 +931,20 @@ export default function TeacherGrading() {
                                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Chấm điểm</p>
                                 <h2 className="mt-1 text-lg font-bold text-slate-900">Sinh viên</h2>
                             </div>
-                            <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-                                {submissionStats.total}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => void loadSubmissions()}
+                                    disabled={loading}
+                                    title="Tải lại danh sách bài chấm"
+                                    className="rounded-xl border border-slate-200 bg-white p-2 text-slate-600 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                                </button>
+                                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
+                                    {submissionStats.total}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="mt-4 space-y-3">
@@ -926,7 +984,7 @@ export default function TeacherGrading() {
                         {loading ? (
                             <div className="flex items-center justify-center py-10 text-sm text-slate-500">
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin text-emerald-600" />
-                                Đang tải...
+                                Đang tải lại danh sách bài chấm...
                             </div>
                         ) : filteredSubmissions.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
@@ -1200,15 +1258,37 @@ export default function TeacherGrading() {
                                                                                 <span className="text-xs font-semibold text-slate-500">{row.weight}</span>
                                                                             </div>
                                                                             {row.levels?.length ? (
+                                                                                <>
                                                                                 <div className="mt-3 grid gap-2 xl:grid-cols-2">
                                                                                     {row.levels.map((level) => {
                                                                                         const selected = selectedLevels[row.criteriaId] === level.levelId;
                                                                                         const matched = gradedCriteriaById[row.criteriaId]?.levelId === level.levelId;
-                                                                                        return <button key={level.levelId} type="button" onClick={() => handleLevelSelect(row.criteriaId, level.levelId, level.score)} className={`rounded-xl border p-3 text-left transition ${selected ? "border-emerald-500 bg-emerald-50" : matched ? "border-amber-300 bg-amber-50" : "border-slate-200 hover:border-slate-300"}`}><div className="flex justify-between gap-2"><span className="text-sm font-semibold text-slate-800">{level.levelName}</span><span className="text-sm font-bold text-emerald-700">{formatScore(level.score) ?? "0.0"}</span></div>{level.description ? <p className="mt-1 text-xs text-slate-500">{level.description}</p> : null}</button>;
+                                                                                        return <button key={level.levelId} type="button" onClick={() => handleLevelSelect(row.criteriaId, level)} className={`rounded-xl border p-3 text-left transition ${selected ? "border-emerald-500 bg-emerald-50" : matched ? "border-amber-300 bg-amber-50" : "border-slate-200 hover:border-slate-300"}`}><div className="flex justify-between gap-2"><span className="text-sm font-semibold text-slate-800">{level.levelName}</span><span className="text-sm font-bold text-emerald-700">{formatLevelRange(level)}</span></div>{level.description ? <p className="mt-1 text-xs text-slate-500">{level.description}</p> : null}</button>;
                                                                                     })}
                                                                                 </div>
+                                                                                {(() => {
+                                                                                    const selectedLevel = row.levels.find((level) =>
+                                                                                        level.levelId === (selectedLevels[row.criteriaId] ?? gradedCriteriaById[row.criteriaId]?.levelId),
+                                                                                    );
+                                                                                    if (!selectedLevel) return null;
+                                                                                    return (
+                                                                                        <label className="mt-3 block text-xs font-semibold text-slate-600">
+                                                                                            Điểm cụ thể ({formatLevelRange(selectedLevel)})
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min={levelMinScore(selectedLevel)}
+                                                                                                max={levelMaxScore(selectedLevel)}
+                                                                                                step="0.1"
+                                                                                                value={criteriaScores[row.criteriaId] ?? getExistingRawScore(row) ?? levelMaxScore(selectedLevel)}
+                                                                                                onChange={(event) => handleScoreChange(row.criteriaId, Number(event.target.value))}
+                                                                                                className="mt-1 w-28 rounded-xl border border-slate-300 px-3 py-2 text-center text-sm font-bold outline-none focus:border-emerald-500"
+                                                                                            />
+                                                                                        </label>
+                                                                                    );
+                                                                                })()}
+                                                                                </>
                                                                             ) : (
-                                                                                <input type="number" min="0" step="0.1" value={criteriaScores[row.criteriaId] ?? gradedCriteriaById[row.criteriaId]?.score ?? ""} onChange={(event) => handleScoreChange(row.criteriaId, Number(event.target.value))} className="mt-3 w-28 rounded-xl border border-slate-300 px-3 py-2 text-center font-bold outline-none focus:border-emerald-500" placeholder="Điểm" />
+                                                                                <input type="number" min="0" step="0.1" value={criteriaScores[row.criteriaId] ?? getExistingRawScore(row) ?? ""} onChange={(event) => handleScoreChange(row.criteriaId, Number(event.target.value))} className="mt-3 w-28 rounded-xl border border-slate-300 px-3 py-2 text-center font-bold outline-none focus:border-emerald-500" placeholder="Điểm" />
                                                                             )}
                                                                         </div>
                                                                     ))}
@@ -1794,6 +1874,7 @@ export default function TeacherGrading() {
                                                         <p className="mt-3 font-semibold text-slate-900">{row.criteriaName}</p>
 
                                                         {row.levels && row.levels.length > 0 ? (
+                                                            <>
                                                             <div
                                                                 className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
                                                             >
@@ -1806,7 +1887,7 @@ export default function TeacherGrading() {
                                                                         <button
                                                                             key={level.levelId}
                                                                             type="button"
-                                                                            onClick={() => handleLevelSelect(row.criteriaId, level.levelId, level.score)}
+                                                                            onClick={() => handleLevelSelect(row.criteriaId, level)}
                                                                             className={`rounded-xl border p-3 text-left transition ${
                                                                                 isSelected
                                                                                     ? "border-emerald-500 bg-emerald-100 shadow-sm"
@@ -1831,13 +1912,34 @@ export default function TeacherGrading() {
                                                                                                 : "bg-white text-slate-700"
                                                                                     }`}
                                                                                 >
-                                          {formatScore(level.score) ?? "0.0"}
+                                          {formatLevelRange(level)}
                                         </span>
                                                                             </div>
                                                                         </button>
                                                                     );
                                                                 })}
                                                             </div>
+                                                            {(() => {
+                                                                const selectedLevel = row.levels.find((level) =>
+                                                                    level.levelId === (selectedLevels[row.criteriaId] ?? gradedCriteriaById[row.criteriaId]?.levelId),
+                                                                );
+                                                                if (!selectedLevel) return null;
+                                                                return (
+                                                                    <label className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                                                                        <span>Nhập điểm trong khoảng {formatLevelRange(selectedLevel)}</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            min={levelMinScore(selectedLevel)}
+                                                                            max={levelMaxScore(selectedLevel)}
+                                                                            step="0.1"
+                                                                            value={criteriaScores[row.criteriaId] ?? getExistingRawScore(row) ?? levelMaxScore(selectedLevel)}
+                                                                            onChange={(event) => handleScoreChange(row.criteriaId, Number(event.target.value))}
+                                                                            className="w-24 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-center font-bold outline-none focus:border-emerald-500"
+                                                                        />
+                                                                    </label>
+                                                                );
+                                                            })()}
+                                                            </>
                                                         ) : (
                                                             <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
                                                                 <span className="text-sm text-slate-600">Nhập điểm tay</span>
@@ -1848,7 +1950,7 @@ export default function TeacherGrading() {
                                                                     step="0.1"
                                                                     value={
                                                                         criteriaScores[row.criteriaId] ??
-                                                                        gradedCriteriaById[row.criteriaId]?.score ??
+                                                                        getExistingRawScore(row) ??
                                                                         ""
                                                                     }
                                                                     onChange={(event) => handleScoreChange(row.criteriaId, Number(event.target.value))}

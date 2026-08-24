@@ -32,8 +32,10 @@ export const assessmentPaperApi = {
         const response = await courseApi.post("/assessments/paper/generate", data);
         return response.data;
     },
-    getAllExams: async () => {
-        const response = await courseApi.get("/assessments/paper/getAllExams");
+    getAllExams: async (offeringId?: string) => {
+        const response = await courseApi.get("/assessments/paper/getAllExams", {
+            params: offeringId ? { offeringId } : undefined,
+        });
         return response.data;
 
     },

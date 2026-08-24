@@ -17,6 +17,14 @@ import courseService from "@/pages/admin/api/courseService.ts";
 import AssignLecturerModal from './AssignLecturerModal.tsx';
 
 export default function CourseManagement() {
+    const currentRole = (() => {
+        try {
+            return JSON.parse(localStorage.getItem('user') || '{}')?.role as string | undefined;
+        } catch {
+            return undefined;
+        }
+    })();
+    const canAssignDirectly = currentRole === 'ADMIN';
     const [searchQuery, setSearchQuery] = useState('');
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -197,7 +205,7 @@ export default function CourseManagement() {
                                     <TableCell className="text-right pr-4">
                                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             {/* Thêm Nút Phân Công (UserPlus) */}
-                                            <Button title="Phân công giảng viên" onClick={() => openAssignModal(course.courseId, course.courseName, course.department)} variant="ghost" size="icon" className="h-9 w-9 text-indigo-600 hover:bg-indigo-50 rounded-lg"><UserPlus className="w-4 h-4" /></Button>
+                                            {canAssignDirectly && <Button title="Phân công giảng viên" onClick={() => openAssignModal(course.courseId, course.courseName, course.department)} variant="ghost" size="icon" className="h-9 w-9 text-indigo-600 hover:bg-indigo-50 rounded-lg"><UserPlus className="w-4 h-4" /></Button>}
 
                                             <Button title="Chỉnh sửa" onClick={() => handleOpenEdit(course)} variant="ghost" size="icon" className="h-9 w-9 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></Button>
                                             <Button title="Xóa" onClick={() => setDeletingCourse(course)} variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></Button>
@@ -219,7 +227,7 @@ export default function CourseManagement() {
                     <div key={course.courseId} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col gap-3 relative">
                         <div className="absolute top-3 right-3 flex gap-1">
 
-                            <button title="Phân công GV" onClick={() => openAssignModal(course.courseId, course.courseName, course.department)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full bg-indigo-50/50"><UserPlus className="w-4 h-4" /></button>
+                            {canAssignDirectly && <button title="Phân công GV" onClick={() => openAssignModal(course.courseId, course.courseName, course.department)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full bg-indigo-50/50"><UserPlus className="w-4 h-4" /></button>}
                             <button onClick={() => handleOpenEdit(course)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full bg-blue-50/50"><Edit className="w-4 h-4" /></button>
                             <button onClick={() => setDeletingCourse(course)} className="p-2 text-red-500 hover:bg-red-50 rounded-full bg-red-50/50"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -332,7 +340,7 @@ export default function CourseManagement() {
             </AlertDialog>
 
 
-            {selectedCourse && (
+            {canAssignDirectly && selectedCourse && (
                 <AssignLecturerModal
                     isOpen={isAssignModalOpen}
                     onClose={() => setIsAssignModalOpen(false)}

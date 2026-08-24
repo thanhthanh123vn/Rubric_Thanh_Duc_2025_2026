@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {Bookmark, MoreVertical, Users, Send, FileText, Download, X} from "lucide-react";
 import Header from "@/components/home/Header.tsx";
@@ -75,6 +76,20 @@ export default function MaterialDetail() {
 
     fetchDetailData();
 }, [postId, offeringId]);
+
+    useEffect(() => {
+        if (!previewFile) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setPreviewFile(null);
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [previewFile]);
 
     const handleAddComment = async () => {
         if (!commentInput.trim()) return;
@@ -216,9 +231,9 @@ export default function MaterialDetail() {
             </div>
 
             {/* Modal xem trước file */}
-            {previewFile && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6">
-                    <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            {previewFile ? createPortal(
+                <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && setPreviewFile(null)}>
+                    <div className="flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:h-[min(90dvh,900px)] sm:rounded-2xl">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/80">
                             <h3 className="font-bold text-gray-900 flex items-center gap-2">
                                 <FileText className="w-5 h-5 text-blue-500"/>
@@ -252,8 +267,9 @@ export default function MaterialDetail() {
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+                </div>,
+                document.body,
+            ) : null}
         </div>
     );
 }

@@ -5,6 +5,10 @@ import {
   FileSpreadsheet, FolderKanban, GraduationCap, Loader2, Users, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer,
+  Tooltip, XAxis, YAxis,
+} from "recharts";
 
 import { attendanceApi, type AttendanceStudentOverviewResponse } from "@/api/attendanceApi.ts";
 import { fetchSubmissionStatuses } from "@/api/GradingApi.ts";
@@ -36,7 +40,7 @@ type ObeProgress = {
   totalStudents?: number;
   overallProgress?: number;
 };
-type RubricLevel = { levelId: string; levelName: string; description?: string | null; score?: number | null };
+type RubricLevel = { levelId: string; levelName: string; description?: string | null; score?: number | null; minScore?: number | null; maxScore?: number | null };
 type RubricRow = { criteriaId: string; criteriaName: string; weight: number; levels: RubricLevel[] };
 type AttendanceRubric = { id: string; name: string; description?: string; rows: RubricRow[] };
 
@@ -171,6 +175,13 @@ function TeacherReportPage({ section }: { section: ReportSection }) {
       warning: clos.filter((item) => Number(item.progressPercent || 0) < 50).length,
     };
   }, [obe]);
+  const outcomeChartData = useMemo(() => quality.clos.map((clo) => ({
+    cloId: clo.cloId,
+    code: clo.cloCode || "CLO",
+    progress: Math.round(clampPercent(Number(clo.progressPercent || 0))),
+    passed: Number(clo.passedStudents || 0),
+    failed: Number(clo.failedStudents || 0),
+  })), [quality.clos]);
 
   const loadAttendanceRubric = async () => {
     if (attendanceRubric) return attendanceRubric;
@@ -469,6 +480,43 @@ function TeacherReportPage({ section }: { section: ReportSection }) {
               { label: "Sinh viên", value: String(obe?.totalStudents || roster.length), icon: <Users className="h-5 w-5" /> },
             ].map((item) => <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4"><div className="flex items-center justify-between text-slate-500"><span className="text-xs font-semibold uppercase tracking-wide">{item.label}</span>{item.icon}</div><p className="mt-3 text-2xl font-bold text-slate-900">{item.value}</p></div>)}
           </div>
+          <div className="rounded-xl border border-slate-200 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div><h3 className="font-semibold text-slate-900">Biểu đồ mức đạt theo CLO</h3><p className="mt-1 text-sm text-slate-500">So sánh tỷ lệ đạt thực tế với ngưỡng chuẩn 70%.</p></div>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Đạt ≥ 70%</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />Từ 50–69%</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" />Dưới 50%</span>
+              </div>
+            </div>
+            {outcomeChartData.length === 0 ? (
+              <div className="flex h-72 items-center justify-center text-sm text-slate-500">Chưa có dữ liệu CLO để vẽ biểu đồ.</div>
+            ) : (
+              <div className="mt-5 h-72 w-full sm:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={outcomeChartData} margin={{ top: 12, right: 12, left: -12, bottom: 4 }} accessibilityLayer>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="code" axisLine={false} tickLine={false} tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }} />
+                    <YAxis domain={[0, 100]} ticks={[0, 25, 50, 70, 100]} unit="%" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
+                    <Tooltip
+                      cursor={{ fill: "#f1f5f9" }}
+                      formatter={(value) => [`${Math.round(Number(value))}%`, "Mức đạt"]}
+                      labelFormatter={(label) => `Chuẩn đầu ra: ${label}`}
+                      contentStyle={{ borderRadius: 12, borderColor: "#e2e8f0", boxShadow: "0 10px 25px rgba(15, 23, 42, 0.08)" }}
+                    />
+                    <ReferenceLine y={70} stroke="#059669" strokeDasharray="5 5" label={{ value: "Ngưỡng 70%", position: "insideTopRight", fill: "#047857", fontSize: 11 }} />
+                    <Bar dataKey="progress" name="Mức đạt" radius={[8, 8, 0, 0]} maxBarSize={64} onClick={(data) => {
+                      const cloId = (data.payload as { cloId?: string } | undefined)?.cloId;
+                      if (cloId) navigate(`/teacher/course/${offeringId}/obe/${cloId}`);
+                    }} className="cursor-pointer">
+                      {outcomeChartData.map((item) => <Cell key={item.cloId} fill={item.progress >= 70 ? "#10b981" : item.progress >= 50 ? "#f59e0b" : "#f43f5e"} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            {outcomeChartData.length > 0 ? <p className="mt-2 text-center text-xs text-slate-500">Nhấn vào một cột để xem chi tiết CLO.</p> : null}
+          </div>
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="overflow-hidden rounded-xl border border-slate-200"><div className="border-b border-slate-200 bg-slate-50 px-4 py-3"><h3 className="font-semibold text-slate-900">Mức độ đạt theo CLO</h3></div><div className="divide-y divide-slate-100">
               {quality.clos.length === 0 ? <div className="px-4 py-12 text-center text-sm text-slate-500">Chưa có dữ liệu CLO để thống kê.</div> : quality.clos.map((clo) => { const progress = Number(clo.progressPercent || 0); return <button key={clo.cloId} type="button" onClick={() => navigate(`/teacher/course/${offeringId}/obe/${clo.cloId}`)} className="block w-full px-4 py-4 text-left hover:bg-slate-50"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold text-slate-900">{clo.cloCode || "CLO"}</p><p className="mt-1 text-sm text-slate-500">{clo.cloDescription || "Chưa có mô tả"}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${progress >= 70 ? "bg-emerald-100 text-emerald-700" : progress >= 50 ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"}`}>{Math.round(progress)}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${progress >= 70 ? "bg-emerald-500" : progress >= 50 ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${clampPercent(progress)}%` }} /></div><p className="mt-2 text-xs text-slate-500">Đạt {clo.passedStudents || 0} · Chưa đạt {clo.failedStudents || 0}</p></button>; })}
@@ -495,7 +543,9 @@ function TeacherReportPage({ section }: { section: ReportSection }) {
                     <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold text-slate-900">{criterion.criteriaName}</h3><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Trọng số {criterion.weight}%</span></div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{(criterion.levels || []).map((level) => {
                       const selected = selectedRubricLevels[criterion.criteriaId] === level.levelId;
-                      return <button key={level.levelId} type="button" onClick={() => setSelectedRubricLevels((current) => ({ ...current, [criterion.criteriaId]: level.levelId }))} className={`rounded-xl border p-3 text-left transition ${selected ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 hover:border-emerald-300 hover:bg-slate-50"}`}><div className="flex items-start justify-between gap-3"><span className="font-semibold text-slate-900">{level.levelName}</span><span className="rounded-lg bg-white px-2 py-1 text-sm font-bold text-emerald-700">{Number(level.score ?? 0).toFixed(1)}</span></div>{level.description ? <p className="mt-2 text-xs leading-5 text-slate-500">{level.description}</p> : null}</button>;
+                      const minScore = Number(level.minScore ?? level.score ?? 0);
+                      const maxScore = Number(level.maxScore ?? level.score ?? 0);
+                      return <button key={level.levelId} type="button" onClick={() => setSelectedRubricLevels((current) => ({ ...current, [criterion.criteriaId]: level.levelId }))} className={`rounded-xl border p-3 text-left transition ${selected ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200 hover:border-emerald-300 hover:bg-slate-50"}`}><div className="flex items-start justify-between gap-3"><span className="font-semibold text-slate-900">{level.levelName}</span><span className="rounded-lg bg-white px-2 py-1 text-sm font-bold text-emerald-700">{minScore === maxScore ? maxScore.toFixed(1) : `${minScore}-${maxScore}`}</span></div>{level.description ? <p className="mt-2 text-xs leading-5 text-slate-500">{level.description}</p> : null}</button>;
                     })}</div>
                   </div>)}
                 </div>}

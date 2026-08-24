@@ -51,9 +51,7 @@ public class CourseCloController {
                             .ip(ip)
                     .build());
 
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        } catch (Exception ignored) { }
 
         return ResponseEntity.ok(courseCloService.createClo(courseCloEntity));
     }
@@ -61,5 +59,11 @@ public class CourseCloController {
     @PutMapping("/{cloId}")
     public ResponseEntity<?> updateCourseClo(@PathVariable String cloId, @RequestBody CloRequest courseCloEntity){
         return ResponseEntity.ok(courseCloService.updateClo(cloId, courseCloEntity));
+    }
+
+    @DeleteMapping("/{cloId}")
+    public ResponseEntity<Void> deleteCourseClo(@PathVariable String cloId) {
+        courseCloService.deleteClo(cloId);
+        return ResponseEntity.noContent().build();
     }
 }

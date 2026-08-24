@@ -15,6 +15,11 @@ export interface CloResponse {
     description: string;
     bloomLevel: string;
     courseId: string;
+    approvalStatus: "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+    submittedAt?: string | null;
+    reviewedByName?: string | null;
+    reviewedAt?: string | null;
+    rejectionReason?: string | null;
 }
 
 export interface CourseOption {
@@ -171,6 +176,32 @@ export const getAllRubric = () => {
     return rubricServiceApi.get("/rubrics");
 };
 
+export const getSharedRubrics = async (): Promise<RubricResponse[]> => {
+    const response = await getAllRubric();
+    const rows = Array.isArray(response.data) ? response.data : [];
+
+    const shared = rows
+        .map((item) => normalizeRubric(item as RawRecord))
+        .filter((rubric) =>
+            rubric.rubricType === "FACULTY"
+            && rubric.visibility === "FACULTY"
+            && rubric.status === "APPROVED",
+        );
+
+    const latestByRoot = new Map<string, RubricResponse>();
+    shared.forEach((rubric) => {
+        const rootId = rubric.rootRubricId || rubric.id;
+        const current = latestByRoot.get(rootId);
+        if (!current || (rubric.versionNumber ?? 1) > (current.versionNumber ?? 1)) {
+            latestByRoot.set(rootId, rubric);
+        }
+    });
+
+    return [...latestByRoot.values()]
+        .sort((a, b) => a.name.localeCompare(b.name, "vi"))
+        .slice(0, 4);
+};
+
 export const getMyRubrics = () => {
     return rubricServiceApi.get("/rubrics/me");
 };
@@ -211,6 +242,10 @@ export const createClo = (data: CloPayload) => {
 
 export const updateClo = (cloId: string, data: CloPayload) => {
     return rubricServiceApi.put(`/course-clo/${cloId}`, data);
+};
+
+export const deleteClo = (cloId: string) => {
+    return rubricServiceApi.delete(`/course-clo/${cloId}`);
 };
 
 export const getCourseOptions = async () => {
@@ -269,6 +304,8 @@ export const getRubricForEdit = async (rubricId: string) => {
                         name: String(level.levelName ?? level.name ?? ""),
                         description: String(level.description ?? ""),
                         score: toNumber(level.score),
+                        minScore: toNumber(level.minScore ?? level.score),
+                        maxScore: toNumber(level.maxScore ?? level.score),
                         orderIndex: index + 1,
                     };
                 }) : [],

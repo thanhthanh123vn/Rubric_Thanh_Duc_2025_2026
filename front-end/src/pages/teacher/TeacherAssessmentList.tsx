@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { assessmentService } from "@/pages/admin/api/assessmentService.ts";
 import { fetchSubmissionStatuses, summarizeSubmissionStatuses } from "@/api/GradingApi.ts";
-import { CalendarDays, Check, ChevronRight, ClipboardList, Clock3, ListFilter, Search, SlidersHorizontal, X } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, ClipboardList, Clock3, ListFilter, Loader2, RefreshCw, Search, SlidersHorizontal, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface TeacherAssessmentItem {
   assessmentId: string;
@@ -69,12 +70,13 @@ export default function TeacherAssessmentList() {
   const [showSortOptions, setShowSortOptions] = useState(false);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
+  const loadAssessments = useCallback(async () => {
     if (!id) return;
 
-    let active = true;
-    const loadAssessments = async () => {
+    setIsLoading(true);
+    try {
       const data = await assessmentService.getAssessmentsByOffering(id);
       const items: TeacherAssessmentItem[] = Array.isArray(data) ? data : [];
       const itemsWithAccurateCounts = await Promise.all(
@@ -92,14 +94,20 @@ export default function TeacherAssessmentList() {
         }),
       );
 
-      if (active) setAssessments(itemsWithAccurateCounts);
-    };
-
-    void loadAssessments();
-    return () => {
-      active = false;
-    };
+      setAssessments(itemsWithAccurateCounts);
+    } catch (error) {
+      console.error("Không thể tải danh sách bài tập cần chấm:", error);
+      toast.error("Không thể tải danh sách bài tập", {
+        description: "Vui lòng thử tải lại dữ liệu.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void loadAssessments();
+  }, [loadAssessments]);
 
   const assessmentTypes = useMemo(() =>
     [...new Set(assessments.map((item) => item.assessmentType?.trim()).filter(Boolean) as string[])]
@@ -153,6 +161,15 @@ export default function TeacherAssessmentList() {
         <p className="mt-1 text-xs text-slate-500 md:text-sm">
           Quản lý và chấm điểm bài tập của sinh viên.
         </p>
+        <button
+          type="button"
+          onClick={() => void loadAssessments()}
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          {isLoading ? "Đang tải lại..." : "Tải lại"}
+        </button>
       </div>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
@@ -279,7 +296,12 @@ export default function TeacherAssessmentList() {
       </section>
 
       <div className="grid gap-4">
-        {filteredAssessments.length === 0 ? (
+        {isLoading ? (
+          <div className="flex min-h-44 items-center justify-center rounded-3xl border border-slate-200 bg-white p-10 text-sm font-medium text-slate-600 shadow-sm">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-600" />
+            Đang tải lại danh sách bài tập và số bài chờ chấm...
+          </div>
+        ) : filteredAssessments.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
             Không có bài tập phù hợp với điều kiện tìm kiếm hoặc ngày đã chọn.
           </div>

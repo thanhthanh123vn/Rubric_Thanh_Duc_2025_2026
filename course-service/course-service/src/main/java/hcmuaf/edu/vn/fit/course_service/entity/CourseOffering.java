@@ -29,6 +29,9 @@ public class CourseOffering {
 
     @Column(name = "lecturer_id")
     private String lecturerId;
+
+    @Column(name = "main_lecturer_id")
+    private String mainLecturerId;
     @Column(name = "semester", length = 50)
     private String semester;
 
@@ -66,5 +69,15 @@ public class CourseOffering {
             joinColumns = @JoinColumn(name = "offering_id")
     )
     @Column(name = "lecturer_id")
+    @Builder.Default
     private List<String> lecturerIds = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+            name = "course_offering_teaching_assistants",
+            joinColumns = @JoinColumn(name = "offering_id")
+    )
+    @Column(name = "lecturer_id")
+    @Builder.Default
+    private List<String> teachingAssistantIds = new ArrayList<>();
 }

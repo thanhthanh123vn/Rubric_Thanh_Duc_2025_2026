@@ -45,6 +45,7 @@ import {
 
 type AssessmentPaper = {
     id: string;
+    offeringId?: string | null;
     assessmentId?: string | null;
     sourceQuestionBankId?: string | null;
     questionIds?: string[];
@@ -108,7 +109,7 @@ export default function TeacherExamList() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const response = await assessmentPaperApi.getAllExams();
+            const response = await assessmentPaperApi.getAllExams(id);
 
             const rows = Array.isArray(response)
                 ? response
@@ -129,7 +130,7 @@ export default function TeacherExamList() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [id]);
 
     const handlePublish = async (examId: string) => {
         if (!examId) {

@@ -1,7 +1,8 @@
 x-backend-environment: &backend-environment
   DB_NAME: ${DB_USER:-lms}
   DB_PW: ${DB_PASSWORD}
-  SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_DATABASE:-db_rubric}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+  DB_USERNAME: ${DB_USER:-lms}
+  DB_PASSWORD: ${DB_PASSWORD}
   EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
   EUREKA_CLIENT_REGISTERWITHEUREKA: "true"
   EUREKA_CLIENT_FETCHREGISTRY: "true"
@@ -19,6 +20,8 @@ x-backend-environment: &backend-environment
   AWS_SECRET_KEY: ${AWS_SECRET_KEY:-disabled}
   CLIENTS_USER_SERVICE_URL: http://user-service:8081/api/v1/user-service
   CLIENTS_COURSE_SERVICE_URL: http://course-service:8082
+  CLIENTS_RUBRIC_SERVICE_URL: http://rubric-service:8083/api/v1/rubric-service
+  CLIENTS_NOTIFICATION_SERVICE_URL: http://notification-service:8084
 
 x-backend-defaults: &backend-defaults
   restart: unless-stopped
@@ -31,12 +34,13 @@ services:
     image: mariadb:10.4
     restart: unless-stopped
     environment:
-      MARIADB_DATABASE: ${DB_DATABASE:-db_rubric}
+      MARIADB_DATABASE: db_user
       MARIADB_USER: ${DB_USER:-lms}
       MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
+      - mysql-socket:/run/mysqld
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASSWORD}"]
@@ -46,11 +50,47 @@ services:
     networks:
       - lms-network
 
+  database-init:
+    image: mariadb:10.4
+    restart: "no"
+    environment:
+      MARIADB_SOCKET: /run/mysqld/mysqld.sock
+      MARIADB_USER: ${DB_USER:-lms}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      SERVICE_DB_MIGRATION_FILE: /migration/split-service-databases.sql
+    volumes:
+      - mysql-socket:/run/mysqld
+      - ./docker/mysql/init/01-create-service-databases.sh:/usr/local/bin/create-service-databases.sh:ro
+      - ./scripts/split-service-databases.sql:/migration/split-service-databases.sql:ro
+    entrypoint: ["/bin/bash", "/usr/local/bin/create-service-databases.sh"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lms-network
+
   mongodb:
     image: mongo:7
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - lms-network
+
+  mongodb-init:
+    image: mongo:7
+    restart: "no"
+    volumes:
+      - ./scripts/split-mongodb-databases.js:/migration/split-mongodb-databases.js:ro
+    entrypoint: ["mongosh", "mongodb://mongodb:27017/db_rubric", "/migration/split-mongodb-databases.js"]
+    depends_on:
+      mongodb:
+        condition: service_healthy
     networks:
       - lms-network
 
@@ -75,9 +115,12 @@ services:
   user-service:
     <<: *backend-defaults
     build: ./user-service/user-service
+    environment:
+      <<: *backend-environment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_user?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     depends_on:
-      mysql:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_started
 
@@ -86,21 +129,25 @@ services:
     build: ./course-service/course-service
     environment:
       <<: *backend-environment
-      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/${DB_DATABASE:-db_rubric}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_course?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/db_course
     depends_on:
-      mysql:
-        condition: service_healthy
-      mongodb:
-        condition: service_started
+      database-init:
+        condition: service_completed_successfully
+      mongodb-init:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_started
 
   rubric-service:
     <<: *backend-defaults
     build: ./rubric-service/rubric-service
+    environment:
+      <<: *backend-environment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_rubric_service?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     depends_on:
-      mysql:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_started
 
@@ -109,11 +156,15 @@ services:
     build: ./notification-service/notification-service
     environment:
       <<: *backend-environment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_notification?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/db_notification
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: "6379"
     depends_on:
-      mysql:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
+      mongodb-init:
+        condition: service_completed_successfully
       redis:
         condition: service_started
       eureka-server:
@@ -122,9 +173,12 @@ services:
   grading-service:
     <<: *backend-defaults
     build: ./grading-service/grading-service
+    environment:
+      <<: *backend-environment
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_grading?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     depends_on:
-      mysql:
-        condition: service_healthy
+      database-init:
+        condition: service_completed_successfully
       eureka-server:
         condition: service_started
 
@@ -166,6 +220,6 @@ networks:
 
 volumes:
   mysql-data:
+  mysql-socket:
   mongo-data:
   redis-data:
-

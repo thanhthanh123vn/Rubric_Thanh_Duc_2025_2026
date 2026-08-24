@@ -57,6 +57,7 @@ export interface LecturerProfile {
     email: string;
     department: string;
     academicTitle: string;
+    role?: string;
 }
 export interface Course {
     courseId: string;
@@ -86,6 +87,8 @@ export interface CourseOfferingResponse {
 
 
     lecturers: LecturerInfo[];
+    mainLecturer?: LecturerInfo | null;
+    teachingAssistants?: LecturerInfo[];
 
     semester: string;
     year: string;

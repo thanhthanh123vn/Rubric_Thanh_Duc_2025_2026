@@ -100,6 +100,8 @@ public class RubricMatrixMapper {
                 .levelName(level.getLevelName())
                 .description(level.getDescription())
                 .score(level.getScore())
+                .minScore(level.getMinScore() == null ? level.getScore() : level.getMinScore())
+                .maxScore(level.getMaxScore() == null ? level.getScore() : level.getMaxScore())
                 .build();
     }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { FileText, Download, Eye, X, Search, File, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,6 +17,20 @@ export default function StudentCourseMaterials() {
 
     // State quản lý xem trước
     const [previewFile, setPreviewFile] = useState<SyllabusFile | null>(null);
+
+    useEffect(() => {
+        if (!previewFile) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setPreviewFile(null);
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [previewFile]);
 
     useEffect(() => {
         if (id) {
@@ -157,9 +172,9 @@ export default function StudentCourseMaterials() {
             </div>
 
             {/* --- MODAL XEM TRƯỚC NẰM NGOÀI CÙNG --- */}
-            {previewFile && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-900/60  sm:p-6 animate-in fade-in duration-200">
-                    <div className="bg-white w-full sm:w-auto sm:min-w-[800px] h-[95vh] sm:h-[85vh] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            {previewFile ? createPortal(
+                <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] flex items-end justify-center bg-slate-900/60 sm:items-center sm:p-6 animate-in fade-in duration-200" onMouseDown={(event) => event.target === event.currentTarget && setPreviewFile(null)}>
+                    <div className="flex h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl animate-in slide-in-from-bottom-10 duration-200 sm:h-[min(88dvh,900px)] sm:w-[min(1100px,calc(100vw-3rem))] sm:rounded-2xl sm:slide-in-from-bottom-0 sm:zoom-in-95">
                         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 bg-white">
                             <div className="flex items-center gap-3 pr-4 overflow-hidden">
                                 {getFileIcon(previewFile.fileName)}
@@ -206,8 +221,9 @@ export default function StudentCourseMaterials() {
                             )}
                         </div>
                     </div>
-                </div>
-            )}
+                </div>,
+                document.body,
+            ) : null}
         </div>
     );
 }

@@ -34,7 +34,7 @@ LEFT JOIN submissions s
     ON s.assessment_id = a.assessment_id
     AND s.student_id = :studentId
 
-LEFT JOIN rubric_results rr 
+LEFT JOIN db_grading.rubric_results rr
     ON rr.submission_id = s.submission_id
 
 LEFT JOIN assessment_clo ac 
@@ -81,14 +81,14 @@ GROUP BY
    FROM assessments a
    LEFT JOIN submissions s
        ON s.assessment_id = a.assessment_id
-      AND s.student_id = ?
-   LEFT JOIN rubric_results rr
+      AND s.student_id = :studentId
+   LEFT JOIN db_grading.rubric_results rr
        ON rr.submission_id = s.submission_id
    LEFT JOIN assessment_clo ac
        ON ac.assessment_id = a.assessment_id
    LEFT JOIN course_clo c
        ON c.clo_id = ac.clo_id
-   WHERE a.assessment_id = ?
+   WHERE a.assessment_id = :assessmentId
    GROUP BY
        a.assessment_id,
        a.assessment_name,
@@ -99,7 +99,10 @@ GROUP BY
        s.submission_id,
        s.submitted_at;
     """, nativeQuery = true)
-    List<Object[]> getAssignmentDetail(String assessmentId,String studentId);
+    List<Object[]> getAssignmentDetail(
+            @Param("assessmentId") String assessmentId,
+            @Param("studentId") String studentId
+    );
 
     @Query(value = """
     SELECT
@@ -108,17 +111,18 @@ GROUP BY
         rr.level_id,
         rl.level_name,
         rr.calculated_score,
-        max_level.max_score
+        max_level.max_score,
+        rr.raw_score
     FROM submissions s
-    JOIN rubric_results rr
+    JOIN db_grading.rubric_results rr
         ON rr.submission_id = s.submission_id
-    LEFT JOIN rubric_criteria rc
+    LEFT JOIN db_rubric_service.rubric_criteria rc
         ON rc.criteria_id = rr.criteria_id
-    LEFT JOIN rubric_levels rl
+    LEFT JOIN db_rubric_service.rubric_levels rl
         ON rl.level_id = rr.level_id
     LEFT JOIN (
         SELECT criteria_id, MAX(score) AS max_score
-        FROM rubric_levels
+        FROM db_rubric_service.rubric_levels
         GROUP BY criteria_id
     ) max_level
         ON max_level.criteria_id = rr.criteria_id

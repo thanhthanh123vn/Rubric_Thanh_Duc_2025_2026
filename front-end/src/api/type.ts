@@ -37,6 +37,7 @@ export interface SubmissionStatusDTO {
         levelId?: string | null;
         levelName?: string | null;
         score?: number | null;
+        rawScore?: number | null;
     }[] | null;
 }
 

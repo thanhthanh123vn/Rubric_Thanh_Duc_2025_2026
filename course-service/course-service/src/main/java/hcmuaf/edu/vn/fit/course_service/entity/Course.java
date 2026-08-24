@@ -20,6 +20,9 @@ public class Course {
     @Column(name = "department_id", length = 100)
     private String departmentId;
 
+    @Column(name = "program_id", length = 50)
+    private String programId;
+
     @Column(name = "course_code", length = 20, nullable = false, unique = true)
     private String courseCode;
 

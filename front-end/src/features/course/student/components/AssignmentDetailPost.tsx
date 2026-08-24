@@ -19,8 +19,73 @@ import Sidebar from "./Sidebar";
 import {courseService} from "@/features/course/courseApi.ts";
 import {useAppSelector} from "@/hooks/useAppSelector.ts";
 import {assessmentCommentApi} from "@/features/course/student/api/AssignmentDetailPost.ts";
-import {getRubricById, type RubricDTO} from "@/api/RubricApi.ts";
-import {ru} from "react-day-picker/locale";
+import {getRubricById} from "@/api/RubricApi.ts";
+import {getAllClo, type CloResponse} from "@/features/rubric/rubricApi.ts";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog.tsx";
+
+type AssignmentRubricLevel = {
+    id: string;
+    name: string;
+    description: string;
+    score: number;
+};
+
+type AssignmentRubricCriterion = {
+    id: string;
+    name: string;
+    description: string;
+    weight: number;
+    cloId: string | null;
+    levels: AssignmentRubricLevel[];
+};
+
+type AssignmentRubric = {
+    id: string;
+    name: string;
+    description: string;
+    totalWeight: number;
+    criteria: AssignmentRubricCriterion[];
+};
+
+const normalizeAssignmentRubric = (raw: any): AssignmentRubric => {
+    const criteria = (Array.isArray(raw?.criteria) ? raw.criteria : raw?.criteriaList || []).map(
+        (criterion: any, criterionIndex: number) => ({
+            id: String(criterion.id || criterion.criteriaId || `criterion-${criterionIndex}`),
+            name: String(criterion.name || criterion.criteriaName || `Tiêu chí ${criterionIndex + 1}`),
+            description: String(criterion.description || ""),
+            weight: Number(criterion.weight || 0),
+            cloId: criterion.cloId ? String(criterion.cloId) : null,
+            levels: (Array.isArray(criterion.levels) ? criterion.levels : [])
+                .map((level: any, levelIndex: number) => ({
+                    id: String(level.id || level.levelId || `level-${criterionIndex}-${levelIndex}`),
+                    name: String(level.name || level.levelName || `Mức ${levelIndex + 1}`),
+                    description: String(level.description || ""),
+                    score: Number(level.score || 0),
+                }))
+                .sort((first: AssignmentRubricLevel, second: AssignmentRubricLevel) => second.score - first.score),
+        }),
+    );
+
+    return {
+        id: String(raw?.id || raw?.rubricId || ""),
+        name: String(raw?.name || raw?.rubricName || "Rubric chấm điểm"),
+        description: String(raw?.description || ""),
+        totalWeight: Number(
+            raw?.totalWeight || criteria.reduce((sum: number, criterion: AssignmentRubricCriterion) => sum + criterion.weight, 0),
+        ),
+        criteria,
+    };
+};
+
+const formatRubricWeight = (value: number) =>
+    Number(value || 0).toLocaleString("vi-VN", {maximumFractionDigits: 2});
 
 const getPreviewKind = (name: string, mimeType = "") => {
     const extension = name.split("?")[0].split(".").pop()?.toLowerCase();
@@ -145,7 +210,9 @@ const AssignmentDetailPost = () => {
     const [loading, setLoading] = useState(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
-    const [rubric, setRubric] = useState<RubricDTO | null>(null);
+    const [rubric, setRubric] = useState<AssignmentRubric | null>(null);
+    const [rubricClos, setRubricClos] = useState<CloResponse[]>([]);
+    const [rubricLoadError, setRubricLoadError] = useState("");
 
 
     const isPastDeadline = assignment?.endTime ? new Date() > new Date(assignment.endTime) : false;
@@ -164,6 +231,10 @@ const AssignmentDetailPost = () => {
     const submittedAttachments = Array.isArray(assignment?.submittedAttachments) ? assignment.submittedAttachments : [];
     const submittedFiles = submittedAttachments.filter((item: any) => item.type === "FILE");
     const submittedLinks = submittedAttachments.filter((item: any) => item.type === "LINK");
+    const rubricCloNameById = useMemo(
+        () => new Map(rubricClos.map((clo) => [clo.cloId, clo.cloName])),
+        [rubricClos],
+    );
 
     const fetchComments = async () => {
         try {
@@ -214,12 +285,21 @@ const AssignmentDetailPost = () => {
             );
 
 
+            setRubric(null);
+            setRubricClos([]);
+            setRubricLoadError("");
             if (data.rubricId) {
-
-                const rubricResponse = await getRubricById(data.rubricId);
-
-
-                setRubric(rubricResponse.data || rubricResponse);
+                try {
+                    const [rubricResponse, cloResponse] = await Promise.all([
+                        getRubricById(data.rubricId),
+                        getAllClo().catch(() => null),
+                    ]);
+                    setRubric(normalizeAssignmentRubric(rubricResponse.data));
+                    setRubricClos(cloResponse?.data || []);
+                } catch (rubricError) {
+                    console.error("Lỗi tải Rubric của bài tập:", rubricError);
+                    setRubricLoadError("Không thể tải nội dung Rubric. Vui lòng thử lại sau.");
+                }
             }
 
         } catch (error) {
@@ -375,16 +455,6 @@ const AssignmentDetailPost = () => {
                                 </p>
                             </div>
 
-                            {rubric?.rubricName && (
-                                <div className="mt-8 border-t pt-6 border-gray-100">
-                                    <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
-                                        <ClipboardList className="w-4 h-4 text-purple-600"/>   Mẫu Rubric
-                                    </h3>
-                                    <div className="inline-flex items-center px-4 py-2 bg-purple-50 text-purple-700 border border-purple-100 rounded-xl text-xs font-semibold shadow-sm">
-                                        {rubric.rubricName}
-                                    </div>
-                                </div>
-                            )}
                             {/* PHẦN CHUẨN ĐẦU RA (CLO) */}
 
                             {assignment.clos && Object.keys(assignment.clos).length > 0 && (
@@ -406,50 +476,103 @@ const AssignmentDetailPost = () => {
                             )}
 
                             {/* PHẦN RUBRIC CHẤM ĐIỂM */}
-                            {assignment.rubric && (
-                                <div className="mt-8 border-t pt-6 border-gray-100">
-                                    <h3 className="text-sm font-semibold text-emerald-800 mb-4 flex items-center gap-2">
-                                        <Paperclip className="w-4 h-4"/> Rubric chấm điểm: {assignment.rubric.rubricId}
-                                    </h3>
+                            {rubric && (
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="group mt-8 flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-slate-100 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                                        >
+                                            <span className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600 transition group-hover:bg-emerald-100">
+                                                <ClipboardList className="h-5 w-5"/>
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Mẫu Rubric</span>
+                                                <span className="mt-1 block truncate font-bold text-slate-900">{rubric.name}</span>
+                                            </span>
+                                            <span className="hidden rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 sm:inline-flex">
+                                                {rubric.criteria.length} tiêu chí
+                                            </span>
+                                            <span className="text-sm font-semibold text-emerald-700">Xem chi tiết</span>
+                                        </button>
+                                    </DialogTrigger>
 
-                                    <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                <th className="px-4 py-3 font-semibold text-gray-700 w-1/4">Tiêu chí
-                                                </th>
-                                                <th className="px-4 py-3 font-semibold text-gray-700 w-1/6">Trọng số
-                                                </th>
-                                                <th className="px-4 py-3 font-semibold text-gray-700">Mức độ đạt được
-                                                </th>
-                                            </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                            {assignment.rubric.criteriaList?.map((criteria: any, idx: number) => (
-                                                <tr key={idx} className="hover:bg-gray-50/50">
-                                                    <td className="px-4 py-4 font-medium text-gray-900">
-                                                        {criteria.criteriaName}
-                                                    </td>
-                                                    <td className="px-4 py-4 text-gray-600">
-                                                        {criteria.weight}%
-                                                    </td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="grid grid-cols-1 gap-2">
-                                                            {criteria.levels?.map((level: any, lIdx: number) => (
-                                                                <div key={lIdx}
-                                                                     className="text-xs p-2 bg-white border border-gray-100 rounded-md">
-                                                                    <span
-                                                                        className="font-semibold text-emerald-600">{level.levelName} ({level.score}đ):</span>
-                                                                    <p className="text-gray-500 mt-0.5">{level.description}</p>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    <DialogContent className="max-h-[90vh] gap-0 overflow-hidden border-slate-200 bg-white p-0 sm:max-w-[calc(100%-2rem)] lg:max-w-6xl">
+                                        <DialogHeader className="border-b border-slate-200 bg-slate-50 px-5 py-5 pr-14 sm:px-6 sm:pr-14">
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                                <div>
+                                                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Mẫu Rubric chấm điểm</p>
+                                                    <DialogTitle className="mt-1 text-xl font-bold text-slate-900">{rubric.name}</DialogTitle>
+                                                    <DialogDescription className="mt-1 max-w-3xl leading-6 text-slate-600">
+                                                        {rubric.description || "Các tiêu chí và mức độ được sử dụng để chấm bài tập này."}
+                                                    </DialogDescription>
+                                                </div>
+                                                <span className="inline-flex w-fit rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700">
+                                                    Tổng trọng số: {formatRubricWeight(rubric.totalWeight)}%
+                                                </span>
+                                            </div>
+                                        </DialogHeader>
+
+                                        <div className="max-h-[calc(90vh-9rem)] overflow-auto">
+                                            {rubric.criteria.length > 0 ? (
+                                                <table className="min-w-[920px] w-full text-left text-sm">
+                                                    <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 shadow-sm">
+                                                        <tr className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                                            <th className="w-1/4 px-5 py-3">Tiêu chí</th>
+                                                            <th className="w-48 px-4 py-3">Tên CLO</th>
+                                                            <th className="w-28 px-4 py-3 text-right">Trọng số (%)</th>
+                                                            <th className="px-5 py-3">Các mức độ đạt được</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {rubric.criteria.map((criterion) => (
+                                                            <tr key={criterion.id} className="align-top transition hover:bg-slate-50">
+                                                                <td className="px-5 py-4">
+                                                                    <p className="font-bold text-slate-900">{criterion.name}</p>
+                                                                    {criterion.description && <p className="mt-1 text-xs leading-5 text-slate-500">{criterion.description}</p>}
+                                                                </td>
+                                                                <td className="px-4 py-4">
+                                                                    <span className="inline-flex rounded-md bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                                                                        {criterion.cloId
+                                                                            ? rubricCloNameById.get(criterion.cloId) || "CLO không xác định"
+                                                                            : "Chưa gắn CLO"}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-4 text-right">
+                                                                    <span className="font-bold text-emerald-600">{formatRubricWeight(criterion.weight)}%</span>
+                                                                </td>
+                                                                <td className="px-5 py-4">
+                                                                    {criterion.levels.length > 0 ? (
+                                                                        <div className="grid gap-2 md:grid-cols-2">
+                                                                            {criterion.levels.map((level) => (
+                                                                                <div key={level.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                                                                    <div className="flex items-center justify-between gap-2">
+                                                                                        <span className="font-semibold text-slate-800">{level.name}</span>
+                                                                                        <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{level.score} điểm</span>
+                                                                                    </div>
+                                                                                    <p className="mt-2 text-xs leading-5 text-slate-600">{level.description || "Chưa có mô tả cho mức này."}</p>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-sm italic text-slate-400">Chưa thiết lập mức đánh giá.</p>
+                                                                    )}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            ) : (
+                                                <p className="px-5 py-8 text-center text-sm text-slate-500">Rubric này chưa có tiêu chí chấm điểm.</p>
+                                            )}
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+
+                            {assignment.rubricId && rubricLoadError && (
+                                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+                                    {rubricLoadError}
                                 </div>
                             )}
                             {assignment.fileUrl && (() => {

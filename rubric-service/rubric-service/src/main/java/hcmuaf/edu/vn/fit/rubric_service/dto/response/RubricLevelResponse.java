@@ -10,4 +10,6 @@ public class RubricLevelResponse {
     private String levelName;
     private String description;
     private Float score;
+    private Float minScore;
+    private Float maxScore;
 }

@@ -147,19 +147,9 @@ export default function LoginPage() {
 
             navigate(targetPath);
 
-<<<<<<< Updated upstream
         } catch (error: unknown) {
             if (axios.isAxiosError<ErrorResponse>(error)) {
                 const message = error.response?.data?.message;
-=======
-
-
-
-        } catch (error: any) {
-            const message =
-                error.response?.data?.message ||
-                "Sai tài khoản hoặc mật khẩu!";
->>>>>>> Stashed changes
 
                 if (message && isLockedMessage(message)) {
                     toast.warning("Tài khoản bị khóa", {

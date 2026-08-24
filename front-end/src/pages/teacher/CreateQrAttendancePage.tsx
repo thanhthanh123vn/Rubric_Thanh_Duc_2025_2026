@@ -64,11 +64,17 @@ function toAttendanceLegendItem(legend: AttendanceLegendResponse): AttendanceLeg
   };
 }
 
-const defaultDate = new Date().toISOString().slice(0, 10);
+function getLocalDateInputValue(date = new Date()) {
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
+const defaultDate = getLocalDateInputValue();
 const PRESENT_COLOR = "#BBF7D0";
 const ABSENT_COLOR = "#FECDD3";
 const DEFAULT_FRAUD_COLOR = "#FDE68A";
 const DEFAULT_FRAUD_LABEL = "Gian lận GPS";
+const ATTENDANCE_PAGE_SIZE = 8;
 
 function formatReverseGeocodeAddress(rawAddress: string) {
   return rawAddress
@@ -296,7 +302,7 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
   const [activeSession, setActiveSession] = useState<AttendanceSessionResponse | null>(null);
   const [sessions, setSessions] = useState<AttendanceSessionSummaryResponse[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
-  const [sessionDateFilter, setSessionDateFilter] = useState("");
+  const [sessionDateFilter, setSessionDateFilter] = useState(defaultDate);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceStudentResponse[]>([]);
   const [attendanceOverviewRows, setAttendanceOverviewRows] = useState<AttendanceStudentOverviewResponse[]>([]);
   const [activeRecordTab, setActiveRecordTab] = useState<AttendanceRecordTab>("valid");
@@ -320,6 +326,8 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
   const [savingOverviewCellKey, setSavingOverviewCellKey] = useState("");
   const [remainingLabel, setRemainingLabel] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
+  const [attendanceSearch, setAttendanceSearch] = useState("");
+  const [attendancePage, setAttendancePage] = useState(1);
 
   const hasActiveQr = Boolean(
     activeSession && new Date(activeSession.endTime).getTime() > Date.now(),
@@ -353,10 +361,33 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
     return counts;
   }, [attendanceRecords]);
 
-  const filteredAttendanceRecords = useMemo(
-    () => attendanceRecords.filter((record) => getAttendanceRecordTab(record) === activeRecordTab),
-    [activeRecordTab, attendanceRecords],
+  const filteredAttendanceRecords = useMemo(() => {
+    const normalizedKeyword = attendanceSearch.trim().toLowerCase();
+
+    return attendanceRecords.filter((record) => {
+      if (getAttendanceRecordTab(record) !== activeRecordTab) {
+        return false;
+      }
+
+      if (!normalizedKeyword) {
+        return true;
+      }
+
+      return [record.studentName, record.studentId, record.email]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(normalizedKeyword));
+    });
+  }, [activeRecordTab, attendanceRecords, attendanceSearch]);
+
+  const attendanceTotalPages = Math.max(
+    1,
+    Math.ceil(filteredAttendanceRecords.length / ATTENDANCE_PAGE_SIZE),
   );
+  const currentAttendancePage = Math.min(attendancePage, attendanceTotalPages);
+  const paginatedAttendanceRecords = useMemo(() => {
+    const startIndex = (currentAttendancePage - 1) * ATTENDANCE_PAGE_SIZE;
+    return filteredAttendanceRecords.slice(startIndex, startIndex + ATTENDANCE_PAGE_SIZE);
+  }, [currentAttendancePage, filteredAttendanceRecords]);
 
   const overviewStats = useMemo(() => {
     const totalStudents = attendanceOverviewRows.length;
@@ -1207,50 +1238,76 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
             </article>
           </section>
 
-          <section className={`${view === "create" ? "hidden" : "grid"} gap-6 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)]`}>
+          <section className={`${view === "create" ? "hidden" : "grid"} gap-6`}>
             <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
-                  <Clock3 className="h-5 w-5" />
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
+                    <Clock3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Các phiên điểm danh</h3>
+                    <p className="text-sm text-slate-500">Chọn một phiên để xem danh sách sinh viên ở hàng bên dưới.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Các phiên điểm danh</h3>
-                  <p className="text-sm text-slate-500">Chọn buổi để xem danh sách check-in.</p>
-                </div>
-              </div>
 
-              <div className="mt-5 space-y-3">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-slate-700">Lọc theo ngày</span>
+                <label className="block w-full lg:w-64">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    Lọc theo ngày
+                  </span>
                   <input
                     type="date"
                     value={sessionDateFilter}
-                    onChange={(event) => setSessionDateFilter(event.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white"
+                    onChange={(event) => {
+                      setSessionDateFilter(event.target.value);
+                      setAttendanceSearch("");
+                      setAttendancePage(1);
+                    }}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-50"
                   />
                 </label>
+              </div>
 
-                <div className="max-h-[32rem] space-y-3 overflow-y-auto pr-2">
+              <div className="mt-6">
+                <div className="grid max-h-[34rem] gap-3 overflow-y-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
                   {isLoadingSessions ? (
-                    <EmptyState message="Đang tải danh sách phiên điểm danh..." />
+                    <EmptyState
+                      message="Đang tải danh sách phiên điểm danh..."
+                      className="md:col-span-2 xl:col-span-3"
+                    />
                   ) : sessions.length === 0 ? (
-                    <EmptyState message="Chưa có phiên điểm danh nào cho lớp học phần này." />
+                    <EmptyState
+                      message="Chưa có phiên điểm danh nào cho lớp học phần này."
+                      className="md:col-span-2 xl:col-span-3"
+                    />
                   ) : filteredSessions.length === 0 ? (
-                    <EmptyState message="Không có phiên điểm danh nào trong ngày đã chọn." />
+                    <EmptyState
+                      message="Không có phiên điểm danh nào trong ngày đã chọn."
+                      className="md:col-span-2 xl:col-span-3"
+                    />
                   ) : (
                     filteredSessions.map((session) => (
                       <button
                         key={session.sessionId}
                         type="button"
-                        onClick={() => setSelectedSessionId(session.sessionId)}
-                        className={`w-full rounded-[1.5rem] border p-4 text-left transition ${
+                        onClick={() => {
+                          setSelectedSessionId(session.sessionId);
+                          setAttendanceSearch("");
+                          setAttendancePage(1);
+                        }}
+                        className={`group relative w-full overflow-hidden rounded-[1.5rem] border p-4 text-left transition duration-200 ${
                           selectedSessionId === session.sessionId
-                            ? "border-emerald-300 bg-emerald-50"
-                            : "border-slate-200 bg-slate-50 hover:border-emerald-200 hover:bg-white"
+                            ? "border-emerald-300 bg-emerald-50 shadow-[0_10px_30px_rgba(16,185,129,0.10)]"
+                            : "border-slate-200 bg-slate-50/80 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white hover:shadow-md"
                         }`}
                       >
+                        <span
+                          className={`absolute inset-y-0 left-0 w-1 transition ${
+                            selectedSessionId === session.sessionId ? "bg-emerald-500" : "bg-transparent group-hover:bg-emerald-200"
+                          }`}
+                        />
                         <div className="flex items-center justify-between gap-3">
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-sm font-bold text-slate-900">
                               {formatDateOnly(session.attendanceDate)}
                             </p>
@@ -1262,9 +1319,13 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                             {getSessionStatusLabel(session.status)}
                           </span>
                         </div>
-                        <p className="mt-3 text-sm text-slate-600">
-                          Đã điểm danh: <span className="font-semibold text-slate-900">{session.checkedInCount}</span>
-                        </p>
+                        <div className="mt-4 flex items-center gap-2 border-t border-slate-200/70 pt-3 text-sm text-slate-600">
+                          <Users2 className="h-4 w-4 text-emerald-600" />
+                          <span>Đã điểm danh</span>
+                          <span className="ml-auto rounded-full bg-white px-2.5 py-1 font-bold text-slate-900 shadow-sm">
+                            {session.checkedInCount}
+                          </span>
+                        </div>
                       </button>
                     ))
                   )}
@@ -1273,14 +1334,24 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
             </article>
 
             <article className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] sm:rounded-[2rem] sm:p-6 md:p-8">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
-                  <Users2 className="h-5 w-5" />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700">
+                    <Users2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Sinh viên đã điểm danh</h3>
+                    <p className="text-sm text-slate-500">Danh sách cập nhật theo phiên đang chọn.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Sinh viên đã điểm danh</h3>
-                  <p className="text-sm text-slate-500">Danh sách cập nhật theo phiên đang chọn.</p>
-                </div>
+                {selectedSession ? (
+                  <div className="inline-flex w-fit items-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    <CalendarDays className="h-4 w-4" />
+                    <span className="font-semibold">{formatDateOnly(selectedSession.attendanceDate)}</span>
+                    <span className="text-emerald-300">•</span>
+                    <span>{selectedSession.checkedInCount} sinh viên</span>
+                  </div>
+                ) : null}
               </div>
 
               <div className="mt-5 space-y-3">
@@ -1294,42 +1365,66 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                   />
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex flex-wrap gap-3">
-                      {(["valid", "invalid", "suspicious"] as AttendanceRecordTab[]).map((tab) => {
-                        const isActive = activeRecordTab === tab;
-                        return (
-                          <button
-                            key={tab}
-                            type="button"
-                            onClick={() => setActiveRecordTab(tab)}
-                            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                              isActive
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
-                            }`}
-                          >
-                            <span>{getAttendanceTabLabel(tab)}</span>
-                            <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs text-slate-700">
-                              {recordCounts[tab]}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex flex-wrap gap-3">
+                        {(["valid", "invalid", "suspicious"] as AttendanceRecordTab[]).map((tab) => {
+                          const isActive = activeRecordTab === tab;
+                          return (
+                            <button
+                              key={tab}
+                              type="button"
+                              onClick={() => {
+                                setActiveRecordTab(tab);
+                                setAttendancePage(1);
+                              }}
+                              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                isActive
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:text-emerald-700"
+                              }`}
+                            >
+                              <span>{getAttendanceTabLabel(tab)}</span>
+                              <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs text-slate-700">
+                                {recordCounts[tab]}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <label className="relative block w-full lg:max-w-sm">
+                        <span className="sr-only">Tìm kiếm sinh viên đã điểm danh</span>
+                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="search"
+                          value={attendanceSearch}
+                          onChange={(event) => {
+                            setAttendanceSearch(event.target.value);
+                            setAttendancePage(1);
+                          }}
+                          placeholder="Tìm theo tên, MSSV hoặc email..."
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-50"
+                        />
+                      </label>
                     </div>
 
                     {filteredAttendanceRecords.length === 0 ? (
                       <EmptyState
-                        message={`Không có sinh viên thuộc nhóm ${getAttendanceTabLabel(activeRecordTab).toLowerCase()} trong phiên này.`}
+                        message={attendanceSearch.trim()
+                          ? "Không tìm thấy sinh viên phù hợp với từ khóa."
+                          : `Không có sinh viên thuộc nhóm ${getAttendanceTabLabel(activeRecordTab).toLowerCase()} trong phiên này.`}
                       />
                     ) : (
-                      <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
+                      <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white">
                         <div className="space-y-3 p-3 sm:hidden">
-                          {filteredAttendanceRecords.map((record, index) => (
+                          {paginatedAttendanceRecords.map((record, index) => (
                             <article key={record.attendanceId} className="rounded-2xl bg-slate-50 p-4">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <p className="truncate font-bold text-slate-900">{record.studentName}</p>
-                                  <p className="mt-1 text-xs text-slate-500">#{index + 1} · {record.studentId}</p>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    #{(currentAttendancePage - 1) * ATTENDANCE_PAGE_SIZE + index + 1} · {record.studentId}
+                                  </p>
                                 </div>
                                 <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${record.suspicious ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
                                   {record.suspicious ? "Nghi ngờ" : getAttendanceStatusLabel(record.status)}
@@ -1368,9 +1463,11 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
-                              {filteredAttendanceRecords.map((record, index) => (
+                              {paginatedAttendanceRecords.map((record, index) => (
                                 <tr key={record.attendanceId} className="align-top text-slate-700">
-                                  <td className="px-4 py-4 font-semibold text-slate-500">{index + 1}</td>
+                                  <td className="px-4 py-4 font-semibold text-slate-500">
+                                    {(currentAttendancePage - 1) * ATTENDANCE_PAGE_SIZE + index + 1}
+                                  </td>
                                   <td className="px-4 py-4">
                                     <p className="font-semibold text-slate-900">{record.studentName}</p>
                                     <p className="mt-1 text-xs text-slate-500">{record.studentId}</p>
@@ -1439,6 +1536,32 @@ export default function CreateQrAttendancePage({ view = "create" }: { view?: Att
                               ))}
                             </tbody>
                           </table>
+                        </div>
+                        <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-center text-sm text-slate-500 sm:text-left">
+                            Hiển thị {(currentAttendancePage - 1) * ATTENDANCE_PAGE_SIZE + 1}–{Math.min(currentAttendancePage * ATTENDANCE_PAGE_SIZE, filteredAttendanceRecords.length)} trong {filteredAttendanceRecords.length} sinh viên
+                          </p>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setAttendancePage(Math.max(1, currentAttendancePage - 1))}
+                              disabled={currentAttendancePage === 1}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Trước
+                            </button>
+                            <span className="min-w-24 text-center text-sm font-semibold text-slate-700">
+                              Trang {currentAttendancePage}/{attendanceTotalPages}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setAttendancePage(Math.min(attendanceTotalPages, currentAttendancePage + 1))}
+                              disabled={currentAttendancePage === attendanceTotalPages}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Sau
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1790,9 +1913,9 @@ function StatusInfoCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, className = "" }: { message: string; className?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500">
+    <div className={`rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-sm text-slate-500 ${className}`}>
       {message}
     </div>
   );
