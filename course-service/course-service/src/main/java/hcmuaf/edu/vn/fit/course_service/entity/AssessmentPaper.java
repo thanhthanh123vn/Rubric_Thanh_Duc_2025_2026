@@ -16,6 +16,7 @@ public class AssessmentPaper extends AbstractEntity {
     private String lecturerId;
 
     private String assessmentId;
+    private String offeringId;
     private String sourceQuestionBankId;
     private List<String> questionIds;
     private String status;

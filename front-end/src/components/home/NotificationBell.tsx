@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -17,6 +17,10 @@ import { notificationApi } from "@/features/notification/notificationApi";
 import { connectWebSocket } from "@/notification/WebSocketNotication";
 import { useAppSelector } from "@/hooks/useAppSelector";
 import { toast } from "sonner"; // Thêm toast để thông báo khi xóa thành công
+import {
+    resolveNotificationCenterUrl,
+    resolveNotificationReferenceUrl,
+} from "@/features/notification/notificationRoutes";
 
 const formatTimeAgo = (timestamp: string) => {
     if (!timestamp) return "";
@@ -43,6 +47,7 @@ const formatTimeAgo = (timestamp: string) => {
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const { user: reduxUser } = useAppSelector((state) => state.auth);
     let user = reduxUser;
@@ -81,6 +86,7 @@ export function NotificationBell() {
                     is_read: readStatus ? 1 : 0,
                     createdAt: parsedCreatedAt,
                     referenceUrl: n.reference_url || n.referenceUrl,
+                    courseId: n.course_id || n.courseId,
                     senderAvatar: n.avatar_url || n.senderAvatar,
                     senderName: n.sender_id || n.senderName
                 };
@@ -114,6 +120,7 @@ export function NotificationBell() {
                     is_read: readStatus ? 1 : 0,
                     createdAt: parsedCreatedAt,
                     referenceUrl: newNotif.reference_url || newNotif.referenceUrl,
+                    courseId: newNotif.course_id || newNotif.courseId,
                     senderAvatar: newNotif.avatar_url || newNotif.senderAvatar,
                     senderName: newNotif.sender_id || newNotif.senderName
                 };
@@ -163,8 +170,9 @@ export function NotificationBell() {
             }
         }
 
-        if (n.referenceUrl) {
-            navigate(n.referenceUrl);
+        const destination = resolveNotificationReferenceUrl(n.referenceUrl);
+        if (destination) {
+            navigate(destination);
         }
     };
 
@@ -327,7 +335,7 @@ export function NotificationBell() {
                 <div className="bg-white p-2 border-t border-gray-50">
                     <Button
                         variant="ghost"
-                        onClick={() => navigate('/notifications')}
+                        onClick={() => navigate(resolveNotificationCenterUrl(user?.role, location.pathname, notifications))}
                         className="w-full text-sm h-10 font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 rounded-xl transition-colors"
                     >
                         Xem tất cả thông báo

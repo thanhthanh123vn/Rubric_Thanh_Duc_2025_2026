@@ -20,6 +20,8 @@ export interface Level {
     name: string;
     orderIndex: number;
     score: number;
+    minScore: number;
+    maxScore: number;
     description: string;
 }
 

@@ -16,5 +16,10 @@ export const courseOfferingService = {
     getOfferings: async (): Promise<CourseOfferingResponse[]> => {
         const respone = await courseApi.get('courses-offering/offerings');
         return respone.data;
+    },
+
+    getLeadershipOfferings: async (): Promise<CourseOfferingResponse[]> => {
+        const response = await courseApi.get('/courses-offering/leadership');
+        return response.data;
     }
 };

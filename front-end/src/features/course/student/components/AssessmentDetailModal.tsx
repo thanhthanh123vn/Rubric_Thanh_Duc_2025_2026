@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ClipboardCheck, ExternalLink, FileText, MessageSquareText, NotepadTextDashed, X } from "lucide-react";
 import {
   PolarAngleAxis,
@@ -10,6 +12,7 @@ import {
 } from "recharts";
 
 import type { RubricDTO } from "@/api/RubricApi.ts";
+import type { CloResponse } from "@/features/rubric/rubricApi.ts";
 import type { Assessment } from "@/features/course/student/assignmentSlice";
 import type { AssessmentSubmission } from "@/features/course/student/api/type.ts";
 
@@ -19,7 +22,20 @@ type AssessmentDetailModalProps = {
   selectedSummary: Assessment | null;
   selectedAssessmentDetail: AssessmentSubmission | null;
   selectedRubric: RubricDTO | null;
+  rubricClos: CloResponse[];
   onClose: () => void;
+};
+
+type RubricLevelLike = {
+  id?: string | null;
+  levelId?: string | null;
+  name?: string | null;
+  levelName?: string | null;
+  description?: string | null;
+  score?: number | null;
+  minScore?: number | null;
+  maxScore?: number | null;
+  orderIndex?: number | null;
 };
 
 type RubricCriterionLike = {
@@ -29,6 +45,7 @@ type RubricCriterionLike = {
   criteriaName?: string | null;
   cloId?: string | null;
   weight?: number | null;
+  levels?: RubricLevelLike[] | null;
 };
 
 function formatDateTime(value?: string | null) {
@@ -90,6 +107,35 @@ function resolveCriterionName(criterion?: RubricCriterionLike | null) {
   return criterion?.name || criterion?.criteriaName || "";
 }
 
+function resolveLevelId(level?: RubricLevelLike | null) {
+  return level?.levelId || level?.id || "";
+}
+
+function resolveLevelName(level?: RubricLevelLike | null) {
+  return level?.levelName || level?.name || "";
+}
+
+function getLevelMinScore(level?: RubricLevelLike | null) {
+  return Number(level?.minScore ?? level?.score ?? 0);
+}
+
+function getLevelMaxScore(level?: RubricLevelLike | null) {
+  return Number(level?.maxScore ?? level?.score ?? 0);
+}
+
+function formatLevelRange(level?: RubricLevelLike | null) {
+  if (!level) return "--";
+  const min = getLevelMinScore(level);
+  const max = getLevelMaxScore(level);
+  return min === max ? `${formatNumber(max)}/10` : `${formatNumber(min)} - ${formatNumber(max)}/10`;
+}
+
+function normalizeCriterionWeight(weight?: number | null) {
+  const value = Number(weight || 0);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return value <= 1 ? value : value / 100;
+}
+
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -127,13 +173,33 @@ export default function AssessmentDetailModal({
   selectedSummary,
   selectedAssessmentDetail,
   selectedRubric,
+  rubricClos,
   onClose,
 }: AssessmentDetailModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const rubricDetailRows = selectedAssessmentDetail?.rubricDetails || [];
   const cloEntries = Object.entries(selectedAssessmentDetail?.clos || {}).filter(([code]) => Boolean(code?.trim()));
   const rawCriteria = ((selectedRubric?.criteria || []) as RubricCriterionLike[]).filter(Boolean);
+  const cloNameById = new Map(
+    rubricClos.map((clo) => [String(clo.cloId), clo.cloName?.trim() || clo.cloCode?.trim() || "CLO không xác định"]),
+  );
   const rubricCriteriaById = new Map(
     rawCriteria
       .map((criterion) => [String(resolveCriterionId(criterion)), criterion] as const)
@@ -159,16 +225,20 @@ export default function AssessmentDetailModal({
         const detailName = normalizeText(item.criteriaName);
         return Boolean(criterionName && detailName) && (criterionName.includes(detailName) || detailName.includes(criterionName));
       });
-    const criterionWeight = matchedCriterion?.weight ?? null;
-    const weightedMaxScore =
-      criterionWeight !== null && criterionWeight !== undefined
-        ? (criterionWeight <= 1 ? criterionWeight * 10 : criterionWeight)
-        : item.maxScore;
+    const criterionWeight = normalizeCriterionWeight(matchedCriterion?.weight);
+    const weightedMaxScore = criterionWeight > 0 ? criterionWeight * 10 : item.maxScore;
+    const storedRawScore = item.rawScore === null || item.rawScore === undefined ? null : Number(item.rawScore);
+    const scoreOnTenPointScale = storedRawScore !== null && Number.isFinite(storedRawScore)
+      ? Math.min(10, Math.max(0, storedRawScore))
+      : criterionWeight > 0
+        ? Math.min(10, Math.max(0, Number(item.score || 0) / criterionWeight))
+        : Number(item.score || 0);
 
     return {
       ...item,
       matchedCriterion,
       weightedMaxScore,
+      scoreOnTenPointScale,
     };
   });
 
@@ -187,11 +257,39 @@ export default function AssessmentDetailModal({
       fullMark: 100,
     };
   });
+  const rubricDetailByCriterionId = new Map(
+    rubricDetailDisplayRows
+      .filter((item) => Boolean(item.criteriaId))
+      .map((item) => [String(item.criteriaId), item] as const),
+  );
+  const rubricDetailByCriterionName = new Map(
+    rubricDetailDisplayRows.map((item) => [normalizeText(item.criteriaName), item] as const),
+  );
+  const matrixLevelNames = Array.from(
+    new Map(
+      rawCriteria.flatMap((criterion) => criterion.levels || []).map((level) => [normalizeText(resolveLevelName(level)), resolveLevelName(level)]),
+    ).values(),
+  ).filter(Boolean).sort((left, right) => {
+    const findMaxScore = (levelName: string) => {
+      const level = rawCriteria
+        .flatMap((criterion) => criterion.levels || [])
+        .find((item) => normalizeText(resolveLevelName(item)) === normalizeText(levelName));
+      return getLevelMaxScore(level);
+    };
+    return findMaxScore(right) - findMaxScore(left);
+  });
+  const displayedRubricTotal = selectedAssessmentDetail?.calculatedScore ?? rubricDetailTotal;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4 md:px-6">
+  return createPortal(
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-5">
+      <button
+        type="button"
+        aria-label="Đóng chi tiết đánh giá"
+        className="absolute inset-0 bg-slate-950/50 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      <div className="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-3xl">
+        <div className="flex shrink-0 items-start justify-between border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4 md:px-6">
           <div className="min-w-0">
             <p className="text-sm font-medium text-slate-500">Chi tiết đánh giá</p>
             <h3 className="mt-1 truncate text-xl font-semibold text-slate-900">
@@ -207,7 +305,7 @@ export default function AssessmentDetailModal({
           </button>
         </div>
 
-        <div className="max-h-[calc(92vh-80px)] overflow-y-auto px-5 py-5 md:px-6 md:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
           {detailLoading ? (
             <div className="py-16 text-center text-sm text-slate-500">Đang tải chi tiết đánh giá...</div>
           ) : !selectedAssessmentDetail || !selectedSummary ? (
@@ -366,7 +464,7 @@ export default function AssessmentDetailModal({
                 </div>
               </div>
 
-              {rubricDetailDisplayRows.length > 0 && (
+              {!selectedRubric && rubricDetailDisplayRows.length > 0 && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2 text-slate-900">
@@ -479,7 +577,98 @@ export default function AssessmentDetailModal({
                     </p>
                   </div>
 
-                  <div className="mt-4 grid gap-3">
+                  {rawCriteria.length > 0 ? (
+                    <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="min-w-[980px] w-full border-collapse text-sm">
+                        <thead className="bg-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          <tr>
+                            <th className="sticky left-0 z-10 min-w-52 border-b border-r border-slate-200 bg-slate-100 px-4 py-3">Tiêu chí / CLO</th>
+                            <th className="w-24 border-b border-r border-slate-200 px-3 py-3 text-center">Trọng số</th>
+                            {matrixLevelNames.map((levelName) => (
+                              <th key={levelName} className="min-w-44 border-b border-r border-slate-200 px-3 py-3 text-center last:border-r-0">
+                                {levelName}
+                              </th>
+                            ))}
+                            <th className="w-28 border-b border-slate-200 px-3 py-3 text-center">Điểm /10</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 bg-white">
+                          {rawCriteria.map((criterion, criterionIndex) => {
+                            const criterionId = String(resolveCriterionId(criterion));
+                            const detail = rubricDetailByCriterionId.get(criterionId)
+                              || rubricDetailByCriterionName.get(normalizeText(resolveCriterionName(criterion)));
+                            const selectedLevelId = String(detail?.levelId || "");
+                            const selectedLevelName = normalizeText(detail?.levelName);
+
+                            return (
+                              <tr key={criterionId || `criterion-${criterionIndex}`} className="align-top">
+                                <td className="sticky left-0 z-[1] border-r border-slate-200 bg-white px-4 py-4">
+                                  <p className="font-semibold text-slate-900">{resolveCriterionName(criterion) || `Tiêu chí ${criterionIndex + 1}`}</p>
+                                  <span className="mt-2 inline-flex rounded-lg bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                                    {criterion.cloId ? cloNameById.get(String(criterion.cloId)) || "CLO không xác định" : "Chưa gắn CLO"}
+                                  </span>
+                                </td>
+                                <td className="border-r border-slate-200 px-3 py-4 text-center font-semibold text-slate-700">
+                                  {formatWeight(criterion.weight)}
+                                </td>
+                                {matrixLevelNames.map((levelName) => {
+                                  const level = (criterion.levels || []).find(
+                                    (item) => normalizeText(resolveLevelName(item)) === normalizeText(levelName),
+                                  );
+                                  const isSelected = Boolean(level) && (
+                                    (selectedLevelId && resolveLevelId(level) === selectedLevelId)
+                                    || (selectedLevelName && normalizeText(resolveLevelName(level)) === selectedLevelName)
+                                  );
+
+                                  return (
+                                    <td
+                                      key={`${criterionId || criterionIndex}-${levelName}`}
+                                      className={`border-r border-slate-200 px-3 py-4 last:border-r-0 ${isSelected ? "bg-emerald-50 ring-2 ring-inset ring-emerald-400" : "bg-white"}`}
+                                    >
+                                      {level ? (
+                                        <div>
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className={`font-semibold ${isSelected ? "text-emerald-800" : "text-slate-800"}`}>
+                                              {isSelected && detail ? `${formatNumber(detail.scoreOnTenPointScale)}/10` : formatLevelRange(level)}
+                                            </span>
+                                            {isSelected ? <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">Điểm chấm</span> : null}
+                                          </div>
+                                          {isSelected ? (
+                                            <p className="mt-1 text-[11px] font-medium text-emerald-700">
+                                              Thuộc mức {resolveLevelName(level)} ({formatLevelRange(level)})
+                                            </p>
+                                          ) : null}
+                                          <p className="mt-2 text-xs leading-5 text-slate-600">{level.description || "Chưa có mô tả mức đánh giá."}</p>
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-300">--</span>
+                                      )}
+                                    </td>
+                                  );
+                                })}
+                                <td className="bg-slate-50 px-3 py-4 text-center">
+                                  <span className="text-base font-bold text-emerald-700">
+                                    {detail ? formatNumber(detail.scoreOnTenPointScale) : "--"}
+                                  </span>
+                                  <span className="text-slate-400">/10</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot className="border-t border-slate-200 bg-slate-50">
+                          <tr>
+                            <td colSpan={2 + matrixLevelNames.length} className="px-4 py-4 text-right font-semibold text-slate-700">Tổng điểm đã chấm</td>
+                            <td className="px-3 py-4 text-center text-lg font-bold text-emerald-700">
+                              {displayedRubricTotal !== null && displayedRubricTotal !== undefined ? formatNumber(displayedRubricTotal) : "--"}/10
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  ) : null}
+
+                  <div className="hidden mt-4 grid gap-3">
                     {rawCriteria.length ? (
                       rawCriteria.map((criterion, index) => (
                         <div
@@ -522,6 +711,7 @@ export default function AssessmentDetailModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

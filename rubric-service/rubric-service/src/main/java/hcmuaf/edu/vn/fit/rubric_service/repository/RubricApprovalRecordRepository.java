@@ -11,4 +11,6 @@ public interface RubricApprovalRecordRepository extends JpaRepository<RubricAppr
     Optional<RubricApprovalRecord> findTopByRubricIdOrderByRevisionNumberDesc(String rubricId);
 
     List<RubricApprovalRecord> findByStatusOrderByRequestedAtAsc(ApprovalRequestStatus status);
+
+    List<RubricApprovalRecord> findAllByOrderByRequestedAtDesc();
 }

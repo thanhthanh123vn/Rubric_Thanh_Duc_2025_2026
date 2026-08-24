@@ -14,7 +14,9 @@ import hcmuaf.edu.vn.fit.rubric_service.repository.RubricRepository;
 import hcmuaf.edu.vn.fit.rubric_service.service.RubricService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 @RequestMapping("/api/v1/rubric-service/rubrics")
 public class RubricController {
 
@@ -147,7 +150,7 @@ public class RubricController {
             RubricResponse head = rubricService.revertHead(rubricId, userId);
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Đã chuyển HEAD sang version v" + head.getVersionNumber(),
+                    "message", "Đã tạo version khôi phục v" + head.getVersionNumber() + "; đang chờ Trưởng khoa duyệt",
                     "data", head
             ));
         } catch (Exception e) {
@@ -233,6 +236,13 @@ public class RubricController {
         return ResponseEntity.ok(rubrics);
     }
 
+    @GetMapping("/version-logs")
+    public ResponseEntity<List<RubricVersionLogResponse>> getVersionLogs(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        return ResponseEntity.ok(rubricService.getVersionLogs(userId));
+    }
+
     // API thực hiện phê duyệt / từ chối
     @PutMapping("/{rubricId}/review")
     public ResponseEntity<?> reviewRubric(
@@ -242,28 +252,59 @@ public class RubricController {
             @RequestBody RubricApprovalRequest request,
             HttpServletRequest httpServletRequest
     ) {
-        if(userName==null) return ResponseEntity.badRequest().body("userId is null");
+        if (userName == null || userName.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", "Không xác định được tài khoản người duyệt."
+            ));
+        }
         try {
-            String  ip = ClientIpUtil.getClientIp(httpServletRequest);
-            courseClient.writeLog(
-                    SystemLogRequest.builder()
-                            .level("INFO")
-                            .action("REVIEW_RUBRIC")
-                            .message("Phê duyệt rubric")
-                            .username(userName)
-                            .ip(ip)
-                            .build()
-            );
             Rubric updatedRubric = rubricService.reviewRubric(rubricId, reviewerId, request);
+
+            // Ghi log là tác vụ phụ. Course-service tạm thời không khả dụng không được
+            // làm rollback hoặc chặn quyết định phê duyệt đã hợp lệ của lãnh đạo khoa.
+            try {
+                String ip = ClientIpUtil.getClientIp(httpServletRequest);
+                courseClient.writeLog(
+                        SystemLogRequest.builder()
+                                .level("INFO")
+                                .action("REVIEW_RUBRIC")
+                                .message("APPROVE".equalsIgnoreCase(request.getAction())
+                                        ? "Phê duyệt rubric " + rubricId
+                                        : "Từ chối rubric " + rubricId)
+                                .username(userName)
+                                .ip(ip)
+                                .build()
+                );
+            } catch (Exception logException) {
+                log.warn("Không thể ghi nhật ký duyệt rubric {}: {}", rubricId, logException.getMessage());
+            }
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Đã xử lý Rubric thành công",
                     "data", updatedRubric
             ));
-        } catch (Exception e) {
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
                     "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Lỗi xử lý rubric {} bởi {}", rubricId, reviewerId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "message", "Không thể xử lý rubric lúc này. Vui lòng thử lại."
             ));
         }
     }

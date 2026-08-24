@@ -118,6 +118,7 @@ export interface AssessmentSubmission {
         levelName: string | null;
         score: number | null;
         maxScore: number | null;
+        rawScore?: number | null;
     }[];
 
 

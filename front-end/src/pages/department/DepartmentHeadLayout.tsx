@@ -12,7 +12,7 @@ import {
     Target,
     LogOut,
     Menu,
-    UserPlus, Bell, Send, Inbox, ChevronDown, Presentation // Đã thêm icon này
+    UserPlus, Bell, Send, Inbox, ChevronDown, Presentation, UsersRound // Đã thêm icon này
 } from 'lucide-react';
 
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -23,9 +23,25 @@ const deptHeadLinks = [
     { path: '/department', label: 'Tổng quan Bộ môn', icon: LayoutDashboard },
     { path: '/department/rubrics', label: 'Phê duyệt Rubric', icon: ClipboardCheck },
     { path: '/department/assessments', label: 'Quản lý Đánh giá', icon: FileSignature },
-    { path: '/department/offerings', label: 'Phân công Học phần', icon: Layers },
-    { path: '/department/clo', label: 'Chuẩn CLO', icon: Target },
-    { path: '/department/obe', label: 'Phân tích chuẩn đầu ra OBE', icon: BarChart3 },
+    {
+        path: '/department/assignments',
+        label: 'Quản lý phân công',
+        icon: UsersRound,
+        subItems: [
+            { label: 'Xem phân công', path: '/department/assignments/view', icon: Layers },
+            { label: 'Hồ sơ phân công', path: '/department/assignments/records', icon: FileSignature },
+        ],
+    },
+    { path: '/department/clo', label: 'CLO học phần', icon: Target },
+    {
+        path: '/department/obe',
+        label: 'Phân tích OBE',
+        icon: BarChart3,
+        subItems: [
+            { label: 'Tổng quan', path: '/department/obe/overview', icon: BarChart3 },
+            { label: 'Báo cáo OBE', path: '/department/obe/report', icon: FileSignature },
+        ],
+    },
     { path: '/department/question-banks', label: 'Ngân Hàng Câu Hỏi', icon: Database },
     { label: 'Chế độ Giảng viên', path: '/teacher', icon: Presentation },
     {
@@ -59,7 +75,11 @@ export default function DepartmentHeadLayout() {
     const currentUser = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
     const inDetailView = location.pathname.split('/').length > 6;
-    const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+    const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
+        'Quản lý phân công': location.pathname.startsWith('/department/assignments')
+            || location.pathname.startsWith('/department/offerings'),
+        'Phân tích OBE': location.pathname.startsWith('/department/obe'),
+    });
 
     const toggleSubMenu = (label: string) => {
         setOpenMenus((prev) => ({
@@ -117,6 +137,9 @@ export default function DepartmentHeadLayout() {
         }
         if (path === '/department/question-banks') {
             return location.pathname.includes('/question-banks') || location.pathname.includes('/questions/public');
+        }
+        if (path === '/department/clo') {
+            return location.pathname === '/department/clo';
         }
         return location.pathname.startsWith(path);
     };

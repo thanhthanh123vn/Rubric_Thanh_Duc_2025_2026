@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Collection;
 
 @Repository
 public interface CourseCLORepository extends JpaRepository<CourseCLO, String> {
@@ -19,4 +20,10 @@ public interface CourseCLORepository extends JpaRepository<CourseCLO, String> {
     List<CourseCLO> findByCourseIdAndCloCodesIgnoreCase(@Param("courseId") String courseId, @Param("cloCodes") List<String> cloCodes);
 
     List<CourseCLO> findByCloCodeIn(List<String> cloCodes);
+
+    List<CourseCLO> findByCourseCourseIdOrderByCloCodeAsc(String courseId);
+
+    List<CourseCLO> findByApprovalStatusAndCourseCourseIdInOrderBySubmittedAtDesc(
+            hcmuaf.edu.vn.fit.course_service.entity.CloPloApprovalStatus approvalStatus,
+            Collection<String> courseIds);
 }

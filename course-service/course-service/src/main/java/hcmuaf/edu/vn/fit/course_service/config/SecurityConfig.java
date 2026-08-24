@@ -44,6 +44,37 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/v1/course-service/assessments/**")
                         .permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/v1/course-service/teaching-assignments/**")
+                        .hasAnyRole("DEAN", "HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/course-service/teaching-assignments/*/review")
+                        .hasRole("DEAN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/course-service/teaching-assignments/**")
+                        .hasAnyRole("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/course-service/teaching-assignments/**")
+                        .hasAnyRole("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/course-service/teaching-assignments/**")
+                        .hasAnyRole("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/course-service/courses/*/assign-lecturers")
+                        .hasRole("ADMIN")
+                        .requestMatchers("/api/v1/course-service/teaching-assistants/**")
+                        .hasRole("MAIN_LECTURER")
+                        .requestMatchers("/api/v1/course-service/plos/**")
+                        .hasRole("DEAN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/course-service/clo-plo-submissions/approvals")
+                        .hasRole("DEAN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/course-service/clo-plo-submissions/*/review")
+                        .hasRole("DEAN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/course-service/clo-plo-submissions/courses/*")
+                        .hasAnyRole("MAIN_LECTURER", "DEAN", "HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/course-service/clo-plo-submissions/courses/*/mappings")
+                        .hasRole("MAIN_LECTURER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/course-service/clo-plo-submissions/clos/*/submit")
+                        .hasRole("MAIN_LECTURER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/course-service/clo-plo-submissions/courses/*/submit-mapping")
+                        .hasRole("MAIN_LECTURER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/course-service/courses-offering/leadership")
+                        .hasAnyRole("DEAN", "HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
                         // Quyền GIẢNG VIÊN (Teacher / Main Lecturer)
                         .requestMatchers(
 
@@ -52,7 +83,7 @@ public class SecurityConfig {
                                 "/api/v1/course-service/questions/**",
                                 "/api/v1/course-service/obe/**",
                                 "/api/v1/course-service/syllabus/**"
-                        ).hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER","DEAN","HEAD_OF_DEPARTMENT")
+                        ).hasAnyRole("ADMIN", "TEACHER", "MAIN_LECTURER", "DEAN", "HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")
 
 
 

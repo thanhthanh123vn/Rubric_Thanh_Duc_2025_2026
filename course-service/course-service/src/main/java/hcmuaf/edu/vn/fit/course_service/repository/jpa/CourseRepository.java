@@ -55,21 +55,24 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             ON ac.assessment_id = a.assessment_id
         JOIN submissions sub
             ON sub.assessment_id = a.assessment_id
-        JOIN grades g
+        JOIN db_grading.Grades g
             ON g.assessment_id = a.assessment_id
             AND g.student_id = sub.student_id
             AND g.submission_id = sub.submission_id
             AND g.status = 'GRADED'
-        JOIN rubric_criteria rc
+        JOIN db_rubric_service.rubric_criteria rc
             ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
-            AND rc.clo_id = ac.clo_id
+        JOIN assessment_criterion_clo criterion_clo
+            ON criterion_clo.assessment_id = a.assessment_id
+            AND criterion_clo.criteria_id = rc.criteria_id
+            AND criterion_clo.clo_id = ac.clo_id
         JOIN (
             SELECT criteria_id, MAX(score) AS max_score
-            FROM rubric_levels
+            FROM db_rubric_service.rubric_levels
             GROUP BY criteria_id
         ) max_level
             ON max_level.criteria_id = rc.criteria_id
-        LEFT JOIN rubric_results rr
+        LEFT JOIN db_grading.rubric_results rr
             ON rr.submission_id = g.submission_id
             AND rr.criteria_id = rc.criteria_id
         WHERE a.offering_id = :offeringId
@@ -121,7 +124,7 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             2
         ) AS score
     FROM enrollments e
-    JOIN students s
+    JOIN db_user.sinh_vien s
         ON s.student_id = e.student_id
     LEFT JOIN (
         SELECT
@@ -140,21 +143,24 @@ public interface CourseRepository extends JpaRepository<Course, String> {
             AND ac.clo_id = :cloId
         JOIN submissions sub
             ON sub.assessment_id = a.assessment_id
-        JOIN grades g
+        JOIN db_grading.Grades g
             ON g.assessment_id = a.assessment_id
             AND g.student_id = sub.student_id
             AND g.submission_id = sub.submission_id
             AND g.status = 'GRADED'
-        JOIN rubric_criteria rc
+        JOIN db_rubric_service.rubric_criteria rc
             ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
-            AND rc.clo_id = ac.clo_id
+        JOIN assessment_criterion_clo criterion_clo
+            ON criterion_clo.assessment_id = a.assessment_id
+            AND criterion_clo.criteria_id = rc.criteria_id
+            AND criterion_clo.clo_id = ac.clo_id
         JOIN (
             SELECT criteria_id, MAX(score) AS max_score
-            FROM rubric_levels
+            FROM db_rubric_service.rubric_levels
             GROUP BY criteria_id
         ) max_level
             ON max_level.criteria_id = rc.criteria_id
-        LEFT JOIN rubric_results rr
+        LEFT JOIN db_grading.rubric_results rr
             ON rr.submission_id = g.submission_id
             AND rr.criteria_id = rc.criteria_id
         WHERE a.offering_id = :offeringId
@@ -221,21 +227,24 @@ public interface CourseRepository extends JpaRepository<Course, String> {
                 ON ac.assessment_id = a.assessment_id
             JOIN submissions sub
                 ON sub.assessment_id = a.assessment_id
-            JOIN grades g
+            JOIN db_grading.Grades g
                 ON g.assessment_id = a.assessment_id
                 AND g.student_id = sub.student_id
                 AND g.submission_id = sub.submission_id
                 AND g.status = 'GRADED'
-            JOIN rubric_criteria rc
+            JOIN db_rubric_service.rubric_criteria rc
                 ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
-                AND rc.clo_id = ac.clo_id
+            JOIN assessment_criterion_clo criterion_clo
+                ON criterion_clo.assessment_id = a.assessment_id
+                AND criterion_clo.criteria_id = rc.criteria_id
+                AND criterion_clo.clo_id = ac.clo_id
             JOIN (
                 SELECT criteria_id, MAX(score) AS max_score
-                FROM rubric_levels
+                FROM db_rubric_service.rubric_levels
                 GROUP BY criteria_id
             ) max_level
                 ON max_level.criteria_id = rc.criteria_id
-            LEFT JOIN rubric_results rr
+            LEFT JOIN db_grading.rubric_results rr
                 ON rr.submission_id = g.submission_id
                 AND rr.criteria_id = rc.criteria_id
             WHERE a.offering_id = :offeringId
@@ -255,18 +264,47 @@ public interface CourseRepository extends JpaRepository<Course, String> {
     // 5. ASSESSMENT MAPPING (OK)
     // =========================================================
     @Query(value = """
-    SELECT 
+    SELECT
         a.assessment_id,
         a.assessment_name,
-        COALESCE(ac.clo_weight, a.weight, 0) AS clo_weight
-
+        COALESCE(ac.clo_weight, a.weight, 0) AS clo_weight,
+        ROUND(
+            COALESCE(
+                SUM(rr.calculated_score)
+                / NULLIF(SUM(max_level.max_score * CASE WHEN rc.weight > 1 THEN rc.weight / 100 ELSE rc.weight END), 0)
+                * 100,
+                0
+            ),
+            2
+        ) AS achievement_percent
     FROM assessments a
-
-    JOIN assessment_clo ac 
+    JOIN assessment_clo ac
         ON ac.assessment_id = a.assessment_id
-
+    LEFT JOIN submissions sub
+        ON sub.assessment_id = a.assessment_id
+    LEFT JOIN db_grading.Grades g
+        ON g.assessment_id = a.assessment_id
+        AND g.submission_id = sub.submission_id
+        AND g.student_id = sub.student_id
+        AND g.status = 'GRADED'
+    JOIN db_rubric_service.rubric_criteria rc
+        ON rc.rubric_id = COALESCE(NULLIF(g.rubric_id, ''), NULLIF(sub.rubric_id, ''), a.rubric_id)
+    JOIN assessment_criterion_clo criterion_clo
+        ON criterion_clo.assessment_id = a.assessment_id
+        AND criterion_clo.criteria_id = rc.criteria_id
+        AND criterion_clo.clo_id = ac.clo_id
+    LEFT JOIN (
+        SELECT criteria_id, MAX(score) AS max_score
+        FROM db_rubric_service.rubric_levels
+        GROUP BY criteria_id
+    ) max_level
+        ON max_level.criteria_id = rc.criteria_id
+    LEFT JOIN db_grading.rubric_results rr
+        ON rr.submission_id = g.submission_id
+        AND rr.criteria_id = rc.criteria_id
     WHERE ac.clo_id = :cloId
       AND a.offering_id = :offeringId
+    GROUP BY a.assessment_id, a.assessment_name, ac.clo_weight, a.weight
     """, nativeQuery = true)
     List<Object[]> getAssessmentByCLO(
             @Param("offeringId") String offeringId,

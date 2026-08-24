@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import CreateRubricModal from "@/features/rubric/components/CreateRubricModal.tsx";
+import RestoreRubricVersionDialog from "@/features/rubric/components/RestoreRubricVersionDialog.tsx";
 import { getMyRubrics, getRubricForEdit, revertRubricHead } from "@/features/rubric/rubricApi.ts";
 
 type Rubric = {
@@ -26,6 +27,7 @@ export default function RubricVersionList() {
     const [editRubric, setEditRubric] = useState<any | null>(null);
     const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
     const [movingHead, setMovingHead] = useState<string | null>(null);
+    const [restoreCandidate, setRestoreCandidate] = useState<Rubric | null>(null);
 
     const fetchRubrics = async () => {
         try {
@@ -54,15 +56,27 @@ export default function RubricVersionList() {
         finally { setLoadingEdit(null); }
     };
 
-    const moveHead = async (version: Rubric) => {
-        if (!window.confirm(`Chuyển HEAD về v${version.versionNumber}? Các version và nhánh hiện có vẫn được giữ nguyên.`)) return;
+    const nextRestoreVersion = restoreCandidate ? Math.max(
+        ...rubrics
+            .filter((item) => (item.rootRubricId || item.id) === (restoreCandidate.rootRubricId || restoreCandidate.id))
+            .map((item) => item.versionNumber || 1),
+    ) + 1 : 1;
+
+    const restoreVersion = async () => {
+        if (!restoreCandidate) return;
+        const version = restoreCandidate;
+        const rootId = version.rootRubricId || version.id;
+        const versions = rubrics.filter((item) => (item.rootRubricId || item.id) === rootId);
+        const nextVersion = Math.max(...versions.map((item) => item.versionNumber || 1)) + 1;
         try {
             setMovingHead(version.id);
-            await revertRubricHead(version.id);
+            const response = await revertRubricHead(version.id);
             await fetchRubrics();
-            toast.success(`Đã chuyển HEAD về v${version.versionNumber}`);
+            const restoredVersion = response.data?.data?.versionNumber ?? nextVersion;
+            setRestoreCandidate(null);
+            toast.success(`Đã tạo v${restoredVersion} và gửi Trưởng khoa duyệt`);
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Không thể chuyển HEAD");
+            toast.error(error?.response?.data?.message || "Không thể khôi phục version");
         } finally {
             setMovingHead(null);
         }
@@ -103,7 +117,7 @@ export default function RubricVersionList() {
                                     <Link to={`/mainlecturer/rubric/${version.id}`} className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 hover:text-green-700">{version.name}</Link>
                                     {version.currentHead
                                         ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold text-green-700">HEAD</span>
-                                        : <button disabled={movingHead === version.id} onClick={() => void moveHead(version)} title="Chỉ chuyển HEAD, không xóa các nhánh version" className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-green-300 hover:bg-green-50 hover:text-green-700 disabled:opacity-50"><RotateCcw className="h-3 w-3"/>Revert</button>}
+                                        : version.status !== "PENDING" && <button disabled={movingHead === version.id} onClick={() => setRestoreCandidate(version)} title="Tạo version mới từ nội dung version này" className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-green-300 hover:bg-green-50 hover:text-green-700 disabled:opacity-50"><RotateCcw className="h-3 w-3"/>Khôi phục</button>}
                                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusStyle[version.status]}`}>{statusLabel[version.status]}</span>
                                     <span className="w-12 text-right font-mono text-xs font-bold text-slate-600">v{version.versionNumber || 1}</span>
                                 </div>)}
@@ -114,6 +128,15 @@ export default function RubricVersionList() {
             </div>
             {showCreate && <CreateRubricModal open onClose={() => setShowCreate(false)} onSuccess={() => void fetchRubrics()}/>} 
             {editRubric && <CreateRubricModal open rubric={editRubric} onClose={() => setEditRubric(null)} onSuccess={() => void fetchRubrics()}/>} 
+            <RestoreRubricVersionDialog
+                open={Boolean(restoreCandidate)}
+                rubricName={restoreCandidate?.name}
+                sourceVersion={restoreCandidate?.versionNumber || 1}
+                nextVersion={nextRestoreVersion}
+                submitting={Boolean(movingHead)}
+                onOpenChange={(open) => !open && setRestoreCandidate(null)}
+                onConfirm={() => void restoreVersion()}
+            />
         </div>
     );
 }

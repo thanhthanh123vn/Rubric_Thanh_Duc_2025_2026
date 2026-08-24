@@ -122,6 +122,7 @@ public class OBEService {
                         .assessmentId((String) r[0])
                         .assessmentName((String) r[1])
                         .weight(r[2] != null ? ((Number) r[2]).doubleValue() : 0)
+                        .achievementPercent(r[3] != null ? normalizePercent(((Number) r[3]).doubleValue()) : 0)
                         .build()
         ).toList();
 

@@ -13,7 +13,10 @@ public interface AssessmentPaperRepository extends MongoRepository<AssessmentPap
     Optional<AssessmentPaper> findByAssessmentId(String assessmentId);
 
     List<AssessmentPaper> findByLecturerId(String lecturerId);
+    List<AssessmentPaper> findByLecturerIdAndOfferingId(String lecturerId, String offeringId);
+    List<AssessmentPaper> findByLecturerIdAndOfferingIdIsNullAndSourceQuestionBankId(String lecturerId, String sourceQuestionBankId);
 
 
     List<AssessmentPaper> findByIdInAndSourceQuestionBankId(List<String> ids, String sourceQuestionBankId);
+    List<AssessmentPaper> findByIdInAndOfferingId(List<String> ids, String offeringId);
 }

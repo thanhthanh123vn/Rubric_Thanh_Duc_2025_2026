@@ -71,6 +71,7 @@ public class FacultyService {
                 .map(lecturer -> LecturerResponse.builder()
                         .lecturerId(lecturer.getLecturerId())
                         .fullName(lecturer.getUser().getFullName())
+                        .role(lecturer.getUser().getRole())
                         .department(lecturer.getDepartment().getDepartmentName()) // Vẫn giữ tên bộ môn cụ thể của GV
                         .build())
                 .toList();

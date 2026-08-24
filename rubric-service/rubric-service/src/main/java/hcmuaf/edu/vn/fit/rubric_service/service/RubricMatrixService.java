@@ -88,7 +88,14 @@ public class RubricMatrixService {
 
                 rubricLevel.setLevelName(levelRequest.getName());
                 rubricLevel.setCriteria(rubricCriteria);
-                rubricLevel.setScore(levelRequest.getScore() == null ? null : levelRequest.getScore().floatValue());
+                Float maxScore = levelRequest.getMaxScore() != null ? levelRequest.getMaxScore() : levelRequest.getScore();
+                Float minScore = levelRequest.getMinScore() != null ? levelRequest.getMinScore() : maxScore;
+                if (minScore == null || maxScore == null || minScore < 0 || maxScore > 10 || minScore > maxScore) {
+                    throw new IllegalArgumentException("Khoảng điểm rubric phải nằm trong 0-10 và điểm đầu không lớn hơn điểm cuối");
+                }
+                rubricLevel.setScore(maxScore);
+                rubricLevel.setMinScore(minScore);
+                rubricLevel.setMaxScore(maxScore);
                 rubricLevel.setDescription(levelRequest.getDescription());
 
                 if (levelRequest.getScore() == null && levelRequest.getDescription() == null) {
@@ -100,6 +107,8 @@ public class RubricMatrixService {
                             .findFirst()
                             .ifPresent(d -> {
                                 rubricLevel.setScore(d.getScore() == null ? null : d.getScore().floatValue());
+                                rubricLevel.setMinScore(rubricLevel.getScore());
+                                rubricLevel.setMaxScore(rubricLevel.getScore());
                                 rubricLevel.setDescription(d.getDescription());
                             });
                 }

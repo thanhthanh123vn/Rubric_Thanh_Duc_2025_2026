@@ -16,6 +16,7 @@ public record LecturerResponse(
         String gender,
         String cccd,
         String phoneNumber,
-        String address
+        String address,
+        String role
 
 ) {}

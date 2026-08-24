@@ -166,7 +166,7 @@ public class NotificationService {
         n.setContent("Giảng viên đã giao bài tập mới: " + assignmentTitle);
         n.setNotificationType(NotificationType.ASSIGNMENT_NEW);
         n.setLinkedResourceId(assignmentId);
-        n.setReferenceUrl("/courses/" + courseId + "/assignments/" + assignmentId);
+        n.setReferenceUrl("/course/" + courseId + "/assignments/" + assignmentId);
 
 
         return saveAndBroadcast(n);
@@ -218,7 +218,7 @@ public class NotificationService {
         n.setContent("Sinh viên " + studentName + " vừa nộp bài tập: " + assignmentTitle);
         n.setNotificationType(NotificationType.COURSE_ANNOUNCEMENT);
         n.setLinkedResourceId(submissionId);
-        n.setReferenceUrl("/course/" + courseId + "/submissions/" + submissionId);
+        n.setReferenceUrl("/teacher/course/" + courseId + "/assignments");
 
         return saveAndBroadcast(n);
     }

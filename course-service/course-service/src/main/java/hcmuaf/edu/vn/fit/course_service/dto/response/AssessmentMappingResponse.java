@@ -14,5 +14,6 @@ public class AssessmentMappingResponse {
     private String assessmentId;
     private String assessmentName;
     private double weight;
+    private double achievementPercent;
 
 }

@@ -312,6 +312,7 @@ public class AssessmentService {
                 .levelId(row[2] != null ? row[2].toString() : null)
                 .levelName(row[3] != null ? row[3].toString() : null)
                 .score(roundToSingleDecimal(row[4] instanceof Number number ? number.doubleValue() : null))
+                .rawScore(row.length > 6 && row[6] instanceof Number rawNumber ? rawNumber.doubleValue() : null)
                 .build();
     }
 
@@ -729,7 +730,8 @@ public class AssessmentService {
                             row[2] != null ? row[2].toString() : null,
                             row[3] != null ? row[3].toString() : null,
                             row[4] != null ? ((Number) row[4]).doubleValue() : null,
-                            row[5] != null ? ((Number) row[5]).doubleValue() : null
+                            row[5] != null ? ((Number) row[5]).doubleValue() : null,
+                            row.length > 6 && row[6] != null ? ((Number) row[6]).doubleValue() : null
                     ))
                     .toList();
             response.setRubricDetails(rubricDetails);

@@ -33,4 +33,10 @@ public class RubricLevel {
 
     @Column(name = "score")
     private Float score;
+
+    @Column(name = "min_score")
+    private Float minScore;
+
+    @Column(name = "max_score")
+    private Float maxScore;
 }

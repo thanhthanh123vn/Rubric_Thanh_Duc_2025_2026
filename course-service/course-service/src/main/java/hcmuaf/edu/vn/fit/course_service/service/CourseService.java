@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -282,6 +283,10 @@ public class CourseService {
 
     public CourseOfferingResponse assignLecturers(String offeringId, List<String> lecturerIds) {
 
+        if (lecturerIds == null || lecturerIds.size() != 1) {
+            throw new IllegalArgumentException("Phân công học phần phải chọn đúng một giảng viên chính. Trợ giảng do giảng viên chính quản lý sau khi phân công được duyệt.");
+        }
+
 
         CourseOffering offering = courseOfferingRepo.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Lớp học phần với ID: " + offeringId));
@@ -314,13 +319,43 @@ public class CourseService {
 
 
 
-        offering.setLecturerIds(lecturerIds);
+        String previousMainLecturerId = offering.getMainLecturerId() != null
+                ? offering.getMainLecturerId()
+                : offering.getLecturerId();
+        String mainLecturerId = lecturerIds.getFirst();
+        List<String> assistantIds = Objects.equals(previousMainLecturerId, mainLecturerId)
+                && offering.getTeachingAssistantIds() != null
+                ? new ArrayList<>(offering.getTeachingAssistantIds())
+                : new ArrayList<>();
+        offering.setMainLecturerId(mainLecturerId);
+        offering.setLecturerId(mainLecturerId);
+        List<String> managers = new ArrayList<>();
+        managers.add(mainLecturerId);
+        assistantIds.stream().filter(id -> !managers.contains(id)).forEach(managers::add);
+        offering.setLecturerIds(managers);
+        if (!Objects.equals(previousMainLecturerId, mainLecturerId)) {
+            offering.setTeachingAssistantIds(new ArrayList<>());
+        }
 
 
 
         CourseOffering savedOffering = courseOfferingRepo.save(offering);
+        CourseOfferingResponse response = courseMapper.toResponse(savedOffering);
+        List<LecturerInfo> managersInfo = managers.stream().map(this::getLecturerInfo).toList();
+        List<LecturerInfo> assistantsInfo = assistantIds.stream().map(this::getLecturerInfo).toList();
+        response.setLecturers(managersInfo);
+        response.setMainLecturer(getLecturerInfo(mainLecturerId));
+        response.setTeachingAssistants(assistantsInfo);
+        return response;
+    }
 
-        return courseMapper.toResponse(savedOffering);
+    private LecturerInfo getLecturerInfo(String lecturerId) {
+        try {
+            LecturerResponse lecturer = userClient.getLecturer(lecturerId);
+            return new LecturerInfo(lecturerId, lecturer.getFullName());
+        } catch (Exception exception) {
+            return new LecturerInfo(lecturerId, "Unknown lecturer");
+        }
     }
 
     public List<DashboardCourseResponse> getDashboardCoursesForTeacher(String userId) {

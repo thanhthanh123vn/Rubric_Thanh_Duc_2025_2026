@@ -9,7 +9,7 @@ import {
     BookOpen,
     LogOut,
     Bell,
-    UserPlus, Send, Inbox, ChevronDown, Presentation
+    UserPlus, Send, Inbox, ChevronDown, Presentation, UsersRound, Target
 } from 'lucide-react';
 import authService from "@/user/api/authService.ts";
 import { useAppSelector } from "@/hooks/useAppSelector";
@@ -17,10 +17,39 @@ import { NotificationBell } from "@/components/home/NotificationBell.tsx";
 
 const deanModuleLinks = [
     { path: '/dean', label: 'Tổng quan Khoa', icon: LayoutDashboard },
-    { path: '/dean/rubrics', label: 'Phê duyệt Rubric', icon: ClipboardCheck },
+    {
+        path: '/dean/rubrics',
+        label: 'Quản lý rubric',
+        icon: ClipboardCheck,
+        subItems: [
+            { label: 'Phê duyệt rubric', path: '/dean/rubrics/approvals', icon: ClipboardCheck },
+            { label: 'Rubric dùng chung', path: '/dean/rubrics/shared', icon: Library },
+            { label: 'Lịch sử version', path: '/dean/rubrics/versions', icon: Inbox },
+        ],
+    },
     { path: '/dean/obe', label: 'Phân Tích OBE', icon: ClipboardCheck },
+    { path: '/dean/plos', label: 'Quản lý PLO', icon: Library },
+    {
+        path: '/dean/clo',
+        label: 'Quản lý CLO',
+        icon: Target,
+        subItems: [
+            { label: 'CLO học phần', path: '/dean/clo', icon: Target },
+            { label: 'Duyệt CLO - PLO', path: '/dean/clo-plo-approvals', icon: ClipboardCheck },
+        ],
+    },
     { path: '/dean/reports', label: 'Báo cáo chất lượng', icon: BarChart3 },
     { path: '/dean/courses', label: 'Quản lý Môn học', icon: BookOpen },
+    {
+        path: '/dean/assignments',
+        label: 'Quản lý phân công',
+        icon: UsersRound,
+        subItems: [
+            { label: 'Xem phân công', path: '/dean/assignments/view', icon: BookOpen },
+            { label: 'Hồ sơ phân công', path: '/dean/assignments/records', icon: Send },
+            { label: 'Duyệt phân công', path: '/dean/assignments/approvals', icon: ClipboardCheck },
+        ],
+    },
     { label: 'Chế độ Giảng viên', path: '/teacher', icon: Presentation },
     {
         label: 'Thông Báo',
@@ -53,7 +82,11 @@ export default function DeanLayout() {
     const currentUser = reduxUser || JSON.parse(localStorage.getItem("user") || "{}");
 
     const inDetailView = location.pathname.includes('/detail/');
-    const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
+    const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
+        'Quản lý rubric': location.pathname.startsWith('/dean/rubrics'),
+        'Quản lý phân công': location.pathname.startsWith('/dean/assignments'),
+        'Quản lý CLO': location.pathname.startsWith('/dean/clo'),
+    });
 
     const toggleSubMenu = (label: string) => {
         setOpenMenus((prev) => ({

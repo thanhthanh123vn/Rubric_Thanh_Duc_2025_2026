@@ -35,6 +35,9 @@ public class RubricResult {
     @Column(name = "calculated_score")
     private Double calculatedScore;
 
+    @Column(name = "raw_score")
+    private Double rawScore;
+
     @Column(name = "lecturer_comment", columnDefinition = "text")
     private String lecturerComment;
 

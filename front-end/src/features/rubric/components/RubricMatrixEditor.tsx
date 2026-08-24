@@ -14,6 +14,8 @@ export interface RubricMatrixLevel {
     levelName: string;
     description: string;
     score: number;
+    minScore: number;
+    maxScore: number;
 }
 
 export interface RubricMatrixRow {
@@ -92,8 +94,10 @@ const createDefaultLevels = (): MatrixLevelDraft[] => {
     const seed = Date.now();
 
     return [
-        { id: `level-${seed}-1`, name: "Chua dat", orderIndex: 1, score: 0, description: "" },
-        { id: `level-${seed}-2`, name: "Dat", orderIndex: 2, score: 1, description: "" },
+        { id: `level-${seed}-1`, name: "Tốt", orderIndex: 1, score: 10, minScore: 9, maxScore: 10, description: "" },
+        { id: `level-${seed}-2`, name: "Khá", orderIndex: 2, score: 8, minScore: 7, maxScore: 8, description: "" },
+        { id: `level-${seed}-3`, name: "Trung bình", orderIndex: 3, score: 6, minScore: 4, maxScore: 6, description: "" },
+        { id: `level-${seed}-4`, name: "Kém", orderIndex: 4, score: 3.9, minScore: 0, maxScore: 3.9, description: "" },
     ];
 };
 
@@ -134,6 +138,8 @@ const createDraftFromMatrix = (matrix: RubricMatrixResponse | null): MatrixEdito
                     name: level.levelName,
                     orderIndex: levelIndex + 1,
                     score: level.score,
+                    minScore: level.minScore ?? level.score,
+                    maxScore: level.maxScore ?? level.score,
                     description: level.description,
                 })),
             ),
@@ -275,6 +281,8 @@ export default function RubricMatrixEditor({
                                 name: `Muc ${criterion.levels.length + 1}`,
                                 orderIndex: criterion.levels.length + 1,
                                 score: 0,
+                                minScore: 0,
+                                maxScore: 0,
                                 description: "",
                             },
                         ]),
@@ -326,7 +334,8 @@ export default function RubricMatrixEditor({
             && Math.abs(totalWeight - 100) < PERCENT_RATIO_EPSILON
             && draft.criteria.length > 0
             && draft.criteria.every((criterion) =>
-                criterion.name.trim() !== "" && criterion.cloId !== "" && criterion.levels.length > 0,
+                criterion.name.trim() !== "" && criterion.cloId !== "" && criterion.levels.length > 0
+                && criterion.levels.every((level) => level.minScore >= 0 && level.maxScore <= 10 && level.minScore <= level.maxScore),
             );
 
         if (!isValid) {
@@ -365,6 +374,8 @@ export default function RubricMatrixEditor({
                         name: level.name,
                         orderIndex: level.orderIndex,
                         score: Number(level.score) || 0,
+                        minScore: Number(level.minScore),
+                        maxScore: Number(level.maxScore),
                         description: level.description,
                     })),
                 })),

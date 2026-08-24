@@ -1,4 +1,4 @@
-    import React, { useState, useEffect } from 'react';
+    import { useState, useEffect, useMemo } from 'react';
     import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
     import { Input } from '@/components/ui/input';
     import { Button } from '@/components/ui/button';
@@ -6,32 +6,24 @@
     import { toast } from 'sonner';
     import { useParams, useNavigate } from 'react-router-dom';
     import { questionBankApi, type QuestionBankResponse } from '@/api/QuestionBankApi';
-    import { getAllClo } from '@/features/rubric/rubricApi';
     import { assessmentPaperApi, type GenerateExamRequest } from "@/api/assessmentApi.ts";
     import { FileEdit, ArrowLeft } from 'lucide-react';
     import {type Question, questionApi} from "@/api/questionApi.ts";
+    import courseService from "@/pages/admin/api/courseService.ts";
 
     export default function CreateExamPage() {
         const { id } = useParams();
         const navigate = useNavigate();
 
         const [banks, setBanks] = useState<QuestionBankResponse[]>([]);
-        const [cloItems, setCloItems] = useState<any[]>([]);
-        const isEditMode = !!id;
-        const [bankStats, setBankStats] = useState({
-            total: 0,
-            easy: 0,
-            medium: 0,
-            hard: 0
-        });
+        const [bankQuestions, setBankQuestions] = useState<Question[]>([]);
+        const [courseLabel, setCourseLabel] = useState("");
         const [isLoadingStats, setIsLoadingStats] = useState(false);
         const [config, setConfig] = useState({
-            offeringId:'',
             questionBankId: '',
             easyCount: 0,
             mediumCount: 0,
             hardCount: 0,
-            cloIds: [] as string[],
             examTitle: '',
             durationMinutes: 60,
             startTime: "",
@@ -42,15 +34,18 @@
         useEffect(() => {
             const loadData = async () => {
                 try {
-                    const [bankRes, cloRes] = await Promise.all([
+                    if (!id) throw new Error("Thiếu mã lớp học phần");
+                    const [bankRes, offering] = await Promise.all([
                         questionBankApi.getMyQuestionBanks(),
-                        getAllClo()
+                        courseService.getOffering(id),
                     ]);
-
-                    setBanks(bankRes || []);
-                    setCloItems(cloRes.data || []);
+                    const courseId = offering?.course?.courseId;
+                    if (!courseId) throw new Error("Không xác định được học phần của lớp");
+                    setBanks((bankRes || []).filter((bank) => bank.offeringId === id));
+                    setCourseLabel(`${offering.course.courseCode} - ${offering.course.courseName}`);
                 } catch (error) {
-                    toast.error("Lỗi khi tải dữ liệu cấu hình đề thi");
+                    console.error("Lỗi khi tải dữ liệu cấu hình đề thi:", error);
+                    toast.error("Không thể tải học phần và kho câu hỏi của lớp.");
                 }
             };
             loadData();
@@ -59,7 +54,7 @@
             const fetchBankQuestions = async () => {
                 // Nếu chưa chọn kho nào thì reset lại thống kê
                 if (!config.questionBankId) {
-                    setBankStats({ total: 0, easy: 0, medium: 0, hard: 0 });
+                    setBankQuestions([]);
                     return;
                 }
 
@@ -69,56 +64,28 @@
                     const response = await questionApi.getQuestionsByBankId(config.questionBankId);
 
                     // Tùy cấu trúc axios, thường dữ liệu nằm trong response.data hoặc chính response
-                    const questions: Question[] = response || response || [];
-
-                    // Đếm số lượng bằng filter
-                    const easyCount = questions.filter(q => q.difficulty === "EASY").length;
-                    const mediumCount = questions.filter(q => q.difficulty === "MEDIUM").length;
-                    const hardCount = questions.filter(q => q.difficulty === "HARD").length;
-
-                    setBankStats({
-                        total: questions.length,
-                        easy: easyCount,
-                        medium: mediumCount,
-                        hard: hardCount
-                    });
+                    const questions: Question[] = Array.isArray(response) ? response : [];
+                    setBankQuestions(questions.filter((question) => question.type === "MULTIPLE_CHOICE" && question.offeringId === id));
                 } catch (error) {
                     console.error("Lỗi khi lấy danh sách câu hỏi của kho:", error);
                     toast.error("Không thể tải thông tin thống kê của kho câu hỏi này.");
-                    setBankStats({ total: 0, easy: 0, medium: 0, hard: 0 });
+                    setBankQuestions([]);
                 } finally {
                     setIsLoadingStats(false);
                 }
             };
 
             fetchBankQuestions();
-        }, [config.questionBankId]);
-        const toggleClo = (cloCode: string) => {
-            setConfig(prev => {
-                const isSelected = prev.cloIds.includes(cloCode);
-                if (isSelected) {
-                    // Bỏ chọn nếu đã có
-                    return { ...prev, cloIds: prev.cloIds.filter(id => id !== cloCode) };
-                } else {
-                    // Thêm vào mảng nếu chưa có
-                    return { ...prev, cloIds: [...prev.cloIds, cloCode] };
-                }
-            });
-        };
-        const handleToggleAllClo = () => {
-            setConfig(prev => {
-
-                if (prev.cloIds.length === cloItems.length && cloItems.length > 0) {
-                    return { ...prev, cloIds: [] };
-                }
-
-                const allCloCodes = cloItems.map(c => c.cloCode);
-                return { ...prev, cloIds: allCloCodes };
-            });
-        };
+        }, [config.questionBankId, id]);
+        const bankStats = useMemo(() => ({
+            total: bankQuestions.length,
+            easy: bankQuestions.filter((question) => question.difficulty === "EASY").length,
+            medium: bankQuestions.filter((question) => question.difficulty === "MEDIUM").length,
+            hard: bankQuestions.filter((question) => question.difficulty === "HARD").length,
+        }), [bankQuestions]);
         const handleGenerate = async () => {
             if (!id) {
-                toast.error("Không tìm thấy ID bài đánh giá (Assessment)");
+                toast.error("Không tìm thấy mã lớp học phần");
                 return;
             }
             if (!config.examTitle.trim()) {
@@ -135,6 +102,10 @@
             }
             if (config.easyCount === 0 && config.mediumCount === 0 && config.hardCount === 0) {
                 toast.error("Vui lòng nhập số lượng câu hỏi cần tạo");
+                return;
+            }
+            if (config.easyCount > bankStats.easy || config.mediumCount > bankStats.medium || config.hardCount > bankStats.hard) {
+                toast.error("Kho câu hỏi không đủ số câu trắc nghiệm theo mức độ đã chọn");
                 return;
             }
             if (!config.startTime) {
@@ -157,6 +128,11 @@
                 toast.error("Thời gian kết thúc phải sau thời gian bắt đầu");
                 return;
             }
+            const availableMinutes = Math.floor((end.getTime() - start.getTime()) / 60000);
+            if (config.durationMinutes > availableMinutes) {
+                toast.error("Thời lượng làm bài không được lớn hơn khoảng thời gian mở đề");
+                return;
+            }
 
             const payload: GenerateExamRequest = {
                 offeringId: id,
@@ -164,9 +140,9 @@
                 easyCount: config.easyCount,
                 mediumCount: config.mediumCount,
                 hardCount: config.hardCount,
-                cloIds: config.cloIds.length > 0 ? config.cloIds : null,
+                cloIds: null,
                 examTitle: config.examTitle.trim(),
-                durationMinutes,
+                durationMinutes: config.durationMinutes,
                 startTime: new Date(config.startTime).toISOString(),
                 endTime: new Date(config.endTime).toISOString()
             };
@@ -178,23 +154,16 @@
                 navigate(-1);
             } catch (error: any) {
                 console.error("Lỗi tạo đề:", error);
-                const errorMsg = error.response?.data || "Đã xảy ra lỗi khi tạo đề thi";
+                const responseData = error.response?.data;
+                const errorMsg = typeof responseData === "string"
+                    ? responseData
+                    : responseData?.message || "Đã xảy ra lỗi khi tạo đề thi";
                 toast.error(errorMsg);
             } finally {
                 setIsSubmitting(false);
             }
         };
 
-        const getDurationMinutes = (startTime: string, endTime: string) => {
-            if (!startTime || !endTime) return 0;
-            const start = new Date(startTime).getTime();
-            const end = new Date(endTime).getTime();
-            if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return 0;
-            return Math.floor((end - start) / 60000);
-        };
-        const durationMinutes = getDurationMinutes(config.startTime, config.endTime);
-        console.log(banks);
-        const selectedBank = banks.find(bank => bank.id === config.questionBankId);
         return (
             <div className="w-full max-w-3xl mx-auto p-4 md:p-6 space-y-6">
                 <div className="flex items-center gap-4 mb-6">
@@ -209,13 +178,14 @@
                         <p className="text-sm text-slate-500 mt-1">
                             Cấu hình ma trận đề thi để hệ thống tự động bốc câu hỏi từ kho.
                         </p>
+                        {courseLabel ? <p className="mt-2 text-sm font-semibold text-blue-700">{courseLabel} · Lớp {id}</p> : null}
                     </div>
                 </div>
 
                 <Card className="shadow-sm border-slate-200">
                     <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
                         <CardTitle className="text-lg text-slate-800">Cấu hình ma trận đề</CardTitle>
-                        <CardDescription>Vui lòng chọn kho câu hỏi, chuẩn đầu ra và cấu trúc điểm.</CardDescription>
+                        <CardDescription>Chọn kho câu hỏi và số lượng câu theo độ khó. CLO được kế thừa từ từng câu hỏi trong kho.</CardDescription>
                     </CardHeader>
 
                     <CardContent className="p-4 md:p-6 space-y-6">
@@ -230,6 +200,14 @@
                                 value={config.examTitle}
                                 onChange={(e) => setConfig({...config, examTitle: e.target.value})}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700">
+                                Thời lượng làm bài (phút) <span className="text-red-500">*</span>
+                            </label>
+                            <Input type="number" min="1" value={config.durationMinutes} onChange={(e) => setConfig({...config, durationMinutes: Number(e.target.value)})} />
+                            <p className="text-xs text-slate-500">Thời lượng làm bài có thể ngắn hơn khoảng thời gian mở đề.</p>
                         </div>
 
                         {/*  Thời gian làm bài */}
@@ -260,7 +238,7 @@
                             <label className="text-sm font-semibold text-slate-700">
                                 1. Chọn Kho câu hỏi <span className="text-red-500">*</span>
                             </label>
-                            <Select onValueChange={(val) => setConfig({...config, questionBankId: val})}>
+                            <Select value={config.questionBankId} onValueChange={(val) => setConfig({...config, questionBankId: val, easyCount: 0, mediumCount: 0, hardCount: 0})}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="-- Nhấn để chọn kho câu hỏi --"/>
                                 </SelectTrigger>
@@ -273,7 +251,7 @@
                                 </SelectContent>
                             </Select>
 
-                            {/* Block hiển thị thống kê câu hỏi sau khi chọn kho */}
+                            {banks.length === 0 ? <p className="text-xs font-medium text-amber-700">Lớp này chưa có kho câu hỏi. Hãy tạo kho câu hỏi cho đúng lớp trước khi tạo đề.</p> : null}
                             {config.questionBankId && (
                                 <div
                                     className="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-md flex flex-col sm:flex-row sm:items-center justify-between text-sm gap-2 transition-all min-h-[50px]">
@@ -284,7 +262,7 @@
                                                 ) : (
                                                     <>
                         <span className="text-slate-700 font-medium">
-                            Tổng số câu hỏi có sẵn: <span
+                            Tổng câu trắc nghiệm phù hợp: <span
                             className="text-indigo-700 font-bold text-base ml-1">{bankStats.total}</span>
                         </span>
                                             <div
@@ -307,59 +285,8 @@
                                 </div>
                             )}
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label className="text-sm font-semibold text-slate-700">
-                                    2. Chọn các Chuẩn đầu ra (CLO)
-                                </label>
-                                {/* Nút Chọn tất cả / Bỏ chọn tất cả */}
-                                {cloItems.length > 0 && (
-                                    <button
-                                        type="button"
-                                        onClick={handleToggleAllClo}
-                                        className="text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                                    >
-                                        {config.cloIds.length === cloItems.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
-                                    </button>
-                                )}
-                            </div>
-
-                            <div
-                                className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-md max-h-48 overflow-y-auto">
-                                {cloItems.length > 0 ? (
-                                    cloItems.map(c => (
-                                        <label
-                                            key={c.cloId}
-                                            className="flex items-center space-x-2 cursor-pointer group"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 transition-colors"
-                                                checked={config.cloIds.includes(c.cloCode)}
-                                                onChange={() => toggleClo(c.cloCode)}
-                                            />
-                                            <span
-                                                className="text-sm text-slate-700 group-hover:text-blue-600 transition-colors">
-                                            {c.cloCode}
-                                        </span>
-                                        </label>
-                                    ))
-                                ) : (
-                                    <span className="text-sm text-slate-500 italic col-span-full">
-                                        Chưa có chuẩn đầu ra nào được tải.
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-slate-500">
-                                * Bỏ trống nếu muốn lấy câu hỏi từ tất cả các chuẩn đầu ra. Đã chọn:
-                                <span className="font-semibold text-blue-600 ml-1">
-                                    {config.cloIds.length} / {cloItems.length}
-                                </span>
-                            </p>
-                        </div>
-
                         <div className="space-y-3">
-                            <label className="text-sm font-semibold text-slate-700">3. Số lượng câu hỏi theo mức
+                            <label className="text-sm font-semibold text-slate-700">2. Số lượng câu hỏi theo mức
                                 độ <span
                                     className="text-red-500">*</span></label>
                             <div
@@ -367,16 +294,19 @@
                                 <div className="space-y-2">
                                     <label className="text-sm text-slate-600 font-medium">Mức độ Dễ</label>
                                     <Input type="number" min="0" placeholder="0" className="bg-white"
+                                           value={config.easyCount}
                                            onChange={(e) => setConfig({...config, easyCount: +e.target.value})}/>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm text-slate-600 font-medium">Mức độ Trung bình</label>
                                     <Input type="number" min="0" placeholder="0" className="bg-white"
+                                           value={config.mediumCount}
                                            onChange={(e) => setConfig({...config, mediumCount: +e.target.value})}/>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm text-slate-600 font-medium">Mức độ Khó</label>
                                     <Input type="number" min="0" placeholder="0" className="bg-white"
+                                           value={config.hardCount}
                                            onChange={(e) => setConfig({...config, hardCount: +e.target.value})}/>
                                 </div>
                             </div>

@@ -17,4 +17,5 @@ public class SubmissionCriterionScoreResponse {
     private String levelId;
     private String levelName;
     private Double score;
+    private Double rawScore;
 }
