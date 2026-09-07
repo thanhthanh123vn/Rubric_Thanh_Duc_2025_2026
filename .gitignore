@@ -47,7 +47,10 @@ Thumbs.db
 # Local data, backups, and generated database dumps
 backups/
 uploads/
-docker/mysql/init/*.sql
+/docker/
+
+# Project notes and generated documentation
+*.md
 
 # Locally generated CV/export files
 /22130050*.html
