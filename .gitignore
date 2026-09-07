@@ -1,6 +1,59 @@
-.idea
-/.idea
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+optional-integrations.txt
+
+# Dependencies and generated build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+target/
+**/target/
+build/
+**/build/
+coverage/
+**/coverage/
+
+# IDE and editor metadata
 .idea/
-.env.docker
-docker/mysql/init/*.sql
+**/.idea/
+.vscode/
+**/.vscode/
+*.iml
+*.iws
+*.ipr
+*.suo
+
+# Logs, caches, and temporary files
+*.log
+*.tmp
+*.temp
+*.cache
+*.pid
+.cache/
+.pytest_cache/
+**/__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+
+# Local data, backups, and generated database dumps
 backups/
+uploads/
+docker/mysql/init/*.sql
+
+# Locally generated CV/export files
+/22130050*.html
+/22130050*.pdf
+
+# Local Codex/agent tooling
+/.agents/
+/.codex/
+/.tools/

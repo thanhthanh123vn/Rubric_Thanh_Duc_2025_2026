@@ -1,5 +1,20 @@
 # Đặc tả các Use Case cốt lõi
 
+## Bộ sơ đồ nghiệp vụ Rubric và chống gian lận
+
+Các sequence diagram trong nhóm này dùng cấu trúc lớp tổng quát thống nhất:
+`Page (boundary) -> Controller (control) -> Service (control) -> Repository/Client`.
+
+| Chức năng | Activity | Sequence |
+|---|---|---|
+| Tạo Rubric | [activity](UC14_TaoRubric/activity.png) | [sequence](UC14_TaoRubric/sequence.png) |
+| Phê duyệt Rubric | [activity](UC30_DuyetRubric/activity.png) | [sequence](UC30_DuyetRubric/sequence.png) |
+| Phê duyệt CLO | [activity](UC31_DuyetCLO/activity.png) | [sequence](UC31_DuyetCLO/sequence.png) |
+| Chống gian lận GPS + QR | [activity](UC07_ChongGianLanGPSQR/activity.png) | [sequence](UC07_ChongGianLanGPSQR/sequence.png) |
+| Tạo version Rubric | [activity](UC32_TaoVersionRubric/activity.png) | [sequence](UC32_TaoVersionRubric/sequence.png) |
+
+---
+
 ## Danh sách chức năng được chọn
 
 | Mã | Chức năng | Tác nhân chính |

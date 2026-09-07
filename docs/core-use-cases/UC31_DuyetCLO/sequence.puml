@@ -1,0 +1,43 @@
+@startuml
+autonumber
+title UC-31 Phê duyệt CLO
+
+actor "Trưởng khoa" as Dean
+boundary "CloApprovalPage" as Page
+control "CloPloApprovalController" as Controller
+control "CloPloApprovalService" as Service
+participant "UserClient" as UserClient
+database "CourseCLORepository" as CloRepo
+database "CourseRepository" as CourseRepo
+
+Dean -> Page : Mở danh sách CLO chờ duyệt
+Page -> Controller : approvals(PENDING_REVIEW)
+Controller -> Service : getForApproval(status, reviewerId)
+Service -> UserClient : getFacultyAndDepartments(reviewerId)
+UserClient --> Service : Phạm vi khoa
+Service -> CloRepo : findPendingByCourseIds(courseIds)
+CloRepo --> Service : Danh sách CLO
+Service --> Page : CloPloSubmissionResponse[]
+
+Dean -> Page : Phê duyệt / Từ chối CLO
+Page -> Controller : review("CLO:" + cloId, request)
+Controller -> Service : review(submissionId, reviewerId, request)
+Service -> CloRepo : findById(cloId)
+CloRepo --> Service : CourseCLO
+Service -> CourseRepo : kiểm tra học phần thuộc khoa
+
+alt Không đúng quyền hoặc không còn PENDING_REVIEW
+  Service --> Controller : Security/State Exception
+  Controller --> Page : Thông báo không thể xử lý
+else Từ chối nhưng thiếu lý do
+  Service --> Controller : ValidationException
+  Controller --> Page : Yêu cầu nhập lý do
+else Yêu cầu hợp lệ
+  Service -> UserClient : getUser(reviewerId)
+  UserClient --> Service : Thông tin người duyệt
+  Service -> CloRepo : save(APPROVED/REJECTED, review metadata)
+  CloRepo --> Service : CLO đã cập nhật
+  Service --> Page : CloPloSubmissionResponse
+  Page --> Dean : Hiển thị kết quả
+end
+@enduml

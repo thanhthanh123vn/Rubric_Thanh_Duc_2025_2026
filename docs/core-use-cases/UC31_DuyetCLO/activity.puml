@@ -1,0 +1,32 @@
+@startuml
+title UC-31 Phê duyệt CLO
+
+|Trưởng khoa|
+start
+:Mở danh sách CLO chờ duyệt;
+
+|Hệ thống|
+:Tải các CLO thuộc phạm vi khoa;
+
+|Trưởng khoa|
+:Chọn một CLO;
+:Xem mã, mô tả và mức Bloom;
+if (Chấp thuận CLO?) then (Có)
+  :Chọn Phê duyệt;
+else (Không)
+  :Chọn Từ chối;
+  :Nhập lý do từ chối;
+endif
+
+|Hệ thống|
+:Kiểm tra trạng thái và quyền theo khoa;
+if (Yêu cầu hợp lệ?) then (Có)
+  :Cập nhật APPROVED hoặc REJECTED;
+  :Lưu người duyệt và thời gian;
+  :Trả kết quả xử lý;
+else (Không)
+  :Giữ nguyên CLO;
+  :Thông báo lỗi quyền, trạng thái hoặc lý do;
+endif
+stop
+@enduml
