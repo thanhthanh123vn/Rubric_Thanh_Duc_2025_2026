@@ -1,1 +1,0 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"e4ddea9841094a4fa8cae62001b9191f","collectionName":"student_exam_assignments","type":"collection"}
