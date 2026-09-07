@@ -1,12 +1,8 @@
 # Local secrets and environment overrides
 .env
 .env.*
-!.env.example
-!.env.*.example
 **/.env
 **/.env.*
-!**/.env.example
-!**/.env.*.example
 optional-integrations.txt
 
 # Dependencies and generated build output
@@ -51,6 +47,8 @@ uploads/
 
 # Project notes and generated documentation
 *.md
+*.doc
+*.docx
 
 # Locally generated CV/export files
 /22130050*.html
