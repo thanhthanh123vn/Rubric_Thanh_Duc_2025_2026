@@ -40,31 +40,9 @@ Kết quả của khóa luận là một hệ thống web full-stack có khả n
 
 ## Kiến trúc hệ thống
 
-```mermaid
-flowchart LR
-    Client[React Web / PWA] --> Gateway[API Gateway]
-    Gateway --> User[User Service]
-    Gateway --> Course[Course Service]
-    Gateway --> Rubric[Rubric Service]
-    Gateway --> Grading[Grading Service]
-    Gateway --> Notification[Notification Service]
 
-    Eureka[Eureka Server] -. Service discovery .-> Gateway
-    Eureka -.-> User
-    Eureka -.-> Course
-    Eureka -.-> Rubric
-    Eureka -.-> Grading
-    Eureka -.-> Notification
+<img width="921" height="704" alt="image" src="https://github.com/user-attachments/assets/8d52dfee-60a7-4526-93c1-d5e966e2ad13" />
 
-    User --> MySQL[(MySQL)]
-    Course --> MySQL
-    Course --> MongoDB[(MongoDB)]
-    Rubric --> MySQL
-    Grading --> MySQL
-    Notification --> MySQL
-    Notification --> MongoDB
-    Gateway --> Redis[(Redis)]
-```
 
 ### Phân rã dịch vụ
 
