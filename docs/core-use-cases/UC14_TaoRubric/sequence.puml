@@ -1,0 +1,43 @@
+@startuml
+autonumber
+title UC-14.1 Tạo Rubric
+
+actor "Giảng viên" as Lecturer
+boundary "RubricEditorPage" as Page
+control "RubricController" as Controller
+control "RubricService" as Service
+participant "UserClient" as UserClient
+database "RubricRepository" as RubricRepo
+database "CriteriaRepository" as CriteriaRepo
+database "LevelRepository" as LevelRepo
+database "ApprovalRecordRepository" as ApprovalRepo
+
+Lecturer -> Page : Nhập Rubric, tiêu chí và mức
+Lecturer -> Page : Lưu nháp / Gửi duyệt
+Page -> Controller : createRubric(request)
+Controller -> Service : createRubric(lecturerId, request)
+Service -> UserClient : getLecturerByUserId(lecturerId)
+UserClient --> Service : Thông tin giảng viên
+Service -> Service : validate(request)
+
+alt Giảng viên hoặc dữ liệu không hợp lệ
+  Service --> Controller : ValidationException
+  Controller --> Page : 400 + thông báo lỗi
+  Page --> Lecturer : Hiển thị dữ liệu cần sửa
+else Hợp lệ
+  Service -> RubricRepo : save(rubric v1, DRAFT/PENDING)
+  RubricRepo --> Service : Rubric đã tạo
+  loop Mỗi tiêu chí
+    Service -> CriteriaRepo : save(criteria)
+    loop Mỗi mức đánh giá
+      Service -> LevelRepo : save(level)
+    end
+  end
+  opt Gửi duyệt ngay
+    Service -> ApprovalRepo : save(approvalRecord PENDING)
+  end
+  Service --> Controller : Rubric
+  Controller --> Page : 200 + kết quả
+  Page --> Lecturer : Thông báo tạo thành công
+end
+@enduml

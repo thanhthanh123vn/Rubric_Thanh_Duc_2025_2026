@@ -1,0 +1,28 @@
+@startuml
+title UC-32 Tạo version Rubric
+
+|Giảng viên chính|
+start
+:Chọn Rubric nguồn;
+:Chọn Tạo version / Chỉnh sửa version;
+:Cập nhật thông tin, tiêu chí và mức đánh giá;
+:Gửi version mới;
+
+|Hệ thống|
+:Kiểm tra vai trò và quyền sở hữu;
+:Kiểm tra trạng thái Rubric nguồn;
+:Kiểm tra version có ít nhất một tiêu chí;
+if (Điều kiện hợp lệ?) then (Có)
+  :Xác định rootRubricId và version kế tiếp;
+  :Tạo Rubric mới liên kết parentRubricId;
+  :Lưu tiêu chí và mức đánh giá mới;
+  :Đặt trạng thái PENDING;
+  :Tạo hồ sơ phê duyệt;
+  :Cập nhật version head của giảng viên;
+  :Thông báo version đang chờ duyệt;
+else (Không)
+  :Không tạo version;
+  :Thông báo nguyên nhân;
+endif
+stop
+@enduml

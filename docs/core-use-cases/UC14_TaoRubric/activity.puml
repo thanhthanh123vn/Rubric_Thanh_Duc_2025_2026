@@ -1,0 +1,28 @@
+@startuml
+title UC-14.1 Tạo Rubric
+
+|Giảng viên|
+start
+:Mở chức năng tạo Rubric;
+:Nhập thông tin Rubric;
+:Thêm tiêu chí, trọng số và các mức đánh giá;
+:Chọn Lưu nháp hoặc Gửi duyệt;
+
+|Hệ thống|
+:Xác thực giảng viên;
+:Kiểm tra cấu trúc dữ liệu Rubric;
+if (Dữ liệu hợp lệ?) then (Có)
+  :Tạo Rubric phiên bản 1;
+  :Lưu tiêu chí và các mức đánh giá;
+  if (Gửi duyệt ngay?) then (Có)
+    :Đặt trạng thái PENDING;
+    :Tạo hồ sơ phê duyệt;
+  else (Không)
+    :Đặt trạng thái DRAFT;
+  endif
+  :Trả kết quả tạo Rubric;
+else (Không)
+  :Thông báo dữ liệu cần chỉnh sửa;
+endif
+stop
+@enduml

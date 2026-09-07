@@ -1,0 +1,52 @@
+@startuml
+autonumber
+title UC-07.1 Chống gian lận điểm danh bằng GPS + QR
+
+actor "Giảng viên" as Lecturer
+actor "Sinh viên" as Student
+boundary "AttendancePage" as Page
+control "AttendanceSessionController" as SessionController
+control "AttendanceSessionService" as SessionService
+control "StudentAttendanceController" as CheckInController
+control "StudentAttendanceService" as CheckInService
+database "AttendanceSessionRepository" as SessionRepo
+database "EnrollmentRepository" as EnrollmentRepo
+database "AttendanceRepository" as AttendanceRepo
+
+Lecturer -> Page : Tạo phiên với thời gian, GPS, bán kính
+Page -> SessionController : createAttendanceSession(request)
+SessionController -> SessionService : createAttendanceSession(request, userId)
+SessionService -> SessionRepo : findActiveByOffering(offeringId)
+alt Đã có phiên còn hiệu lực
+  SessionService --> Page : BadRequestException
+else Có thể tạo phiên
+  SessionService -> SessionService : generateSessionIdAndQrToken()
+  SessionService -> SessionRepo : save(session OPEN)
+  SessionRepo --> SessionService : Phiên đã lưu
+  SessionService --> Page : QR content + thời hạn
+end
+
+Student -> Page : Quét QR và cho phép GPS
+Page -> CheckInController : checkIn(qrContent, GPS, browserId)
+CheckInController -> CheckInService : checkIn(studentId, request, httpRequest)
+CheckInService -> CheckInService : parseQrContent()
+CheckInService -> SessionRepo : findById(sessionId)
+SessionRepo --> CheckInService : AttendanceSession
+CheckInService -> CheckInService : validateTokenStatusAndTime()
+CheckInService -> EnrollmentRepo : exists(studentId, offeringId)
+EnrollmentRepo --> CheckInService : Kết quả ghi danh
+CheckInService -> AttendanceRepo : exists(sessionId, studentId)
+AttendanceRepo --> CheckInService : Kết quả điểm danh trùng
+CheckInService -> CheckInService : calculateDistanceMeters(Haversine)
+
+alt Sai QR / hết hạn / sai lớp / trùng / ngoài bán kính
+  CheckInService --> CheckInController : BadRequestException
+  CheckInController --> Page : Từ chối + nguyên nhân
+  Page --> Student : Hiển thị thất bại
+else Hợp lệ
+  CheckInService -> AttendanceRepo : save(PRESENT, GPS, distance, browserId, IP)
+  AttendanceRepo --> CheckInService : Attendance
+  CheckInService --> Page : AttendanceCheckInResponse
+  Page --> Student : Điểm danh thành công
+end
+@enduml

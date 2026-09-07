@@ -1,0 +1,38 @@
+@startuml
+title UC-07.1 Chống gian lận điểm danh bằng GPS + QR
+
+|Giảng viên|
+start
+:Chọn lớp, thời gian, vị trí và bán kính;
+
+|Hệ thống|
+:Đóng các phiên đã hết hạn;
+if (Đã có phiên QR còn hiệu lực?) then (Có)
+  :Từ chối tạo phiên trùng;
+  stop
+else (Không)
+  :Sinh sessionId và QR token ngẫu nhiên;
+  :Lưu phiên ở trạng thái OPEN;
+  :Hiển thị mã QR;
+endif
+
+|Sinh viên|
+:Quét QR và cấp quyền GPS;
+:Gửi QR, tọa độ và mã trình duyệt;
+
+|Hệ thống|
+:Phân tích nội dung QR;
+:Kiểm tra sessionId, token và trạng thái OPEN;
+:Kiểm tra thời gian và sinh viên thuộc lớp;
+:Kiểm tra chưa điểm danh trong phiên;
+:Tính khoảng cách GPS bằng Haversine;
+if (Tất cả điều kiện hợp lệ?) then (Có)
+  :Lưu PRESENT cùng GPS, khoảng cách,
+  mã trình duyệt, User-Agent và IP;
+  :Thông báo điểm danh thành công;
+else (Không)
+  :Không tạo bản ghi điểm danh;
+  :Thông báo nguyên nhân bị từ chối;
+endif
+stop
+@enduml

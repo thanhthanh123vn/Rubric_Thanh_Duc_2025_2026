@@ -1,0 +1,46 @@
+@startuml
+autonumber
+title UC-32 Tạo version Rubric
+
+actor "Giảng viên chính" as MainLecturer
+boundary "RubricVersionEditorPage" as Page
+control "RubricController" as Controller
+control "RubricService" as Service
+participant "UserClient" as UserClient
+database "RubricRepository" as RubricRepo
+database "CriteriaRepository" as CriteriaRepo
+database "LevelRepository" as LevelRepo
+database "ApprovalRecordRepository" as ApprovalRepo
+database "VersionHeadRepository" as HeadRepo
+
+MainLecturer -> Page : Chọn Rubric và nhập nội dung version mới
+Page -> Controller : createEditedVersion(rubricId, request)
+Controller -> Service : createEditedVersion(sourceId, userId, request)
+Service -> UserClient : getUser(userId)
+UserClient --> Service : Vai trò người dùng
+Service -> RubricRepo : findSourceWithCriteriaAndLevels(sourceId)
+RubricRepo --> Service : Rubric nguồn
+Service -> Service : validateRoleOwnershipAndStatus()
+
+alt Không có quyền / nguồn đang PENDING / thiếu tiêu chí
+  Service --> Controller : Security/State/Validation Exception
+  Controller --> Page : 400/403/409 + thông báo
+  Page --> MainLecturer : Hiển thị nguyên nhân
+else Hợp lệ
+  Service -> RubricRepo : findMaxVersionNumber(rootRubricId)
+  RubricRepo --> Service : Version lớn nhất
+  Service -> RubricRepo : save(newVersion PENDING, rootId, parentId)
+  RubricRepo --> Service : Version đã tạo
+  loop Mỗi tiêu chí
+    Service -> CriteriaRepo : save(criteria)
+    loop Mỗi mức đánh giá
+      Service -> LevelRepo : save(level)
+    end
+  end
+  Service -> ApprovalRepo : save(approvalRecord PENDING)
+  Service -> HeadRepo : moveHead(rootId, lecturerId, newVersionId)
+  Service --> Controller : Rubric version mới
+  Controller --> Page : 200 + versionNumber
+  Page --> MainLecturer : Thông báo đang chờ duyệt
+end
+@enduml
